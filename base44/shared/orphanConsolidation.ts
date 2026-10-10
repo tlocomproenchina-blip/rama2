@@ -165,7 +165,7 @@ function isFilled(value: any): boolean {
 
 // Nota de trazabilidad que se deja en el paquete que se conserva: el tracking que
 // declaró el cliente no se pierde cuando el código escaneado es distinto.
-function buildMergeNote({ fresh, source, isPrealert }: { fresh: any; source: any; isPrealert: boolean }): string | null {
+function buildMergeNote({ fresh, source, isPrealert, isWholesaler }: { fresh: any; source: any; isPrealert: boolean; isWholesaler?: boolean }): string | null {
   const declared = String(source?.tracking_number || '').trim();
   const current = String(fresh?.tracking_number || '').trim();
   const parts: string[] = [];
@@ -173,6 +173,7 @@ function buildMergeNote({ fresh, source, isPrealert }: { fresh: any; source: any
     parts.push(`tracking declarado en ${isPrealert ? 'la pre-alerta' : 'la etiqueta'}: ${declared}`);
   }
   if (isPrealert) parts.push('pre-alerta unificada y retirada');
+  else if (isWholesaler) parts.push('pre-alerta del mayorista vinculada');
   if (parts.length === 0) return null;
   return `Unificado ${caracasStamp()}: ${parts.join('; ')}.`;
 }
@@ -212,16 +213,20 @@ async function relinkPackageReferences(base44: any, oldId: string, newId: string
 // Fusiona la pre-alerta con el huérfano recibido en un solo paquete.
 // `prealert` es el registro de pre-alerta a retirar; `label` la etiqueta TLEC cuando
 // no existe pre-alerta (en ese caso no hay nada que borrar, solo se vincula).
+// `claim` son los datos declarados que llegan sin registro propio (la pre-alerta que
+// reporta la app del mayorista): se copian igual, pero no hay nada que retirar.
 export async function consolidateOrphan({
   base44,
   orphan,
   prealert,
+  claim,
   label,
   shippingMark,
 }: {
   base44: any;
   orphan: any;
   prealert?: any;
+  claim?: any;
   label?: any;
   shippingMark?: string;
 }): Promise<{
@@ -229,7 +234,7 @@ export async function consolidateOrphan({
   merged_fields: string[];
   relinked: any[];
   removed_prealert_id: string | null;
-  source: 'prealert' | 'label';
+  source: 'prealert' | 'wholesaler' | 'label';
 }> {
   // Se relee el huérfano antes de tocar nada: si ya fue reclamado por otro proceso
   // (reclamo del cliente, otro empleado, otro lote de IA) no se repite la unificación.
@@ -238,8 +243,8 @@ export async function consolidateOrphan({
   if (!fresh) throw new Error('orphan_not_found');
   if (fresh.is_orphan !== true || fresh.client_email) throw new Error(ORPHAN_ALREADY_CLAIMED);
 
-  const source = prealert || (label ? labelAsPrealert(label, fresh.tracking_number) : null);
-  if (!source) throw new Error('Se necesita una pre-alerta o una etiqueta TLEC para unificar');
+  const source = prealert || claim || (label ? labelAsPrealert(label, fresh.tracking_number) : null);
+  if (!source) throw new Error('Se necesita una pre-alerta, los datos del mayorista o una etiqueta TLEC para unificar');
 
   const wasReceived = !!(fresh.warehouse_location_id || fresh.actual_weight_kg || fresh.received_date);
 
@@ -271,7 +276,7 @@ export async function consolidateOrphan({
   }
 
   // El tracking declarado y la unificación quedan anotados en el paquete conservado.
-  const mergeNote = buildMergeNote({ fresh, source, isPrealert: !!prealert });
+  const mergeNote = buildMergeNote({ fresh, source, isPrealert: !!prealert, isWholesaler: !!claim });
   if (mergeNote) {
     patch.reception_notes = fresh.reception_notes ? `${fresh.reception_notes}\n${mergeNote}` : mergeNote;
   }
@@ -300,7 +305,7 @@ export async function consolidateOrphan({
     merged_fields,
     relinked,
     removed_prealert_id,
-    source: prealert ? 'prealert' : 'label',
+    source: prealert ? 'prealert' : (claim ? 'wholesaler' : 'label'),
   };
 }
 

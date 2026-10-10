@@ -3,6 +3,7 @@
 // pre-alertas reportadas. Nunca crea paquetes al consultar/recepcionar, nunca
 // degrada un estado y deja cada movimiento marcado con el mayorista de origen.
 import { logWholesalerEvent, stampOf, truncate, updateConnection } from './wholesalerCore.ts';
+import { consolidateOrphan } from './orphanConsolidation.ts';
 
 const SOURCE_LABEL = 'App del mayorista';
 const MAX_TRACKINGS_PER_CALL = 50;
@@ -282,15 +283,60 @@ export async function reportPrealert(base44: any, payload: any, connection: any 
     };
   }
 
-  let existing = null;
+  let encontrados: any[] = [];
   if (tracking) {
-    const rows = await base44.asServiceRole.entities.Package.filter({ tracking_number: tracking }, '-created_date', 1);
-    existing = rows?.[0] || null;
+    encontrados = await base44.asServiceRole.entities.Package.filter({ tracking_number: tracking }, '-created_date', 5);
   }
-  if (!existing && labelCode) {
-    const rows = await base44.asServiceRole.entities.Package.filter({ label_code: labelCode }, '-created_date', 1);
-    existing = rows?.[0] || null;
+  if (encontrados.length === 0 && labelCode) {
+    encontrados = await base44.asServiceRole.entities.Package.filter({ label_code: labelCode }, '-created_date', 5);
   }
+
+  // El mismo envío puede haber llegado antes sin pre-alerta y quedar registrado
+  // como huérfano: si todavía no tiene cliente, esta pre-alerta lo reclama en vez
+  // de quedarse como duplicado sin asignar. La carga recibida no se toca: manda el
+  // registro del almacén, con sus fotos y sus datos de recepción.
+  const huerfano = encontrados.find((row) => row?.is_orphan === true && !String(row.client_email || '').trim());
+  if (huerfano) {
+    try {
+      const consolidado = await consolidateOrphan({
+        base44,
+        orphan: huerfano,
+        claim: {
+          client_email: client.email,
+          shipping_mark: client.shipping_mark || shippingMark,
+          tracking_number: tracking || labelCode,
+          ...(labelCode ? { label_code: labelCode } : {}),
+          shipping_type: shippingType,
+          risk_category: riskCategory,
+          package_count: packageCount,
+          description,
+        },
+      });
+      const vinculado = consolidado?.package || huerfano;
+      await logWholesalerEvent(base44, {
+        event_type: 'prealerta_reportada',
+        tracking_number: tracking || labelCode,
+        client_email: client.email,
+        shipping_mark: vinculado.shipping_mark || client.shipping_mark || shippingMark,
+        package_id: vinculado.id,
+        result: 'vinculada',
+        detail: 'Pre-alerta vinculada al paquete huérfano que ya estaba registrado con ese tracking',
+        ...stamp,
+      });
+      return {
+        ok: true,
+        resultado: 'vinculada',
+        package_id: vinculado.id,
+        shipping_mark: vinculado.shipping_mark || client.shipping_mark || shippingMark,
+        mensaje: 'La carga ya estaba recibida en el almacén: la pre-alerta quedó vinculada a su registro, sin duplicarlo.',
+      };
+    } catch (_) {
+      // Si otro proceso lo reclamó en el mismo momento, no se toca un envío ya
+      // asignado: se sigue con el conflicto normal de abajo.
+    }
+  }
+
+  const existing = encontrados[0] || null;
 
   if (existing) {
     await logWholesalerEvent(base44, {
