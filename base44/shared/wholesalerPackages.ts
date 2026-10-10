@@ -2,7 +2,7 @@
 // tracking, marcarlo como recibido en el almacén de China y registrar
 // pre-alertas reportadas. Nunca crea paquetes al consultar/recepcionar, nunca
 // degrada un estado y deja cada movimiento marcado con el mayorista de origen.
-import { logWholesalerEvent, stampOf, truncate, updateConnection } from './wholesalerCore.ts';
+import { connectionLabel, findConnectionById, logWholesalerEvent, stampOf, truncate, updateConnection } from './wholesalerCore.ts';
 import { consolidateOrphan } from './orphanConsolidation.ts';
 
 const SOURCE_LABEL = 'App del mayorista';
@@ -57,6 +57,26 @@ export function packagePhotos(pkg: any) {
     ...(Array.isArray(pkg?.package_image_urls) ? pkg.package_image_urls : []),
     pkg?.package_image_url,
     pkg?.product_image_url,
+  ];
+  const seen = new Set<string>();
+  const fotos: string[] = [];
+  for (const raw of urls) {
+    const url = String(raw || '').trim();
+    if (url && !seen.has(url)) {
+      seen.add(url);
+      fotos.push(url);
+    }
+  }
+  return fotos;
+}
+
+// Fotos de la recepción en el almacén de China: las que captura TLEC CARGO al
+// recibir la carga. Son la confirmación visual que se le manda al mayorista, así
+// que no se mezclan con la foto del producto que sube el cliente en su pre-alerta.
+export function receptionPhotos(pkg: any) {
+  const urls = [
+    ...(Array.isArray(pkg?.package_image_urls) ? pkg.package_image_urls : []),
+    pkg?.package_image_url,
   ];
   const seen = new Set<string>();
   const fotos: string[] = [];
@@ -135,17 +155,34 @@ export async function checkTracking(base44: any, tracking: string, connection: a
   };
 }
 
-// Marca el tracking como recibido en el almacén de China (idempotente).
-export async function receiveTracking(base44: any, tracking: string, connection: any = null) {
+// Marca el tracking como recibido en el almacén de China (idempotente). Si el aviso
+// del mayorista se adelantó a nuestro registro, la carga se guarda como una
+// pre-alerta normal (con su cliente, si lo reconocemos) y se marca recibida: así
+// ningún tracking que reporte el mayorista se queda por fuera de TLEC CARGO.
+export async function receiveTracking(base44: any, tracking: string, connection: any = null, options: any = {}) {
   const clean = cleanTracking(tracking);
   const now = new Date().toISOString();
+  const fecha = options?.fecha || now;
   const stamp = stampOf(connection);
 
   if (!clean) {
-    return { tracking: '', resultado: 'error', fotos: [], fotos_count: 0, mensaje: 'Falta el tracking: no se modificó nada.' };
+    return { tracking: '', resultado: 'error', creado: false, fotos: [], fotos_count: 0, mensaje: 'Falta el tracking: no se modificó nada.' };
   }
 
-  const pkg = await findPackageByTracking(base44, clean);
+  let pkg = await findPackageByTracking(base44, clean);
+  let creado = false;
+
+  if (!pkg && options?.create_if_missing === true) {
+    pkg = await createReportedPackage(base44, {
+      tracking: clean,
+      client_email: options?.client_email,
+      shipping_mark: options?.shipping_mark,
+      package_count: options?.package_count,
+      connection,
+    });
+    creado = !!pkg;
+  }
+
   if (!pkg) {
     await logWholesalerEvent(base44, {
       event_type: 'no_registrado',
@@ -154,7 +191,7 @@ export async function receiveTracking(base44: any, tracking: string, connection:
       detail: 'El tracking no está registrado: no se creó nada',
       ...stamp,
     });
-    return { tracking: clean, resultado: 'no_registrado', estado: null, huerfano: false, shipping_mark: '', fotos: [], fotos_count: 0, mensaje: 'El tracking no está registrado en TLEC CARGO: no se creó nada.' };
+    return { tracking: clean, resultado: 'no_registrado', creado: false, estado: null, huerfano: false, shipping_mark: '', fotos: [], fotos_count: 0, mensaje: 'El tracking no está registrado en TLEC CARGO: no se creó nada.' };
   }
 
   const pendingReception = pkg.status === 'pre_alerta' || (pkg.is_orphan === true && !pkg.received_date);
@@ -167,20 +204,24 @@ export async function receiveTracking(base44: any, tracking: string, connection:
       shipping_mark: pkg.shipping_mark || '',
       package_id: pkg.id,
       result: pkg.status || 'ya_registrado',
-      detail: 'Ya estaba registrado: no se modificó ni se devolvió de estado',
+      detail: creado
+        ? 'El tracking se guardó como pre-alerta y ya quedaba recibido'
+        : 'Ya estaba registrado: no se modificó ni se devolvió de estado',
       ...stamp,
     });
     return {
       tracking: clean,
       resultado: 'ya_registrado',
+      creado,
       ...describePackage(pkg),
+      foto_pendiente: receptionPhotos(pkg).length === 0,
       mensaje: `Ya estaba registrado con estado "${pkg.status}": no se modificó nada.`,
     };
   }
 
   const updated = await base44.asServiceRole.entities.Package.update(pkg.id, {
     status: 'recibido',
-    received_date: now,
+    received_date: fecha,
     received_by: SOURCE_LABEL,
   });
 
@@ -191,7 +232,9 @@ export async function receiveTracking(base44: any, tracking: string, connection:
     shipping_mark: updated?.shipping_mark || pkg.shipping_mark || '',
     package_id: pkg.id,
     result: 'recibido',
-    detail: 'Recepcionado desde la app del mayorista',
+    detail: creado
+      ? 'Tracking reportado por el mayorista que no estaba registrado: se guardó como pre-alerta y se marcó recibido'
+      : 'Recepcionado desde la app del mayorista',
     notify_pending: true,
     ...stamp,
   });
@@ -202,34 +245,60 @@ export async function receiveTracking(base44: any, tracking: string, connection:
     last_reception_status: 'recibido',
   });
 
-  const fotos = packagePhotos(updated || pkg);
+  const fotos = receptionPhotos(updated || pkg);
 
   return {
     tracking: clean,
     resultado: 'recibido',
+    creado,
     estado: 'recibido',
     huerfano: (updated?.is_orphan ?? pkg.is_orphan) === true,
     shipping_mark: updated?.shipping_mark || pkg.shipping_mark || '',
     package_id: pkg.id,
-    fecha: now,
+    fecha,
     log_id: log?.id || null,
     fotos,
     fotos_count: fotos.length,
-    mensaje: 'Marcado como recibido en el almacén de China.',
+    foto_pendiente: fotos.length === 0,
+    mensaje: creado
+      ? 'El tracking no estaba registrado: se guardó como pre-alerta y se marcó como recibido en el almacén de China.'
+      : 'Marcado como recibido en el almacén de China.',
   };
 }
 
 // Recepción de un bloque de trackings (una sola llamada de la app del mayorista).
-export async function receiveTrackingBlock(base44: any, trackings: any, connection: any = null) {
+export async function receiveTrackingBlock(base44: any, trackings: any, connection: any = null, defaults: any = {}) {
   const list = Array.isArray(trackings) ? trackings : [trackings];
-  const clean = Array.from(new Set(list.map(cleanTracking).filter(Boolean))).slice(0, MAX_TRACKINGS_PER_CALL);
+  const items: any[] = [];
+  const seen = new Set<string>();
+
+  for (const raw of list) {
+    const isText = typeof raw === 'string';
+    const tracking = cleanTracking(isText ? raw : (raw?.tracking ?? raw?.tracking_number));
+    if (!tracking || seen.has(tracking)) continue;
+    seen.add(tracking);
+    items.push({
+      tracking,
+      client_email: (isText ? '' : raw?.client_email) || defaults?.client_email || '',
+      shipping_mark: (isText ? '' : raw?.shipping_mark) || defaults?.shipping_mark || '',
+      package_count: isText ? null : raw?.package_count,
+      fecha: (isText ? null : (raw?.fecha || raw?.received_date)) || defaults?.fecha || null,
+    });
+    if (items.length >= MAX_TRACKINGS_PER_CALL) break;
+  }
 
   const resultados: any[] = [];
-  for (const tracking of clean) {
+  for (const item of items) {
     try {
-      resultados.push(await receiveTracking(base44, tracking, connection));
+      resultados.push(await receiveTracking(base44, item.tracking, connection, {
+        create_if_missing: true,
+        fecha: item.fecha || undefined,
+        client_email: item.client_email,
+        shipping_mark: item.shipping_mark,
+        package_count: item.package_count,
+      }));
     } catch (err: any) {
-      resultados.push({ tracking, resultado: 'error', mensaje: truncate(err?.message || 'No se pudo procesar el tracking.', 300) });
+      resultados.push({ tracking: item.tracking, resultado: 'error', creado: false, mensaje: truncate(err?.message || 'No se pudo procesar el tracking.', 300) });
     }
   }
 
@@ -237,7 +306,14 @@ export async function receiveTrackingBlock(base44: any, trackings: any, connecti
   const yaRegistrados = resultados.filter((r) => r.resultado === 'ya_registrado');
   const noRegistrados = resultados.filter((r) => r.resultado === 'no_registrado');
 
-  return { resultados, recibidos, yaRegistrados, noRegistrados };
+  return {
+    resultados,
+    recibidos,
+    yaRegistrados,
+    noRegistrados,
+    creados: resultados.filter((r) => r.creado === true).length,
+    sinFoto: resultados.filter((r) => r.foto_pendiente === true).length,
+  };
 }
 
 // Registra una pre-alerta reportada por la app del mayorista a nombre de su cliente.
@@ -283,19 +359,36 @@ export async function reportPrealert(base44: any, payload: any, connection: any 
     };
   }
 
-  let encontrados: any[] = [];
+  // Primero el tracking exacto: solo una coincidencia exacta puede reclamar un
+  // huérfano. Después se admiten las variantes del escáner (el tracking con el
+  // sufijo de caja recortado) para no dar de alta un duplicado del mismo envío.
+  const exactos: any[] = tracking
+    ? await base44.asServiceRole.entities.Package.filter({ tracking_number: tracking }, '-created_date', 5)
+    : [];
+  const encontrados: any[] = [...exactos];
+  const vistos = new Set(exactos.map((row) => row.id));
+  const sumar = (rows: any[]) => {
+    for (const row of rows || []) {
+      if (row?.id && !vistos.has(row.id)) {
+        vistos.add(row.id);
+        encontrados.push(row);
+      }
+    }
+  };
   if (tracking) {
-    encontrados = await base44.asServiceRole.entities.Package.filter({ tracking_number: tracking }, '-created_date', 5);
+    for (const candidato of buildTrackingCandidates(tracking).slice(1)) {
+      sumar(await base44.asServiceRole.entities.Package.filter({ tracking_number: candidato }, '-created_date', 5));
+    }
   }
-  if (encontrados.length === 0 && labelCode) {
-    encontrados = await base44.asServiceRole.entities.Package.filter({ label_code: labelCode }, '-created_date', 5);
+  if (labelCode) {
+    sumar(await base44.asServiceRole.entities.Package.filter({ label_code: labelCode }, '-created_date', 5));
   }
 
   // El mismo envío puede haber llegado antes sin pre-alerta y quedar registrado
   // como huérfano: si todavía no tiene cliente, esta pre-alerta lo reclama en vez
   // de quedarse como duplicado sin asignar. La carga recibida no se toca: manda el
   // registro del almacén, con sus fotos y sus datos de recepción.
-  const huerfano = encontrados.find((row) => row?.is_orphan === true && !String(row.client_email || '').trim());
+  const huerfano = exactos.find((row) => row?.is_orphan === true && !String(row.client_email || '').trim());
   if (huerfano) {
     try {
       const consolidado = await consolidateOrphan({
@@ -339,6 +432,11 @@ export async function reportPrealert(base44: any, payload: any, connection: any 
   const existing = encontrados[0] || null;
 
   if (existing) {
+    const registrado = String(existing.tracking_number || '').trim();
+    const esExacto = !tracking || registrado === tracking;
+    const motivo = esExacto
+      ? 'Ese tracking ya estaba registrado: no se tocó'
+      : `El mismo envío ya estaba registrado con el tracking ${registrado}: no se tocó`;
     await logWholesalerEvent(base44, {
       event_type: 'prealerta_duplicada',
       tracking_number: tracking || labelCode,
@@ -346,10 +444,17 @@ export async function reportPrealert(base44: any, payload: any, connection: any 
       shipping_mark: existing.shipping_mark || '',
       package_id: existing.id,
       result: existing.status || 'duplicado',
-      detail: 'Ese tracking ya estaba registrado: no se tocó',
+      detail: truncate(motivo, 900),
       ...stamp,
     });
-    return { ok: false, resultado: 'duplicado', mensaje: 'Ese tracking ya estaba registrado en TLEC CARGO: no se tocó nada.' };
+    return {
+      ok: false,
+      resultado: 'duplicado',
+      tracking_number: registrado,
+      mensaje: esExacto
+        ? 'Ese tracking ya estaba registrado en TLEC CARGO: no se tocó nada.'
+        : `El mismo envío ya estaba registrado con el tracking ${registrado}: no se tocó nada.`,
+    };
   }
 
   const created = await base44.asServiceRole.entities.Package.create({
@@ -383,5 +488,122 @@ export async function reportPrealert(base44: any, payload: any, connection: any 
     package_id: created?.id || null,
     shipping_mark: created?.shipping_mark || '',
     mensaje: 'Pre-alerta registrada en TLEC CARGO.',
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Cargas que el mayorista reporta y todavía no están en TLEC CARGO
+
+// Da de alta un tracking reportado por el mayorista que no existía en el sistema:
+// con su cliente reconocido queda como una pre-alerta normal a su nombre; si el
+// cliente no se reconoce no se descarta nada, la carga queda como huérfano para
+// asignarla desde el panel de huérfanos.
+async function createReportedPackage(base44: any, { tracking, client_email, shipping_mark, package_count, connection }: any) {
+  const prealerta = await reportPrealert(base44, {
+    tracking,
+    client_email,
+    shipping_mark,
+    package_count,
+    description: 'Carga reportada por el mayorista',
+  }, connection);
+
+  if (prealerta?.resultado === 'duplicado') return await findPackageByTracking(base44, tracking);
+
+  if (prealerta?.package_id) {
+    const rows = await base44.asServiceRole.entities.Package.filter({ id: prealerta.package_id }, '-created_date', 1);
+    if (rows?.[0]) return rows[0];
+  }
+
+  if (prealerta?.resultado !== 'cliente_no_encontrado') return null;
+
+  return await base44.asServiceRole.entities.Package.create({
+    tracking_number: tracking,
+    shipping_mark: String(shipping_mark || '').trim(),
+    shipping_type: 'maritimo',
+    risk_category: 'general',
+    package_count: Math.max(1, Number(package_count) || 1),
+    description: 'Carga reportada por el mayorista',
+    status: 'pre_alerta',
+    is_orphan: true,
+    reception_notes: 'El mayorista reportó esta carga y su cliente todavía no se reconoce: falta asignarla desde el panel de huérfanos.',
+  });
+}
+
+// A qué mayorista corresponde una carga: por sus movimientos registrados y, si no
+// hay ninguno, por el mayorista del que vino su cliente. Sin ese vínculo no se
+// avisa a nadie: no se inventan avisos para cargas de otros orígenes.
+export async function wholesalerTargetForPackage(base44: any, pkg: any) {
+  const tracking = String(pkg?.tracking_number || '').trim();
+  if (tracking) {
+    const logs = await base44.asServiceRole.entities.WholesalerLog
+      .filter({ tracking_number: tracking }, '-event_date', 10)
+      .catch(() => []);
+    const key = String(logs?.find((log: any) => log?.wholesaler_key)?.wholesaler_key || '').trim();
+    if (key) return await findConnectionById(base44, key);
+  }
+
+  const email = String(pkg?.client_email || '').trim().toLowerCase();
+  if (email) {
+    const rows = await base44.asServiceRole.entities.WholesalerClient
+      .filter({ email }, '-fetched_date', 5)
+      .catch(() => []);
+    const key = String(rows?.[0]?.wholesaler_key || '').trim();
+    if (key) return await findConnectionById(base44, key);
+  }
+
+  return null;
+}
+
+// Deja listo el aviso de recepción de una carga ya registrada, con la foto que
+// capturó TLEC CARGO en el almacén: se usa cuando el tracking se vincula a su
+// cliente después de haber entrado, para que el mayorista reciba la confirmación
+// visual. Si el aviso ya se le había mandado completo, no se repite.
+export async function queueReceptionNotice(base44: any, pkg: any, connection: any, by = '') {
+  if (!pkg?.id || !connection?.id) return null;
+
+  const fotos = receptionPhotos(pkg);
+  const existing = await base44.asServiceRole.entities.WholesalerLog
+    .filter({ event_type: 'recepcion', package_id: pkg.id }, '-event_date', 5)
+    .catch(() => []);
+  const log = existing?.[0] || null;
+
+  const yaAvisado = !!log?.notified_date && log?.photo_pending !== true;
+  if (yaAvisado) {
+    return {
+      log_id: log.id,
+      ya_avisado: true,
+      aviso_existente: true,
+      fotos,
+      fotos_count: fotos.length,
+      foto_pendiente: fotos.length === 0,
+    };
+  }
+
+  const detalle = `Recepción en el almacén confirmada al mayorista${pkg.client_email ? ` para ${pkg.client_email}` : ''}${by ? ` (${by})` : ''}`;
+  const patch: Record<string, any> = {
+    tracking_number: pkg.tracking_number || '',
+    client_email: pkg.client_email || '',
+    shipping_mark: pkg.shipping_mark || '',
+    package_id: pkg.id,
+    result: pkg.status || 'recibido',
+    detail: truncate(detalle, 900),
+    photo_pending: fotos.length === 0,
+    // Un aviso pendiente se reintenta; si ya había salido, solo se repite cuando
+    // hay algo nuevo que mandar: la foto de la carga.
+    notify_pending: true,
+    notified_date: fotos.length > 0 ? null : (log?.notified_date || null),
+  };
+
+  const saved = log
+    ? await base44.asServiceRole.entities.WholesalerLog.update(log.id, patch)
+    : await logWholesalerEvent(base44, { event_type: 'recepcion', ...patch, ...stampOf(connection) });
+
+  return {
+    log_id: (saved || log)?.id || null,
+    ya_avisado: false,
+    aviso_existente: !!log,
+    fotos,
+    fotos_count: fotos.length,
+    foto_pendiente: fotos.length === 0,
   };
 }

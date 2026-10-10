@@ -70,7 +70,7 @@
     "notify_pending": {
       "type": "boolean",
       "default": false,
-      "description": "Recepci\u00f3n que todav\u00eda no se ha podido avisar a la app del mayorista"
+      "description": "Recepci\u00f3n que todav\u00eda no se ha podido avisar a la app del mayorista, o cuyo aviso sali\u00f3 sin la foto de la carga y falta completarlo."
     },
     "notify_attempts": {
       "type": "number",
@@ -81,6 +81,11 @@
       "type": "string",
       "format": "date-time",
       "description": "Momento en que el aviso de esta recepci\u00f3n se entreg\u00f3 al mayorista"
+    },
+    "photo_pending": {
+      "type": "boolean",
+      "default": false,
+      "description": "El aviso de esa recepci\u00f3n sali\u00f3 al mayorista sin la foto de la carga que captura TLEC CARGO en el almac\u00e9n: queda pendiente enviarla en cuanto exista. Mientras est\u00e9 en true, el aviso no se da por completo y la foto se manda en el env\u00edo o reintento siguiente."
     },
     "notify_history": {
       "type": "array",
