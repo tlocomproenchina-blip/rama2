@@ -1,0 +1,82 @@
+{
+  "name": "WholesalerBilledItem",
+  "type": "object",
+  "properties": {
+    "wholesaler_key": {
+      "type": "string",
+      "description": "Clave de la conexi\u00f3n (WholesalerSync.config_key) del mayorista due\u00f1o de lo facturado"
+    },
+    "wholesaler_name": {
+      "type": "string",
+      "description": "Nombre del mayorista (cache para mostrar)"
+    },
+    "client_email": {
+      "type": "string",
+      "description": "Correo del cliente al que se le factur\u00f3 esta orden o tracking"
+    },
+    "item_type": {
+      "type": "string",
+      "enum": [
+        "orden",
+        "tracking"
+      ],
+      "description": "orden cuando es un N\u00b0 de orden/env\u00edo ya facturado; tracking cuando es un tracking recibido cuyo manejo de 1 USD ya se cobr\u00f3."
+    },
+    "item_key": {
+      "type": "string",
+      "description": "El N\u00b0 de orden/env\u00edo o el tracking ya facturado, guardado en min\u00fasculas para comparar sin repetir."
+    },
+    "display_key": {
+      "type": "string",
+      "description": "El valor tal como se muestra en el panel"
+    },
+    "invoice_id": {
+      "type": "string",
+      "description": "Factura que lo incluy\u00f3"
+    },
+    "invoice_number": {
+      "type": "string",
+      "description": "N\u00famero de la factura que lo incluy\u00f3"
+    },
+    "amount": {
+      "type": "number",
+      "description": "Lo que aport\u00f3 esta l\u00ednea: el CBM facturado de la orden o el USD del manejo del tracking"
+    },
+    "billed_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Momento en que qued\u00f3 facturado"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Descripci\u00f3n opcional"
+    }
+  },
+  "required": [
+    "item_type",
+    "item_key"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

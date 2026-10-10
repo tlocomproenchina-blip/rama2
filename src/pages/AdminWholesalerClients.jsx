@@ -14,6 +14,7 @@ import WholesalerClientsTable from '@/components/wholesaler/WholesalerClientsTab
 import WholesalerMovementsList from '@/components/wholesaler/WholesalerMovementsList';
 import WholesalerOutboundPanel from '@/components/wholesaler/WholesalerOutboundPanel';
 import DeleteWholesalerConfirmDialog from '@/components/wholesaler/DeleteWholesalerConfirmDialog';
+import WholesalerBillingPanel from '@/components/wholesaler/billing/WholesalerBillingPanel';
 
 const RANGES = [
   { key: 'hoy', label: 'Hoy', hours: 24 },
@@ -279,8 +280,13 @@ export default function AdminWholesalerClients() {
         <TabsList>
           <TabsTrigger value="clientes">Clientes</TabsTrigger>
           <TabsTrigger value="envios">Envíos</TabsTrigger>
+          <TabsTrigger value="facturacion">Facturación</TabsTrigger>
           <TabsTrigger value="movimientos">Movimientos</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="facturacion" className="space-y-3">
+          <WholesalerBillingPanel connections={connections} initialWholesaler={wholesaler} />
+        </TabsContent>
 
         <TabsContent value="clientes" className="space-y-3">
           <WholesalerClientsTable clients={clients} loading={loading} onDelete={setDeletingClient} />

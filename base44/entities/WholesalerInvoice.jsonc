@@ -1,0 +1,224 @@
+{
+  "name": "WholesalerInvoice",
+  "type": "object",
+  "properties": {
+    "invoice_number": {
+      "type": "string",
+      "description": "N\u00famero visible de la factura consolidada (FM-AAAAMMDD-###). Es el que sale en el correo que recibe cada cliente."
+    },
+    "wholesaler_key": {
+      "type": "string",
+      "description": "Clave de la conexi\u00f3n (WholesalerSync.config_key) del mayorista al que pertenece la factura."
+    },
+    "wholesaler_name": {
+      "type": "string",
+      "description": "Nombre del mayorista, para mostrar y filtrar"
+    },
+    "emitted_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Momento en que se emiti\u00f3 la factura y salieron los correos"
+    },
+    "emitted_by": {
+      "type": "string",
+      "description": "Email del administrador que emiti\u00f3 la factura"
+    },
+    "clients": {
+      "type": "array",
+      "default": [],
+      "description": "Detalle por cliente incluido en la factura: sus tarifas, sus \u00f3rdenes/env\u00edos con CBM y trackings facturados, y el resultado del correo que recibi\u00f3.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "client_id": {
+            "type": "string",
+            "description": "ID del registro del cliente en la lista del mayorista"
+          },
+          "client_email": {
+            "type": "string"
+          },
+          "client_name": {
+            "type": "string"
+          },
+          "shipping_mark": {
+            "type": "string"
+          },
+          "rate_per_cbm": {
+            "type": "number",
+            "description": "Tarifa de env\u00edo del cliente por CBM (USD), congelada al emitir"
+          },
+          "door_to_door_per_cbm": {
+            "type": "number",
+            "description": "Tarifa de puerta a puerta del cliente por CBM (USD), congelada al emitir"
+          },
+          "cbm": {
+            "type": "number",
+            "description": "CBM total facturado a ese cliente"
+          },
+          "received_trackings": {
+            "type": "number",
+            "description": "Trackings recibidos en almac\u00e9n que se cobraron a ese cliente"
+          },
+          "shipping_amount": {
+            "type": "number",
+            "description": "Monto del servicio de env\u00edo (CBM \u00d7 tarifa del cliente)"
+          },
+          "door_to_door_amount": {
+            "type": "number",
+            "description": "Monto del servicio puerta a puerta (CBM \u00d7 tarifa del cliente)"
+          },
+          "handling_amount": {
+            "type": "number",
+            "description": "Monto del manejo de paquetes (1 USD por cada tracking recibido)"
+          },
+          "total": {
+            "type": "number",
+            "description": "Total facturado a ese cliente"
+          },
+          "orders": {
+            "type": "array",
+            "default": [],
+            "description": "\u00d3rdenes/env\u00edos facturados a ese cliente, tal como quedaron en la factura",
+            "items": {
+              "type": "object",
+              "properties": {
+                "order_number": {
+                  "type": "string"
+                },
+                "cbm": {
+                  "type": "number"
+                },
+                "trackings_count": {
+                  "type": "number"
+                },
+                "received_trackings": {
+                  "type": "number",
+                  "description": "Trackings de esa orden que estaban recibidos en almac\u00e9n"
+                },
+                "trackings": {
+                  "type": "array",
+                  "default": [],
+                  "description": "Trackings recibidos de esa orden que se cobraron",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "is_new": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Indica que el N\u00b0 de orden se cre\u00f3 al emitir esta factura"
+                }
+              }
+            }
+          },
+          "email_status": {
+            "type": "string",
+            "enum": [
+              "enviado",
+              "fallido",
+              "omitido",
+              "sin_correo",
+              "pendiente"
+            ],
+            "description": "C\u00f3mo qued\u00f3 el env\u00edo de la factura al correo del cliente"
+          },
+          "email_error": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "Motivo cuando el correo no sali\u00f3"
+          },
+          "email_sent_date": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    },
+    "totals": {
+      "type": "object",
+      "description": "Totales de la factura al emitirla",
+      "properties": {
+        "clients": {
+          "type": "number"
+        },
+        "cbm": {
+          "type": "number"
+        },
+        "received_trackings": {
+          "type": "number"
+        },
+        "shipping": {
+          "type": "number"
+        },
+        "door_to_door": {
+          "type": "number"
+        },
+        "handling": {
+          "type": "number"
+        },
+        "total": {
+          "type": "number"
+        }
+      }
+    },
+    "emails_sent": {
+      "type": "number",
+      "default": 0,
+      "description": "Correos de la factura entregados a los clientes"
+    },
+    "emails_failed": {
+      "type": "number",
+      "default": 0,
+      "description": "Correos de la factura que no se pudieron entregar"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "enviada",
+        "parcial",
+        "sin_envio"
+      ],
+      "default": "sin_envio",
+      "description": "enviada (todos los correos salieron), parcial (alguno fall\u00f3) o sin_envio (ninguno sali\u00f3)"
+    },
+    "warnings": {
+      "type": "array",
+      "default": [],
+      "description": "Avisos de la emisi\u00f3n: \u00f3rdenes que no se incluyeron porque ya estaban facturadas o no estaban registradas",
+      "items": {
+        "type": "string"
+      }
+    },
+    "notes": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Notas del administrador al emitir la factura"
+    }
+  },
+  "required": [
+    "invoice_number",
+    "emitted_date"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
