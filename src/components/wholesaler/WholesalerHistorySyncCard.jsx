@@ -31,8 +31,9 @@ export default function WholesalerHistorySyncCard({ connections = [], busy, onSy
               Historial de pre-alertas
             </h3>
             <p className="text-sm text-muted-foreground">
-              Pide a cada mayorista todo su historial de pre-alertas y lo deja alineado aquí, sin duplicar lo que ya
-              estaba. Se ejecuta solo todos los días a las 3:00 a.m. (Caracas).
+              Pide a cada mayorista todo su historial de pre-alertas y lo deja alineado aquí. Lo que ya existe no se
+              duplica ni se pisa: solo se le completan los datos que faltaban. Se ejecuta solo todos los días a las
+              3:00 a.m. (Caracas).
             </p>
           </div>
           <Button onClick={onSync} disabled={busy} className="gap-2">
@@ -44,7 +45,7 @@ export default function WholesalerHistorySyncCard({ connections = [], busy, onSy
         <div className="flex flex-wrap items-center gap-2 text-xs">
           <Badge className="bg-slate-100 text-slate-600">{activas.length} de {connections.length} conexión(es) activa(s)</Badge>
           <Badge className="bg-emerald-100 text-emerald-700">{totales.nuevos} nueva(s)</Badge>
-          <Badge className="bg-sky-100 text-sky-700">{totales.actualizados} actualizada(s)</Badge>
+          <Badge className="bg-sky-100 text-sky-700">{totales.actualizados} completada(s)</Badge>
           <Badge className="bg-slate-100 text-slate-600">{totales.omitidos} ya alineada(s)</Badge>
           <span className="text-muted-foreground">Última sincronización: {when(ultima)}</span>
         </div>
