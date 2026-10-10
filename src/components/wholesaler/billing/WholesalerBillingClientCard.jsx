@@ -2,7 +2,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { cbmText, draftAmounts } from '@/lib/wholesalerBillingCalc';
+import { draftAmounts } from '@/lib/wholesalerBillingCalc';
 import WholesalerBillingOrderRow from './WholesalerBillingOrderRow';
 import WholesalerBillingNewOrderForm from './WholesalerBillingNewOrderForm';
 
@@ -41,6 +41,7 @@ export default function WholesalerBillingClientCard({ draft, onChange, onRemove 
         {
           order_number: order.order_number,
           cbm: order.cbm,
+          bultos: (order.trackings || []).length,
           is_new: true,
           checked: true,
           picked: order.trackings || [],
@@ -75,25 +76,25 @@ export default function WholesalerBillingClientCard({ draft, onChange, onRemove 
       <CardContent className="space-y-4">
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
-            <label className="mb-1 block text-xs text-muted-foreground">Tarifa de envío (USD por CBM)</label>
+            <label className="mb-1 block text-xs text-muted-foreground">Tarifa de envío (USD por bulto)</label>
             <Input
               type="number"
               min="0"
               step="0.01"
               inputMode="decimal"
-              value={draft.rate_per_cbm}
-              onChange={(event) => onChange({ rate_per_cbm: event.target.value })}
+              value={draft.rate_per_bulto}
+              onChange={(event) => onChange({ rate_per_bulto: event.target.value })}
             />
           </div>
           <div>
-            <label className="mb-1 block text-xs text-muted-foreground">Puerta a puerta (USD por CBM)</label>
+            <label className="mb-1 block text-xs text-muted-foreground">Puerta a puerta (USD por bulto)</label>
             <Input
               type="number"
               min="0"
               step="0.01"
               inputMode="decimal"
-              value={draft.door_to_door_per_cbm}
-              onChange={(event) => onChange({ door_to_door_per_cbm: event.target.value })}
+              value={draft.door_to_door_per_bulto}
+              onChange={(event) => onChange({ door_to_door_per_bulto: event.target.value })}
             />
           </div>
         </div>
@@ -122,12 +123,12 @@ export default function WholesalerBillingClientCard({ draft, onChange, onRemove 
         <div className="space-y-2 rounded-xl bg-accent/40 p-3">
           <MoneyLine
             label="Servicio de envío"
-            detail={`${cbmText(amounts.cbm)} CBM × $${Number(draft.rate_per_cbm || 0).toFixed(2)}`}
+            detail={`${amounts.bultos} bulto(s) × $${Number(draft.rate_per_bulto || 0).toFixed(2)}`}
             value={amounts.shipping}
           />
           <MoneyLine
             label="Servicio puerta a puerta"
-            detail={`${cbmText(amounts.cbm)} CBM × $${Number(draft.door_to_door_per_cbm || 0).toFixed(2)}`}
+            detail={`${amounts.bultos} bulto(s) × $${Number(draft.door_to_door_per_bulto || 0).toFixed(2)}`}
             value={amounts.doorToDoor}
           />
           <MoneyLine

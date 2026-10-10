@@ -26,7 +26,7 @@
     "clients": {
       "type": "array",
       "default": [],
-      "description": "Detalle por cliente incluido en la factura: sus tarifas, sus \u00f3rdenes/env\u00edos con CBM y trackings facturados, y el resultado del correo que recibi\u00f3.",
+      "description": "Detalle por cliente incluido en la factura: sus tarifas, sus \u00f3rdenes/env\u00edos con sus bultos y trackings facturados, y el resultado del correo que recibi\u00f3.",
       "items": {
         "type": "object",
         "properties": {
@@ -43,17 +43,21 @@
           "shipping_mark": {
             "type": "string"
           },
-          "rate_per_cbm": {
+          "rate_per_bulto": {
             "type": "number",
-            "description": "Tarifa de env\u00edo del cliente por CBM (USD), congelada al emitir"
+            "description": "Tarifa de env\u00edo del cliente por bulto (USD), congelada al emitir"
           },
-          "door_to_door_per_cbm": {
+          "door_to_door_per_bulto": {
             "type": "number",
-            "description": "Tarifa de puerta a puerta del cliente por CBM (USD), congelada al emitir"
+            "description": "Tarifa de puerta a puerta del cliente por bulto (USD), congelada al emitir"
+          },
+          "bultos": {
+            "type": "number",
+            "description": "Bultos facturados a ese cliente: los trackings de sus \u00f3rdenes incluidas, m\u00e1s los que se engancharon al facturar."
           },
           "cbm": {
             "type": "number",
-            "description": "CBM total facturado a ese cliente"
+            "description": "CBM de referencia de las \u00f3rdenes incluidas (ya no se usa para calcular los montos)"
           },
           "received_trackings": {
             "type": "number",
@@ -61,11 +65,11 @@
           },
           "shipping_amount": {
             "type": "number",
-            "description": "Monto del servicio de env\u00edo (CBM \u00d7 tarifa del cliente)"
+            "description": "Monto del servicio de env\u00edo (bultos \u00d7 tarifa del cliente)"
           },
           "door_to_door_amount": {
             "type": "number",
-            "description": "Monto del servicio puerta a puerta (CBM \u00d7 tarifa del cliente)"
+            "description": "Monto del servicio puerta a puerta (bultos \u00d7 tarifa del cliente)"
           },
           "handling_amount": {
             "type": "number",
@@ -87,6 +91,10 @@
                 },
                 "cbm": {
                   "type": "number"
+                },
+                "bultos": {
+                  "type": "number",
+                  "description": "Bultos que aport\u00f3 esa orden a la factura"
                 },
                 "trackings_count": {
                   "type": "number"
@@ -142,6 +150,9 @@
           "type": "number"
         },
         "cbm": {
+          "type": "number"
+        },
+        "bultos": {
           "type": "number"
         },
         "received_trackings": {

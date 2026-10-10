@@ -3,7 +3,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
-import { cbmText } from '@/lib/wholesalerBillingCalc';
 
 const EMAIL_LABEL = {
   enviado: 'Correo enviado',
@@ -89,8 +88,9 @@ export default function WholesalerBillingHistory({ invoices, loading }) {
                           <div className="min-w-0">
                             <p className="truncate text-sm text-foreground">{client.client_name || client.client_email}</p>
                             <p className="truncate text-xs text-muted-foreground">
-                              {cbmText(client.cbm)} CBM · {client.received_trackings || 0} tracking(s) recibido(s)
-                              {' · '}envío ${Number(client.rate_per_cbm || 0).toFixed(2)}/CBM · puerta a puerta ${Number(client.door_to_door_per_cbm || 0).toFixed(2)}/CBM
+                              {client.bultos || 0} bulto(s) · {client.received_trackings || 0} tracking(s) recibido(s)
+                              {' · '}envío ${Number(client.rate_per_bulto ?? client.rate_per_cbm ?? 0).toFixed(2)}/{client.rate_per_bulto === undefined ? 'CBM' : 'bulto'}
+                              {' · '}puerta a puerta ${Number(client.door_to_door_per_bulto ?? client.door_to_door_per_cbm ?? 0).toFixed(2)}/{client.door_to_door_per_bulto === undefined ? 'CBM' : 'bulto'}
                             </p>
                           </div>
                           <div className="flex shrink-0 items-center gap-2">
@@ -104,7 +104,7 @@ export default function WholesalerBillingHistory({ invoices, loading }) {
                           <div className="mt-2 flex flex-wrap gap-1.5">
                             {client.orders.map((order) => (
                               <Badge key={order.order_number} variant="outline" className="font-mono text-[11px]">
-                                {order.order_number} · {order.cbm} CBM · {order.received_trackings || 0} recibido(s)
+                                {order.order_number} · {order.bultos || 0} bulto(s) · {order.received_trackings || 0} recibido(s)
                               </Badge>
                             ))}
                           </div>

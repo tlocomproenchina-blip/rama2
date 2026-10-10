@@ -1,6 +1,6 @@
 // Facturación a los clientes de cada mayorista: una sola factura por lote, con
-// el detalle de cada cliente adentro. Cada cliente tiene su tarifa por CBM y su
-// tarifa de puerta a puerta por CBM, y se suma 1 USD por cada tracking recibido
+// el detalle de cada cliente adentro. Cada cliente tiene su tarifa por bulto y su
+// tarifa de puerta a puerta por bulto, y se suma 1 USD por cada tracking recibido
 // de las órdenes que entran en la factura.
 import { caracasDateKey, emailsEnabled, formatCaracasDateTime, truncate } from './wholesalerCore.ts';
 import { fetchAllFilter, fetchByClientEmails, normTracking, num } from './paginatedFetch.ts';
@@ -63,11 +63,11 @@ export function trackingKeyOf(value: any) {
   return orderKeyOf(normTracking(value));
 }
 
-// Montos de la factura de un cliente: envío y puerta a puerta se cobran por CBM,
+// Montos de la factura de un cliente: envío y puerta a puerta se cobran por bulto,
 // y el manejo por cada tracking recibido.
 export function clientAmounts(params: any) {
-  const shipping = round2(num(params?.cbm) * num(params?.shippingRate));
-  const doorToDoor = round2(num(params?.cbm) * num(params?.doorRate));
+  const shipping = round2(num(params?.bultos) * num(params?.shippingRate));
+  const doorToDoor = round2(num(params?.bultos) * num(params?.doorRate));
   const handling = round2(num(params?.trackings) * num(params?.handlingFee ?? HANDLING_FEE));
   return { shipping, doorToDoor, handling, total: round2(shipping + doorToDoor + handling) };
 }
@@ -222,7 +222,7 @@ export function invoiceEmailHtml(params: any) {
   const orderRows = orders.map((o: any) => `
               <tr>
                 <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#0f172a;">${o.order_number || 'Sin N° de orden'}</td>
-                <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;text-align:right;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#0f172a;">${cbmText(o.cbm)}</td>
+                <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;text-align:right;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#0f172a;">${num(o.bultos)}</td>
                 <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;text-align:right;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#0f172a;">${num(o.received_trackings)}</td>
               </tr>`).join('');
 
@@ -271,7 +271,7 @@ export function invoiceEmailHtml(params: any) {
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;border:1px solid #e5e7eb;border-radius:12px;">
           <tr style="background-color:#f7fafd;">
             <th align="left" style="padding:8px 10px;font-size:12px;color:#64748b;text-transform:uppercase;letter-spacing:0.04em;">N° de orden</th>
-            <th align="right" style="padding:8px 10px;font-size:12px;color:#64748b;text-transform:uppercase;letter-spacing:0.04em;">CBM</th>
+            <th align="right" style="padding:8px 10px;font-size:12px;color:#64748b;text-transform:uppercase;letter-spacing:0.04em;">Bultos</th>
             <th align="right" style="padding:8px 10px;font-size:12px;color:#64748b;text-transform:uppercase;letter-spacing:0.04em;">Trackings recibidos</th>
           </tr>
           ${orderRows}
@@ -284,13 +284,13 @@ export function invoiceEmailHtml(params: any) {
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;border:1px solid #e5e7eb;border-radius:12px;">
           <tr>
             <td style="padding:10px 14px;border-bottom:1px solid #e5e7eb;font-size:13px;color:#0f172a;">
-              Servicio de envío<br /><span style="color:#64748b;font-size:12px;">${cbmText(client.cbm)} CBM × ${money(client.rate_per_cbm)} por CBM</span>
+              Servicio de envío<br /><span style="color:#64748b;font-size:12px;">${num(client.bultos)} bulto(s) × ${money(client.rate_per_bulto)} por bulto</span>
             </td>
             <td align="right" style="padding:10px 14px;border-bottom:1px solid #e5e7eb;font-size:13px;color:#0f172a;">${money(client.shipping_amount)}</td>
           </tr>
           <tr>
             <td style="padding:10px 14px;border-bottom:1px solid #e5e7eb;font-size:13px;color:#0f172a;">
-              Servicio puerta a puerta<br /><span style="color:#64748b;font-size:12px;">${cbmText(client.cbm)} CBM × ${money(client.door_to_door_per_cbm)} por CBM</span>
+              Servicio puerta a puerta<br /><span style="color:#64748b;font-size:12px;">${num(client.bultos)} bulto(s) × ${money(client.door_to_door_per_bulto)} por bulto</span>
             </td>
             <td align="right" style="padding:10px 14px;border-bottom:1px solid #e5e7eb;font-size:13px;color:#0f172a;">${money(client.door_to_door_amount)}</td>
           </tr>

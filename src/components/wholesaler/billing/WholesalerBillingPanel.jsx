@@ -22,11 +22,12 @@ function buildDraft(row) {
     client_email: row.email,
     client_name: row.full_name || row.email,
     shipping_mark: row.shipping_mark || '',
-    rate_per_cbm: Number(row.rate_per_cbm) || 0,
-    door_to_door_per_cbm: Number(row.door_to_door_per_cbm) || 0,
+    rate_per_bulto: Number(row.rate_per_bulto) || 0,
+    door_to_door_per_bulto: Number(row.door_to_door_per_bulto) || 0,
     orders: (row.orders || []).map((order) => ({
       order_number: order.order_number,
       cbm: Number(order.cbm) || 0,
+      bultos: Number(order.bultos ?? order.trackings_count) || 0,
       trackings_count: order.trackings_count || 0,
       received: Number(order.received) || 0,
       picked: [],
@@ -38,8 +39,8 @@ function buildDraft(row) {
 }
 
 // Facturar a los clientes de un mayorista: se eligen varios clientes, se arman
-// sus órdenes/envíos con su CBM y sale una sola factura, con el correo de cada
-// cliente llevando su parte.
+// sus órdenes/envíos con sus bultos y sale una sola factura, con el correo de
+// cada cliente llevando su parte.
 export default function WholesalerBillingPanel({ initialWholesaler }) {
   const [groups, setGroups] = useState([]);
   const [wholesaler, setWholesaler] = useState('');
@@ -173,11 +174,12 @@ export default function WholesalerBillingPanel({ initialWholesaler }) {
           client_email: draft.client_email,
           client_name: draft.client_name,
           shipping_mark: draft.shipping_mark,
-          rate_per_cbm: Number(draft.rate_per_cbm) || 0,
-          door_to_door_per_cbm: Number(draft.door_to_door_per_cbm) || 0,
+          rate_per_bulto: Number(draft.rate_per_bulto) || 0,
+          door_to_door_per_bulto: Number(draft.door_to_door_per_bulto) || 0,
           orders: draftOrders(draft).map((order) => ({
             order_number: order.order_number,
             cbm: order.cbm === '' ? null : Number(order.cbm) || 0,
+            bultos: Number(order.bultos) || 0,
             is_new: !!order.is_new,
             tracking_numbers: order.picked || [],
           })),
@@ -224,8 +226,8 @@ export default function WholesalerBillingPanel({ initialWholesaler }) {
             Facturar a los clientes del mayorista
           </CardTitle>
           <CardDescription>
-            Elige el mayorista y sus clientes, asigna o crea el N° de orden/envío de cada uno con su CBM
-            y emite una sola factura: cada cliente recibe su parte por correo.
+            Elige el mayorista y sus clientes, asigna o crea el N° de orden/envío de cada uno y emite una
+            sola factura: el envío y la puerta a puerta se cobran por bulto y cada cliente recibe su parte por correo.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">

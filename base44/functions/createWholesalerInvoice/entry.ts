@@ -27,8 +27,8 @@ import {
 } from '../../shared/wholesalerBilling.ts';
 
 // Emite una sola factura con varios clientes de un mayorista: calcula los montos
-// de cada cliente con sus tarifas por CBM, su puerta a puerta por CBM y 1 USD por
-// cada tracking recibido, guarda la factura, marca lo facturado para no repetirlo
+// de cada cliente con sus tarifas por bulto, su puerta a puerta por bulto y 1 USD
+// por cada tracking recibido, guarda la factura, marca lo facturado para no repetirlo
 // y le manda a cada cliente su parte por correo.
 const EMAIL_BATCH = 6;
 const WRITE_BATCH = 200;
@@ -118,7 +118,10 @@ export default async function (req: Request): Promise<Response> {
             .map((tracking: any) => String(tracking || '').trim())
             .filter(Boolean);
           billedThisRun.add(orderKey);
-          selected.push({ order_number: String(item.order_number).trim(), cbm, trackings, is_new: true });
+          const newBultos = item?.bultos === undefined || item?.bultos === null || item?.bultos === ''
+            ? trackings.length
+            : Math.max(num(item.bultos), 0);
+          selected.push({ order_number: String(item.order_number).trim(), cbm, trackings, bultos: newBultos, is_new: true });
           newOrders.push({
             orderKey,
             order_number: String(item.order_number).trim(),
@@ -141,6 +144,9 @@ export default async function (req: Request): Promise<Response> {
         }
         billedThisRun.add(orderKey);
         const usePayload = !(item?.cbm === undefined || item?.cbm === null || item?.cbm === '');
+        // Bultos facturables de la orden: el conteo que envió la pantalla (editable)
+        // o, si no viene, sus trackings.
+        const useBultos = !(item?.bultos === undefined || item?.bultos === null || item?.bultos === '');
         // Trackings de la orden más los que se engancharon desde la pantalla: hay
         // órdenes registradas sin su lista de trackings, y el manejo de 1 USD por
         // paquete recibido se cobra sobre lo que realmente llegó.
@@ -155,6 +161,7 @@ export default async function (req: Request): Promise<Response> {
           order_number: String(existing.invoice_number).trim(),
           cbm: usePayload ? round4(num(item.cbm)) : round4(num(existing.cbm)),
           trackings,
+          bultos: useBultos ? Math.max(num(item.bultos), 0) : trackings.length,
           is_new: false,
         });
       }
@@ -170,6 +177,7 @@ export default async function (req: Request): Promise<Response> {
         return {
           order_number: order.order_number,
           cbm: round4(order.cbm),
+          bultos: num(order.bultos),
           trackings_count: order.trackings.length,
           received_trackings: hit.count,
           trackings: hit.trackings,
@@ -177,11 +185,12 @@ export default async function (req: Request): Promise<Response> {
         };
       });
       const cbm = round4(selected.reduce((sum: number, order: any) => sum + num(order.cbm), 0));
+      const bultos = orderDetails.reduce((sum: number, order: any) => sum + num(order.bultos), 0);
       const trackings = orderDetails.reduce((sum: number, order: any) => sum + num(order.received_trackings), 0);
       const amounts = clientAmounts({
-        cbm,
-        shippingRate: num(raw?.rate_per_cbm),
-        doorRate: num(raw?.door_to_door_per_cbm),
+        bultos,
+        shippingRate: num(raw?.rate_per_bulto),
+        doorRate: num(raw?.door_to_door_per_bulto),
         trackings,
       });
 
@@ -190,9 +199,10 @@ export default async function (req: Request): Promise<Response> {
         client_email: email,
         client_name: label || email,
         shipping_mark: String(raw?.shipping_mark || '').trim(),
-        rate_per_cbm: round2(num(raw?.rate_per_cbm)),
-        door_to_door_per_cbm: round2(num(raw?.door_to_door_per_cbm)),
+        rate_per_bulto: round2(num(raw?.rate_per_bulto)),
+        door_to_door_per_bulto: round2(num(raw?.door_to_door_per_bulto)),
         cbm,
+        bultos,
         received_trackings: trackings,
         shipping_amount: amounts.shipping,
         door_to_door_amount: amounts.doorToDoor,
@@ -216,6 +226,7 @@ export default async function (req: Request): Promise<Response> {
     const totals = {
       clients: builtClients.length,
       cbm: round4(builtClients.reduce((sum, client) => sum + client.cbm, 0)),
+      bultos: builtClients.reduce((sum, client) => sum + num(client.bultos), 0),
       received_trackings: builtClients.reduce((sum, client) => sum + client.received_trackings, 0),
       shipping: round2(builtClients.reduce((sum, client) => sum + client.shipping_amount, 0)),
       door_to_door: round2(builtClients.reduce((sum, client) => sum + client.door_to_door_amount, 0)),
@@ -313,8 +324,8 @@ export default async function (req: Request): Promise<Response> {
       .filter((client) => client.client_id)
       .map((client) => ({
         id: client.client_id,
-        rate_per_cbm: client.rate_per_cbm,
-        door_to_door_per_cbm: client.door_to_door_per_cbm,
+        rate_per_bulto: client.rate_per_bulto,
+        door_to_door_per_bulto: client.door_to_door_per_bulto,
         rates_updated_date: now,
       }));
     if (rateRows.length) {

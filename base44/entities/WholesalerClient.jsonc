@@ -50,18 +50,18 @@
       "type": "string",
       "description": "Shipping Mark del cliente en TLEC CARGO (generado aqu\u00ed o el que reporta el mayorista)"
     },
-    "rate_per_cbm": {
+    "rate_per_bulto": {
       "type": "number",
-      "description": "Tarifa de env\u00edo propia de este cliente por CBM (USD). Se guarda al facturarlo y se reutiliza en la factura siguiente."
+      "description": "Tarifa de env\u00edo propia de este cliente por bulto (USD). Se guarda al facturarlo y se reutiliza en la factura siguiente."
     },
-    "door_to_door_per_cbm": {
+    "door_to_door_per_bulto": {
       "type": "number",
-      "description": "Tarifa de puerta a puerta propia de este cliente por CBM (USD). Se guarda al facturarlo y se reutiliza en la factura siguiente."
+      "description": "Tarifa de puerta a puerta propia de este cliente por bulto (USD). Se guarda al facturarlo y se reutiliza en la factura siguiente."
     },
     "rates_updated_date": {
       "type": "string",
       "format": "date-time",
-      "description": "\u00daltima vez que se registraron las tarifas por CBM de este cliente"
+      "description": "\u00daltima vez que se registraron las tarifas por bulto de este cliente"
     },
     "user_id": {
       "type": "string",

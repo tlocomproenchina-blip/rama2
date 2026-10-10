@@ -35,7 +35,7 @@ export default function WholesalerBillingResult({ result }) {
         <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
           <span>{result.totals?.clients || 0} cliente(s)</span>
           <span>·</span>
-          <span>{result.totals?.cbm?.toFixed(3) || '0.000'} CBM</span>
+          <span>{result.totals?.bultos || 0} bulto(s)</span>
           <span>·</span>
           <span>{result.totals?.received_trackings || 0} tracking(s) recibido(s)</span>
           <span>·</span>

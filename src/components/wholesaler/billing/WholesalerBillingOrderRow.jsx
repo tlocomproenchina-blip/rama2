@@ -5,13 +5,15 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { ChevronDown, ChevronUp, Layers, X } from 'lucide-react';
 
-// Una orden/envío del cliente dentro de la factura: su CBM, sus trackings y
-// cuántos de ellos están recibidos (cada uno cobra 1 USD de manejo). Desde aquí
-// también se pueden enganchar los trackings recibidos que aún no tienen orden.
+// Una orden/envío del cliente dentro de la factura: sus bultos (que es lo que se
+// cobra), su CBM de referencia y sus trackings recibidos (cada uno cobra 1 USD de
+// manejo). Desde aquí también se pueden enganchar los trackings recibidos que aún
+// no tienen orden.
 export default function WholesalerBillingOrderRow({ order, onChange, onRemove, options }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const picked = order.picked || [];
+  const bultos = Number(order.bultos) || 0;
   const received = (Number(order.received) || 0) + picked.length;
   const trackingsCount = (Number(order.trackings_count) || 0) + picked.length;
 
@@ -21,10 +23,13 @@ export default function WholesalerBillingOrderRow({ order, onChange, onRemove, o
     return needle ? all.filter((tracking) => tracking.toLowerCase().includes(needle)) : all;
   }, [options, query]);
 
+  // Enganchar un tracking recibido suma un bulto al conteo de la orden.
   const toggle = (tracking) => {
-    onChange({
-      picked: picked.includes(tracking) ? picked.filter((value) => value !== tracking) : [...picked, tracking],
-    });
+    const next = picked.includes(tracking)
+      ? picked.filter((value) => value !== tracking)
+      : [...picked, tracking];
+    const base = Math.max(bultos - picked.length, 0);
+    onChange({ picked: next, bultos: base + next.length });
   };
 
   return (
@@ -34,7 +39,7 @@ export default function WholesalerBillingOrderRow({ order, onChange, onRemove, o
         <div className="min-w-0 flex-1">
           <p className="truncate font-mono text-sm text-foreground">{order.order_number}</p>
           <p className="text-xs text-muted-foreground">
-            {trackingsCount} tracking(s) · {received} recibido(s)
+            {bultos} bulto(s) · {trackingsCount} tracking(s) · {received} recibido(s)
             {picked.length ? ` · ${picked.length} enganchado(s) aquí` : ''}
           </p>
         </div>
@@ -46,6 +51,18 @@ export default function WholesalerBillingOrderRow({ order, onChange, onRemove, o
             {open ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
           </Button>
         )}
+        <div className="flex items-center gap-2">
+          <Input
+            type="number"
+            min="0"
+            step="1"
+            inputMode="numeric"
+            value={order.bultos}
+            onChange={(event) => onChange({ bultos: event.target.value })}
+            className="w-20"
+          />
+          <span className="text-xs text-muted-foreground">Bultos</span>
+        </div>
         <div className="flex items-center gap-2">
           <Input
             type="number"
