@@ -61,7 +61,11 @@ export default async function (req: Request): Promise<Response> {
     }
 
     if (action === 'receive_tracking') {
-      const blk = await receiveTrackingBlock(base44, body?.trackings ?? body?.tracking ?? body?.tracking_number, connection);
+      const blk = await receiveTrackingBlock(base44, body?.trackings ?? body?.tracking ?? body?.tracking_number, connection, {
+        client_email: body?.client_email,
+        shipping_mark: body?.shipping_mark,
+        fecha: body?.fecha ?? body?.received_date,
+      });
       if (!blk.resultados.length) {
         return Response.json({ ok: false, resultado: 'error', mensaje: 'Falta el tracking a recepcionar.' }, { status: 400 });
       }
@@ -75,12 +79,16 @@ export default async function (req: Request): Promise<Response> {
         recibidos: blk.recibidos.length,
         ya_registrados: blk.yaRegistrados.length,
         no_registrados: blk.noRegistrados.length,
+        creados: blk.creados,
+        sin_foto: blk.sinFoto,
         aviso,
         resultados: blk.resultados.map((r: any) => ({
           tracking: r.tracking,
           resultado: r.resultado,
           estado: r.estado ?? null,
+          creado: r.creado === true,
           huerfano: r.huerfano === true,
+          foto_pendiente: r.foto_pendiente === true,
           shipping_mark: r.shipping_mark || '',
           mensaje: r.mensaje,
         })),

@@ -4,7 +4,7 @@
 // por paquete: su resultado, su fecha de envío, sus intentos y el historial de
 // cada intento.
 import { connectionKeyOf, stampMatches } from './wholesalerCore.ts';
-import { findPackageByTracking, packagePhotos } from './wholesalerPackages.ts';
+import { findPackageByTracking, packagePhotos, receptionPhotos } from './wholesalerPackages.ts';
 
 const DEFAULT_LIMIT = 50;
 const MAX_STATUS_LOGS = 20;
@@ -52,6 +52,21 @@ export async function photosByPackageId(base44: any, ids: string[]) {
   return map;
 }
 
+// Fotos de la recepción en el almacén (las que capturó TLEC CARGO): son las que
+// viajan como confirmación visual al mayorista.
+export async function receptionPhotosByPackageId(base44: any, ids: string[]) {
+  const unique = Array.from(new Set((ids || []).filter(Boolean)));
+  const map: Record<string, string[]> = {};
+  if (!unique.length) return map;
+
+  const rows = await base44.asServiceRole.entities.Package
+    .filter({ id: { $in: unique } }, '-created_date', 500)
+    .catch(() => []);
+
+  for (const pkg of rows || []) map[pkg.id] = receptionPhotos(pkg);
+  return map;
+}
+
 export function describeShipment(log: any, fotos: string[] = []) {
   const history: any[] = Array.isArray(log?.notify_history) ? log.notify_history : [];
   const estado = shipmentStatusOf(log);
@@ -66,6 +81,7 @@ export function describeShipment(log: any, fotos: string[] = []) {
     estado,
     attempts: Number(log?.notify_attempts) || 0,
     notified_date: log?.notified_date || null,
+    photo_pending: log?.photo_pending === true,
     event_date: log?.event_date || null,
     // Del intento más reciente al más antiguo.
     history: history.slice().reverse().map((h: any) => ({
@@ -76,12 +92,16 @@ export function describeShipment(log: any, fotos: string[] = []) {
     })),
     fotos,
     fotos_count: fotos.length,
-    can_resend: estado !== 'enviado' && !!log?.id,
+    can_resend: (estado !== 'enviado' || log?.photo_pending === true) && !!log?.id,
   };
 }
 
-function statusMessage(estado: string, attempts: number) {
-  if (estado === 'enviado') return 'El aviso salió al mayorista con el tracking y las fotos de la carga.';
+function statusMessage(estado: string, attempts: number, photoPending = false) {
+  if (estado === 'enviado') {
+    return photoPending
+      ? 'El aviso salió al mayorista con el tracking; falta la foto de la carga: se enviará cuando esté disponible.'
+      : 'El aviso salió al mayorista con el tracking y las fotos de la carga.';
+  }
   if (estado === 'fallido') return `El aviso no salió en ${attempts} intento(s): puedes reintentarlo desde aquí.`;
   return 'El aviso todavía no se le ha enviado al mayorista: puedes enviarlo desde aquí.';
 }
@@ -184,7 +204,7 @@ export async function shipmentStatusFor(base44: any, connection: any, search: an
     ...describeShipment(log, fotos),
     package_status: pkg?.status || '',
     package_orphan: pkg?.is_orphan === true,
-    mensaje: statusMessage(estado, Number(log?.notify_attempts) || 0),
+    mensaje: statusMessage(estado, Number(log?.notify_attempts) || 0, log?.photo_pending === true),
   };
 }
 

@@ -4,6 +4,7 @@ import {
   consolidateOrphan,
   findSameShipmentMatches,
 } from '../../shared/orphanConsolidation.ts';
+import { confirmReceptionToWholesaler } from '../../shared/wholesalerNotify.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -53,11 +54,13 @@ Deno.serve(async (req) => {
       );
       if (clientPending.length > 0) {
         const unification = await consolidateOrphan({ base44, orphan: pkg, prealert: clientPending[0], shippingMark });
+        const aviso = await confirmReceptionToWholesaler(base44, unification.package || pkg, `asignado a ${clientEmail}`);
         return Response.json({
           package: unification.package,
           consolidated: true,
           merged_fields: unification.merged_fields,
           unified_prealert_id: clientPending[0].id,
+          aviso_mayorista: aviso,
         });
       }
       // Ese tracking ya está registrado como carga recibida: se avisa para revisión y
@@ -88,7 +91,11 @@ Deno.serve(async (req) => {
       reported: true,
     });
 
-    return Response.json({ package: updated });
+    // Si la carga viene del mayorista, su aviso de recepción queda listo para
+    // mandarle la confirmación con la foto del almacén, ahora que ya tiene cliente.
+    const aviso = await confirmReceptionToWholesaler(base44, updated, `asignado a ${clientEmail}`);
+
+    return Response.json({ package: updated, aviso_mayorista: aviso });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

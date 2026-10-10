@@ -15,7 +15,8 @@ import {
   updateConnection,
 } from './wholesalerCore.ts';
 import { registerConnectionResult } from './wholesalerHealth.ts';
-import { photosByPackageId } from './wholesalerOutbound.ts';
+import { receptionPhotosByPackageId } from './wholesalerOutbound.ts';
+import { queueReceptionNotice, wholesalerTargetForPackage } from './wholesalerPackages.ts';
 
 const MAX_ATTEMPTS = 5;
 const MAX_HISTORY = 10;
@@ -75,24 +76,28 @@ async function receptionLogs(base44: any, receptions: any[]) {
 }
 
 // Deja constancia del intento de entrega en el movimiento de cada paquete
-// avisado: solo se marca entregado cuando la app del mayorista confirmó.
-export async function recordNotifyAttempt(base44: any, logs: any[], { ok, detail, fotosByLogId }: any) {
+// avisado: solo se marca entregado cuando la app del mayorista confirmó, y un
+// aviso que sale sin la foto de la carga no se da por completo.
+export async function recordNotifyAttempt(base44: any, logs: any[], { ok, detail, fotosByLogId, fotoFaltanteByLogId }: any) {
   const now = new Date().toISOString();
 
   for (const log of logs || []) {
     if (!log?.id) continue;
+    const sinFoto = ok === true && fotoFaltanteByLogId?.[log.id] === true;
     const attempts = (Number(log.notify_attempts) || 0) + (ok ? 0 : 1);
     const entry = {
       date: now,
       result: ok ? 'enviado' : 'fallido',
-      detail: truncate(detail, 300),
+      detail: truncate(sinFoto ? `${detail} · sin foto de recepción` : detail, 300),
       fotos_count: Number(fotosByLogId?.[log.id]) || 0,
     };
     const history = [...(Array.isArray(log.notify_history) ? log.notify_history : []), entry].slice(-MAX_HISTORY);
 
     try {
       await base44.asServiceRole.entities.WholesalerLog.update(log.id, {
-        notify_pending: ok ? false : attempts < MAX_ATTEMPTS,
+        // Falta la foto de la carga: el aviso sigue pendiente hasta poder mandarla.
+        notify_pending: ok ? sinFoto : attempts < MAX_ATTEMPTS,
+        photo_pending: sinFoto,
         notify_attempts: attempts,
         notify_history: history,
         ...(ok ? { notified_date: now } : {}),
@@ -131,9 +136,14 @@ export async function notifyReceptionBlock(base44: any, receptions: any[], conne
   }
 
   const fotosByLogId: Record<string, number> = {};
+  const fotoFaltanteByLogId: Record<string, boolean> = {};
   for (const r of receptions) {
-    if (r?.log_id) fotosByLogId[r.log_id] = Array.isArray(r.fotos) ? r.fotos.length : 0;
+    if (!r?.log_id) continue;
+    const count = Array.isArray(r.fotos) ? r.fotos.length : 0;
+    fotosByLogId[r.log_id] = count;
+    fotoFaltanteByLogId[r.log_id] = count === 0;
   }
+  const sinFoto = Object.values(fotoFaltanteByLogId).filter(Boolean).length;
 
   const key = outboundKeyFor(connection);
   const result = await postToWholesaler(url, key, buildPayload(receptions));
@@ -141,25 +151,33 @@ export async function notifyReceptionBlock(base44: any, receptions: any[], conne
   const logs = await receptionLogs(base44, receptions);
 
   if (result.ok) {
+    const entregado = `${receptions.length} paquete(s) avisados a la app del mayorista`;
+    const detalle = sinFoto > 0 ? `${entregado}; ${sinFoto} sin foto de recepción (queda pendiente enviarla)` : entregado;
+
     await recordNotifyAttempt(base44, logs, {
       ok: true,
-      detail: `${receptions.length} paquete(s) avisados a la app del mayorista`,
+      detail: entregado,
       fotosByLogId,
+      fotoFaltanteByLogId,
     });
     await updateConnection(base44, connection.id, {
       last_notify_date: now,
       last_notify_status: 'enviado',
-      last_notify_message: `Aviso enviado: ${receptions.length} paquete(s).`,
+      last_notify_message: truncate(`Aviso enviado: ${detalle}.`, 900),
     });
     await logWholesalerEvent(base44, {
       event_type: 'aviso_enviado',
       tracking_number: truncate(receptions.map((r) => r.tracking).join(', '), 250),
       result: 'enviado',
-      detail: `${receptions.length} paquete(s) avisados a la app del mayorista`,
+      detail: truncate(detalle, 900),
       wholesaler_key: connectionKeyOf(connection),
       wholesaler_name: connectionLabel(connection),
     });
-    return { enviado: true, mensaje: `Aviso enviado al mayorista (${receptions.length} paquete(s)).` };
+    return {
+      enviado: true,
+      sin_foto: sinFoto,
+      mensaje: `Aviso enviado al mayorista (${receptions.length} paquete(s))${sinFoto > 0 ? `. ${sinFoto} sin foto de recepción: queda pendiente enviarla` : ''}.`,
+    };
   }
 
   await updateConnection(base44, connection.id, {
@@ -179,6 +197,7 @@ export async function notifyReceptionBlock(base44: any, receptions: any[], conne
     ok: false,
     detail: `No se pudo avisar al mayorista: ${result.error}`,
     fotosByLogId,
+    fotoFaltanteByLogId,
   });
   // Un aviso que no sale cuenta como conexión caída: deja el estado en rojo y
   // avisa a los administradores (sin repetir el mismo correo en cada intento).
@@ -197,20 +216,33 @@ export async function retryPendingReceptions(base44: any, connection: any = null
     return { enviados: 0, pendientes: 0, mensaje: 'No había avisos pendientes.' };
   }
 
-  const photoMap = await photosByPackageId(base44, pendientes.map((log: any) => log.package_id));
+  const photoMap = await receptionPhotosByPackageId(base44, pendientes.map((log: any) => log.package_id));
 
-  const receptions = pendientes.map((log: any) => ({
-    tracking: log.tracking_number || '',
-    shipping_mark: log.shipping_mark || '',
-    estado: 'recibido',
-    fecha: log.event_date,
-    log_id: log.id,
-    fotos: photoMap[log.package_id] || [],
-  }));
+  // Un aviso que ya salió al mayorista solo se repite cuando aparece la foto de la
+  // carga: mientras no exista, se espera sin volver a molestar al mayorista.
+  const receptions: any[] = [];
+  let esperandoFoto = 0;
+  for (const log of pendientes) {
+    const fotos = photoMap[log.package_id] || [];
+    if (log.notified_date && log.photo_pending === true && fotos.length === 0) {
+      esperandoFoto++;
+      continue;
+    }
+    receptions.push({
+      tracking: log.tracking_number || '',
+      shipping_mark: log.shipping_mark || '',
+      estado: 'recibido',
+      fecha: log.event_date,
+      log_id: log.id,
+      fotos,
+    });
+  }
 
   // El intento (con su resultado y su historial) lo anota notifyReceptionBlock;
   // si falta la dirección de ese mayorista no se gasta intento.
-  const result = await notifyReceptionBlock(base44, receptions, target);
+  const result = receptions.length
+    ? await notifyReceptionBlock(base44, receptions, target)
+    : { enviado: false, mensaje: 'Los avisos pendientes están esperando la foto de la carga.' };
 
   const stillPending = (await pendingOfConnection(base44, target)).length;
   await updateConnection(base44, target.id, { pending_notifications: stillPending });
@@ -218,8 +250,50 @@ export async function retryPendingReceptions(base44: any, connection: any = null
   return {
     enviados: result.enviado ? receptions.length : 0,
     pendientes: stillPending,
+    sin_foto: esperandoFoto,
     mensaje: result.enviado
       ? `Se avisaron ${receptions.length} recepción(es) pendiente(s).`
       : `Sigue(n) ${stillPending} aviso(s) pendiente(s): ${result.mensaje}`,
+  };
+}
+
+// Confirma al mayorista la recepción de una carga que ya está registrada y ahora
+// tiene cliente: le manda el tracking con la foto que capturó TLEC CARGO. Si no hay
+// foto todavía, el aviso queda pendiente para enviarla cuando exista; un fallo de
+// conexión también queda pendiente, sin darse por enviado.
+export async function confirmReceptionToWholesaler(base44: any, pkg: any, by = '') {
+  const connection = await wholesalerTargetForPackage(base44, pkg);
+  if (!connection?.id) return null;
+
+  const queued = await queueReceptionNotice(base44, pkg, connection, by);
+  if (!queued?.log_id) return null;
+
+  if (queued.ya_avisado) {
+    return {
+      enviado: false,
+      ya_avisado: true,
+      mayorista: connectionLabel(connection),
+      fotos_count: queued.fotos_count,
+      foto_pendiente: queued.foto_pendiente,
+      mensaje: `La recepción de ese tracking ya se le había avisado a ${connectionLabel(connection)}.`,
+    };
+  }
+
+  const result = await notifyReceptionBlock(base44, [{
+    tracking: String(pkg?.tracking_number || ''),
+    shipping_mark: pkg?.shipping_mark || '',
+    estado: 'recibido',
+    fecha: pkg?.received_date || new Date().toISOString(),
+    log_id: queued.log_id,
+    fotos: queued.fotos,
+  }], connection);
+
+  return {
+    enviado: result.enviado === true,
+    ya_avisado: false,
+    mayorista: connectionLabel(connection),
+    fotos_count: queued.fotos_count,
+    foto_pendiente: queued.foto_pendiente,
+    mensaje: result.mensaje,
   };
 }

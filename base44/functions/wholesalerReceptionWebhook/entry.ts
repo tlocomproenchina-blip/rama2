@@ -1,9 +1,12 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 import { connectionLabel, logWholesalerEvent, resolveConnectionForKey, stampOf, truncate } from '../../shared/wholesalerCore.ts';
+import { receiveTracking } from '../../shared/wholesalerPackages.ts';
 
 // Lado mayorista de la integración: recibe el aviso de que la carga llegó al
-// almacén de China. Lo deja en el historial de movimientos (marcado con el
-// mayorista que lo envía) y marca los paquetes registrados como recibidos.
+// almacén de China. Cada tracking del aviso queda registrado en TLEC CARGO: si
+// todavía no existía se guarda como una pre-alerta normal (a nombre de su cliente,
+// si se reconoce) y se marca recibido, así ninguna carga reportada por el
+// mayorista se queda por fuera de la base de datos.
 const MAX_PACKAGES = 200;
 
 function normalizePackages(body: any) {
@@ -40,85 +43,58 @@ export default async function (req: Request): Promise<Response> {
       return Response.json({ ok: false, mensaje: 'El aviso llegó sin trackings.' }, { status: 400 });
     }
 
-    const resumen = { recibidos: 0, ya_registrados: 0, no_registrados: 0 };
     const avisoFecha = body?.fecha || body?.received_date || new Date().toISOString();
+    const resultados: any[] = [];
 
     for (const pkg of packages) {
       const tracking = String(pkg?.tracking || pkg?.tracking_number || '').trim();
       if (!tracking) continue;
 
-      const fecha = pkg?.fecha || pkg?.received_date || avisoFecha;
-      let encontrado: any = null;
       try {
-        const rows = await base44.asServiceRole.entities.Package.filter({ tracking_number: tracking }, '-created_date', 1);
-        encontrado = rows?.[0] || null;
-      } catch (_) {
-        encontrado = null;
-      }
-
-      if (!encontrado) {
-        resumen.no_registrados += 1;
-        await logWholesalerEvent(base44, {
-          event_type: 'no_registrado',
-          tracking_number: tracking,
-          shipping_mark: pkg?.shipping_mark || '',
-          result: 'no_registrado',
-          detail: 'Aviso del mayorista: el tracking no está registrado en TLEC CARGO',
-          ...stamp,
+        const r = await receiveTracking(base44, tracking, connection, {
+          fecha: pkg?.fecha || pkg?.received_date || avisoFecha,
+          client_email: pkg?.client_email || body?.client_email || '',
+          shipping_mark: pkg?.shipping_mark || body?.shipping_mark || '',
+          package_count: pkg?.package_count,
+          create_if_missing: true,
         });
-        continue;
-      }
-
-      if (encontrado.received_date || encontrado.status === 'recibido') {
-        resumen.ya_registrados += 1;
-        await logWholesalerEvent(base44, {
-          event_type: 'recepcion_existente',
-          tracking_number: tracking,
-          client_email: encontrado.client_email || '',
-          shipping_mark: encontrado.shipping_mark || pkg?.shipping_mark || '',
-          package_id: encontrado.id,
-          result: 'ya_registrado',
-          detail: 'Aviso del mayorista: la carga ya estaba recibida en China',
-          ...stamp,
-        });
-        continue;
-      }
-
-      try {
-        await base44.asServiceRole.entities.Package.update(encontrado.id, {
-          status: 'recibido',
-          received_date: fecha,
-          received_by: 'app del mayorista',
-        });
-        resumen.recibidos += 1;
-        await logWholesalerEvent(base44, {
-          event_type: 'recepcion',
-          tracking_number: tracking,
-          client_email: encontrado.client_email || '',
-          shipping_mark: encontrado.shipping_mark || pkg?.shipping_mark || '',
-          package_id: encontrado.id,
-          result: 'recibido',
-          detail: truncate('Aviso del mayorista: carga recibida en China', 900),
-          ...stamp,
+        resultados.push({
+          tracking,
+          resultado: r.resultado,
+          estado: r.estado ?? null,
+          creado: r.creado === true,
+          huerfano: r.huerfano === true,
+          foto_pendiente: r.foto_pendiente === true,
+          mensaje: r.mensaje,
         });
       } catch (err: any) {
-        resumen.no_registrados += 1;
+        const error = truncate(err?.message || 'No se pudo procesar el tracking.', 300);
         await logWholesalerEvent(base44, {
           event_type: 'no_registrado',
           tracking_number: tracking,
           result: 'error',
-          detail: truncate(err?.message || 'No se pudo marcar el paquete como recibido', 900),
+          detail: error,
           ...stamp,
         });
+        resultados.push({ tracking, resultado: 'error', creado: false, foto_pendiente: false, mensaje: error });
       }
     }
+
+    const cuantos = (resultado: string) => resultados.filter((r) => r.resultado === resultado).length;
 
     return Response.json({
       ok: true,
       evento: body?.evento || 'carga_recibida_en_china',
       mayorista: connectionLabel(connection),
-      total: packages.length,
-      ...resumen,
+      total: resultados.length,
+      recibidos: cuantos('recibido'),
+      ya_registrados: cuantos('ya_registrado'),
+      no_registrados: cuantos('no_registrado'),
+      // Cargas que el mayorista reportó y que no estaban registradas: quedaron
+      // guardadas en TLEC CARGO (como pre-alerta de su cliente o como huérfano).
+      creados: resultados.filter((r) => r.creado).length,
+      sin_foto: resultados.filter((r) => r.foto_pendiente).length,
+      resultados,
     });
   } catch (error: any) {
     return Response.json({ error: error.message }, { status: 500 });

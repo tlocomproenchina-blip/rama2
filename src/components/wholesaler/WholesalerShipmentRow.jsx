@@ -22,6 +22,7 @@ export default function WholesalerShipmentRow({ shipment, onResent }) {
         <span className="font-mono text-xs text-foreground">{shipment.tracking_number || 'sin tracking'}</span>
         {shipment.shipping_mark && <span className="text-xs text-muted-foreground">{shipment.shipping_mark}</span>}
         {shipment.client_email && <span className="text-xs text-muted-foreground">{shipment.client_email}</span>}
+        {shipment.photo_pending && <Badge className="bg-amber-100 text-amber-700">Falta foto de recepción</Badge>}
         <span className="ml-auto whitespace-nowrap text-xs text-muted-foreground">{shipmentWhen(shipment.event_date)}</span>
       </div>
 

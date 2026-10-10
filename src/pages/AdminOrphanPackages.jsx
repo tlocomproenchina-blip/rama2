@@ -205,6 +205,7 @@ export default function AdminOrphanPackages({ user }) {
     if (!selectedClient || !assignTarget?.ids?.length) return;
     setAssigning(true);
     let ok = 0; let fail = 0; let unified = 0; let conflictMsg = '';
+    let avisoTxt = '';
     const succeededIds = [];
     for (const id of assignTarget.ids) {
       try {
@@ -217,6 +218,12 @@ export default function AdminOrphanPackages({ user }) {
           });
           if (data?.error) throw new Error(data.error);
           if (data?.consolidated) unified++;
+          if (data?.aviso_mayorista && !avisoTxt) {
+            const a = data.aviso_mayorista;
+            avisoTxt = a.enviado
+              ? (a.foto_pendiente ? ' · recepción avisada al mayorista, falta la foto' : ' · recepción confirmada al mayorista con foto')
+              : (a.ya_avisado ? ' · ya se le había avisado al mayorista' : ` · aviso al mayorista pendiente: ${String(a.mensaje || '').slice(0, 80)}`);
+          }
           succeededIds.push(id);
           ok++;
         } else {
@@ -243,9 +250,9 @@ export default function AdminOrphanPackages({ user }) {
     const unifiedTxt = unified > 0 ? ` · ${unified} pre-alerta(s) unificada(s)` : '';
     const failTxt = fail > 0 ? ` · ${fail} sin asignar${conflictMsg ? `: ${conflictMsg}` : ''}` : '';
     const msg = assignTarget.multi
-      ? `${ok} huérfano(s) asignado(s) a ${selectedClient.email}${unifiedTxt}${failTxt}${!isOnline ? ' (offline)' : ''}`
+      ? `${ok} huérfano(s) asignado(s) a ${selectedClient.email}${unifiedTxt}${avisoTxt}${failTxt}${!isOnline ? ' (offline)' : ''}`
       : (ok > 0
-        ? `Huérfano asignado a ${selectedClient.email}${unifiedTxt}${!isOnline ? ' (offline)' : ''}`
+        ? `Huérfano asignado a ${selectedClient.email}${unifiedTxt}${avisoTxt}${!isOnline ? ' (offline)' : ''}`
         : `No se pudo asignar: ${conflictMsg || 'error desconocido'}`);
     if (ok === 0 && fail > 0) toast.error(msg);
     else toast.success(msg);
