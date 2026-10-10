@@ -1,5 +1,13 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
-import { absorbIntoOrphan } from '../../shared/orphanConsolidation.ts';
+import { absorbIntoOrphan, linkOrphanToPrealert } from '../../shared/orphanConsolidation.ts';
+
+// Da de alta el huérfano y, si su cliente ya había declarado ese mismo tracking en
+// una pre-alerta, lo deja enlazado a él sin que nadie lo asigne a mano.
+async function createOrphanWithPrealertLink(base44: any, payload: any) {
+  const orphan = await base44.asServiceRole.entities.Package.create(payload);
+  const linked = await linkOrphanToPrealert(base44, orphan);
+  return linked.package || orphan;
+}
 
 // Procesa un escaneo desde la bodega en China.
 // Recibe: { tracking_number, photo_url, device_id, manual? }
@@ -128,7 +136,7 @@ export default async function(req: Request): Promise<Response> {
         }
       } else {
         // No existe pre-alerta ni etiqueta TLEC → crear huérfano
-        const orphan = await base44.asServiceRole.entities.Package.create({
+        const orphan = await createOrphanWithPrealertLink(base44, {
           tracking_number: tracking,
           client_email: '',
           shipping_type: 'maritimo',
@@ -270,7 +278,7 @@ export default async function(req: Request): Promise<Response> {
           }
         } else {
           // La IA encontró un tracking pero no hay paquete → crear huérfano con ese tracking
-          const orphan = await base44.asServiceRole.entities.Package.create({
+          const orphan = await createOrphanWithPrealertLink(base44, {
             tracking_number: aiTracking,
             client_email: '',
             shipping_type: 'maritimo',
@@ -288,7 +296,7 @@ export default async function(req: Request): Promise<Response> {
       } else {
         // La IA no encontró tracking → crear huérfano con pseudo-tracking
         const pseudoTracking = `MANUAL-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
-        const orphan = await base44.asServiceRole.entities.Package.create({
+        const orphan = await createOrphanWithPrealertLink(base44, {
           tracking_number: pseudoTracking,
           client_email: '',
           shipping_type: 'maritimo',

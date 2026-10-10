@@ -505,3 +505,56 @@ export async function mergeDuplicateOrphans({
 
   return { skipped: false, package: updated, merged_fields, relinked, removed_id: freshDuplicate.id };
 }
+
+// ---------------------------------------------------------------------------
+// Enlace automático: huérfano ↔ pre-alerta que ya existía
+//
+// Quien registra la carga en el almacén no ve a todos los clientes del sistema,
+// así que un huérfano no siempre se puede asignar a mano. Si el cliente ya había
+// declarado ese mismo envío (pre-alerta) con el tracking exacto, el huérfano se
+// queda con su cliente sin intervención de nadie: conserva su foto y sus datos de
+// recepción, y la pre-alerta se retira para no dejar el mismo paquete dos veces.
+//
+// Solo se enlaza con una pre-alerta PENDIENTE y de un único cliente: sin
+// coincidencia exacta, o con pre-alertas de varios clientes, el huérfano queda
+// intacto para revisión.
+
+export async function linkOrphanToPrealert(
+  base44: any,
+  pkg: any,
+): Promise<{ linked: boolean; reason?: string; package?: any; prealert_id?: string; client_email?: string }> {
+  // Se relee antes de tocar nada: si otro proceso ya lo reclamó, no se repite.
+  const rowsById = await base44.asServiceRole.entities.Package.filter({ id: pkg?.id }, '-created_date', 1);
+  const fresh = rowsById?.[0];
+  if (!isUnclaimedOrphan(fresh)) return { linked: false, reason: 'no_orphan' };
+
+  const tracking = String(fresh.tracking_number || '').trim();
+  if (!tracking || tracking.startsWith('MANUAL-')) return { linked: false, reason: 'sin_tracking' };
+
+  // Coincidencia EXACTA: las variantes del sub-tracking (master + sufijo de caja)
+  // sirven para no duplicar el mismo envío, pero no para asignar un cliente.
+  const rows = await base44.asServiceRole.entities.Package.filter({ tracking_number: tracking }, '-created_date', 20);
+  const prealerts = (rows || []).filter((row: any) =>
+    row?.id !== fresh.id &&
+    !!String(row?.client_email || '').trim() &&
+    row.is_orphan !== true &&
+    isPendingPrealert(row),
+  );
+
+  const { target, ambiguous } = pickConsolidationTarget(prealerts);
+  if (ambiguous) return { linked: false, reason: 'prealertas_de_varios_clientes' };
+  if (!target) return { linked: false, reason: 'sin_prealerta' };
+
+  try {
+    const result = await consolidateOrphan({ base44, orphan: fresh, prealert: target });
+    return {
+      linked: true,
+      package: result.package,
+      prealert_id: target.id,
+      client_email: String(target.client_email || '').trim(),
+    };
+  } catch (err: any) {
+    if (err?.message === ORPHAN_ALREADY_CLAIMED) return { linked: false, reason: 'ya_reclamado' };
+    throw err;
+  }
+}

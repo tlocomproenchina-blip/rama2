@@ -1,0 +1,45 @@
+{
+  "description": "Cada noche revisa los paquetes hu\u00e9rfanos que ya estaban registrados en el almac\u00e9n y los enlaza a la pre-alerta del mismo tracking exacto, para que queden con su cliente sin asignarlos a mano.",
+  "name": "Enlace de hu\u00e9rfanos con pre-alertas",
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "enlace_huerfanos_con_prealertas",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "enlazar_huerfanos": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "linkOrphansToPrealerts",
+            "args": {}
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Enlazar hu\u00e9rfanos con su pre-alerta",
+            "description": "Tracking exacto"
+          }
+        }
+      }
+    ]
+  },
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "0 22 * * *",
+      "one_time_date": null,
+      "timezone": "America/Caracas",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  }
+}

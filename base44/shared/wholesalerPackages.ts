@@ -3,7 +3,7 @@
 // pre-alertas reportadas. Nunca crea paquetes al consultar/recepcionar, nunca
 // degrada un estado y deja cada movimiento marcado con el mayorista de origen.
 import { connectionLabel, findConnectionById, logWholesalerEvent, stampOf, truncate, updateConnection } from './wholesalerCore.ts';
-import { consolidateOrphan } from './orphanConsolidation.ts';
+import { consolidateOrphan, linkOrphanToPrealert } from './orphanConsolidation.ts';
 
 const SOURCE_LABEL = 'App del mayorista';
 const MAX_TRACKINGS_PER_CALL = 50;
@@ -181,6 +181,14 @@ export async function receiveTracking(base44: any, tracking: string, connection:
       connection,
     });
     creado = !!pkg;
+  }
+
+  // Un huérfano que ya estaba en el almacén se enlaza a la pre-alerta de su cliente
+  // (mismo tracking exacto) cuando llega una recepción posterior: la carga queda con
+  // su dueño sin que nadie la asigne a mano.
+  if (pkg?.is_orphan === true && !String(pkg.client_email || '').trim()) {
+    const linked = await linkOrphanToPrealert(base44, pkg);
+    if (linked.linked && linked.package) pkg = linked.package;
   }
 
   if (!pkg) {

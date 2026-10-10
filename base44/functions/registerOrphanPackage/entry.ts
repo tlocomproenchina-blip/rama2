@@ -1,5 +1,14 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
-import { absorbIntoOrphan } from '../../shared/orphanConsolidation.ts';
+import { absorbIntoOrphan, linkOrphanToPrealert } from '../../shared/orphanConsolidation.ts';
+
+// Registra el huérfano y, si el cliente ya había declarado ese mismo tracking en
+// una pre-alerta, lo deja enlazado a su cliente: el enlace no depende de los
+// clientes que muestre el panel de quien registra la carga.
+async function withPrealertLink(base44: any, pkg: any) {
+  const linked = await linkOrphanToPrealert(base44, pkg);
+  if (!linked.linked) return { package: pkg };
+  return { package: linked.package || pkg, prealert_linked: true, client_email: linked.client_email };
+}
 
 Deno.serve(async (req) => {
   try {
@@ -101,7 +110,7 @@ Deno.serve(async (req) => {
     const existing = await base44.asServiceRole.entities.Package.filter({ tracking_number: tracking }, '-created_date', 1);
     if (existing.length > 0) {
       const absorbed = await absorbIntoOrphan({ base44, keep: existing[0], incoming, by: user.email });
-      if (absorbed) return Response.json({ package: absorbed, merged: true });
+      if (absorbed) return Response.json({ ...(await withPrealertLink(base44, absorbed)), merged: true });
       return Response.json({ error: 'Este número de tracking ya está registrado en el sistema' }, { status: 409 });
     }
 
@@ -115,7 +124,7 @@ Deno.serve(async (req) => {
       const master = masterRows?.[0];
       if (!master) continue;
       const absorbed = await absorbIntoOrphan({ base44, keep: master, incoming, by: user.email });
-      if (absorbed) return Response.json({ package: absorbed, merged: true });
+      if (absorbed) return Response.json({ ...(await withPrealertLink(base44, absorbed)), merged: true });
       return Response.json({ error: `El tracking master ${candidate} ya está registrado en el sistema` }, { status: 409 });
     }
 
@@ -126,7 +135,7 @@ Deno.serve(async (req) => {
       is_orphan: true,
     });
 
-    return Response.json({ package: created });
+    return Response.json(await withPrealertLink(base44, created));
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
