@@ -102,6 +102,22 @@ function describePackage(pkg: any) {
   };
 }
 
+// Cliente de TLEC CARGO al que corresponde el aviso del mayorista: se reconoce
+// por su correo y, si no aparece, por su Shipping Mark.
+export async function findClientForNotice(base44: any, { client_email, shipping_mark }: any) {
+  const email = String(client_email || '').trim().toLowerCase();
+  if (email) {
+    const rows = await base44.asServiceRole.entities.User.filter({ email }, '-created_date', 1);
+    if (rows?.[0]) return rows[0];
+  }
+  const mark = String(shipping_mark || '').trim();
+  if (mark) {
+    const rows = await base44.asServiceRole.entities.User.filter({ shipping_mark: mark }, '-created_date', 1);
+    if (rows?.[0]) return rows[0];
+  }
+  return null;
+}
+
 // Solo lectura: dice si el tracking está registrado, sin modificar nada.
 export async function checkTracking(base44: any, tracking: string, connection: any = null) {
   const clean = cleanTracking(tracking);
@@ -191,6 +207,39 @@ export async function receiveTracking(base44: any, tracking: string, connection:
     if (linked.linked && linked.package) pkg = linked.package;
   }
 
+  // Si ese cliente todavía no había declarado la carga en TLEC CARGO (no hay
+  // pre-alerta que la reclame), el propio aviso del mayorista —que sí trae el
+  // correo o el Shipping Mark del cliente— le pone dueño al huérfano en el
+  // momento, aunque la carga ya esté recibida: conserva su foto y sus datos de
+  // recepción y deja de estar sin asignar, sin esperar a nadie.
+  let claimed = false;
+  if (pkg?.is_orphan === true && !String(pkg.client_email || '').trim() && (options?.client_email || options?.shipping_mark)) {
+    const client = await findClientForNotice(base44, {
+      client_email: options?.client_email,
+      shipping_mark: options?.shipping_mark,
+    });
+    if (client) {
+      try {
+        const consolidado = await consolidateOrphan({
+          base44,
+          orphan: pkg,
+          claim: {
+            client_email: client.email,
+            shipping_mark: client.shipping_mark || options?.shipping_mark || '',
+            tracking_number: clean,
+            package_count: options?.package_count,
+          },
+        });
+        if (consolidado?.package) {
+          pkg = consolidado.package;
+          claimed = true;
+        }
+      } catch (_) {
+        // Si otro proceso lo reclamó en el mismo instante, se sigue con el enlace normal.
+      }
+    }
+  }
+
   if (!pkg) {
     await logWholesalerEvent(base44, {
       event_type: 'no_registrado',
@@ -211,19 +260,24 @@ export async function receiveTracking(base44: any, tracking: string, connection:
       client_email: pkg.client_email || '',
       shipping_mark: pkg.shipping_mark || '',
       package_id: pkg.id,
-      result: pkg.status || 'ya_registrado',
-      detail: creado
-        ? 'El tracking se guardó como pre-alerta y ya quedaba recibido'
-        : 'Ya estaba registrado: no se modificó ni se devolvió de estado',
+      result: claimed ? 'asignado' : (pkg.status || 'ya_registrado'),
+      detail: claimed
+        ? `Carga que estaba sin cliente en el almacén: quedó asignada al cliente ${pkg.client_email}`
+        : (creado
+          ? 'El tracking se guardó como pre-alerta y ya quedaba recibido'
+          : 'Ya estaba registrado: no se modificó ni se devolvió de estado'),
       ...stamp,
     });
     return {
       tracking: clean,
       resultado: 'ya_registrado',
       creado,
+      asignado: claimed,
       ...describePackage(pkg),
       foto_pendiente: receptionPhotos(pkg).length === 0,
-      mensaje: `Ya estaba registrado con estado "${pkg.status}": no se modificó nada.`,
+      mensaje: claimed
+        ? `La carga ya estaba recibida en el almacén: quedó asignada al cliente ${pkg.client_email}.`
+        : `Ya estaba registrado con estado "${pkg.status}": no se modificó nada.`,
     };
   }
 
@@ -340,15 +394,7 @@ export async function reportPrealert(base44: any, payload: any, connection: any 
     return { ok: false, resultado: 'error', mensaje: 'Falta el tracking o el código de etiqueta.' };
   }
 
-  let client = null;
-  if (clientEmail) {
-    const rows = await base44.asServiceRole.entities.User.filter({ email: clientEmail }, '-created_date', 1);
-    client = rows?.[0] || null;
-  }
-  if (!client && shippingMark) {
-    const rows = await base44.asServiceRole.entities.User.filter({ shipping_mark: shippingMark }, '-created_date', 1);
-    client = rows?.[0] || null;
-  }
+  const client = await findClientForNotice(base44, { client_email: clientEmail, shipping_mark: shippingMark });
 
   if (!client) {
     await logWholesalerEvent(base44, {

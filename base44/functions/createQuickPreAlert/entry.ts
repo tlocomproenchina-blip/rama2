@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.49';
+import { consolidateOrphan } from '../../shared/orphanConsolidation.ts';
 
 // Crea una "Pre-alerta rápida" o, si coincide por sub-tracking con una
 // pre-alerta existente del cliente, marca esa pre-alerta como recibida
@@ -81,6 +82,32 @@ export default async function(req: Request): Promise<Response> {
         action: 'merged',
         package_id: existingPkg.id,
         tracking_number: existingPkg.tracking_number,
+      });
+    }
+
+    // 2.b) Si ese tracking ya está en el almacén como huérfano (sin cliente), se le
+    //      asigna el cliente en el momento, conservando su foto y sus datos de
+    //      recepción, en vez de crear una pre-alerta duplicada de la misma carga.
+    const orphanRows = await base44.asServiceRole.entities.Package.filter({ tracking_number: tracking }, '-created_date', 5);
+    const orphan = orphanRows.find((p) => p.is_orphan === true && !String(p.client_email || '').trim());
+    if (orphan) {
+      const clientRows = await base44.asServiceRole.entities.User.filter({ email: clientEmail }, '-created_date', 1);
+      const client = clientRows?.[0] || null;
+      const consolidado = await consolidateOrphan({
+        base44,
+        orphan,
+        claim: {
+          client_email: clientEmail,
+          shipping_mark: client?.shipping_mark || '',
+          tracking_number: tracking,
+          shipping_type: shippingType,
+          ...(photoUrl ? { product_image_url: photoUrl } : {}),
+        },
+      });
+      return Response.json({
+        action: 'linked_orphan',
+        package_id: consolidado?.package?.id || orphan.id,
+        tracking_number: tracking,
       });
     }
 

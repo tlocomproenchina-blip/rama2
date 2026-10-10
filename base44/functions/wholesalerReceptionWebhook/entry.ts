@@ -9,10 +9,12 @@ import { receiveTracking } from '../../shared/wholesalerPackages.ts';
 // mayorista se queda por fuera de la base de datos.
 const MAX_PACKAGES = 200;
 
+// El aviso puede llegar con los trackings bajo distintos nombres (paquetes,
+// packages, prealertas, trackings) y también como una lista de textos sueltos:
+// se admiten todas las formas para no perder ninguna carga reportada.
 function normalizePackages(body: any) {
-  const list = Array.isArray(body?.paquetes)
-    ? body.paquetes
-    : (Array.isArray(body?.packages) ? body.packages : []);
+  const candidates = [body?.paquetes, body?.packages, body?.prealertas, body?.prealerts, body?.trackings];
+  const list = candidates.find((value) => Array.isArray(value) && value.length) || [];
   if (list.length) return list;
 
   const tracking = body?.tracking || body?.tracking_number;
@@ -40,6 +42,15 @@ export default async function (req: Request): Promise<Response> {
     const body = await req.json().catch(() => ({}));
     const packages = normalizePackages(body).slice(0, MAX_PACKAGES);
     if (!packages.length) {
+      // Un aviso que no se puede leer queda registrado: así se ve en el panel que
+      // el mayorista sí llamó y con qué campos, en vez de perderse en silencio.
+      await logWholesalerEvent(base44, {
+        event_type: 'aviso_fallido',
+        tracking_number: String(body?.tracking || body?.tracking_number || '').trim(),
+        result: 'sin_trackings',
+        detail: truncate(`El aviso llegó sin trackings. Campos recibidos: ${Object.keys(body || {}).join(', ') || 'ninguno'}`, 300),
+        ...stamp,
+      });
       return Response.json({ ok: false, mensaje: 'El aviso llegó sin trackings.' }, { status: 400 });
     }
 
@@ -47,7 +58,8 @@ export default async function (req: Request): Promise<Response> {
     const resultados: any[] = [];
 
     for (const pkg of packages) {
-      const tracking = String(pkg?.tracking || pkg?.tracking_number || '').trim();
+      const raw = typeof pkg === 'string' ? pkg : (pkg?.tracking || pkg?.tracking_number);
+      const tracking = String(raw || '').trim();
       if (!tracking) continue;
 
       try {
