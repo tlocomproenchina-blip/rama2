@@ -13,8 +13,8 @@ function TotalRow({ label, value }) {
 }
 
 // Resumen del lote antes de emitir: cuántos clientes van, cuánto se factura y el
-// botón que emite la factura y la manda al correo de cada cliente.
-export default function WholesalerBillingSummary({ totals, notes, onNotesChange, onEmit, emitting }) {
+// botón que emite la factura y la manda al correo del mayorista.
+export default function WholesalerBillingSummary({ totals, invoiceEmail, notes, onNotesChange, onEmit, emitting }) {
   return (
     <Card className="rounded-2xl border-0 shadow-card">
       <CardHeader className="pb-3">
@@ -26,7 +26,8 @@ export default function WholesalerBillingSummary({ totals, notes, onNotesChange,
           <TotalRow label="Órdenes / envíos" value={totals.orders} />
           <TotalRow label="Bultos facturables" value={totals.bultos} />
           <TotalRow label="Trackings recibidos" value={totals.received} />
-          <TotalRow label="Servicio de envío" value={`$${totals.shipping.toFixed(2)}`} />
+          <TotalRow label="Servicio de envío (por CBM)" value={`$${totals.shipping.toFixed(2)}`} />
+          <TotalRow label="CBM facturable" value={totals.cbm.toFixed(4).replace(/\.?0+$/, '') || '0'} />
           <TotalRow label="Servicio puerta a puerta" value={`$${totals.doorToDoor.toFixed(2)}`} />
           <TotalRow label="Manejo de paquetes" value={`$${totals.handling.toFixed(2)}`} />
         </div>
@@ -49,10 +50,12 @@ export default function WholesalerBillingSummary({ totals, notes, onNotesChange,
 
         <Button className="w-full gap-2" onClick={onEmit} disabled={emitting || !totals.clients}>
           {emitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-          {emitting ? 'Emitiendo y enviando…' : 'Emitir factura y enviar a cada cliente'}
+          {emitting ? 'Emitiendo y enviando…' : 'Emitir factura y enviar al mayorista'}
         </Button>
-        <p className="text-xs text-muted-foreground">
-          Se emite una sola factura con todos los clientes elegidos y cada uno recibe su parte en su correo.
+        <p className={`text-xs ${invoiceEmail ? 'text-muted-foreground' : 'text-amber-600'}`}>
+          {invoiceEmail
+            ? `La factura de todos los clientes se envía solo al correo del mayorista (${invoiceEmail}).`
+            : 'Este mayorista todavía no tiene correo de facturación: agrégalo en su conexión para que le llegue la factura.'}
         </p>
       </CardContent>
     </Card>

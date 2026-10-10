@@ -22,15 +22,14 @@ import {
   round2,
   round4,
   sendInvoiceEmail,
-  stampKeyOf,
   trackingKeyOf,
 } from '../../shared/wholesalerBilling.ts';
 
 // Emite una sola factura con varios clientes de un mayorista: calcula los montos
-// de cada cliente con sus tarifas por bulto, su puerta a puerta por bulto y 1 USD
-// por cada tracking recibido, guarda la factura, marca lo facturado para no repetirlo
-// y le manda a cada cliente su parte por correo.
-const EMAIL_BATCH = 6;
+// de cada cliente con las tarifas del perfil de su mayorista (envío por CBM y
+// puerta a puerta por bulto) más 1 USD por cada tracking recibido, guarda la
+// factura, marca lo facturado para no repetirlo y le manda la factura al correo
+// del mayorista.
 const WRITE_BATCH = 200;
 
 export default async function (req: Request): Promise<Response> {
@@ -52,11 +51,18 @@ export default async function (req: Request): Promise<Response> {
     // sigue sirviendo aunque su conexión se haya quitado después.
     const key = String(body?.wholesaler_key || '').trim() || 'main';
     let wholesalerName = String(body?.wholesaler_name || '').trim();
+    const connections = await listWholesalerConnections(base44);
+    const live = connections.find((row: any) => connectionKeyOf(row) === key) || null;
     if (!wholesalerName) {
-      const connections = await listWholesalerConnections(base44);
-      const live = connections.find((row: any) => connectionKeyOf(row) === key);
       wholesalerName = live ? connectionLabel(live) : defaultWholesalerName(key);
     }
+
+    // Las tarifas del perfil del mayorista rigen para todos sus clientes: el envío
+    // por CBM y la puerta a puerta por bulto. Si su conexión ya no existe, se usan
+    // las que mandó la pantalla. La factura sale solo al correo del mayorista.
+    const ratePerCbm = num(live?.rate_per_cbm ?? body?.rate_per_cbm);
+    const ratePerBulto = num(live?.rate_per_bulto ?? body?.rate_per_bulto);
+    const invoiceEmail = String(live?.invoice_email || body?.invoice_email || '').trim();
 
     const emails = requested.map((row: any) => emailKeyOf(row?.client_email)).filter(Boolean);
     const marks = requested.map((row: any) => markKeyOf(row?.shipping_mark)).filter(Boolean);
@@ -188,9 +194,10 @@ export default async function (req: Request): Promise<Response> {
       const bultos = orderDetails.reduce((sum: number, order: any) => sum + num(order.bultos), 0);
       const trackings = orderDetails.reduce((sum: number, order: any) => sum + num(order.received_trackings), 0);
       const amounts = clientAmounts({
+        cbm,
         bultos,
-        shippingRate: num(raw?.rate_per_bulto),
-        doorRate: num(raw?.door_to_door_per_bulto),
+        shippingRate: ratePerCbm,
+        doorRate: ratePerBulto,
         trackings,
       });
 
@@ -199,8 +206,8 @@ export default async function (req: Request): Promise<Response> {
         client_email: email,
         client_name: label || email,
         shipping_mark: String(raw?.shipping_mark || '').trim(),
-        rate_per_bulto: round2(num(raw?.rate_per_bulto)),
-        door_to_door_per_bulto: round2(num(raw?.door_to_door_per_bulto)),
+        rate_per_cbm: round2(ratePerCbm),
+        rate_per_bulto: round2(ratePerBulto),
         cbm,
         bultos,
         received_trackings: trackings,
@@ -240,6 +247,7 @@ export default async function (req: Request): Promise<Response> {
       invoice_number: invoiceNumber,
       wholesaler_key: key,
       wholesaler_name: wholesalerName,
+      invoice_email: invoiceEmail,
       emitted_date: now,
       emitted_by: user?.email || '',
       clients: builtClients,
@@ -319,57 +327,27 @@ export default async function (req: Request): Promise<Response> {
       } catch (_) {}
     }
 
-    // Las tarifas quedan guardadas en el cliente para la factura siguiente.
-    const rateRows = builtClients
-      .filter((client) => client.client_id)
-      .map((client) => ({
-        id: client.client_id,
-        rate_per_bulto: client.rate_per_bulto,
-        door_to_door_per_bulto: client.door_to_door_per_bulto,
-        rates_updated_date: now,
-      }));
-    if (rateRows.length) {
-      try {
-        const rows = await fetchAllFilter(
-          base44.asServiceRole.entities.WholesalerClient,
-          { id: { $in: rateRows.map((row) => row.id) } },
-          '-fetched_date',
-        );
-        const allowed = new Set<string>();
-        for (const row of rows || []) {
-          if (stampKeyOf(row) === key) allowed.add(row.id);
-        }
-        const safe = rateRows.filter((row) => allowed.has(row.id));
-        if (safe.length) await base44.asServiceRole.entities.WholesalerClient.bulkUpdate(safe);
-      } catch (_) {}
-    }
-
-    // Cada cliente recibe su parte de la factura en su correo.
-    const outcomes: any[] = [];
-    for (let i = 0; i < builtClients.length; i += EMAIL_BATCH) {
-      const chunk = builtClients.slice(i, i + EMAIL_BATCH);
-      const settled = await Promise.all(chunk.map(async (client) => {
-        const html = invoiceEmailHtml({ invoiceNumber, emittedDate: now, wholesalerName, client });
-        const outcome = await sendInvoiceEmail(base44, { to: client.client_email, invoiceNumber, html });
-        return { status: outcome.status, error: outcome.error || null };
-      }));
-      outcomes.push(...settled);
-    }
-
-    let sent = 0;
-    let failed = 0;
-    const finalClients = builtClients.map((client, index) => {
-      const outcome = outcomes[index] || { status: 'omitido', error: null };
-      if (outcome.status === 'enviado') sent += 1;
-      else if (outcome.status === 'fallido') failed += 1;
-      return {
-        ...client,
-        email_status: outcome.status,
-        email_error: outcome.error,
-        email_sent_date: outcome.status === 'enviado' ? new Date().toISOString() : null,
-      };
+    // Una sola factura, al correo del mayorista: sus clientes no reciben correo.
+    const html = invoiceEmailHtml({
+      invoiceNumber,
+      emittedDate: now,
+      wholesalerName,
+      clients: builtClients,
+      totals,
     });
-    const status = sent > 0 ? (failed > 0 ? 'parcial' : 'enviada') : 'sin_envio';
+    const outcome: any = invoiceEmail
+      ? await sendInvoiceEmail(base44, { to: invoiceEmail, invoiceNumber, html })
+      : { status: 'sin_correo', error: 'El mayorista no tiene correo de facturación en su perfil.' };
+
+    const sent = outcome.status === 'enviado' ? 1 : 0;
+    const failed = outcome.status === 'fallido' ? 1 : 0;
+    const finalClients = builtClients.map((client) => ({
+      ...client,
+      email_status: outcome.status,
+      email_error: outcome.error || null,
+      email_sent_date: outcome.status === 'enviado' ? new Date().toISOString() : null,
+    }));
+    const status = sent > 0 ? 'enviada' : 'sin_envio';
 
     if (invoice?.id) {
       try {
@@ -384,14 +362,17 @@ export default async function (req: Request): Promise<Response> {
     }
 
     const mensaje = `Factura ${invoiceNumber}: ${totals.clients} cliente(s) por $${totals.total.toFixed(2)}. `
-      + `${sent} correo(s) enviado(s)${failed ? `, ${failed} con error` : ''}`
-      + `${warnings.length ? ` · ${warnings.length} aviso(s)` : ''}.`;
+      + (sent
+        ? `Correo enviado al mayorista (${invoiceEmail}).`
+        : `El correo al mayorista no salió: ${outcome.error || 'sin correo configurado'}.`)
+      + `${warnings.length ? ` · ${warnings.length} aviso(s)` : ''}`;
 
     return Response.json({
       ok: true,
       invoice_id: invoice?.id || '',
       invoice_number: invoiceNumber,
       totals,
+      email_to: invoiceEmail,
       enviados: sent,
       fallidos: failed,
       warnings,

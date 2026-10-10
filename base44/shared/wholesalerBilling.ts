@@ -1,7 +1,8 @@
 // Facturación a los clientes de cada mayorista: una sola factura por lote, con
-// el detalle de cada cliente adentro. Cada cliente tiene su tarifa por bulto y su
-// tarifa de puerta a puerta por bulto, y se suma 1 USD por cada tracking recibido
-// de las órdenes que entran en la factura.
+// el detalle de cada cliente adentro. Las tarifas son las del perfil del
+// mayorista y rigen para todos sus clientes: el envío se cobra por CBM y la
+// puerta a puerta por bulto, más 1 USD por cada tracking recibido de las órdenes
+// que entran en la factura. La factura se le manda solo al correo del mayorista.
 import { caracasDateKey, emailsEnabled, formatCaracasDateTime, truncate } from './wholesalerCore.ts';
 import { fetchAllFilter, fetchByClientEmails, normTracking, num } from './paginatedFetch.ts';
 import { sendBrevoEmail } from './brevoEmail.ts';
@@ -63,10 +64,11 @@ export function trackingKeyOf(value: any) {
   return orderKeyOf(normTracking(value));
 }
 
-// Montos de la factura de un cliente: envío y puerta a puerta se cobran por bulto,
-// y el manejo por cada tracking recibido.
+// Montos de la factura de un cliente: el envío se cobra por CBM con la tarifa del
+// mayorista, la puerta a puerta por bulto con su tarifa por bulto, y el manejo
+// por cada tracking recibido.
 export function clientAmounts(params: any) {
-  const shipping = round2(num(params?.bultos) * num(params?.shippingRate));
+  const shipping = round2(num(params?.cbm) * num(params?.shippingRate));
   const doorToDoor = round2(num(params?.bultos) * num(params?.doorRate));
   const handling = round2(num(params?.trackings) * num(params?.handlingFee ?? HANDLING_FEE));
   return { shipping, doorToDoor, handling, total: round2(shipping + doorToDoor + handling) };
@@ -214,17 +216,76 @@ function money(value: any) {
   return `$${round2(value).toFixed(2)}`;
 }
 
-// Factura que recibe cada cliente: su parte del lote, con sus órdenes y sus
-// cargos, más el resumen de lo que le correspondió pagar.
+// Factura consolidada que recibe el mayorista en su correo: el detalle de cada
+// uno de sus clientes con sus órdenes/envíos, sus cargos y el total de la factura.
 export function invoiceEmailHtml(params: any) {
-  const client = params?.client || {};
-  const orders = client.orders || [];
-  const orderRows = orders.map((o: any) => `
-              <tr>
-                <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#0f172a;">${o.order_number || 'Sin N° de orden'}</td>
-                <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;text-align:right;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#0f172a;">${num(o.bultos)}</td>
-                <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;text-align:right;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#0f172a;">${num(o.received_trackings)}</td>
-              </tr>`).join('');
+  const clients: any[] = params?.clients || [];
+  const totals: any = params?.totals || {};
+
+  const blocks = clients.map((client: any) => {
+    const orderRows = (client.orders || []).map((order: any) => `
+                  <tr>
+                    <td style="padding:7px 10px;border-bottom:1px solid #e5e7eb;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#0f172a;">${order.order_number || 'Sin N° de orden'}</td>
+                    <td align="right" style="padding:7px 10px;border-bottom:1px solid #e5e7eb;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#0f172a;">${cbmText(order.cbm)}</td>
+                    <td align="right" style="padding:7px 10px;border-bottom:1px solid #e5e7eb;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#0f172a;">${num(order.bultos)}</td>
+                    <td align="right" style="padding:7px 10px;border-bottom:1px solid #e5e7eb;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#0f172a;">${num(order.received_trackings)}</td>
+                  </tr>`).join('');
+
+    return `
+    <tr>
+      <td style="padding:20px 24px 0;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f7fafd;border:1px solid #e5e7eb;border-radius:12px;">
+          <tr>
+            <td style="padding:12px 14px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#0f172a;">
+              <div style="font-weight:bold;">${client.client_name || client.client_email || ''}</div>
+              <div style="color:#64748b;">${client.client_email || ''}${client.shipping_mark ? ` · Shipping Mark: <b>${client.shipping_mark}</b>` : ''}</div>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding:12px 24px 0;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;border:1px solid #e5e7eb;border-radius:12px;">
+          <tr style="background-color:#f7fafd;">
+            <th align="left" style="padding:7px 10px;font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:0.04em;">N° de orden</th>
+            <th align="right" style="padding:7px 10px;font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:0.04em;">CBM</th>
+            <th align="right" style="padding:7px 10px;font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:0.04em;">Bultos</th>
+            <th align="right" style="padding:7px 10px;font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:0.04em;">Recibidos</th>
+          </tr>
+          ${orderRows}
+        </table>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding:12px 24px 0;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;border:1px solid #e5e7eb;border-radius:12px;">
+          <tr>
+            <td style="padding:9px 14px;border-bottom:1px solid #e5e7eb;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#0f172a;">
+              Servicio de envío<br /><span style="color:#64748b;font-size:11px;">${cbmText(client.cbm)} CBM × ${money(client.rate_per_cbm)} por CBM</span>
+            </td>
+            <td align="right" style="padding:9px 14px;border-bottom:1px solid #e5e7eb;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#0f172a;">${money(client.shipping_amount)}</td>
+          </tr>
+          <tr>
+            <td style="padding:9px 14px;border-bottom:1px solid #e5e7eb;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#0f172a;">
+              Servicio puerta a puerta<br /><span style="color:#64748b;font-size:11px;">${num(client.bultos)} bulto(s) × ${money(client.rate_per_bulto)} por bulto</span>
+            </td>
+            <td align="right" style="padding:9px 14px;border-bottom:1px solid #e5e7eb;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#0f172a;">${money(client.door_to_door_amount)}</td>
+          </tr>
+          <tr>
+            <td style="padding:9px 14px;border-bottom:1px solid #e5e7eb;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#0f172a;">
+              Manejo de paquetes<br /><span style="color:#64748b;font-size:11px;">${num(client.received_trackings)} tracking(s) recibido(s) × ${money(HANDLING_FEE)}</span>
+            </td>
+            <td align="right" style="padding:9px 14px;border-bottom:1px solid #e5e7eb;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#0f172a;">${money(client.handling_amount)}</td>
+          </tr>
+          <tr style="background-color:#f7fafd;">
+            <td style="padding:10px 14px;font-family:Arial,Helvetica,sans-serif;font-size:13px;font-weight:bold;color:#0f172a;">Total del cliente</td>
+            <td align="right" style="padding:10px 14px;font-family:Arial,Helvetica,sans-serif;font-size:13px;font-weight:bold;color:#0f172a;">${money(client.total)}</td>
+          </tr>
+        </table>
+      </td>
+    </tr>`;
+  }).join('');
 
   return `
 <div style="background-color:#f7fafd;padding:24px 12px;font-family:Arial,Helvetica,sans-serif;color:#0f172a;">
@@ -245,76 +306,41 @@ export function invoiceEmailHtml(params: any) {
       </td>
     </tr>
     <tr>
-      <td style="padding:26px 24px 6px;">
+      <td style="padding:26px 24px 0;">
         <h1 style="margin:0 0 6px;font-size:22px;line-height:1.25;color:#0f172a;">Factura de servicios logísticos</h1>
         <p style="margin:0;font-size:14px;color:#64748b;">
           Factura ${params.invoiceNumber} · emitida el ${formatCaracasDateTime(params.emittedDate)}
         </p>
+        <p style="margin:6px 0 0;font-size:14px;color:#64748b;">
+          Mayorista: <b style="color:#0f172a;">${params.wholesalerName || ''}</b> · ${num(totals.clients)} cliente(s) · ${num(totals.bultos)} bulto(s) · ${cbmText(totals.cbm)} CBM
+        </p>
       </td>
     </tr>
-    <tr>
-      <td style="padding:14px 24px 0;">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f7fafd;border:1px solid #e5e7eb;border-radius:12px;">
-          <tr>
-            <td style="padding:14px 16px;font-size:13px;color:#0f172a;">
-              <div style="font-weight:bold;">${client.client_name || client.client_email || ''}</div>
-              <div style="color:#64748b;">${client.client_email || ''}</div>
-              ${client.shipping_mark ? `<div style="color:#64748b;">Shipping Mark: <b>${client.shipping_mark}</b></div>` : ''}
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
+    ${blocks}
     <tr>
       <td style="padding:20px 24px 0;">
-        <h2 style="margin:0 0 10px;font-size:15px;color:#0f172a;">Órdenes / envíos facturados</h2>
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;border:1px solid #e5e7eb;border-radius:12px;">
-          <tr style="background-color:#f7fafd;">
-            <th align="left" style="padding:8px 10px;font-size:12px;color:#64748b;text-transform:uppercase;letter-spacing:0.04em;">N° de orden</th>
-            <th align="right" style="padding:8px 10px;font-size:12px;color:#64748b;text-transform:uppercase;letter-spacing:0.04em;">Bultos</th>
-            <th align="right" style="padding:8px 10px;font-size:12px;color:#64748b;text-transform:uppercase;letter-spacing:0.04em;">Trackings recibidos</th>
-          </tr>
-          ${orderRows}
-        </table>
-      </td>
-    </tr>
-    <tr>
-      <td style="padding:22px 24px 0;">
-        <h2 style="margin:0 0 10px;font-size:15px;color:#0f172a;">Detalle de cargos</h2>
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;border:1px solid #e5e7eb;border-radius:12px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;border:1px solid #e5e7eb;border-radius:12px;background-color:#f7fafd;">
           <tr>
-            <td style="padding:10px 14px;border-bottom:1px solid #e5e7eb;font-size:13px;color:#0f172a;">
-              Servicio de envío<br /><span style="color:#64748b;font-size:12px;">${num(client.bultos)} bulto(s) × ${money(client.rate_per_bulto)} por bulto</span>
+            <td style="padding:12px 14px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#0f172a;">
+              Servicio de envío (${cbmText(totals.cbm)} CBM) · puerta a puerta (${num(totals.bultos)} bulto(s)) · manejo (${num(totals.received_trackings)} tracking(s) recibido(s))
             </td>
-            <td align="right" style="padding:10px 14px;border-bottom:1px solid #e5e7eb;font-size:13px;color:#0f172a;">${money(client.shipping_amount)}</td>
+            <td align="right" style="padding:12px 14px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#0f172a;">${money(totals.shipping)} + ${money(totals.door_to_door)} + ${money(totals.handling)}</td>
           </tr>
           <tr>
-            <td style="padding:10px 14px;border-bottom:1px solid #e5e7eb;font-size:13px;color:#0f172a;">
-              Servicio puerta a puerta<br /><span style="color:#64748b;font-size:12px;">${num(client.bultos)} bulto(s) × ${money(client.door_to_door_per_bulto)} por bulto</span>
-            </td>
-            <td align="right" style="padding:10px 14px;border-bottom:1px solid #e5e7eb;font-size:13px;color:#0f172a;">${money(client.door_to_door_amount)}</td>
-          </tr>
-          <tr>
-            <td style="padding:10px 14px;border-bottom:1px solid #e5e7eb;font-size:13px;color:#0f172a;">
-              Manejo de paquetes<br /><span style="color:#64748b;font-size:12px;">${num(client.received_trackings)} tracking(s) recibido(s) × ${money(HANDLING_FEE)}</span>
-            </td>
-            <td align="right" style="padding:10px 14px;border-bottom:1px solid #e5e7eb;font-size:13px;color:#0f172a;">${money(client.handling_amount)}</td>
-          </tr>
-          <tr style="background-color:#f7fafd;">
-            <td style="padding:12px 14px;font-size:15px;font-weight:bold;color:#0f172a;">Total a pagar</td>
-            <td align="right" style="padding:12px 14px;font-size:15px;font-weight:bold;color:#0f172a;">${money(client.total)}</td>
+            <td style="padding:12px 14px;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:bold;color:#0f172a;">Total de la factura</td>
+            <td align="right" style="padding:12px 14px;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:bold;color:#0f172a;">${money(totals.total)}</td>
           </tr>
         </table>
       </td>
     </tr>
     <tr>
       <td style="padding:22px 24px 0;">
-        <a href="${BRAND.site}" style="display:inline-block;background-color:#f97316;color:#000000;text-decoration:none;font-size:14px;font-weight:bold;padding:12px 22px;border-radius:12px;">Ver mis envíos en ${BRAND.name}</a>
+        <a href="${BRAND.site}" style="display:inline-block;background-color:#f97316;color:#000000;text-decoration:none;font-size:14px;font-weight:bold;padding:12px 22px;border-radius:12px;">Ver los envíos en ${BRAND.name}</a>
       </td>
     </tr>
     <tr>
       <td style="padding:24px;font-size:12px;color:#64748b;">
-        Esta factura corresponde a tu carga consolidada con ${params.wholesalerName || 'tu proveedor mayorista'} y fue emitida por ${BRAND.name}.
+        Esta factura reúne la carga consolidada de los clientes de ${params.wholesalerName || 'tu proveedor mayorista'} y fue emitida por ${BRAND.name}.
         Si tienes alguna duda, responde a este correo y te ayudamos.
       </td>
     </tr>

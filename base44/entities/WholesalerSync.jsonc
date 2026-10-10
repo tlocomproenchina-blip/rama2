@@ -12,6 +12,18 @@
       "default": "Cliente mayorista",
       "description": "Nombre del cliente mayorista, usado en el panel, en los avisos y en el informe"
     },
+    "invoice_email": {
+      "type": "string",
+      "description": "Correo del mayorista al que se le env\u00edan las facturas de sus clientes. Es el \u00fanico destinatario: las facturas no se mandan a los correos de los clientes."
+    },
+    "rate_per_cbm": {
+      "type": "number",
+      "description": "Tarifa del servicio de env\u00edo por CBM (USD/CBM) que rige para todos los clientes de este mayorista"
+    },
+    "rate_per_bulto": {
+      "type": "number",
+      "description": "Tarifa de puerta a puerta por bulto (USD/bulto) que rige para todos los clientes de este mayorista"
+    },
     "clients_feed_url": {
       "type": "string",
       "description": "Direcci\u00f3n de la app del mayorista a la que esta app le pide sus clientes nuevos cada 24 horas"

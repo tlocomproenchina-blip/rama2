@@ -22,8 +22,6 @@ function buildDraft(row) {
     client_email: row.email,
     client_name: row.full_name || row.email,
     shipping_mark: row.shipping_mark || '',
-    rate_per_bulto: Number(row.rate_per_bulto) || 0,
-    door_to_door_per_bulto: Number(row.door_to_door_per_bulto) || 0,
     orders: (row.orders || []).map((order) => ({
       order_number: order.order_number,
       cbm: Number(order.cbm) || 0,
@@ -45,6 +43,9 @@ export default function WholesalerBillingPanel({ initialWholesaler }) {
   const [groups, setGroups] = useState([]);
   const [wholesaler, setWholesaler] = useState('');
   const [clients, setClients] = useState([]);
+  // Tarifas y correo de la factura: salen del perfil del mayorista y rigen para
+  // todos sus clientes.
+  const [rates, setRates] = useState({ rate_per_cbm: 0, rate_per_bulto: 0, invoice_email: '' });
   const [selected, setSelected] = useState([]);
   const [drafts, setDrafts] = useState({});
   const [loading, setLoading] = useState(false);
@@ -79,7 +80,13 @@ export default function WholesalerBillingPanel({ initialWholesaler }) {
     setLoading(true);
     try {
       const response = await base44.functions.invoke('getWholesalerBillingCandidates', { wholesaler_key: wholesaler });
-      setClients(response?.data?.clients || []);
+      const data = response?.data || {};
+      setClients(data.clients || []);
+      setRates({
+        rate_per_cbm: Number(data.wholesaler?.rate_per_cbm) || 0,
+        rate_per_bulto: Number(data.wholesaler?.rate_per_bulto) || 0,
+        invoice_email: data.wholesaler?.invoice_email || '',
+      });
     } catch (error) {
       toast.error(error?.message || 'No se pudieron cargar los clientes del mayorista.');
       setClients([]);
@@ -161,7 +168,7 @@ export default function WholesalerBillingPanel({ initialWholesaler }) {
     return map;
   }, [selected, drafts]);
 
-  const totals = useMemo(() => invoiceTotals(selectedDrafts), [selectedDrafts]);
+  const totals = useMemo(() => invoiceTotals(selectedDrafts, rates), [selectedDrafts, rates]);
   const currentGroup = groups.find((group) => group.key === wholesaler) || null;
 
   const handleEmit = async () => {
@@ -174,8 +181,6 @@ export default function WholesalerBillingPanel({ initialWholesaler }) {
           client_email: draft.client_email,
           client_name: draft.client_name,
           shipping_mark: draft.shipping_mark,
-          rate_per_bulto: Number(draft.rate_per_bulto) || 0,
-          door_to_door_per_bulto: Number(draft.door_to_door_per_bulto) || 0,
           orders: draftOrders(draft).map((order) => ({
             order_number: order.order_number,
             cbm: order.cbm === '' ? null : Number(order.cbm) || 0,
@@ -197,6 +202,9 @@ export default function WholesalerBillingPanel({ initialWholesaler }) {
       const response = await base44.functions.invoke('createWholesalerInvoice', {
         wholesaler_key: wholesaler,
         wholesaler_name: currentGroup?.name || '',
+        rate_per_cbm: rates.rate_per_cbm,
+        rate_per_bulto: rates.rate_per_bulto,
+        invoice_email: rates.invoice_email,
         clients: payloadClients,
         notes,
       });
@@ -227,7 +235,8 @@ export default function WholesalerBillingPanel({ initialWholesaler }) {
           </CardTitle>
           <CardDescription>
             Elige el mayorista y sus clientes, asigna o crea el N° de orden/envío de cada uno y emite una
-            sola factura: el envío y la puerta a puerta se cobran por bulto y cada cliente recibe su parte por correo.
+            sola factura con las tarifas de su perfil: el envío se cobra por CBM y la puerta a puerta por
+            bulto. La factura se envía al correo del mayorista.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -279,6 +288,7 @@ export default function WholesalerBillingPanel({ initialWholesaler }) {
               <WholesalerBillingClientCard
                 key={email}
                 draft={selectedDrafts[email]}
+                rates={rates}
                 onChange={(patch) => updateDraft(email, patch)}
                 onRemove={() => toggleClient(email)}
               />
@@ -287,6 +297,7 @@ export default function WholesalerBillingPanel({ initialWholesaler }) {
           <div className="space-y-4">
             <WholesalerBillingSummary
               totals={totals}
+              invoiceEmail={rates.invoice_email}
               notes={notes}
               onNotesChange={setNotes}
               onEmit={handleEmit}

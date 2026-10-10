@@ -4,7 +4,7 @@
   "properties": {
     "invoice_number": {
       "type": "string",
-      "description": "N\u00famero visible de la factura consolidada (FM-AAAAMMDD-###). Es el que sale en el correo que recibe cada cliente."
+      "description": "N\u00famero visible de la factura consolidada (FM-AAAAMMDD-###). Es el que sale en el correo que recibe el mayorista."
     },
     "wholesaler_key": {
       "type": "string",
@@ -14,10 +14,14 @@
       "type": "string",
       "description": "Nombre del mayorista, para mostrar y filtrar"
     },
+    "invoice_email": {
+      "type": "string",
+      "description": "Correo del mayorista al que se envi\u00f3 esta factura"
+    },
     "emitted_date": {
       "type": "string",
       "format": "date-time",
-      "description": "Momento en que se emiti\u00f3 la factura y salieron los correos"
+      "description": "Momento en que se emiti\u00f3 la factura y sali\u00f3 el correo"
     },
     "emitted_by": {
       "type": "string",
@@ -26,7 +30,7 @@
     "clients": {
       "type": "array",
       "default": [],
-      "description": "Detalle por cliente incluido en la factura: sus tarifas, sus \u00f3rdenes/env\u00edos con sus bultos y trackings facturados, y el resultado del correo que recibi\u00f3.",
+      "description": "Detalle por cliente incluido en la factura: sus \u00f3rdenes/env\u00edos con sus bultos y trackings facturados, los montos y el resultado del correo que recibi\u00f3.",
       "items": {
         "type": "object",
         "properties": {
@@ -43,13 +47,13 @@
           "shipping_mark": {
             "type": "string"
           },
+          "rate_per_cbm": {
+            "type": "number",
+            "description": "Tarifa de env\u00edo por CBM del mayorista (USD/CBM), congelada al emitir"
+          },
           "rate_per_bulto": {
             "type": "number",
-            "description": "Tarifa de env\u00edo del cliente por bulto (USD), congelada al emitir"
-          },
-          "door_to_door_per_bulto": {
-            "type": "number",
-            "description": "Tarifa de puerta a puerta del cliente por bulto (USD), congelada al emitir"
+            "description": "Tarifa de puerta a puerta por bulto del mayorista (USD/bulto), congelada al emitir"
           },
           "bultos": {
             "type": "number",
@@ -57,7 +61,7 @@
           },
           "cbm": {
             "type": "number",
-            "description": "CBM de referencia de las \u00f3rdenes incluidas (ya no se usa para calcular los montos)"
+            "description": "CBM de las \u00f3rdenes incluidas: es la base del servicio de env\u00edo"
           },
           "received_trackings": {
             "type": "number",
@@ -65,11 +69,11 @@
           },
           "shipping_amount": {
             "type": "number",
-            "description": "Monto del servicio de env\u00edo (bultos \u00d7 tarifa del cliente)"
+            "description": "Monto del servicio de env\u00edo (CBM \u00d7 tarifa por CBM del mayorista)"
           },
           "door_to_door_amount": {
             "type": "number",
-            "description": "Monto del servicio puerta a puerta (bultos \u00d7 tarifa del cliente)"
+            "description": "Monto del servicio puerta a puerta (bultos \u00d7 tarifa por bulto del mayorista)"
           },
           "handling_amount": {
             "type": "number",
@@ -128,7 +132,7 @@
               "sin_correo",
               "pendiente"
             ],
-            "description": "C\u00f3mo qued\u00f3 el env\u00edo de la factura al correo del cliente"
+            "description": "C\u00f3mo qued\u00f3 el correo de la factura al mayorista"
           },
           "email_error": {
             "type": "string",
@@ -175,7 +179,7 @@
     "emails_sent": {
       "type": "number",
       "default": 0,
-      "description": "Correos de la factura entregados a los clientes"
+      "description": "Correos de la factura entregados al mayorista (0 o 1)"
     },
     "emails_failed": {
       "type": "number",
@@ -190,7 +194,7 @@
         "sin_envio"
       ],
       "default": "sin_envio",
-      "description": "enviada (todos los correos salieron), parcial (alguno fall\u00f3) o sin_envio (ninguno sali\u00f3)"
+      "description": "enviada (el correo al mayorista sali\u00f3) o sin_envio (no sali\u00f3)"
     },
     "warnings": {
       "type": "array",

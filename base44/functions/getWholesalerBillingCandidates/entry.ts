@@ -80,8 +80,6 @@ export default async function (req: Request): Promise<Response> {
         state: row.state || '',
         whatsapp: row.whatsapp || '',
         user_id: row.user_id || '',
-        rate_per_bulto: num(row.rate_per_bulto),
-        door_to_door_per_bulto: num(row.door_to_door_per_bulto),
         pending_orders: pending.length,
         pending_bultos: pending.reduce(
           (sum: number, order: any) => sum + (Array.isArray(order.tracking_numbers) ? order.tracking_numbers.length : 0),
@@ -151,9 +149,19 @@ export default async function (req: Request): Promise<Response> {
     const group = groups.find((item: any) => item.key === wantedKey)
       || { key: wantedKey, name: wantedKey === 'main' ? 'Cliente mayorista' : wantedKey, clients: clean.length };
 
+    // Las tarifas y el correo de la factura salen del perfil del mayorista y
+    // rigen para todos sus clientes.
+    const live = connections.find((row: any) => connectionKeyOf(row) === wantedKey) || null;
+
     return Response.json({
       ok: true,
-      wholesaler: { key: wantedKey, name: group.name },
+      wholesaler: {
+        key: wantedKey,
+        name: group.name,
+        rate_per_cbm: num(live?.rate_per_cbm),
+        rate_per_bulto: num(live?.rate_per_bulto),
+        invoice_email: String(live?.invoice_email || '').trim(),
+      },
       groups,
       clients: clean,
       total: clean.length,

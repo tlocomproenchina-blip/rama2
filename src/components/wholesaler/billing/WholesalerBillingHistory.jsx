@@ -88,9 +88,11 @@ export default function WholesalerBillingHistory({ invoices, loading }) {
                           <div className="min-w-0">
                             <p className="truncate text-sm text-foreground">{client.client_name || client.client_email}</p>
                             <p className="truncate text-xs text-muted-foreground">
+                              {String(Number(client.cbm || 0).toFixed(4)).replace(/\.?0+$/, '') || '0'} CBM ·{' '}
                               {client.bultos || 0} bulto(s) · {client.received_trackings || 0} tracking(s) recibido(s)
-                              {' · '}envío ${Number(client.rate_per_bulto ?? client.rate_per_cbm ?? 0).toFixed(2)}/{client.rate_per_bulto === undefined ? 'CBM' : 'bulto'}
-                              {' · '}puerta a puerta ${Number(client.door_to_door_per_bulto ?? client.door_to_door_per_cbm ?? 0).toFixed(2)}/{client.door_to_door_per_bulto === undefined ? 'CBM' : 'bulto'}
+                              {client.rate_per_cbm !== undefined
+                                ? ` · envío $${Number(client.rate_per_cbm || 0).toFixed(2)}/CBM · puerta a puerta $${Number(client.rate_per_bulto || 0).toFixed(2)}/bulto`
+                                : ''}
                             </p>
                           </div>
                           <div className="flex shrink-0 items-center gap-2">

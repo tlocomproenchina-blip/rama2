@@ -21,15 +21,17 @@ export function draftOrders(draft) {
   return (draft?.orders || []).filter((o) => o?.checked !== false && String(o?.order_number || '').trim());
 }
 
-export function draftAmounts(draft) {
+// Las tarifas son las del perfil del mayorista y son iguales para todos sus
+// clientes: el envío se cobra por CBM y la puerta a puerta por bulto.
+export function draftAmounts(draft, rates) {
   const orders = draftOrders(draft);
   const cbm = round4(orders.reduce((sum, o) => sum + (Number(o.cbm) || 0), 0));
   // Los bultos de cada orden son su conteo editable (el que traía la orden más los
   // trackings que se engancharon en la pantalla).
   const bultos = orders.reduce((sum, o) => sum + (Number(o.bultos) || 0), 0);
   const received = orders.reduce((sum, o) => sum + (Number(o.received) || 0) + (o.picked?.length || 0), 0);
-  const shipping = round2(bultos * (Number(draft?.rate_per_bulto) || 0));
-  const doorToDoor = round2(bultos * (Number(draft?.door_to_door_per_bulto) || 0));
+  const shipping = round2(cbm * (Number(rates?.rate_per_cbm) || 0));
+  const doorToDoor = round2(bultos * (Number(rates?.rate_per_bulto) || 0));
   const handling = round2(received * HANDLING_FEE);
   return {
     orders: orders.length,
@@ -43,10 +45,10 @@ export function draftAmounts(draft) {
   };
 }
 
-export function invoiceTotals(drafts) {
+export function invoiceTotals(drafts, rates) {
   const totals = { clients: 0, orders: 0, cbm: 0, bultos: 0, received: 0, shipping: 0, doorToDoor: 0, handling: 0, total: 0 };
   for (const draft of Object.values(drafts || {})) {
-    const amounts = draftAmounts(draft);
+    const amounts = draftAmounts(draft, rates);
     if (!amounts.orders) continue;
     totals.clients += 1;
     totals.orders += amounts.orders;

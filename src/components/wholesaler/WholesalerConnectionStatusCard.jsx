@@ -70,6 +70,13 @@ export default function WholesalerConnectionStatusCard({ connection, probing, on
         <p className="truncate">
           Clientes: {connection?.clients_feed_url ? 'dirección configurada' : 'falta la dirección de sus clientes'}
         </p>
+        <p className="truncate">
+          Tarifas: envío ${Number(connection?.rate_per_cbm || 0).toFixed(2)}/CBM · puerta a puerta $
+          {Number(connection?.rate_per_bulto || 0).toFixed(2)}/bulto
+        </p>
+        <p className="truncate">
+          Factura a: {connection?.invoice_email || 'falta el correo del mayorista'}
+        </p>
       </div>
 
       <div className="mt-auto flex flex-wrap gap-2">

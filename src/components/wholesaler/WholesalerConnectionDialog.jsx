@@ -10,6 +10,9 @@ import { Loader2, Save } from 'lucide-react';
 
 const EMPTY = {
   wholesaler_name: '',
+  invoice_email: '',
+  rate_per_cbm: '',
+  rate_per_bulto: '',
   clients_feed_url: '',
   history_feed_url: '',
   history_sync_enabled: true,
@@ -58,6 +61,9 @@ export default function WholesalerConnectionDialog({ open, connection, onClose, 
         intake_enabled: !!form.intake_enabled,
         report_email_enabled: !!form.report_email_enabled,
         notify_enabled: !!form.notify_enabled,
+        invoice_email: String(form.invoice_email || '').trim(),
+        rate_per_cbm: Number(String(form.rate_per_cbm ?? '').replace(',', '.')) || 0,
+        rate_per_bulto: Number(String(form.rate_per_bulto ?? '').replace(',', '.')) || 0,
       };
 
       if (connection?.id) await base44.entities.WholesalerSync.update(connection.id, payload);
@@ -92,6 +98,51 @@ export default function WholesalerConnectionDialog({ open, connection, onClose, 
               onChange={(e) => set({ wholesaler_name: e.target.value })}
               placeholder="Aparece en el panel, en los avisos y en el informe"
             />
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label>Tarifa de envío (USD por CBM)</Label>
+              <Input
+                type="number"
+                min="0"
+                step="0.01"
+                inputMode="decimal"
+                value={form.rate_per_cbm ?? ''}
+                onChange={(e) => set({ rate_per_cbm: e.target.value })}
+                placeholder="Ej: 320"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Puerta a puerta (USD por bulto)</Label>
+              <Input
+                type="number"
+                min="0"
+                step="0.01"
+                inputMode="decimal"
+                value={form.rate_per_bulto ?? ''}
+                onChange={(e) => set({ rate_per_bulto: e.target.value })}
+                placeholder="Ej: 12"
+              />
+            </div>
+          </div>
+
+          <p className="text-xs text-muted-foreground">
+            Estas tarifas rigen para todos los clientes de este mayorista: el servicio de envío se cobra por CBM y la
+            puerta a puerta por bulto.
+          </p>
+
+          <div className="space-y-2">
+            <Label>Correo del mayorista para la factura</Label>
+            <Input
+              type="email"
+              value={form.invoice_email || ''}
+              onChange={(e) => set({ invoice_email: e.target.value })}
+              placeholder="facturacion@mayorista.com"
+            />
+            <p className="text-xs text-muted-foreground">
+              La factura de sus clientes se envía solo a este correo.
+            </p>
           </div>
 
           <div className="space-y-2">
