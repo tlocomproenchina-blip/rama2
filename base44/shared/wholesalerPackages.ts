@@ -2,7 +2,7 @@
 // tracking, marcarlo como recibido en el almacén de China y registrar
 // pre-alertas reportadas. Nunca crea paquetes al consultar/recepcionar, nunca
 // degrada un estado y deja cada movimiento marcado con el mayorista de origen.
-import { connectionLabel, findConnectionById, logWholesalerEvent, stampOf, truncate, updateConnection } from './wholesalerCore.ts';
+import { DEFAULT_CONNECTION_KEY, connectionKeyOf, connectionLabel, findConnectionById, logWholesalerEvent, stampOf, truncate, updateConnection } from './wholesalerCore.ts';
 import { consolidateOrphan, linkOrphanToPrealert } from './orphanConsolidation.ts';
 
 const SOURCE_LABEL = 'App del mayorista';
@@ -115,6 +115,36 @@ export async function findClientForNotice(base44: any, { client_email, shipping_
     const rows = await base44.asServiceRole.entities.User.filter({ shipping_mark: mark }, '-created_date', 1);
     if (rows?.[0]) return rows[0];
   }
+  return null;
+}
+
+// Titular del tracking en la app del mayorista: su cliente, sin depender de que
+// tenga cuenta en TLEC CARGO. Se reconoce por el Shipping Mark con el que ese
+// mayorista reportó a su cliente y, si la carga ya trae correo, por ese correo.
+export async function trackingOwnerFor(base44: any, pkg: any, connection: any) {
+  if (!connection?.id) return null;
+  const key = connectionKeyOf(connection);
+  const esDeEsaConexion = (row: any) =>
+    (String(row?.wholesaler_key || '').trim() || DEFAULT_CONNECTION_KEY) === key;
+
+  const mark = String(pkg?.shipping_mark || '').trim();
+  if (mark) {
+    const rows = await base44.asServiceRole.entities.WholesalerClient
+      .filter({ shipping_mark: mark }, '-fetched_date', 20)
+      .catch(() => []);
+    const found = (rows || []).find(esDeEsaConexion);
+    if (found) return found;
+  }
+
+  const email = String(pkg?.client_email || '').trim().toLowerCase();
+  if (email) {
+    const rows = await base44.asServiceRole.entities.WholesalerClient
+      .filter({ email }, '-fetched_date', 20)
+      .catch(() => []);
+    const found = (rows || []).find(esDeEsaConexion);
+    if (found) return found;
+  }
+
   return null;
 }
 
@@ -631,16 +661,22 @@ export async function queueReceptionNotice(base44: any, pkg: any, connection: an
   if (!pkg?.id || !connection?.id) return null;
 
   const fotos = receptionPhotos(pkg);
+  // Titular del tracking: el cliente de ese mayorista, aunque no tenga cuenta en
+  // TLEC CARGO. El aviso viaja a su cuenta en la app del mayorista.
+  const titular = await trackingOwnerFor(base44, pkg, connection);
+  const titularEmail = String(pkg?.client_email || '').trim() || String(titular?.email || '').trim();
+  const titularExternalId = String(titular?.external_id || '').trim();
+
   const existing = await base44.asServiceRole.entities.WholesalerLog
     .filter({ event_type: 'recepcion', package_id: pkg.id }, '-event_date', 5)
     .catch(() => []);
   const log = existing?.[0] || null;
 
   // Un aviso ya entregado solo se repite cuando ahora hay algo que antes no existía:
-  // la foto de la carga o el cliente al que quedó asignada. Un aviso que salió sin
-  // cliente no le permite a su app marcar la carga en la cuenta de nadie, así que al
-  // asignarla se le vuelve a mandar el tracking ya con su dueño y con la foto.
-  const clienteConocido = !!String(pkg?.client_email || '').trim();
+  // la foto de la carga o el titular al que pertenece. Un aviso que salió sin titular
+  // no le permite a su app marcar la carga en la cuenta de nadie, así que al
+  // reconocerlo se le vuelve a mandar el tracking ya con su dueño y con la foto.
+  const clienteConocido = !!titularEmail;
   const clienteEnviado = !!String(log?.client_email || '').trim();
   const yaAvisado = !!log?.notified_date && log?.photo_pending !== true
     && (!clienteConocido || clienteEnviado);
@@ -652,13 +688,15 @@ export async function queueReceptionNotice(base44: any, pkg: any, connection: an
       fotos,
       fotos_count: fotos.length,
       foto_pendiente: fotos.length === 0,
+      titular_email: titularEmail,
+      titular_external_id: titularExternalId,
     };
   }
 
-  const detalle = `Recepción en el almacén confirmada al mayorista${pkg.client_email ? ` para ${pkg.client_email}` : ''}${by ? ` (${by})` : ''}`;
+  const detalle = `Recepción en el almacén confirmada al mayorista${titularEmail ? ` para ${titularEmail}` : ''}${by ? ` (${by})` : ''}`;
   const patch: Record<string, any> = {
     tracking_number: pkg.tracking_number || '',
-    client_email: pkg.client_email || '',
+    client_email: titularEmail,
     shipping_mark: pkg.shipping_mark || '',
     package_id: pkg.id,
     result: pkg.status || 'recibido',
@@ -681,5 +719,7 @@ export async function queueReceptionNotice(base44: any, pkg: any, connection: an
     fotos,
     fotos_count: fotos.length,
     foto_pendiente: fotos.length === 0,
+    titular_email: titularEmail,
+    titular_external_id: titularExternalId,
   };
 }

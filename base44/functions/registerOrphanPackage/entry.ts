@@ -1,13 +1,25 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 import { absorbIntoOrphan, linkOrphanToPrealert } from '../../shared/orphanConsolidation.ts';
+import { confirmReceptionToWholesaler, noticeDeliveredWithPhoto, setOrphanFollowup } from '../../shared/wholesalerNotify.ts';
 
 // Registra el huérfano y, si el cliente ya había declarado ese mismo tracking en
 // una pre-alerta, lo deja enlazado a su cliente: el enlace no depende de los
-// clientes que muestre el panel de quien registra la carga.
+// clientes que muestre el panel de quien registra la carga. Avisa además al
+// mayorista titular de ese tracking en su app, con la foto de la recepción: el
+// aviso sale solo, sin confirmación de nadie, y también cuando la carga queda
+// huérfana (sin titular reconocido no hay a quién avisarle y no se envía nada).
 async function withPrealertLink(base44: any, pkg: any) {
   const linked = await linkOrphanToPrealert(base44, pkg);
-  if (!linked.linked) return { package: pkg };
-  return { package: linked.package || pkg, prealert_linked: true, client_email: linked.client_email };
+  const target = linked.linked ? (linked.package || pkg) : pkg;
+
+  let aviso = null;
+  try {
+    aviso = await confirmReceptionToWholesaler(base44, target, 'recibido en almacén');
+    if (noticeDeliveredWithPhoto(aviso) && target?.id) await setOrphanFollowup(base44, target.id, false);
+  } catch (_) {}
+
+  if (!linked.linked) return { package: target, aviso_mayorista: aviso };
+  return { package: target, prealert_linked: true, client_email: linked.client_email, aviso_mayorista: aviso };
 }
 
 Deno.serve(async (req) => {

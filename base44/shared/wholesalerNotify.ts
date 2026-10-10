@@ -254,7 +254,8 @@ export async function notifyReceptionBlock(base44: any, receptions: any[], conne
   const identities = await clientIdentities(base44, receptions);
   const payload = buildPayload(receptions.map((r) => ({
     ...r,
-    client_external_id: identities[String(r?.client_email || '').trim().toLowerCase()]?.external_id || '',
+    client_external_id: identities[String(r?.client_email || '').trim().toLowerCase()]?.external_id
+      || String(r?.client_external_id || '').trim(),
   })));
   const result = await postToWholesaler(url, key, payload);
   const now = new Date().toISOString();
@@ -375,10 +376,13 @@ export async function retryPendingReceptions(base44: any, connection: any = null
   };
 }
 
-// Confirma al mayorista la recepción de una carga que ya está registrada y ahora
-// tiene cliente: le manda el tracking con la foto que capturó TLEC CARGO. Si no hay
-// foto todavía, el aviso queda pendiente para enviarla cuando exista; un fallo de
-// conexión también queda pendiente, sin darse por enviado.
+// Confirma al mayorista la recepción de una carga que ya está registrada: le manda
+// el tracking con la foto que capturó TLEC CARGO al titular de ese tracking en su
+// app. Sale solo, sin que nadie lo confirme, y da igual si la carga entró como
+// huérfana: el titular se reconoce en el contexto de ese mayorista y no depende de
+// que el cliente tenga cuenta en TLEC CARGO. Si no hay foto todavía, el aviso queda
+// pendiente para enviarla cuando exista; un fallo de conexión también queda
+// pendiente, sin darse por enviado.
 export async function confirmReceptionToWholesaler(base44: any, pkg: any, by = '') {
   const connection = await wholesalerTargetForPackage(base44, pkg);
   if (!connection?.id) {
@@ -412,7 +416,10 @@ export async function confirmReceptionToWholesaler(base44: any, pkg: any, by = '
   const result = await notifyReceptionBlock(base44, [{
     tracking: String(pkg?.tracking_number || ''),
     shipping_mark: pkg?.shipping_mark || '',
-    client_email: String(pkg?.client_email || '').trim(),
+    // El titular del tracking en la app del mayorista: su cliente, aunque no tenga
+    // cuenta en TLEC CARGO.
+    client_email: String(pkg?.client_email || '').trim() || queued.titular_email || '',
+    client_external_id: queued.titular_external_id || '',
     estado: 'recibido',
     fecha: pkg?.received_date || new Date().toISOString(),
     log_id: queued.log_id,

@@ -16,7 +16,7 @@ import {
   truncate,
   updateConnection,
 } from './wholesalerCore.ts';
-import { cleanTracking, findClientForNotice, queueReceptionNotice, receptionPhotos } from './wholesalerPackages.ts';
+import { cleanTracking, findClientForNotice, queueReceptionNotice, receptionPhotos, trackingOwnerFor } from './wholesalerPackages.ts';
 import { notifyReceptionBlock } from './wholesalerNotify.ts';
 import { consolidateOrphan } from './orphanConsolidation.ts';
 
@@ -249,7 +249,10 @@ async function confirmMatchesToWholesaler(base44: any, connection: any, matches:
         package_id: pkg?.id || '',
         tracking: String(pkg?.tracking_number || ''),
         shipping_mark: pkg?.shipping_mark || '',
-        client_email: String(pkg?.client_email || '').trim(),
+        // Titular del tracking en la app del mayorista: su cliente, no un usuario de
+        // TLEC CARGO. Es a su cuenta a la que su app marca la carga como recibida.
+        client_email: String(pkg?.client_email || '').trim() || queued.titular_email || '',
+        client_external_id: queued.titular_external_id || '',
         estado: 'recibido',
         fecha: pkg?.received_date || pkg?.created_date || new Date().toISOString(),
         log_id: queued.log_id,
@@ -494,9 +497,16 @@ export async function syncWholesalerHistoryConnection(base44: any, connection: a
         const esCoincidencia = !!pkg && receivedInChina(pkg) && receptionPhotos(pkg).length > 0;
         if (esCoincidencia) coincidencias.push(pkg);
 
+        // El titular de la carga se muestra tal como lo reconoce el mayorista: si esa
+        // carga todavía no tiene cuenta en TLEC CARGO, su dueño en la app del
+        // mayorista (por su Shipping Mark) es el titular que corresponde informar.
+        const titular = (pkg && !String(pkg.client_email || '').trim())
+          ? await trackingOwnerFor(base44, pkg, connection)
+          : null;
+
         const fila = {
           tracking: String(pkg?.tracking_number || identity || ''),
-          client_email: String(pkg?.client_email || ''),
+          client_email: String(pkg?.client_email || '').trim() || String(titular?.email || ''),
           shipping_mark: String(pkg?.shipping_mark || ''),
           package_id: String(pkg?.id || ''),
           resultado: RESULT_LABELS[result.outcome] || 'con_error',

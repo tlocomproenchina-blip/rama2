@@ -2,13 +2,15 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
 import { absorbIntoOrphan, linkOrphanToPrealert } from '../../shared/orphanConsolidation.ts';
 import { confirmReceptionToWholesaler, noticeDeliveredWithPhoto, setOrphanFollowup } from '../../shared/wholesalerNotify.ts';
 
-// Al marcar una carga como recibida en el almacén de China se avisa al mayorista
-// con la foto del escaneo: su cuenta del cliente recibe el tracking con la foto.
-// Si el aviso sale completo, la carga deja de aparecer en seguimiento dentro de
-// Paquetes Huérfanos. Un fallo de conexión no rompe el escaneo: el aviso queda
-// pendiente y se reintenta en el corte siguiente.
+// Al recibir una carga en el almacén de China se avisa al mayorista con la foto del
+// escaneo, al titular del tracking en su app. Sale solo, sin confirmación de nadie, y
+// también cuando la carga entró como huérfana: el titular se reconoce en el contexto
+// de ese mayorista, no por tener cuenta en TLEC CARGO. Si el aviso sale completo, la
+// carga deja de aparecer en seguimiento dentro de Paquetes Huérfanos. Un fallo de
+// conexión no rompe el escaneo: el aviso queda pendiente y se reintenta en el corte
+// siguiente.
 async function notifyWholesalerReception(base44: any, pkg: any, photoUrl: any, now: string, by: string) {
-  if (!pkg?.client_email) return;
+  if (!pkg?.id) return;
   try {
     const received = {
       ...pkg,
@@ -151,6 +153,9 @@ export default async function(req: Request): Promise<Response> {
               by: `Bodega China (${deviceId})`,
               note: false,
             });
+            // La foto nueva de esa carga huérfana se le manda a su titular en la app
+            // del mayorista, sin esperar a que nadie la asigne.
+            await notifyWholesalerReception(base44, pkg, photoUrl, now, `recibido en almacén por Bodega China (${deviceId})`);
           }
           resultType = 'duplicado';
           shippingMark = pkg.shipping_mark || '';
@@ -170,6 +175,9 @@ export default async function(req: Request): Promise<Response> {
           package_image_url: photoUrl,
           package_image_urls: photoUrl ? [photoUrl] : [],
         });
+        // Carga recibida que entró sin pre-alerta: se avisa igual a su titular en la
+        // app del mayorista, con la foto del escaneo, sin que nadie la asigne.
+        await notifyWholesalerReception(base44, orphan, photoUrl, now, `recibido en almacén por Bodega China (${deviceId})`);
         resultType = 'huerfano';
         packageId = orphan.id;
       }
@@ -294,6 +302,9 @@ export default async function(req: Request): Promise<Response> {
                 by: `Bodega China (${deviceId})`,
                 note: false,
               });
+              // La foto nueva de esa carga huérfana se le manda a su titular en la app
+              // del mayorista, sin esperar a que nadie la asigne.
+              await notifyWholesalerReception(base44, pkg, photoUrl, now, `recibido en almacén por Bodega China (${deviceId})`);
             }
             resultType = 'duplicado';
             shippingMark = pkg.shipping_mark || '';
@@ -313,6 +324,9 @@ export default async function(req: Request): Promise<Response> {
             package_image_url: photoUrl,
             package_image_urls: photoUrl ? [photoUrl] : [],
           });
+          // Carga recibida que entró sin pre-alerta: se avisa igual a su titular en la
+          // app del mayorista, con la foto del escaneo, sin que nadie la asigne.
+          await notifyWholesalerReception(base44, orphan, photoUrl, now, `recibido en almacén por Bodega China (${deviceId})`);
           resultType = 'huerfano';
           packageId = orphan.id;
         }
