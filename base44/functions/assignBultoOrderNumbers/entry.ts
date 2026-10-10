@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.49';
-import { markPackagesRecognized } from '../../shared/bultoScan.ts';
+import { markPackagesReceivedIfMissing, markPackagesRecognized } from '../../shared/bultoScan.ts';
 import { syncBultoToAccounting } from '../../shared/veAccountingSync.ts';
 
 // Asigna el/los N° de orden CbmIngreso a un bulto desde la pantalla de escaneo
@@ -76,12 +76,10 @@ export default async function(req: Request): Promise<Response> {
     // Los paquetes del bulto quedan reconocidos en Venezuela: salen del resumen
     // diario de recepción de China y entran al aviso de carga en Venezuela.
     if (firstRecognition) {
-      await markPackagesRecognized(
-        base44,
-        Array.isArray(bulto.package_ids) ? bulto.package_ids : [],
-        now,
-        assignedBy
-      );
+      const packageIds = Array.isArray(bulto.package_ids) ? bulto.package_ids : [];
+      await markPackagesRecognized(base44, packageIds, now, assignedBy);
+      // El bulto se escaneó en el almacén: sus paquetes quedan recibidos si no lo estaban.
+      await markPackagesReceivedIfMissing(base44, packageIds, now, assignedBy);
     }
 
     // El almacén de Venezuela es la fuente definitiva para facturar: el N° de orden,

@@ -1,5 +1,10 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.48';
-import { buildClientSnapshot, latestInvoiceSnapshot, syncClientBultoTotals } from '../../shared/bultoScan.ts';
+import {
+  buildClientSnapshot,
+  latestInvoiceSnapshot,
+  markPackagesReceivedIfMissing,
+  syncClientBultoTotals,
+} from '../../shared/bultoScan.ts';
 
 // Crea un bulto (caja física) que agrupa varios paquetes recibidos de un mismo cliente.
 // Recibe: { package_ids: string[] }
@@ -101,6 +106,15 @@ export default async function(req: Request): Promise<Response> {
 
     // Update all previous bultos of this client to reflect the new total
     await syncClientBultoTotals(base44, clientEmail, bultoNumber, existingBultos);
+
+    // Los paquetes que entran al bulto quedan físicamente en el almacén: los que no
+    // tenían recepción registrada quedan recibidos ahora.
+    await markPackagesReceivedIfMissing(
+      base44,
+      packageIds,
+      new Date().toISOString(),
+      user.email || ''
+    );
 
     return Response.json({
       bulto: newBulto,

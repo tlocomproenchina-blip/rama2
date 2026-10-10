@@ -5,6 +5,7 @@ import {
   applyAbsorption,
   recountClientBultos,
 } from '../../shared/bultoAbsorption.ts';
+import { markPackagesReceivedIfMissing } from '../../shared/bultoScan.ts';
 
 // Actualiza un bulto existente. Recibe: { bulto_id, package_ids?, client_snapshot?, status? }
 // - Valida que los package_ids sean del mismo cliente del bulto.
@@ -175,6 +176,17 @@ export default async function(req: Request): Promise<Response> {
       : { deleted: [], stripped: [], failed: [], warnings: [] };
     if (plan && plan.deletable_ids.length) {
       await recountClientBultos(base44, bulto.client_email);
+    }
+
+    // Los paquetes que quedaron dentro del bulto están físicamente en el almacén: el que
+    // no tenía recepción registrada queda recibido ahora, sin tocar a los ya recibidos.
+    if (plan) {
+      await markPackagesReceivedIfMissing(
+        base44,
+        plan.package_ids,
+        new Date().toISOString(),
+        user.email || ''
+      );
     }
 
     // El CBM registrado es el CBM del bulto: se reparte en partes iguales entre sus

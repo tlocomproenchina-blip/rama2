@@ -5,6 +5,7 @@ import {
   buildClientSnapshot,
   resolvePackageByCode,
   latestInvoiceSnapshot,
+  markPackagesReceivedIfMissing,
 } from '../../shared/bultoScan.ts';
 import {
   planAbsorption,
@@ -266,6 +267,9 @@ export default async function (req: Request): Promise<Response> {
     const absorbed = await applyAbsorption(base44, plan);
 
     await markPackagesRecognizedIfMissing(base44, plan.package_ids, now, assignedBy);
+    // Todo lo escaneado quedó dentro de la caja, en el almacén: el paquete que no tenía
+    // recepción registrada queda recibido ahora; los ya recibidos no se vuelven a contar.
+    await markPackagesReceivedIfMissing(base44, plan.package_ids, now, assignedBy);
 
     // El recibo de contabilidad queda alineado con lo registrado en el almacén.
     const sync: any = await syncBultoToAccounting(

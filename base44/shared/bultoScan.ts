@@ -139,6 +139,56 @@ export async function markPackagesRecognized(base44: any, packageIds: string[], 
   }
 }
 
+// Al armar un bulto en el almacén los paquetes se escanean: el que llegó sin recepción
+// registrada queda recibido en ese momento (status 'recibido' + fecha y responsable).
+// Los que ya estaban recibidos, o más adelante en su recorrido, conservan su estado y su
+// fecha: así la recepción no se cuenta dos veces ni se mueve la fecha con la que entraron.
+const WAITING_RECEPTION = ["pre_alerta", "sin_cliente", ""];
+
+export async function markPackagesReceivedIfMissing(
+  base44: any,
+  packageIds: string[],
+  now: string,
+  actor: string
+) {
+  const ids = [
+    ...new Set(
+      (packageIds || [])
+        .map((id: any) => String(id || "").trim())
+        .filter((id: string) => id && !id.startsWith("local_"))
+    ),
+  ];
+  if (!ids.length) return 0;
+
+  const pkgs = (await Promise.all(
+    ids.map((id: string) => base44.asServiceRole.entities.Package.get(id).catch(() => null))
+  )).filter((p: any) => p) as any[];
+
+  const pending = pkgs
+    .filter((p) => !p.received_date && WAITING_RECEPTION.includes(String(p.status || "")))
+    .map((p) => ({ id: p.id, status: "recibido", received_date: now, received_by: actor }));
+
+  if (!pending.length) return 0;
+
+  try {
+    await base44.asServiceRole.entities.Package.bulkUpdate(pending);
+    return pending.length;
+  } catch (_) {
+    let done = 0;
+    for (const item of pending) {
+      try {
+        await base44.asServiceRole.entities.Package.update(item.id, {
+          status: item.status,
+          received_date: item.received_date,
+          received_by: item.received_by,
+        });
+        done++;
+      } catch (_) {}
+    }
+    return done;
+  }
+}
+
 // Un código escaneado puede ser la etiqueta del paquete o su tracking.
 export async function resolvePackageByCode(base44: any, code: string) {
   const c = String(code || "").trim();

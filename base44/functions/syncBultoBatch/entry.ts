@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.49';
+import { markPackagesReceivedIfMissing } from '../../shared/bultoScan.ts';
 
 // Sincroniza un bulto cerrado (creado offline) con todos sus paquetes al servidor.
 // Recibe:
@@ -104,20 +105,15 @@ export default async function(req: Request): Promise<Response> {
       created_by: created_by || user.email || '',
     });
 
-    // Los paquetes se marcan como 'recibido' (no 'despachado').
-    // El paso a 'despachado' se hace manualmente en WarehouseDispatch.
-    if (validPackageIds.length) {
-      try {
-        await base44.asServiceRole.entities.Package.bulkUpdate(
-          validPackageIds.map((id) => ({
-            id,
-            status: 'recibido',
-            received_date: closed_at || new Date().toISOString(),
-            received_by: created_by || user.email || '',
-          }))
-        );
-      } catch (_) {}
-    }
+    // Los paquetes que entran al bulto quedan recibidos en el almacén (no 'despachado':
+    // ese paso es manual en WarehouseDispatch). Los que ya tenían recepción registrada
+    // la conservan: no se vuelve a contar ni se mueve su fecha de recepción.
+    await markPackagesReceivedIfMissing(
+      base44,
+      validPackageIds,
+      closed_at || new Date().toISOString(),
+      created_by || user.email || ''
+    );
 
     return Response.json({
       success: true,
