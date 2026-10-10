@@ -605,6 +605,19 @@ export async function wholesalerTargetForPackage(base44: any, pkg: any) {
     if (key) return await findConnectionById(base44, key);
   }
 
+  // El Shipping Mark del cliente identifica a su mayorista aunque la carga haya
+  // entrado sin su aviso previo (la escaneó el almacén y quedó huérfana): es la
+  // misma marca con la que ese mayorista reportó a su cliente, así que su
+  // confirmación de recepción no se pierde por falta de historial en el tracking.
+  const mark = String(pkg?.shipping_mark || '').trim();
+  if (mark) {
+    const rows = await base44.asServiceRole.entities.WholesalerClient
+      .filter({ shipping_mark: mark }, '-fetched_date', 5)
+      .catch(() => []);
+    const key = String(rows?.[0]?.wholesaler_key || '').trim();
+    if (key) return await findConnectionById(base44, key);
+  }
+
   return null;
 }
 

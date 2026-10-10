@@ -3,6 +3,7 @@ import {
   buildTrackingCandidates,
   consolidateOrphan,
   findSameShipmentMatches,
+  hasReceptionEvidence,
 } from '../../shared/orphanConsolidation.ts';
 import { confirmReceptionToWholesaler } from '../../shared/wholesalerNotify.ts';
 
@@ -75,16 +76,20 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Si el huérfano ya tiene ubicación física/dimensiones, conservar estado "recibido".
-    // Si no, pasa a "pre_alerta" como una pre-alerta normal.
-    const wasReceived = !!(pkg.warehouse_location_id || pkg.actual_weight_kg || pkg.received_date);
+    // La carga ya pasó por el almacén (la escaneó o la fotografió TLEC CARGO): se
+    // conserva recibida y se le completa la fecha de recepción que le falte. Una
+    // pre-alerta sin evidencia de almacén sigue quedando como pre-alerta.
+    const wasReceived = hasReceptionEvidence(pkg);
     const nextStatus = wasReceived ? 'recibido' : 'pre_alerta';
 
     const updated = await base44.asServiceRole.entities.Package.update(packageId, {
       client_email: clientEmail,
-      shipping_mark: shippingMark || '',
+      shipping_mark: shippingMark || pkg.shipping_mark || '',
       is_orphan: false,
       status: nextStatus,
+      ...(wasReceived && !pkg.received_date
+        ? { received_date: new Date().toISOString(), received_by: pkg.received_by || user.email }
+        : {}),
       shipping_type: body.shipping_type ? (body.shipping_type === 'maritimo' ? 'maritimo' : 'aereo') : pkg.shipping_type || 'aereo',
       risk_category: body.risk_category ? (body.risk_category === 'alto_riesgo' ? 'alto_riesgo' : 'general') : pkg.risk_category || 'general',
       description: body.description ? String(body.description) : 'Pre-alerta rápida',
@@ -95,7 +100,7 @@ Deno.serve(async (req) => {
     // mandarle la confirmación con la foto del almacén, ahora que ya tiene cliente.
     const aviso = await confirmReceptionToWholesaler(base44, updated, `asignado a ${clientEmail}`);
 
-    return Response.json({ package: updated, aviso_mayorista: aviso });
+    return Response.json({ package: updated, recibido: wasReceived, aviso_mayorista: aviso });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

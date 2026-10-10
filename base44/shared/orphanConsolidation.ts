@@ -83,6 +83,17 @@ export function buildTrackingCandidates(tracking: string): string[] {
   return candidates;
 }
 
+// Evidencia de que la carga ya pasó físicamente por el almacén de China: la
+// ubicación, el peso o la fecha que dejó el escáner, o la foto que capturó TLEC
+// CARGO al escanearla. Una pre-alerta declarada por el cliente no trae ninguna de
+// esas fotos de recepción, así que por sí sola nunca marca la carga como recibida.
+export function hasReceptionEvidence(pkg: any): boolean {
+  if (!pkg) return false;
+  if (pkg.warehouse_location_id || pkg.actual_weight_kg || pkg.received_date) return true;
+  if (Array.isArray(pkg.package_image_urls) && pkg.package_image_urls.length > 0) return true;
+  return !!String(pkg.package_image_url || '').trim();
+}
+
 // Un paquete ya recibido (con datos de almacén o en un estado posterior a la
 // pre-alerta) no se puede unificar: sería perder la carga que ya está registrada.
 export function isPendingPrealert(pkg: any): boolean {
@@ -246,7 +257,7 @@ export async function consolidateOrphan({
   const source = prealert || claim || (label ? labelAsPrealert(label, fresh.tracking_number) : null);
   if (!source) throw new Error('Se necesita una pre-alerta, los datos del mayorista o una etiqueta TLEC para unificar');
 
-  const wasReceived = !!(fresh.warehouse_location_id || fresh.actual_weight_kg || fresh.received_date);
+  const wasReceived = hasReceptionEvidence(fresh);
 
   const patch: Record<string, any> = {
     client_email: source.client_email,
@@ -257,6 +268,13 @@ export async function consolidateOrphan({
     reported: true,
     status: wasReceived ? 'recibido' : 'pre_alerta',
   };
+
+  // La carga ya estaba en el almacén: si el escaneo no dejó fecha de recepción, se
+  // completa aquí para que quede registrada igual que una entrada normal.
+  if (wasReceived && !fresh.received_date) {
+    patch.received_date = new Date().toISOString();
+    if (!fresh.received_by) patch.received_by = 'Registro en almacén';
+  }
   if (!fresh.tracking_number && source.tracking_number) patch.tracking_number = source.tracking_number;
 
   const merged_fields: string[] = [];

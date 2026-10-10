@@ -205,6 +205,7 @@ export default function AdminOrphanPackages({ user }) {
     if (!selectedClient || !assignTarget?.ids?.length) return;
     setAssigning(true);
     let ok = 0; let fail = 0; let unified = 0; let conflictMsg = '';
+    let recibidos = 0;
     let avisoTxt = '';
     const succeededIds = [];
     for (const id of assignTarget.ids) {
@@ -218,11 +219,14 @@ export default function AdminOrphanPackages({ user }) {
           });
           if (data?.error) throw new Error(data.error);
           if (data?.consolidated) unified++;
+          if (data?.package?.status === 'recibido') recibidos++;
           if (data?.aviso_mayorista && !avisoTxt) {
             const a = data.aviso_mayorista;
             avisoTxt = a.enviado
               ? (a.foto_pendiente ? ' · recepción avisada al mayorista, falta la foto' : ' · recepción confirmada al mayorista con foto')
-              : (a.ya_avisado ? ' · ya se le había avisado al mayorista' : ` · aviso al mayorista pendiente: ${String(a.mensaje || '').slice(0, 80)}`);
+              : (a.ya_avisado ? ' · ya se le había avisado al mayorista'
+                : a.sin_mayorista ? ' · carga recibida, pero sin mayorista identificado: no se envió aviso'
+                : ` · aviso al mayorista pendiente: ${String(a.mensaje || '').slice(0, 80)}`);
           }
           succeededIds.push(id);
           ok++;
@@ -248,11 +252,14 @@ export default function AdminOrphanPackages({ user }) {
     setOrphans((prev) => prev.filter((p) => !succeededIds.includes(p.id)));
     setSelectedIds((prev) => prev.filter((id) => !succeededIds.includes(id)));
     const unifiedTxt = unified > 0 ? ` · ${unified} pre-alerta(s) unificada(s)` : '';
+    const recibidoTxt = recibidos > 0
+      ? (assignTarget.multi ? ` · ${recibidos} recibido(s) en almacén` : ' · quedó recibido en el almacén')
+      : '';
     const failTxt = fail > 0 ? ` · ${fail} sin asignar${conflictMsg ? `: ${conflictMsg}` : ''}` : '';
     const msg = assignTarget.multi
-      ? `${ok} huérfano(s) asignado(s) a ${selectedClient.email}${unifiedTxt}${avisoTxt}${failTxt}${!isOnline ? ' (offline)' : ''}`
+      ? `${ok} huérfano(s) asignado(s) a ${selectedClient.email}${recibidoTxt}${unifiedTxt}${avisoTxt}${failTxt}${!isOnline ? ' (offline)' : ''}`
       : (ok > 0
-        ? `Huérfano asignado a ${selectedClient.email}${unifiedTxt}${avisoTxt}${!isOnline ? ' (offline)' : ''}`
+        ? `Huérfano asignado a ${selectedClient.email}${recibidoTxt}${unifiedTxt}${avisoTxt}${!isOnline ? ' (offline)' : ''}`
         : `No se pudo asignar: ${conflictMsg || 'error desconocido'}`);
     if (ok === 0 && fail > 0) toast.error(msg);
     else toast.success(msg);
@@ -300,6 +307,7 @@ export default function AdminOrphanPackages({ user }) {
     try {
       let totalAssigned = 0, totalUnreadable = 0, totalNotFound = 0, totalErrors = 0, totalProcessed = 0;
       let totalConsolidated = 0, totalConflicts = 0, totalMerged = 0;
+      let totalAvisos = 0, totalAvisosPend = 0;
       let hasMore = true;
       let guard = 0; // safety limit to prevent infinite loops
 
@@ -319,6 +327,8 @@ export default function AdminOrphanPackages({ user }) {
         totalConsolidated += data.consolidated || 0;
         totalMerged += data.merged || 0;
         totalConflicts += data.conflicts || 0;
+        totalAvisos += data.avisos_enviados || 0;
+        totalAvisosPend += data.avisos_pendientes || 0;
 
         // Actualizar presupuesto desde la respuesta del backend
         if (typeof data.credits_used === 'number' || typeof data.credits_budget === 'number' || data.route) {
@@ -361,10 +371,13 @@ export default function AdminOrphanPackages({ user }) {
       const unifTxt = totalConsolidated > 0 ? ` · ${totalConsolidated} pre-alerta(s) unificada(s)` : '';
       const mergedTxt = totalMerged > 0 ? ` · ${totalMerged} duplicado(s) fusionado(s)` : '';
       const confTxt = totalConflicts > 0 ? ` · ${totalConflicts} en conflicto` : '';
+      const avisosTxt = totalAvisos > 0 || totalAvisosPend > 0
+        ? ` · ${totalAvisos} recepción(es) avisada(s) al mayorista${totalAvisosPend > 0 ? `, ${totalAvisosPend} pendiente(s) de foto o conexión` : ''}`
+        : '';
       if (totalAssigned > 0) {
-        toast.success(`IA completada: ${totalAssigned} asignado(s)${unifTxt}${mergedTxt} · ${totalUnreadable} no legible(s) · ${totalNotFound} sin coincidencia${confTxt}`);
+        toast.success(`IA completada: ${totalAssigned} asignado(s)${unifTxt}${mergedTxt}${avisosTxt} · ${totalUnreadable} no legible(s) · ${totalNotFound} sin coincidencia${confTxt}`);
       } else if (totalProcessed > 0) {
-        toast.info(`IA completada: ${totalUnreadable} no legible(s) · ${totalNotFound} sin coincidencia${mergedTxt}${confTxt} · ${totalErrors} error(es)`);
+        toast.info(`IA completada: ${totalUnreadable} no legible(s) · ${totalNotFound} sin coincidencia${mergedTxt}${confTxt}${avisosTxt} · ${totalErrors} error(es)`);
       } else {
         toast.info('No hay huérfanos con foto pendientes de escanear');
       }

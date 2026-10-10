@@ -8,6 +8,7 @@ import {
   pickConsolidationTarget,
   ORPHAN_ALREADY_CLAIMED,
 } from '../../shared/orphanConsolidation.ts';
+import { confirmReceptionToWholesaler } from '../../shared/wholesalerNotify.ts';
 
 // Reclama huérfanos usando IA para leer el tracking de la foto.
 // Procesa en lotes pequeños (default 3) para evitar timeout del navegador.
@@ -179,6 +180,8 @@ export default async function(req: Request): Promise<Response> {
     let claudeCalls = 0;
     let openaiCalls = 0;
     let routeFailures = 0;
+    let avisosEnviados = 0;
+    let avisosPendientes = 0;
     const now = new Date().toISOString();
 
     for (const orphan of batch) {
@@ -327,6 +330,13 @@ export default async function(req: Request): Promise<Response> {
           throw err;
         }
 
+        // La carga ya está en el almacén: se le confirma al mayorista con la foto de
+        // recepción, igual que en la asignación manual. Si falta la foto o el envío
+        // falla, el aviso queda pendiente para el reintento del corte diario.
+        const aviso = await confirmReceptionToWholesaler(base44, unification.package, `asignado por IA (${user.email})`);
+        if (aviso?.enviado) avisosEnviados++;
+        else if (aviso && !aviso.ya_avisado) avisosPendientes++;
+
         results.push({
           orphan_id: orphan.id,
           old_tracking: orphan.tracking_number,
@@ -337,6 +347,7 @@ export default async function(req: Request): Promise<Response> {
           merged_fields: unification.merged_fields,
           status: 'consolidated',
           route: routeUsed,
+          aviso_mayorista: aviso || null,
         });
         if (prealert) consolidated++;
         else labelLinked++;
@@ -360,6 +371,8 @@ export default async function(req: Request): Promise<Response> {
       results,
       has_more: remaining > 0,
       remaining,
+      avisos_enviados: avisosEnviados,
+      avisos_pendientes: avisosPendientes,
       route: activeRoute,
       credits_used: creditsUsed,
       credits_budget: budget,

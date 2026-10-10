@@ -17,7 +17,7 @@ import {
 } from './wholesalerCore.ts';
 import { registerConnectionResult } from './wholesalerHealth.ts';
 import { receptionPhotosByPackageId } from './wholesalerOutbound.ts';
-import { queueReceptionNotice, wholesalerTargetForPackage } from './wholesalerPackages.ts';
+import { queueReceptionNotice, receptionPhotos, wholesalerTargetForPackage } from './wholesalerPackages.ts';
 
 const MAX_ATTEMPTS = 5;
 const MAX_HISTORY = 10;
@@ -264,7 +264,19 @@ export async function retryPendingReceptions(base44: any, connection: any = null
 // conexión también queda pendiente, sin darse por enviado.
 export async function confirmReceptionToWholesaler(base44: any, pkg: any, by = '') {
   const connection = await wholesalerTargetForPackage(base44, pkg);
-  if (!connection?.id) return null;
+  if (!connection?.id) {
+    // Sin mayorista identificado se dice claramente en vez de devolver vacío: quien
+    // asigna ve que la carga quedó recibida pero que no hubo a quién avisarle.
+    const fotos = receptionPhotos(pkg);
+    return {
+      enviado: false,
+      sin_mayorista: true,
+      mayorista: '',
+      fotos_count: fotos.length,
+      foto_pendiente: fotos.length === 0,
+      mensaje: 'No se identificó al mayorista de esta carga: no se envió aviso.',
+    };
+  }
 
   const queued = await queueReceptionNotice(base44, pkg, connection, by);
   if (!queued?.log_id) return null;
