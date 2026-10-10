@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 import { errorMessage, fetchAllFilter, normTracking, num } from '../../shared/paginatedFetch.ts';
+import { connectionKeyOf, connectionLabel, listWholesalerConnections } from '../../shared/wholesalerCore.ts';
 import {
   clientMatchesKey,
   emailKeyOf,
@@ -9,15 +10,14 @@ import {
   ordersForClient,
   receivedTrackingsByOrder,
   round4,
-  stampKeyOf,
 } from '../../shared/wholesalerBilling.ts';
 
-// Clientes para facturar, agrupados por mayorista. El mayorista se reconoce por
-// la marca que quedó en cada cliente, así también aparecen los de una conexión
-// que se quitó después. Sin wholesaler_key devuelve solo el mapa de mayoristas
-// con clientes; con wholesaler_key, la lista liviana de ese mayorista; y con
-// client_emails, el detalle de esos clientes (órdenes, trackings recibidos y
-// trackings todavía libres).
+// Clientes para facturar, agrupados por mayorista. Solo se ofrecen los
+// mayoristas que están conectados (los que tienen su conexión en el panel) y se
+// muestran los clientes que quedaron marcados con esa conexión. Sin
+// wholesaler_key devuelve solo la lista de mayoristas con sus clientes; con
+// wholesaler_key, la lista liviana de ese mayorista; y con client_emails, el
+// detalle de esos clientes (órdenes, trackings recibidos y trackings libres).
 const MAX_CLIENTS = 500;
 const MAX_AVAILABLE = 300;
 const DETAIL_BATCH = 6;
@@ -34,18 +34,19 @@ export default async function (req: Request): Promise<Response> {
     const body = await req.json().catch(() => ({}));
     const wantedKey = String(body?.wholesaler_key || '').trim();
 
+    const connections = await listWholesalerConnections(base44);
+
     const rows = await fetchAllFilter(base44.asServiceRole.entities.WholesalerClient, {}, '-fetched_date');
     const allClients = (rows || []).filter((row: any) => String(row?.email || '').trim());
 
-    const groupsById = new Map<string, any>();
-    for (const row of allClients) {
-      const stampKey = stampKeyOf(row);
-      const group = groupsById.get(stampKey)
-        || { key: stampKey, name: row.wholesaler_name || (stampKey === 'main' ? 'Cliente mayorista' : stampKey), clients: 0 };
-      group.clients += 1;
-      groupsById.set(stampKey, group);
-    }
-    const groups = [...groupsById.values()].sort((a, b) => b.clients - a.clients);
+    const groups = connections.map((connection: any) => {
+      const key = connectionKeyOf(connection);
+      return {
+        key,
+        name: connectionLabel(connection),
+        clients: allClients.filter((row: any) => clientMatchesKey(row, key)).length,
+      };
+    });
 
     if (!wantedKey) {
       return Response.json({ ok: true, groups, clients: [], total: 0, generated_at: new Date().toISOString() });
@@ -143,7 +144,7 @@ export default async function (req: Request): Promise<Response> {
     }
 
     const clean = base.map(({ _pending, ...rest }: any) => rest);
-    const group = groupsById.get(wantedKey)
+    const group = groups.find((item: any) => item.key === wantedKey)
       || { key: wantedKey, name: wantedKey === 'main' ? 'Cliente mayorista' : wantedKey, clients: clean.length };
 
     return Response.json({
