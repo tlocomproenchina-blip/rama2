@@ -135,6 +135,8 @@ export const recomputeGuideTotals = (clients: any[]) => {
     clients: list.length,
     bultos: rows.length,
     packages: rows.reduce((sum: number, b: any) => sum + (Number(b.package_count) || 0), 0),
+    // Líneas de carga sin bulto registrado (emitidas por su N° de orden / envío).
+    unregistered: rows.filter((b: any) => b?.unregistered || !b?.label_code).length,
     cajas: rows.filter((b: any) => b?.is_caja).length,
     cbm: Number(rows.reduce((sum: number, b: any) => sum + (Number(b.cbm) || 0), 0).toFixed(4)),
   };

@@ -1,7 +1,7 @@
 // Guía de despacho consolidada: un solo documento continuo con un bloque por
 // cliente, que lista el código de cada bulto con su casilla de verificación de
 // entrega, los totales por cliente y el total general al cierre.
-import { summarizeGuide } from './dispatchGuides';
+import { isUnregisteredLine, summarizeGuide } from './dispatchGuides';
 
 const fmtDate = (value) => {
   if (!value) return '—';
@@ -23,6 +23,11 @@ export async function generateDispatchGuidePdf({
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   const list = Array.isArray(clients) ? clients : [];
   const totals = summarizeGuide(list, list.map((c) => c.client_key || c.client_email));
+  // Líneas de carga sin bulto registrado: salen impresas por su N° de orden / envío.
+  const unregistered = list
+    .flatMap((entry) => (Array.isArray(entry.bultos) ? entry.bultos : []))
+    .filter(isUnregisteredLine).length;
+  const unitLabel = unregistered ? `${totals.bultos} línea(s)` : `${totals.bultos} bulto(s)`;
   const now = emittedAt ? new Date(emittedAt) : new Date();
   const left = 14;
   const right = 196;
@@ -63,8 +68,14 @@ export async function generateDispatchGuidePdf({
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(9);
       doc.text(`Emitida: ${now.toLocaleString('es-VE')}`, right, 17, { align: 'right' });
-      doc.text(`${totals.clients} cliente(s) · ${totals.bultos} bulto(s) · ${totals.packages} paquete(s)`, right, 22, { align: 'right' });
-      doc.text('Cajas y bultos escaneados para despacho · verificación de entrega bloque por bloque', left, 29);
+      doc.text(
+        `${totals.clients} cliente(s) · ${unitLabel} · ${totals.packages} paquete(s)` +
+          (unregistered ? ` · ${unregistered} sin bulto` : ''),
+        right,
+        22,
+        { align: 'right' }
+      );
+      doc.text('Cajas, bultos y carga emitida por N° de orden · verificación de entrega bloque por bloque', left, 29);
       if (offline) {
         doc.setTextColor(185, 28, 28);
         doc.setFont('helvetica', 'bold');
@@ -145,12 +156,18 @@ export async function generateDispatchGuidePdf({
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(10);
       doc.text(String(index), 16, y);
-      doc.setFont('courier', 'bold');
-      // Cada unidad se identifica con la posición X/N impresa en su etiqueta.
+      // Cada unidad se identifica con la posición X/N impresa en su etiqueta; la carga
+      // sin bulto registrado, con su N° de orden / envío.
       const cajaTag = bulto.caja_number
         ? `[${bulto.caja_number}/${bulto.caja_total || '?'}] `
         : '';
-      doc.text(`${cajaTag}${bulto.label_code || '—'}`, 26, y);
+      if (isUnregisteredLine(bulto)) {
+        doc.setFont('helvetica', 'bold');
+        doc.text(`${cajaTag}SIN BULTO · Orden ${bulto.order_number || '—'}`, 26, y);
+      } else {
+        doc.setFont('courier', 'bold');
+        doc.text(`${cajaTag}${bulto.label_code || '—'}`, 26, y);
+      }
       doc.setFont('helvetica', 'normal');
       doc.text(String(bulto.package_count ?? 0), 112, y);
       doc.text(bulto.cbm ? Number(bulto.cbm).toFixed(3) : '—', 126, y);
@@ -163,11 +180,13 @@ export async function generateDispatchGuidePdf({
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
     const clientBultos = bultos.filter((b) => b.label_code).length;
+    const clientUnregistered = bultos.filter(isUnregisteredLine).length;
     const clientPackages = bultos.reduce((sum, b) => sum + (Number(b.package_count) || 0), 0);
     const clientCajas = bultos.filter((b) => b.is_caja).length;
     const clientCbm = bultos.reduce((sum, b) => sum + (Number(b.cbm) || 0), 0);
     doc.text(
       `Total cliente: ${clientBultos} bulto(s)` +
+        (clientUnregistered ? ` + ${clientUnregistered} sin bulto` : '') +
         (clientCajas ? ` (${clientCajas} caja(s))` : '') +
         ` · ${clientPackages} paquete(s)` +
         (clientCbm > 0 ? ` · ${clientCbm.toFixed(3)} CBM` : '') +
@@ -191,7 +210,13 @@ export async function generateDispatchGuidePdf({
   doc.setFontSize(11);
   doc.text('TOTAL GENERAL', 16, y + 1);
   doc.setFontSize(9);
-  doc.text(`${totals.clients} cliente(s) · ${totals.bultos} bulto(s) · ${totals.packages} paquete(s)`, right, y + 1, { align: 'right' });
+  doc.text(
+    `${totals.clients} cliente(s) · ${unitLabel} · ${totals.packages} paquete(s)` +
+      (unregistered ? ` · ${unregistered} sin bulto` : ''),
+    right,
+    y + 1,
+    { align: 'right' }
+  );
   doc.setTextColor(30, 41, 59);
   y += 22;
 

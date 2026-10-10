@@ -39,6 +39,14 @@ const fmtDateTime = (value) => {
   });
 };
 
+// Líneas de la guía de un cliente: se llaman bultos, salvo que el cliente tenga
+// carga emitida por su N° de orden / envío sin bulto registrado.
+const linesLabel = (client) => {
+  const total = client?.totals?.bultos || (Array.isArray(client?.bultos) ? client.bultos.length : 0);
+  const unregistered = Number(client?.totals?.unregistered) || 0;
+  return `${total} ${unregistered ? 'línea(s)' : 'bulto(s)'}${unregistered ? ` · ${unregistered} sin bulto` : ''}`;
+};
+
 // Una guía ya emitida: su número, sus totales, el desglose por cliente y las
 // acciones de reimprimir y anotar la entrega.
 export default function DispatchGuideHistoryCard({ guide, appName, highlighted = false, onGuideUpdated }) {
@@ -95,6 +103,11 @@ export default function DispatchGuideHistoryCard({ guide, appName, highlighted =
               {guide.source === 'manual' && (
                 <Badge variant="outline" className="border-sky-200 bg-sky-50 text-sky-700">
                   Manual
+                </Badge>
+              )}
+              {Number(guide.totals?.unregistered) > 0 && (
+                <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700">
+                  {guide.totals.unregistered} sin bulto
                 </Badge>
               )}
             </div>
@@ -181,8 +194,7 @@ export default function DispatchGuideHistoryCard({ guide, appName, highlighted =
                       {String(client.client_name || client.client_email || 'Cliente').replace(/^Sin registrar(?= —|$)/i, 'Cliente')}
                     </p>
                     <span className="text-[11px] text-slate-500">
-                      {client.totals?.bultos || (client.bultos || []).length} bulto(s) ·{' '}
-                      {client.totals?.packages || 0} paquete(s)
+                      {linesLabel(client)} · {client.totals?.packages || 0} paquete(s)
                     </span>
                   </div>
                   <p className="font-mono text-[11px] text-blue-700 break-all">

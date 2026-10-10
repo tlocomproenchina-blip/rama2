@@ -36,7 +36,7 @@
         "lote_etiquetas",
         "manual"
       ],
-      "description": "Origen de la gu\u00eda: periodo_pagos (generada desde el per\u00edodo de facturas pagadas), escaneo (abierta por el esc\u00e1ner de despacho), lote_etiquetas (emitida al imprimir el lote de etiquetas) o manual (emitida eligiendo a mano el cliente y sus bultos)."
+      "description": "Origen de la gu\u00eda: periodo_pagos (generada desde el per\u00edodo de facturas pagadas), escaneo (abierta por el esc\u00e1ner de despacho), lote_etiquetas (emitida al imprimir el lote de etiquetas) o manual (emitida eligiendo a mano el cliente y sus bultos, sus \u00f3rdenes/env\u00edos o las \u00f3rdenes de una factura pagada)."
     },
     "period_key": {
       "type": "string",
@@ -116,7 +116,8 @@
               "type": "object",
               "properties": {
                 "label_code": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "C\u00f3digo de etiqueta del bulto o de la caja. Va vac\u00edo en una l\u00ednea de carga sin bulto registrado (la que se emite por N\u00b0 de orden / env\u00edo)."
                 },
                 "package_count": {
                   "type": "number"
@@ -124,11 +125,28 @@
                 "registered": {
                   "type": "boolean"
                 },
+                "unregistered": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Indica que esta l\u00ednea de la gu\u00eda es carga despachada por su N\u00b0 de orden / env\u00edo sin bulto registrado (el bulto no se cre\u00f3 o no existe): no tiene c\u00f3digo de etiqueta y se imprime como carga sin bulto."
+                },
                 "date": {
                   "type": "string"
                 },
                 "order_number": {
                   "type": "string"
+                },
+                "invoice_number": {
+                  "type": "string",
+                  "description": "N\u00b0 de la factura (Invoice) de la que sali\u00f3 esta orden / env\u00edo, cuando se emiti\u00f3 desde una factura pagada."
+                },
+                "tracking_numbers": {
+                  "type": "array",
+                  "default": [],
+                  "description": "Trackings del recibo de carga que respalda esta l\u00ednea sin bulto registrado. Se usan como paquetes de la orden de despacho.",
+                  "items": {
+                    "type": "string"
+                  }
                 },
                 "scans": {
                   "type": "number"
@@ -156,13 +174,15 @@
             "type": "object",
             "properties": {
               "bultos": {
-                "type": "number"
+                "type": "number",
+                "description": "L\u00edneas de la gu\u00eda para ese cliente: bultos y cajas m\u00e1s las l\u00edneas sin bulto registrado."
               },
               "packages": {
                 "type": "number"
               },
               "unregistered": {
-                "type": "number"
+                "type": "number",
+                "description": "Cu\u00e1ntas de esas l\u00edneas son carga sin bulto registrado"
               },
               "scanned": {
                 "type": "number"
@@ -210,6 +230,14 @@
         "type": "string"
       }
     },
+    "unregistered_order_keys": {
+      "type": "array",
+      "default": [],
+      "description": "Claves (email del cliente + N\u00b0 de orden / env\u00edo) de la carga despachada sin bulto registrado que entr\u00f3 en esta gu\u00eda. Marca esas \u00f3rdenes para no volver a ofrecerlas y para saber en qu\u00e9 gu\u00eda sali\u00f3 cada una.",
+      "items": {
+        "type": "string"
+      }
+    },
     "totals": {
       "type": "object",
       "description": "Totales de la gu\u00eda al momento de emitirla",
@@ -218,13 +246,15 @@
           "type": "number"
         },
         "bultos": {
-          "type": "number"
+          "type": "number",
+          "description": "L\u00edneas de la gu\u00eda: bultos y cajas m\u00e1s las l\u00edneas sin bulto registrado."
         },
         "packages": {
           "type": "number"
         },
         "unregistered": {
-          "type": "number"
+          "type": "number",
+          "description": "Cu\u00e1ntas de esas l\u00edneas son carga sin bulto registrado, emitida por su N\u00b0 de orden / env\u00edo."
         },
         "cajas": {
           "type": "number",
@@ -239,7 +269,7 @@
     "dispatch_orders": {
       "type": "array",
       "default": [],
-      "description": "\u00d3rdenes de despacho que se generaron solas al emitir la gu\u00eda a mano: una por cliente, con su n\u00famero de orden y cu\u00e1ntos bultos y paquetes cubre. Es el resumen con el que el historial muestra la gu\u00eda junto con sus \u00f3rdenes.",
+      "description": "\u00d3rdenes de despacho que se generaron solas al emitir la gu\u00eda a mano: una por cliente, con su n\u00famero de orden y cu\u00e1ntas l\u00edneas y paquetes cubre. Es el resumen con el que el historial muestra la gu\u00eda junto con sus \u00f3rdenes.",
       "items": {
         "type": "object",
         "properties": {
@@ -262,15 +292,15 @@
           },
           "bultos_count": {
             "type": "number",
-            "description": "Bultos de la gu\u00eda que cubre esa orden"
+            "description": "L\u00edneas de la gu\u00eda que cubre esa orden (bultos, cajas y carga sin bulto registrado)"
           },
           "packages_count": {
             "type": "number",
-            "description": "Paquetes sumados de esos bultos"
+            "description": "Paquetes sumados de esas l\u00edneas"
           },
           "cbm": {
             "type": "number",
-            "description": "CBM sumado de esos bultos"
+            "description": "CBM sumado de esas l\u00edneas"
           },
           "emitted_by": {
             "type": "string",

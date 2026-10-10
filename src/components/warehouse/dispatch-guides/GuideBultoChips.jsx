@@ -13,6 +13,7 @@ import {
 import { Loader2, Plus, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { base44 } from '@/components/api/ApiQueueManager';
+import { isUnregisteredLine } from '@/lib/dispatchGuides';
 import AddGuideBultosDialog from './AddGuideBultosDialog';
 
 const fmtDate = (value) => {
@@ -54,23 +55,35 @@ export default function GuideBultoChips({ guide, clientGroup, onGuideUpdated }) 
         <p className="text-[11px] text-slate-400">Este cliente no tiene bultos en la guía.</p>
       ) : (
         <div className="flex flex-wrap gap-1.5">
-          {bultos.map((bulto) => (
-            <span
-              key={`${clientGroup?.client_key}-${bulto.label_code}`}
-              className="flex items-center gap-1 rounded-lg border border-border bg-card/80 px-2 py-0.5 font-mono text-[11px] text-foreground"
-            >
-              {bulto.label_code} · {bulto.package_count || 0} paq.
-              {bulto.date ? ` · ${fmtDate(bulto.date)}` : ''}
-              <button
-                type="button"
-                onClick={() => setToRemove(bulto)}
-                title="Quitar de la guía"
-                className="rounded p-0.5 text-slate-400 transition hover:bg-rose-50 hover:text-rose-600"
+          {bultos.map((bulto, index) =>
+            // La carga sin bulto registrado se emitió por su N° de orden: se muestra
+            // aparte y no se puede quitar desde aquí (no tiene código de bulto).
+            isUnregisteredLine(bulto) ? (
+              <span
+                key={`orden-${clientGroup?.client_key}-${bulto.order_number}-${index}`}
+                className="flex items-center gap-1 rounded-lg border border-amber-200 bg-amber-50 px-2 py-0.5 font-mono text-[11px] text-amber-800"
               >
-                <X className="h-3 w-3" />
-              </button>
-            </span>
-          ))}
+                SIN BULTO · Orden {bulto.order_number || '—'} · {bulto.package_count || 0} paq.
+                {bulto.invoice_number ? ` · ${bulto.invoice_number}` : ''}
+              </span>
+            ) : (
+              <span
+                key={`${clientGroup?.client_key}-${bulto.label_code}`}
+                className="flex items-center gap-1 rounded-lg border border-border bg-card/80 px-2 py-0.5 font-mono text-[11px] text-foreground"
+              >
+                {bulto.label_code} · {bulto.package_count || 0} paq.
+                {bulto.date ? ` · ${fmtDate(bulto.date)}` : ''}
+                <button
+                  type="button"
+                  onClick={() => setToRemove(bulto)}
+                  title="Quitar de la guía"
+                  className="rounded p-0.5 text-slate-400 transition hover:bg-rose-50 hover:text-rose-600"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </span>
+            )
+          )}
         </div>
       )}
 

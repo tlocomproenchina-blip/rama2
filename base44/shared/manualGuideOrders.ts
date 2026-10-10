@@ -54,6 +54,46 @@ function itemsOfBultos(codes: string[], bultos: any[]) {
   return items;
 }
 
+// Ítems de una línea sin bulto registrado: la carga se emite por su N° de orden.
+// Si el recibo trae trackings, cada uno entra como paquete real de la orden; si no,
+// la línea entra con la referencia de la orden para que el almacén la ubique.
+function itemsOfUnregistered(lines: any[]) {
+  const items: any[] = [];
+
+  (Array.isArray(lines) ? lines : []).forEach((line) => {
+    const order = text(line?.order_number);
+    const description = `Carga sin bulto registrado${order ? ` · Orden/Envío ${order}` : ''}`;
+    const trackings = [
+      ...new Set(
+        (Array.isArray(line?.tracking_numbers) ? line.tracking_numbers : [])
+          .map((tracking: any) => text(tracking))
+          .filter(Boolean)
+      ),
+    ];
+
+    if (!trackings.length) {
+      items.push({
+        tracking_number: order ? `ORDEN ${order}` : 'CARGA SIN BULTO',
+        description,
+        consolidation_tracking: order,
+        bulto_label_code: '',
+      });
+      return;
+    }
+
+    trackings.forEach((tracking) => {
+      items.push({
+        tracking_number: tracking,
+        description,
+        consolidation_tracking: order,
+        bulto_label_code: '',
+      });
+    });
+  });
+
+  return items;
+}
+
 // Crea la orden de cada cliente de la guía y devuelve su resumen.
 // Un cliente sin email no se puede emitir por esta vía: se reporta en `failed`
 // para que el admin lo genere a mano, sin frenar el resto de la guía.
@@ -64,21 +104,24 @@ export async function createOrdersForGuide(base44: any, { guide, user }: any) {
 
   for (const client of clients) {
     const clientEmail = text(client?.client_email);
-    const codes = (Array.isArray(client?.bultos) ? client.bultos : [])
-      .map((bulto: any) => text(bulto?.label_code))
-      .filter(Boolean);
+    const lines = Array.isArray(client?.bultos) ? client.bultos : [];
+    const codes = lines.map((line: any) => text(line?.label_code)).filter(Boolean);
+    // Líneas de carga sin bulto registrado (emitidas por su N° de orden / envío).
+    const unregistered = lines.filter((line: any) => line?.unregistered || !text(line?.label_code));
 
-    if (!clientEmail || !codes.length) {
+    if (!clientEmail || !lines.length) {
       failed.push({
         client: text(client?.client_name) || clientEmail,
-        reason: !clientEmail ? 'El cliente no tiene email registrado' : 'Sin bultos',
+        reason: !clientEmail ? 'El cliente no tiene email registrado' : 'Sin carga',
       });
       continue;
     }
 
-    const bultos: any[] = await base44.asServiceRole.entities.Bulto
-      .filter({ label_code: { $in: codes } }, '-created_date', 500)
-      .catch(() => []);
+    const bultos: any[] = codes.length
+      ? await base44.asServiceRole.entities.Bulto
+          .filter({ label_code: { $in: codes } }, '-created_date', 500)
+          .catch(() => [])
+      : [];
 
     const snapshot = client?.client || {};
     const clientName = text(client?.client_name) || text(snapshot?.full_name) || clientEmail;
@@ -89,7 +132,7 @@ export async function createOrdersForGuide(base44: any, { guide, user }: any) {
         client_name: clientName,
         shipping_mark: text(client?.shipping_mark) || text(snapshot?.shipping_mark),
         client_snapshot: { ...snapshot, email: text(snapshot?.email) || clientEmail },
-        items: itemsOfBultos(codes, bultos),
+        items: [...itemsOfBultos(codes, bultos), ...itemsOfUnregistered(unregistered)],
         notes: `Guía ${text(guide?.guide_number)} · emisión manual`,
       });
 
@@ -102,7 +145,7 @@ export async function createOrdersForGuide(base44: any, { guide, user }: any) {
         shipping_mark: text(client?.shipping_mark) || text(snapshot?.shipping_mark),
         order_id: text(order?.id),
         order_number: text(order?.order_number),
-        bultos_count: codes.length,
+        bultos_count: lines.length,
         packages_count: Number(client?.totals?.packages) || 0,
         cbm: Number(client?.totals?.cbm) || 0,
         emitted_by: text(user?.email),

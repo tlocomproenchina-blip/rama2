@@ -6,17 +6,30 @@ import {
   normCode,
   unique,
 } from '../../shared/dispatchGuideAppend.ts';
+import {
+  buildGuideGroupsFromOrders,
+  fetchReceiptsForOrders,
+  isUnregisteredLine,
+  orderKeyOf,
+  resolveOrderCandidates,
+} from '../../shared/guideOrderSources.ts';
 import { createOrdersForGuide } from '../../shared/manualGuideOrders.ts';
 
-// Emite una guía de despacho: arma el snapshot definitivo con los bultos
-// escaneados que siguen pendientes (getDispatchGuides ya excluye los bultos de
-// guías anteriores), le asigna un número correlativo con el contador dedicado
-// DispatchGuideCounter y marca esos escaneos para que no vuelvan a ofrecerse
-// como pendientes. Devuelve la guía creada y los códigos que ya no estaban
-// pendientes (consumidos por otra guía en el mientras).
+// Emite una guía de despacho por dos vías, y las dos pueden combinarse:
+//   1) bultos escaneados que siguen pendientes (getDispatchGuides ya excluye los
+//      que entraron en una guía anterior), elegidos por cliente o por código;
+//   2) órdenes / envíos elegidos a mano (body.orders): la carga se emite aunque su
+//      bulto no esté registrado o no exista, con su N° de orden y, si se conoce, su
+//      factura. Esa línea sale marcada como carga sin bulto registrado.
+// La guía recibe su número correlativo (DispatchGuideCounter), los escaneos
+// incluidos quedan marcados para no volver a ofrecerse y, si se pide, se generan
+// solas las órdenes de despacho de cada cliente.
 
-// Fusiona los grupos devueltos por getDispatchGuides (clientes con email y
-// códigos de clientes sin email) sin duplicar bultos.
+// Fusiona los grupos devueltos por getDispatchGuides (clientes con email y códigos
+// de clientes sin email) y los grupos armados desde órdenes, sin duplicar líneas.
+const lineKeyOf = (bulto: any) =>
+  normCode(bulto?.label_code) || `order:${normCode(bulto?.order_number)}:${normCode(bulto?.invoice_number)}`;
+
 const mergeClients = (groups: any[]) => {
   const map = new Map();
   (groups || []).forEach((client) => {
@@ -28,26 +41,42 @@ const mergeClients = (groups: any[]) => {
       return;
     }
     const existing: any = map.get(key);
-    const seen = new Set(existing.bultos.map((b: any) => b.label_code));
+    const seen = new Set(existing.bultos.map((b: any) => lineKeyOf(b)));
     (client.bultos || []).forEach((b: any) => {
-      if (!b?.label_code || seen.has(b.label_code)) return;
-      seen.add(b.label_code);
+      const lineKey = lineKeyOf(b);
+      if (!lineKey || seen.has(lineKey)) return;
+      seen.add(lineKey);
       existing.bultos.push(b);
     });
+    const bultos = existing.bultos;
+    existing.totals = {
+      bultos: bultos.length,
+      packages: bultos.reduce((sum: number, b: any) => sum + (Number(b.package_count) || 0), 0),
+      unregistered: bultos.filter(isUnregisteredLine).length,
+      scanned: client.totals?.scanned || existing.totals?.scanned || bultos.length,
+      cajas: bultos.filter((b: any) => b.is_caja).length,
+      cbm: Number(bultos.reduce((sum: number, b: any) => sum + (Number(b.cbm) || 0), 0).toFixed(4)),
+    };
   });
 
   return [...map.values()]
     .map((client: any) => {
-      const bultos = [...(client.bultos || [])].sort((a: any, b: any) =>
-        String(a.label_code).localeCompare(String(b.label_code))
-      );
+      const bultos = [...(client.bultos || [])].sort((a: any, b: any) => {
+        const aCode = normCode(a.label_code);
+        const bCode = normCode(b.label_code);
+        if (!aCode && !bCode) return String(a.order_number || '').localeCompare(String(b.order_number || ''));
+        if (!aCode) return 1;
+        if (!bCode) return -1;
+        return aCode.localeCompare(bCode);
+      });
       return {
         ...client,
         bultos,
         totals: {
           bultos: bultos.length,
           packages: bultos.reduce((sum: number, b: any) => sum + (Number(b.package_count) || 0), 0),
-          scanned: client.totals?.scanned || bultos.length,
+          unregistered: bultos.filter(isUnregisteredLine).length,
+          scanned: client.totals?.scanned || 0,
           cajas: bultos.filter((b: any) => b.is_caja).length,
           cbm: Number(bultos.reduce((sum: number, b: any) => sum + (Number(b.cbm) || 0), 0).toFixed(4)),
         },
@@ -77,29 +106,82 @@ export default async function (req: Request): Promise<Response> {
     const requestedCodes = unique(
       (Array.isArray(body.codes) ? body.codes : []).map((code: any) => normCode(code)).filter(Boolean)
     );
+    // Órdenes / envíos elegidos a mano: permiten emitir la carga aunque su bulto no
+    // esté registrado o no exista.
+    const requestedOrders = unique(
+      (Array.isArray(body.orders) ? body.orders : [])
+        .map((order: any) => orderKeyOf(order?.client_email, order?.order_number))
+        .filter((key: string) => !!key && !key.endsWith('#'))
+    ).map((key: string) => {
+      const [client_email, order_number] = key.split('#');
+      return { client_email, order_number };
+    });
 
-    if (!clientEmails.length && !requestedCodes.length) {
-      return Response.json({ error: 'Marca al menos un cliente para emitir la guía' }, { status: 400 });
+    if (!clientEmails.length && !requestedCodes.length && !requestedOrders.length) {
+      return Response.json({ error: 'Marca al menos una orden/envío o un bulto para emitir la guía' }, { status: 400 });
     }
 
-    // La guía se arma con los escaneos que siguen pendientes: getDispatchGuides
-    // excluye los bultos que ya pertenecen a una guía emitida.
+    const emittedDate = new Date().toISOString();
+
+    // --- 1) Bultos escaneados que siguen pendientes ---
     const groups: any[] = [];
     const guideFilters: any = { from, to, skip: 0 };
+    const scanning = clientEmails.length > 0 || requestedCodes.length > 0;
 
-    if (clientEmails.length) {
-      const res = await base44.functions.invoke('getDispatchGuides', { ...guideFilters, client_emails: clientEmails });
-      const data: any = res?.data || res || {};
-      (data.clients || []).forEach((client: any) => groups.push(client));
+    if (scanning) {
+      if (clientEmails.length) {
+        const res = await base44.functions.invoke('getDispatchGuides', { ...guideFilters, client_emails: clientEmails });
+        const data: any = res?.data || res || {};
+        (data.clients || []).forEach((client: any) => groups.push(client));
+      }
+
+      if (requestedCodes.length) {
+        const res = await base44.functions.invoke('getDispatchGuides', { ...guideFilters, codes: requestedCodes });
+        const data: any = res?.data || res || {};
+        (data.clients || []).forEach((client: any) => groups.push(client));
+      }
     }
 
-    if (requestedCodes.length) {
-      const res = await base44.functions.invoke('getDispatchGuides', { ...guideFilters, codes: requestedCodes });
-      const data: any = res?.data || res || {};
-      (data.clients || []).forEach((client: any) => groups.push(client));
+    // --- 2) Órdenes / envíos elegidos a mano ---
+    const skippedOrders: any[] = [];
+    let orderClients: any[] = [];
+    let orderKeys: string[] = [];
+
+    if (requestedOrders.length) {
+      const receipts = await fetchReceiptsForOrders(base44, requestedOrders);
+      const candidates = await resolveOrderCandidates(base44, receipts);
+      const byKey = new Map(candidates.map((candidate: any) => [candidate.key, candidate]));
+
+      const chosen: any[] = [];
+      requestedOrders.forEach((request: any) => {
+        const candidate: any = byKey.get(orderKeyOf(request.client_email, request.order_number));
+        if (!candidate) {
+          skippedOrders.push({ ...request, reason: 'No hay recibo de carga para esa orden' });
+          return;
+        }
+        if (candidate.already_in_guide) {
+          skippedOrders.push({
+            ...request,
+            reason: `Esa orden ya salió en la guía ${candidate.guide_number || ''}`.trim(),
+          });
+          return;
+        }
+        chosen.push(candidate);
+      });
+
+      if (!chosen.length) {
+        return Response.json(
+          { error: 'Las órdenes elegidas ya no están disponibles para guía', skipped_orders: skippedOrders },
+          { status: 409 }
+        );
+      }
+
+      const built = buildGuideGroupsFromOrders(chosen, emittedDate);
+      orderClients = built.clients;
+      orderKeys = built.orderKeys;
     }
 
-    const clients = mergeClients(groups).map((client: any) => ({
+    const clients = mergeClients([...groups, ...orderClients]).map((client: any) => ({
       client_key: client.client_key || '',
       client_email: client.client_email || '',
       client_name: client.client_name || '',
@@ -107,16 +189,22 @@ export default async function (req: Request): Promise<Response> {
       orders_count: Number(client.orders_count) || 0,
       client: client.client || {},
       bultos: client.bultos || [],
-      totals: client.totals || { bultos: 0, packages: 0, scanned: 0 },
+      totals: client.totals || { bultos: 0, packages: 0, unregistered: 0 },
     }));
 
-    const bultoCodes = unique(clients.flatMap((client: any) => client.bultos.map((b: any) => normCode(b.label_code))));
+    const bultoCodes = unique(
+      clients.flatMap((client: any) =>
+        client.bultos.filter((b: any) => !isUnregisteredLine(b)).map((b: any) => normCode(b.label_code))
+      )
+    );
+    const linesCount = clients.reduce((sum: number, c: any) => sum + (Number(c.totals?.bultos) || 0), 0);
+    const unregisteredCount = clients.reduce((sum: number, c: any) => sum + (Number(c.totals?.unregistered) || 0), 0);
 
     // Códigos pedidos que ya no están pendientes (se incluyeron en otra guía).
     const included = new Set(bultoCodes);
     const skipped = requestedCodes.filter((code: string) => !included.has(code));
 
-    if (!clients.length || !bultoCodes.length) {
+    if (!clients.length || (!bultoCodes.length && !unregisteredCount)) {
       return Response.json(
         { error: 'Los bultos seleccionados ya no están pendientes de guía', skipped },
         { status: 409 }
@@ -125,8 +213,9 @@ export default async function (req: Request): Promise<Response> {
 
     const totals = {
       clients: clients.length,
-      bultos: bultoCodes.length,
+      bultos: linesCount,
       packages: clients.reduce((sum: number, c: any) => sum + (Number(c.totals?.packages) || 0), 0),
+      unregistered: unregisteredCount,
       cajas: clients.reduce((sum: number, c: any) => sum + (Number(c.totals?.cajas) || 0), 0),
       cbm: Number(
         clients.reduce((sum: number, c: any) => sum + (Number(c.totals?.cbm) || 0), 0).toFixed(4)
@@ -141,7 +230,6 @@ export default async function (req: Request): Promise<Response> {
     }
 
     const guideNumber = nextGuideNumber(sequence);
-    const emittedDate = new Date().toISOString();
 
     const guide = await base44.asServiceRole.entities.DispatchGuide.create({
       guide_number: guideNumber,
@@ -160,6 +248,7 @@ export default async function (req: Request): Promise<Response> {
       client_emails: unique(clients.map((c: any) => c.client_email).filter(Boolean)),
       shipping_marks: unique(clients.map((c: any) => c.shipping_mark).filter(Boolean)),
       bulto_codes: bultoCodes,
+      unregistered_order_keys: unique(orderKeys),
       totals,
       dispatch_status: 'emitida',
     });
@@ -186,8 +275,15 @@ export default async function (req: Request): Promise<Response> {
       if (orders.length) guide.dispatch_orders = orders;
     }
 
-    return Response.json({ guide, skipped, marked, orders, orders_failed: ordersFailed });
-  } catch (error) {
+    return Response.json({
+      guide,
+      skipped,
+      skipped_orders: skippedOrders,
+      marked,
+      orders,
+      orders_failed: ordersFailed,
+    });
+  } catch (error: any) {
     return Response.json({ error: error.message }, { status: 500 });
   }
 }
