@@ -76,15 +76,36 @@ async function receptionLogs(base44: any, receptions: any[]) {
   return (rows && rows.length) ? rows : ids.map((id) => ({ id }));
 }
 
+// Una carga asignada solo sale de la lista de Paquetes Huérfanos cuando ya consta
+// recibida en el almacén y su foto de recepción salió al mayorista. Si falta
+// cualquiera de las dos cosas, el paquete sigue ahí para seguimiento.
+export function noticeDeliveredWithPhoto(aviso: any) {
+  if (!aviso) return false;
+  const confirmado = aviso.enviado === true || aviso.ya_avisado === true;
+  return confirmado && aviso.foto_pendiente !== true;
+}
+
+// Marca (o apaga) el seguimiento dentro de la lista de huérfanos de esa carga.
+export async function setOrphanFollowup(base44: any, packageId: string, pending: boolean) {
+  if (!packageId) return;
+  try {
+    await base44.asServiceRole.entities.Package.update(packageId, { orphan_pending_reception: pending });
+  } catch (_) {}
+}
+
 // Deja constancia del intento de entrega en el movimiento de cada paquete
 // avisado: solo se marca entregado cuando la app del mayorista confirmó, y un
 // aviso que sale sin la foto de la carga no se da por completo.
 export async function recordNotifyAttempt(base44: any, logs: any[], { ok, detail, fotosByLogId, fotoFaltanteByLogId }: any) {
   const now = new Date().toISOString();
+  // Cargas cuyo aviso salió completo (con su foto): ya pueden salir de la lista de
+  // huérfanos.
+  const deliveredIds: string[] = [];
 
   for (const log of logs || []) {
     if (!log?.id) continue;
     const sinFoto = ok === true && fotoFaltanteByLogId?.[log.id] === true;
+    if (ok && !sinFoto && log.package_id) deliveredIds.push(String(log.package_id));
     const attempts = (Number(log.notify_attempts) || 0) + (ok ? 0 : 1);
     const entry = {
       date: now,
@@ -103,6 +124,15 @@ export async function recordNotifyAttempt(base44: any, logs: any[], { ok, detail
         notify_history: history,
         ...(ok ? { notified_date: now } : {}),
       });
+    } catch (_) {}
+  }
+
+  if (deliveredIds.length) {
+    try {
+      await base44.asServiceRole.entities.Package.updateMany(
+        { id: { $in: deliveredIds }, orphan_pending_reception: true },
+        { $set: { orphan_pending_reception: false } },
+      );
     } catch (_) {}
   }
 }

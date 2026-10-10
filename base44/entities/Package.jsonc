@@ -64,6 +64,11 @@
       "default": false,
       "description": "Indica si el paquete es un hu\u00e9rfano (lleg\u00f3 sin pre-alerta y no tiene cliente asignado). Cuando se asigna o reclama, pasa a false."
     },
+    "orphan_pending_reception": {
+      "type": "boolean",
+      "default": false,
+      "description": "Hu\u00e9rfano ya asignado a un cliente que todav\u00eda no cumple las dos condiciones para salir de la lista de Paquetes Hu\u00e9rfanos: constar recibido en el almac\u00e9n y haber enviado su foto de recepci\u00f3n al mayorista. Mientras est\u00e9 en true sigue apareciendo en esa lista para seguimiento; se apaga cuando el aviso de recepci\u00f3n sale con la foto (o al reasignarlo ya cumpli\u00e9ndose ambas condiciones)."
+    },
     "ai_unreadable": {
       "type": "boolean",
       "default": false,

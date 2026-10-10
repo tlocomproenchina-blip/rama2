@@ -5,7 +5,7 @@ import {
   findSameShipmentMatches,
   hasReceptionEvidence,
 } from '../../shared/orphanConsolidation.ts';
-import { confirmReceptionToWholesaler } from '../../shared/wholesalerNotify.ts';
+import { confirmReceptionToWholesaler, noticeDeliveredWithPhoto, setOrphanFollowup } from '../../shared/wholesalerNotify.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -29,7 +29,11 @@ Deno.serve(async (req) => {
     const pkgs = await base44.asServiceRole.entities.Package.filter({ id: packageId }, '-created_date', 1);
     const pkg = pkgs?.[0];
     if (!pkg) return Response.json({ error: 'Paquete no encontrado' }, { status: 404 });
-    if (!pkg.is_orphan) return Response.json({ error: 'Este paquete no es un huérfano' }, { status: 400 });
+    // Un huérfano ya asignado que sigue en seguimiento (le falta la recepción o el
+    // aviso al mayorista con foto) se puede volver a asignar: así se reintenta.
+    if (!pkg.is_orphan && pkg.orphan_pending_reception !== true) {
+      return Response.json({ error: 'Este paquete no es un huérfano' }, { status: 400 });
+    }
 
     // Resolver shipping_mark del cliente si no se provee
     let shippingMark = body.shipping_mark ? String(body.shipping_mark).trim() : null;
@@ -55,13 +59,17 @@ Deno.serve(async (req) => {
       );
       if (clientPending.length > 0) {
         const unification = await consolidateOrphan({ base44, orphan: pkg, prealert: clientPending[0], shippingMark });
-        const aviso = await confirmReceptionToWholesaler(base44, unification.package || pkg, `asignado a ${clientEmail}`);
+        const merged = unification.package || pkg;
+        const aviso = await confirmReceptionToWholesaler(base44, merged, `asignado a ${clientEmail}`);
+        const sigueEnLista = !(hasReceptionEvidence(merged) && noticeDeliveredWithPhoto(aviso));
+        await setOrphanFollowup(base44, merged.id, sigueEnLista);
         return Response.json({
-          package: unification.package,
+          package: { ...merged, orphan_pending_reception: sigueEnLista },
           consolidated: true,
           merged_fields: unification.merged_fields,
           unified_prealert_id: clientPending[0].id,
           aviso_mayorista: aviso,
+          sigue_en_huerfanos: sigueEnLista,
         });
       }
       // Ese tracking ya está registrado como carga recibida: se avisa para revisión y
@@ -94,13 +102,26 @@ Deno.serve(async (req) => {
       risk_category: body.risk_category ? (body.risk_category === 'alto_riesgo' ? 'alto_riesgo' : 'general') : pkg.risk_category || 'general',
       description: body.description ? String(body.description) : 'Pre-alerta rápida',
       reported: true,
+      // La carga asignada sigue en la lista de huérfanos hasta que se cumplan las
+      // dos condiciones: constar recibida y con su foto enviada al mayorista.
+      orphan_pending_reception: true,
     });
 
     // Si la carga viene del mayorista, su aviso de recepción queda listo para
     // mandarle la confirmación con la foto del almacén, ahora que ya tiene cliente.
     const aviso = await confirmReceptionToWholesaler(base44, updated, `asignado a ${clientEmail}`);
 
-    return Response.json({ package: updated, recibido: wasReceived, aviso_mayorista: aviso });
+    // Solo sale de la lista de huérfanos si ya consta recibida en el almacén y su
+    // foto de recepción salió al mayorista; si falta algo, queda en seguimiento.
+    const sigueEnLista = !(wasReceived && noticeDeliveredWithPhoto(aviso));
+    if (!sigueEnLista) await setOrphanFollowup(base44, packageId, false);
+
+    return Response.json({
+      package: { ...updated, orphan_pending_reception: sigueEnLista },
+      recibido: wasReceived,
+      aviso_mayorista: aviso,
+      sigue_en_huerfanos: sigueEnLista,
+    });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

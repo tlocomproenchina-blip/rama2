@@ -8,7 +8,7 @@ import {
   pickConsolidationTarget,
   ORPHAN_ALREADY_CLAIMED,
 } from '../../shared/orphanConsolidation.ts';
-import { confirmReceptionToWholesaler } from '../../shared/wholesalerNotify.ts';
+import { confirmReceptionToWholesaler, noticeDeliveredWithPhoto, setOrphanFollowup } from '../../shared/wholesalerNotify.ts';
 
 // Reclama huérfanos usando IA para leer el tracking de la foto.
 // Procesa en lotes pequeños (default 3) para evitar timeout del navegador.
@@ -336,6 +336,10 @@ export default async function(req: Request): Promise<Response> {
         const aviso = await confirmReceptionToWholesaler(base44, unification.package, `asignado por IA (${user.email})`);
         if (aviso?.enviado) avisosEnviados++;
         else if (aviso && !aviso.ya_avisado) avisosPendientes++;
+
+        // Igual que en la asignación manual: la carga solo sale de la lista de
+        // huérfanos cuando su foto de recepción ya salió al mayorista.
+        await setOrphanFollowup(base44, unification.package?.id, !noticeDeliveredWithPhoto(aviso));
 
         results.push({
           orphan_id: orphan.id,
