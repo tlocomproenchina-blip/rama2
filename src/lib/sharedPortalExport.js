@@ -4,23 +4,33 @@
 import { portalEstadoLabel, portalOrigenLabel } from '@/lib/sharedPortalFormat';
 
 export const PORTAL_COLUMNS = [
-  { key: 'tracking_number', label: 'Tracking' },
-  { key: 'shipping_mark', label: 'Shipping Mark' },
-  { key: 'registro', label: 'Fecha de registro' },
-  { key: 'recepcion', label: 'Fecha de recepción' },
-  { key: 'estado', label: 'Estado' },
-  { key: 'origen', label: 'Origen' },
+  { key: 'tracking_number', label: 'Tracking', label_zh: '追踪号' },
+  { key: 'shipping_mark', label: 'Shipping Mark', label_zh: '唛头' },
+  { key: 'registro', label: 'Fecha de registro', label_zh: '登记日期' },
+  { key: 'recepcion', label: 'Fecha de recepción', label_zh: '收货日期' },
+  { key: 'estado', label: 'Estado', label_zh: '状态' },
+  { key: 'origen', label: 'Origen', label_zh: '来源' },
+  { key: 'photo_url', label: 'Foto de entrega', label_zh: '交货照片' },
 ];
+
+// La tabla exportada arranca con dos filas de encabezado: el texto en español y,
+// debajo, el mismo encabezado en chino mandarín.
+const PORTAL_HEADER_ROWS = 2;
 
 function cellText(row, key) {
   if (key === 'estado') return portalEstadoLabel(row?.estado);
   if (key === 'origen') return portalOrigenLabel(row?.origen);
   if (key === 'recepcion') return row?.recepcion || 'Pendiente';
+  if (key === 'photo_url') return String(row?.photo_url || '');
   return String(row?.[key] ?? '');
 }
 
 export function portalRowsToAoa(rows) {
-  return [PORTAL_COLUMNS.map((column) => column.label), ...rows.map((row) => PORTAL_COLUMNS.map((column) => cellText(row, column.key)))];
+  return [
+    PORTAL_COLUMNS.map((column) => column.label),
+    PORTAL_COLUMNS.map((column) => column.label_zh),
+    ...rows.map((row) => PORTAL_COLUMNS.map((column) => cellText(row, column.key))),
+  ];
 }
 
 function downloadBlob(content, filename, type) {
@@ -51,7 +61,15 @@ export function downloadPortalCsv(rows) {
 export async function downloadPortalXlsx(rows) {
   const XLSX = await import('xlsx');
   const sheet = XLSX.utils.aoa_to_sheet(portalRowsToAoa(rows));
-  sheet['!cols'] = [{ wch: 20 }, { wch: 18 }, { wch: 16 }, { wch: 26 }, { wch: 30 }, { wch: 16 }, { wch: 16 }, { wch: 12 }, { wch: 18 }];
+  // Foto de la entrega del cliente: viaja como enlace abrible desde el propio Excel.
+  const photoColumn = PORTAL_COLUMNS.findIndex((column) => column.key === 'photo_url');
+  rows.forEach((row, index) => {
+    const target = String(row?.photo_url || '');
+    if (!target) return;
+    const ref = XLSX.utils.encode_cell({ r: index + PORTAL_HEADER_ROWS, c: photoColumn });
+    if (sheet[ref]) sheet[ref].l = { Target: target, Tooltip: 'Foto de la entrega' };
+  });
+  sheet['!cols'] = [{ wch: 20 }, { wch: 18 }, { wch: 16 }, { wch: 26 }, { wch: 30 }, { wch: 16 }, { wch: 44 }];
   const book = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(book, sheet, 'Trackings');
   XLSX.writeFile(book, `${portalExportName()}.xlsx`);
