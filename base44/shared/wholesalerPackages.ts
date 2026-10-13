@@ -688,6 +688,9 @@ export async function queueReceptionNotice(base44: any, pkg: any, connection: an
       fotos,
       fotos_count: fotos.length,
       foto_pendiente: fotos.length === 0,
+      // Fecha en que ese aviso se entregó al mayorista: es la que el panel muestra
+      // junto a la carga que ya se le había avisado.
+      notified_date: log?.notified_date || null,
       titular_email: titularEmail,
       titular_external_id: titularExternalId,
     };

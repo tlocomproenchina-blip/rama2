@@ -260,6 +260,11 @@
             "type": "number",
             "description": "Fotos de la carga que iban en el aviso"
           },
+          "fecha": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Fecha del aviso de recepci\u00f3n al mayorista que corresponde a este registro. En las cargas que ya se le hab\u00edan avisado antes es la fecha de ese aviso; se muestra junto a la carga."
+          },
           "mensaje": {
             "type": "string",
             "maxLength": 300,

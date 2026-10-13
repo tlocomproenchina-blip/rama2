@@ -242,7 +242,12 @@ async function confirmMatchesToWholesaler(base44: any, connection: any, matches:
       if (!queued?.log_id) continue;
       if (queued.ya_avisado) {
         result.omitidos += 1;
-        result.por_paquete[pkg.id] = { aviso: 'omitido', fotos: (queued.fotos || []).length };
+        result.por_paquete[pkg.id] = {
+          aviso: 'omitido',
+          fotos: (queued.fotos || []).length,
+          // Fecha del aviso que ya se le había entregado al mayorista.
+          fecha: queued.notified_date || '',
+        };
         continue;
       }
       receptions.push({
@@ -515,6 +520,8 @@ export async function syncWholesalerHistoryConnection(base44: any, connection: a
           // Cómo quedó el aviso: se completa al terminar la corrida.
           aviso: !pkg ? 'no_aplica' : (!receivedInChina(pkg) ? 'no_recibido' : (esCoincidencia ? 'pendiente' : 'sin_foto')),
           fotos: pkg ? receptionPhotos(pkg).length : 0,
+          // Fecha del aviso al mayorista: se completa al terminar la corrida.
+          fecha: '',
           mensaje: truncate(result.mensaje || '', 300),
         };
         detalle.push(fila);
@@ -568,6 +575,7 @@ export async function syncWholesalerHistoryConnection(base44: any, connection: a
     if (!fila) continue;
     fila.aviso = info.aviso;
     fila.fotos = Number(info.fotos) || 0;
+    fila.fecha = info.fecha || '';
     if (info.mensaje) fila.mensaje = truncate(`${fila.mensaje} ${info.mensaje}`.trim(), 300);
   }
   // Una carga ya recibida sin foto también queda pendiente de devolver.

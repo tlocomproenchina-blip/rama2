@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import moment from 'moment';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -7,7 +8,7 @@ import { ChevronDown, ChevronUp } from 'lucide-react';
 const AVISOS = {
   enviado: { text: 'Aviso enviado al mayorista', className: 'bg-emerald-100 text-emerald-700' },
   fallido: { text: 'Aviso fallido', className: 'bg-rose-100 text-rose-700' },
-  omitido: { text: 'Ya se le había avisado', className: 'bg-slate-100 text-slate-600' },
+  omitido: { text: 'Ya se le había avisado', className: 'bg-emerald-100 text-emerald-700' },
   pendiente: { text: 'Pendiente de devolver', className: 'bg-amber-100 text-amber-700' },
   sin_foto: { text: 'Sin foto de recepción', className: 'bg-amber-100 text-amber-700' },
   no_recibido: { text: 'Aún no recibida en el almacén', className: 'bg-slate-100 text-slate-600' },
@@ -68,7 +69,10 @@ export default function WholesalerHistoryDetailList({ detail = [] }) {
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-mono font-medium break-all text-foreground">{row.tracking || 'sin tracking'}</span>
                     <Badge className={resultado.className}>{resultado.text}</Badge>
-                    <Badge className={aviso.className}>{aviso.text}</Badge>
+                    <Badge className={aviso.className}>
+                      {aviso.text}
+                      {row.fecha ? ` · ${moment(row.fecha).format('DD/MM/YYYY HH:mm')}` : ''}
+                    </Badge>
                     {Number(row.fotos) > 0 && <Badge className="bg-sky-100 text-sky-700">{row.fotos} foto(s)</Badge>}
                   </div>
                   <p className="text-muted-foreground">
