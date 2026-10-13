@@ -63,6 +63,10 @@ export const ROLE_PRESETS = {
 
 export const ROLE_OPTIONS = Object.keys(ROLE_PRESETS);
 
+// Áreas que se asignan a los empleados. 'administrador' no es un área de
+// empleado: es acceso completo, así que no se ofrece al gestionar empleados.
+export const AREA_ROLE_OPTIONS = ROLE_OPTIONS.filter((role) => role !== 'administrador');
+
 export const PAGE_LABELS = {
   AdminDashboard: 'Dashboard Admin',
   ClientAnalytics: 'Análisis Cliente',

@@ -1,9 +1,14 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.41';
 import { sanitizeUser } from '../../shared/userSanitize.ts';
+import { isAreaEmployee } from '../../shared/roleAreas.ts';
 
-// Lista administradores (role='admin') con datos completos sanitizados.
+// Lista cuentas con role='admin' con datos completos sanitizados.
 // Usa asServiceRole para evitar permisos de User.list en el frontend.
 // Acepta `q` opcional para filtrar por email, nombre, custom_role, ciudad.
+// Acepta `kind` para separar los dos directorios:
+//   'admins'    -> cuentas administradoras (sin área de empleado)
+//   'employees' -> empleados con rol de área
+//   'all' (por defecto) -> todas las cuentas administrativas
 
 Deno.serve(async (req) => {
   try {
@@ -39,7 +44,17 @@ Deno.serve(async (req) => {
     // Filtrar super_admin_oculto
     all = all.filter((u) => u && u.id && u.email && u.custom_role !== 'super_admin_oculto');
 
-    let sanitized = all.map(sanitizeUser);
+    // Cada cuenta cae en un solo directorio: empleado (con área) o administrador.
+    const counts = { admins: 0, employees: 0 };
+    all.forEach((u) => {
+      if (isAreaEmployee(u)) counts.employees += 1;
+      else counts.admins += 1;
+    });
+
+    const kind = ['admins', 'employees'].includes(String(body.kind)) ? String(body.kind) : 'all';
+    const scoped = all.filter((u) => kind === 'all' || (kind === 'employees' ? isAreaEmployee(u) : !isAreaEmployee(u)));
+
+    let sanitized = scoped.map(sanitizeUser);
 
     // Búsqueda opcional en memoria
     if (q) {
@@ -59,7 +74,7 @@ Deno.serve(async (req) => {
     const total = sanitized.length;
     const page = sanitized.slice(skip, skip + limit);
 
-    return Response.json({ admins: page, total, skip, limit });
+    return Response.json({ admins: page, total, counts, kind, skip, limit });
   } catch (error) {
     console.error('listAdmins error:', error.message);
     return Response.json({ error: error.message }, { status: 500 });

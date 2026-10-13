@@ -9,11 +9,11 @@ import { Label } from '@/components/ui/label';
 import { Loader2, ShieldCheck, UserMinus, UserPlus, Search, Briefcase, Users, KeyRound, Mail } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
-import { ROLE_PRESETS } from '@/lib/rolePermissions';
 import PageHero from '@/components/common/PageHero';
 
 export default function AdminAdministrators({ user }) {
   const [admins, setAdmins] = useState([]);
+  const [counts, setCounts] = useState({ admins: 0, employees: 0 });
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [openInvite, setOpenInvite] = useState(false);
@@ -24,8 +24,11 @@ export default function AdminAdministrators({ user }) {
   const loadAdmins = async () => {
     setLoading(true);
     try {
-      const res = await base44.functions.invoke('listAdmins', { limit: 200 });
+      // Solo cuentas administradoras: los empleados con rol de área se
+      // gestionan en el directorio de Empleados.
+      const res = await base44.functions.invoke('listAdmins', { limit: 200, kind: 'admins' });
       setAdmins(res?.data?.admins || []);
+      setCounts(res?.data?.counts || { admins: 0, employees: 0 });
     } catch {
       toast.error('No se pudieron cargar los administradores');
     }
@@ -49,11 +52,8 @@ export default function AdminAdministrators({ user }) {
     return !q || email.includes(q) || fullName.includes(q);
   }), [admins, search]);
 
-  const stats = useMemo(() => ({
-    total: admins.length,
-    conArea: admins.filter((item) => !!item.custom_role).length,
-    sinArea: admins.filter((item) => !item.custom_role).length,
-  }), [admins]);
+  // Los conteos llegan del backend, ya separados por tipo de cuenta.
+
 
   const handleInvite = async () => {
     if (!inviteEmail.trim()) return;
@@ -115,7 +115,7 @@ export default function AdminAdministrators({ user }) {
         icon={KeyRound}
         badge="Acceso administrativo"
         title="Administradores"
-        description="Gestiona administradores, revisa si tienen área asignada y accede al módulo de Roles para controlar permisos por área."
+        description="Solo se listan cuentas administradoras. Los empleados con rol de área se gestionan en Empleados, y los permisos de cada área en Roles y permisos."
         actions={
           <div className="flex flex-wrap gap-3">
             <Button onClick={() => setOpenInvite(true)} className="bg-blue-600 hover:bg-blue-700">
@@ -132,13 +132,13 @@ export default function AdminAdministrators({ user }) {
         }
       />
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Card className="border-0 shadow-lg">
           <CardContent className="p-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-slate-500">Total admins</p>
-                <p className="mt-2 text-3xl font-bold text-slate-900">{stats.total}</p>
+                <p className="text-sm text-slate-500">Total administradores</p>
+                <p className="mt-2 text-3xl font-bold text-slate-900">{counts.admins}</p>
               </div>
               <div className="rounded-2xl bg-blue-100 p-3 text-blue-700"><Users className="h-5 w-5" /></div>
             </div>
@@ -148,21 +148,13 @@ export default function AdminAdministrators({ user }) {
           <CardContent className="p-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-slate-500">Con área</p>
-                <p className="mt-2 text-3xl font-bold text-slate-900">{stats.conArea}</p>
+                <p className="text-sm text-slate-500">Empleados por área</p>
+                <p className="mt-2 text-3xl font-bold text-slate-900">{counts.employees}</p>
+                <Link to="/AdminEmployees" className="mt-1 inline-block text-xs font-semibold text-blue-600 underline">
+                  Ver empleados
+                </Link>
               </div>
               <div className="rounded-2xl bg-emerald-100 p-3 text-emerald-700"><Briefcase className="h-5 w-5" /></div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-0 shadow-lg">
-          <CardContent className="p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-500">Sin área</p>
-                <p className="mt-2 text-3xl font-bold text-slate-900">{stats.sinArea}</p>
-              </div>
-              <div className="rounded-2xl bg-amber-100 p-3 text-amber-700"><ShieldCheck className="h-5 w-5" /></div>
             </div>
           </CardContent>
         </Card>
@@ -187,11 +179,11 @@ export default function AdminAdministrators({ user }) {
                       <span className="block truncate text-slate-900">{adminRecord.full_name || adminRecord.email}</span>
                       <div className="mt-2 flex flex-wrap gap-2">
                         <Badge className="bg-amber-100 text-amber-700">
-                          <ShieldCheck className="mr-1 h-3 w-3" /> {adminRecord.custom_role && ROLE_PRESETS[adminRecord.custom_role]?.role_name ? ROLE_PRESETS[adminRecord.custom_role].role_name : 'Administrador'}
+                          <ShieldCheck className="mr-1 h-3 w-3" /> Administrador
                         </Badge>
                         <Badge variant="outline" className="border-blue-200 text-blue-700">
                           <Briefcase className="mr-1 h-3 w-3" />
-                          Acceso admin
+                          Acceso total
                         </Badge>
                       </div>
                     </div>
@@ -217,6 +209,12 @@ export default function AdminAdministrators({ user }) {
                 </CardContent>
               </Card>
             ))}
+            {filteredAdmins.length === 0 && (
+              <div className="rounded-2xl border border-dashed border-slate-200 p-6 text-center text-sm text-slate-500">
+                No hay cuentas administradoras con ese criterio. Los empleados con rol de área están en{' '}
+                <Link to="/AdminEmployees" className="font-medium text-blue-600 underline">Empleados</Link>.
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

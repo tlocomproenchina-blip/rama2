@@ -7,10 +7,10 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Briefcase, KeyRound, Loader2, Mail, Search, ShieldCheck, UserCog, UserMinus, UserPlus, Users } from 'lucide-react';
+import { Briefcase, KeyRound, Loader2, Mail, Search, UserCog, UserMinus, UserPlus, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
-import { ROLE_OPTIONS, ROLE_PRESETS, ensureRoleConfig } from '@/lib/rolePermissions';
+import { AREA_ROLE_OPTIONS, ROLE_PRESETS, ensureRoleConfig } from '@/lib/rolePermissions';
 import PageHero from '@/components/common/PageHero';
 import {
   AlertDialog,
@@ -30,14 +30,14 @@ export default function AdminEmployees({ user }) {
   const [editingEmployee, setEditingEmployee] = useState(null);
   const [openInvite, setOpenInvite] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteArea, setInviteArea] = useState('sin_area');
+  const [inviteArea, setInviteArea] = useState('');
   const [editData, setEditData] = useState({
     first_name: '',
     last_name: '',
     whatsapp: '',
     city: '',
     address: '',
-    custom_role: 'sin_area',
+    custom_role: '',
   });
   const [saving, setSaving] = useState(false);
   const [inviting, setInviting] = useState(false);
@@ -47,7 +47,9 @@ export default function AdminEmployees({ user }) {
   const loadEmployees = async () => {
     setLoading(true);
     try {
-      const res = await base44.functions.invoke('listAdmins', { limit: 300 });
+      // Solo cuentas con rol de área: los administradores se gestionan en el
+      // directorio de Administradores.
+      const res = await base44.functions.invoke('listAdmins', { limit: 300, kind: 'employees' });
       setEmployees(res?.data?.admins || []);
     } catch {
       toast.error('No se pudieron cargar los empleados');
@@ -75,12 +77,9 @@ export default function AdminEmployees({ user }) {
   }), [employees, search]);
 
   const stats = useMemo(() => {
-    const base = {
-      total: employees.length,
-      sin_area: employees.filter((item) => !item.custom_role).length,
-    };
+    const base = { total: employees.length };
 
-    ROLE_OPTIONS.forEach((role) => {
+    AREA_ROLE_OPTIONS.forEach((role) => {
       base[role] = employees.filter((item) => item.custom_role === role).length;
     });
 
@@ -95,7 +94,7 @@ export default function AdminEmployees({ user }) {
       whatsapp: employee.whatsapp || '',
       city: employee.city || '',
       address: employee.address || '',
-      custom_role: employee.custom_role || 'sin_area',
+      custom_role: employee.custom_role || '',
     });
   };
 
@@ -129,8 +128,10 @@ export default function AdminEmployees({ user }) {
 
   const handleSave = async () => {
     if (!editingEmployee) return;
-    if (editingEmployee.email === user?.email && editData.custom_role === 'sin_area') {
-      toast.error('No puedes dejar tu propia cuenta sin área aquí');
+    // Todo empleado trabaja con un área: sin área la cuenta pasa a ser
+    // administrador y sale de este directorio.
+    if (!AREA_ROLE_OPTIONS.includes(editData.custom_role)) {
+      toast.error('Selecciona el área del empleado');
       return;
     }
 
@@ -142,22 +143,20 @@ export default function AdminEmployees({ user }) {
         whatsapp: editData.whatsapp,
         city: editData.city,
         address: editData.address,
-        custom_role: editData.custom_role === 'sin_area' ? null : editData.custom_role,
+        custom_role: editData.custom_role,
       };
       const changedFields = Object.entries(payload)
         .filter(([key, value]) => (editingEmployee?.[key] || null) !== (value || null))
         .map(([key]) => key);
 
       await base44.entities.User.update(editingEmployee.id, payload);
-      if (payload.custom_role) {
-        try { await ensureRoleConfig(base44, payload.custom_role); } catch {}
-      }
+      try { await ensureRoleConfig(base44, payload.custom_role); } catch {}
       await createAuditLog({
         target_email: editingEmployee.email,
         target_name: editingEmployee.full_name || `${payload.first_name || ''} ${payload.last_name || ''}`.trim(),
         action_type: 'update_employee',
-        area_code: payload.custom_role || '',
-        area_name: payload.custom_role ? ROLE_PRESETS[payload.custom_role]?.role_name || payload.custom_role : 'Sin área',
+        area_code: payload.custom_role,
+        area_name: ROLE_PRESETS[payload.custom_role]?.role_name || payload.custom_role,
         summary: `Actualizó empleado ${editingEmployee.full_name || editingEmployee.email}`,
         details: changedFields.length > 0 ? `Campos modificados: ${changedFields.join(', ')}` : 'Sin cambios detectados en campos auditables',
         changed_fields: changedFields,
@@ -173,29 +172,29 @@ export default function AdminEmployees({ user }) {
 
   const handleInvite = async () => {
     if (!inviteEmail.trim()) return;
+    if (!AREA_ROLE_OPTIONS.includes(inviteArea)) {
+      toast.error('Selecciona el área del empleado');
+      return;
+    }
     const normalizedEmail = inviteEmail.trim().toLowerCase();
+    const areaName = ROLE_PRESETS[inviteArea]?.role_name || inviteArea;
     setInviting(true);
     try {
       const lookupRes = await base44.functions.invoke('listAllUsers', { emails: [normalizedEmail] });
       const existingUser = lookupRes?.data?.users?.[0];
 
       if (existingUser?.id) {
-        await base44.entities.User.update(existingUser.id, {
-          role: 'admin',
-          custom_role: inviteArea === 'sin_area' ? null : inviteArea,
-        });
-        if (inviteArea !== 'sin_area') {
-          try { await ensureRoleConfig(base44, inviteArea); } catch {}
-        }
+        await base44.entities.User.update(existingUser.id, { role: 'admin', custom_role: inviteArea });
+        try { await ensureRoleConfig(base44, inviteArea); } catch {}
 
         await createAuditLog({
           target_email: normalizedEmail,
           target_name: existingUser.full_name || normalizedEmail,
           action_type: 'promote_employee',
-          area_code: inviteArea === 'sin_area' ? '' : inviteArea,
-          area_name: inviteArea === 'sin_area' ? 'Sin área' : ROLE_PRESETS[inviteArea]?.role_name || inviteArea,
+          area_code: inviteArea,
+          area_name: areaName,
           summary: `Convirtió a empleado ${existingUser.full_name || normalizedEmail}`,
-          details: inviteArea === 'sin_area' ? 'Usuario existente convertido a empleado sin área asignada' : `Usuario existente convertido a empleado con área ${ROLE_PRESETS[inviteArea]?.role_name || inviteArea}`,
+          details: `Usuario existente convertido a empleado con área ${areaName}`,
           changed_fields: ['role', 'custom_role'],
         });
 
@@ -203,24 +202,23 @@ export default function AdminEmployees({ user }) {
       } else {
         await base44.users.inviteUser(normalizedEmail, 'admin');
 
-        if (inviteArea !== 'sin_area') {
-          try {
-            const lookupRes = await base44.functions.invoke('listAllUsers', { emails: [normalizedEmail] });
-            const invitedUser = lookupRes?.data?.users?.[0];
-            if (invitedUser?.id) {
-              await base44.entities.User.update(invitedUser.id, { custom_role: inviteArea });
-            }
-          } catch {}
-        }
+        try {
+          const invitedRes = await base44.functions.invoke('listAllUsers', { emails: [normalizedEmail] });
+          const invitedUser = invitedRes?.data?.users?.[0];
+          if (invitedUser?.id) {
+            await base44.entities.User.update(invitedUser.id, { custom_role: inviteArea });
+          }
+          await ensureRoleConfig(base44, inviteArea);
+        } catch {}
 
         await createAuditLog({
           target_email: normalizedEmail,
           target_name: '',
           action_type: 'invite_employee',
-          area_code: inviteArea === 'sin_area' ? '' : inviteArea,
-          area_name: inviteArea === 'sin_area' ? 'Sin área' : ROLE_PRESETS[inviteArea]?.role_name || inviteArea,
+          area_code: inviteArea,
+          area_name: areaName,
           summary: `Invitó empleado ${normalizedEmail}`,
-          details: inviteArea === 'sin_area' ? 'Invitación enviada sin área asignada' : `Invitación enviada con área ${ROLE_PRESETS[inviteArea]?.role_name || inviteArea}`,
+          details: `Invitación enviada con área ${areaName}`,
           changed_fields: ['role', 'custom_role'],
         });
 
@@ -228,7 +226,7 @@ export default function AdminEmployees({ user }) {
       }
 
       setInviteEmail('');
-      setInviteArea('sin_area');
+      setInviteArea('');
       setOpenInvite(false);
       loadEmployees();
     } catch {
@@ -265,11 +263,10 @@ export default function AdminEmployees({ user }) {
       />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <Card className="border-0 shadow-lg"><CardContent className="p-5"><p className="text-sm text-slate-500">Total</p><p className="mt-2 text-3xl font-bold text-slate-900">{stats.total}</p></CardContent></Card>
-        {ROLE_OPTIONS.slice(0, 2).map((role) => (
+        <Card className="border-0 shadow-lg"><CardContent className="p-5"><p className="text-sm text-slate-500">Total empleados</p><p className="mt-2 text-3xl font-bold text-slate-900">{stats.total}</p></CardContent></Card>
+        {AREA_ROLE_OPTIONS.slice(0, 3).map((role) => (
           <Card key={role} className="border-0 shadow-lg"><CardContent className="p-5"><p className="text-sm text-slate-500">{ROLE_PRESETS[role].role_name}</p><p className="mt-2 text-3xl font-bold text-slate-900">{stats[role]}</p></CardContent></Card>
         ))}
-        <Card className="border-0 shadow-lg"><CardContent className="p-5"><p className="text-sm text-slate-500">Sin área</p><p className="mt-2 text-3xl font-bold text-slate-900">{stats.sin_area}</p></CardContent></Card>
       </div>
 
       <Card className="border-0 shadow-lg">
@@ -290,12 +287,11 @@ export default function AdminEmployees({ user }) {
                   <div className="min-w-0 space-y-2">
                     <div className="flex flex-wrap items-center gap-2">
                       <h3 className="font-semibold text-slate-800 truncate">{employee.full_name || employee.email}</h3>
-                      <Badge className="bg-amber-100 text-amber-700">
-                        <ShieldCheck className="mr-1 h-3 w-3" /> {employee.custom_role && ROLE_PRESETS[employee.custom_role]?.role_name ? ROLE_PRESETS[employee.custom_role].role_name : 'Administrador'}
+                      <Badge className="bg-indigo-100 text-indigo-700">
+                        <Briefcase className="mr-1 h-3 w-3" /> {ROLE_PRESETS[employee.custom_role]?.role_name || employee.custom_role}
                       </Badge>
-                      <Badge variant="outline" className="border-blue-200 text-blue-700">
-                        <Briefcase className="mr-1 h-3 w-3" />
-                        Acceso admin
+                      <Badge variant="outline" className="border-slate-200 text-slate-600">
+                        Empleado
                       </Badge>
                     </div>
                     <div className="flex items-start gap-3 rounded-xl bg-white p-3 shadow-sm">
@@ -313,6 +309,12 @@ export default function AdminEmployees({ user }) {
                 </CardContent>
               </Card>
             ))}
+            {filteredEmployees.length === 0 && (
+              <div className="rounded-2xl border border-dashed border-slate-200 p-6 text-center text-sm text-slate-500">
+                No hay empleados con ese criterio. Las cuentas administradoras se gestionan en{' '}
+                <Link to="/AdminAdministrators" className="font-medium text-blue-600 underline">Administradores</Link>.
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -335,15 +337,14 @@ export default function AdminEmployees({ user }) {
                   <SelectValue placeholder="Selecciona área" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="sin_area">Sin área</SelectItem>
-                  {ROLE_OPTIONS.map((role) => (
+                  {AREA_ROLE_OPTIONS.map((role) => (
                     <SelectItem key={role} value={role}>{ROLE_PRESETS[role].role_name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="rounded-xl border border-blue-100 bg-blue-50 p-3 text-sm text-blue-800">
-              El empleado será invitado con acceso administrativo y podrás seguir editándolo desde este módulo.
+              El empleado tendrá acceso al panel con los permisos de su área, no como administrador. Podrás seguir editándolo desde este módulo.
             </div>
           </div>
 
@@ -387,8 +388,7 @@ export default function AdminEmployees({ user }) {
                   <SelectValue placeholder="Selecciona área" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="sin_area">Sin área</SelectItem>
-                  {ROLE_OPTIONS.map((role) => (
+                  {AREA_ROLE_OPTIONS.map((role) => (
                     <SelectItem key={role} value={role}>{ROLE_PRESETS[role].role_name}</SelectItem>
                   ))}
                   <div className="my-1 border-t border-slate-100" />
