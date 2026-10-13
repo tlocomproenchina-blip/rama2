@@ -19,7 +19,7 @@ import { getAll } from '@/lib/offlineDb';
 
 const PAGE_SIZE = 50;
 
-// Une la página de huérfanos con las cargas que siguen en seguimiento, sin repetir.
+// Une las páginas ya cargadas con la nueva, sin repetir cargas.
 const mergeRows = (prev, next) => {
   const map = new Map();
   for (const row of [...prev, ...next]) map.set(row.id, row);
@@ -27,6 +27,11 @@ const mergeRows = (prev, next) => {
     (a, b) => new Date(b.created_date || 0).getTime() - new Date(a.created_date || 0).getTime()
   );
 };
+
+// Una carga ya tiene dueño cuando trae su correo o su shipping mark de cliente: en
+// cuanto se le asigna uno deja de ser huérfana y sale de esta lista, aunque todavía
+// quede pendiente el aviso de recepción al mayorista.
+const hasOwner = (pkg) => !!String(pkg?.client_email || '').trim() || !!String(pkg?.shipping_mark || '').trim();
 
 export default function AdminOrphanPackages({ user }) {
   const [orphans, setOrphans] = useState([]);
@@ -76,7 +81,7 @@ export default function AdminOrphanPackages({ user }) {
         try {
           const cached = await getAll('packages');
           const cachedOrphans = cached
-            .filter(p => p.is_orphan === true || p.orphan_pending_reception === true)
+            .filter(p => p.is_orphan === true && !hasOwner(p))
             .sort((a, b) => new Date(b.created_date || 0).getTime() - new Date(a.created_date || 0).getTime())
             .slice(0, PAGE_SIZE);
           setOrphans(cachedOrphans);
@@ -87,13 +92,9 @@ export default function AdminOrphanPackages({ user }) {
         return;
       }
       const rows = await base44.entities.Package.filter({ is_orphan: true }, '-created_date', PAGE_SIZE, s);
-      // A los huérfanos sin cliente se suman las cargas ya asignadas que siguen en
-      // seguimiento: solo salen de esta lista cuando constan recibidas en el almacén
-      // y su foto de recepción ya salió al mayorista.
-      const held = await base44.entities.Package
-        .filter({ is_orphan: false, orphan_pending_reception: true }, '-created_date', PAGE_SIZE, 0)
-        .catch(() => []);
-      setOrphans(mergeRows(reset ? [] : orphans, [...rows, ...(held || [])]));
+      // Solo huérfanos sin titular: la carga que ya tiene cliente asignado cumplió
+      // su ciclo aquí y no vuelve a aparecer en esta lista.
+      setOrphans(mergeRows(reset ? [] : orphans, (rows || []).filter((p) => !hasOwner(p))));
       setHasMore(rows.length === PAGE_SIZE);
       setSkip(s + rows.length);
     } catch (e) {
@@ -132,17 +133,15 @@ export default function AdminOrphanPackages({ user }) {
     setSavingBudget(false);
   };
 
-  // Suscripción en tiempo real: una carga sale de la lista cuando deja de ser un
-  // huérfano sin cliente, salvo que siga en seguimiento (asignada pero todavía sin
-  // recepción confirmada o sin la foto enviada al mayorista).
+  // Suscripción en tiempo real: una carga sale de la lista en cuanto se le asigna un
+  // cliente (correo o shipping mark), sin esperar al aviso de recepción al mayorista.
   useEffect(() => {
     const unsubscribe = base44.entities.Package.subscribe((event) => {
       if (event.type !== 'update') return;
       const updated = event.data;
       if (!updated || !updated.id) return;
-      const followsUp = updated.orphan_pending_reception === true;
-      const stillOrphan = updated.is_orphan === true && !updated.client_email;
-      if (followsUp || stillOrphan) {
+      const stillOrphan = updated.is_orphan === true && !hasOwner(updated);
+      if (stillOrphan) {
         setOrphans((prev) => prev.map((p) => (p.id === updated.id ? { ...p, ...updated } : p)));
         return;
       }
@@ -223,7 +222,6 @@ export default function AdminOrphanPackages({ user }) {
     setAssigning(true);
     let ok = 0; let fail = 0; let unified = 0; let conflictMsg = '';
     let recibidos = 0;
-    let seguimiento = 0;
     let avisoTxt = '';
     const leavingIds = [];
     for (const id of assignTarget.ids) {
@@ -238,10 +236,9 @@ export default function AdminOrphanPackages({ user }) {
           if (data?.error) throw new Error(data.error);
           if (data?.consolidated) unified++;
           if (data?.package?.status === 'recibido') recibidos++;
-          // Mientras no conste recibido y con su foto de recepción ya enviada al
-          // mayorista, el paquete se queda en la lista para seguimiento.
-          if (data?.sigue_en_huerfanos === true) seguimiento++;
-          else leavingIds.push(id);
+          // Ya tiene titular: sale de la lista, aunque quede pendiente el aviso de
+          // recepción al mayorista (eso se sigue en el panel del mayorista).
+          leavingIds.push(id);
           if (data?.aviso_mayorista && !avisoTxt) {
             const a = data.aviso_mayorista;
             avisoTxt = a.enviado
@@ -252,8 +249,9 @@ export default function AdminOrphanPackages({ user }) {
           }
           ok++;
         } else {
-          // Sin conexión no se sabe si el aviso ya salió: se queda en seguimiento.
-          seguimiento++;
+          // Sin conexión: la asignación queda en cola y la carga sale de la lista
+          // igual, porque ya tiene titular.
+          leavingIds.push(id);
           await enqueueAssign({
             payload: {
               package_id: id,
@@ -269,21 +267,19 @@ export default function AdminOrphanPackages({ user }) {
         if (!conflictMsg) conflictMsg = e?.message || '';
       }
     }
-    // Solo salen de la lista los que ya quedaron recibidos y con su foto de
-    // recepción enviada al mayorista: los que siguen en seguimiento (y los que
-    // chocaron con un paquete ya recibido) se mantienen a la vista.
+    // Salen de la lista todos los que quedaron asignados (los que chocaron con un
+    // paquete ya recibido se mantienen a la vista, sin asignar).
     setOrphans((prev) => prev.filter((p) => !leavingIds.includes(p.id)));
     setSelectedIds((prev) => prev.filter((id) => !leavingIds.includes(id)));
     const unifiedTxt = unified > 0 ? ` · ${unified} pre-alerta(s) unificada(s)` : '';
-    const seguimientoTxt = seguimiento > 0 ? ` · ${seguimiento} en seguimiento (falta la recepción o el aviso al mayorista con foto)` : '';
     const recibidoTxt = recibidos > 0
       ? (assignTarget.multi ? ` · ${recibidos} recibido(s) en almacén` : ' · quedó recibido en el almacén')
       : '';
     const failTxt = fail > 0 ? ` · ${fail} sin asignar${conflictMsg ? `: ${conflictMsg}` : ''}` : '';
     const msg = assignTarget.multi
-      ? `${ok} huérfano(s) asignado(s) a ${selectedClient.email}${recibidoTxt}${unifiedTxt}${avisoTxt}${seguimientoTxt}${failTxt}${!isOnline ? ' (offline)' : ''}`
+      ? `${ok} huérfano(s) asignado(s) a ${selectedClient.email}${recibidoTxt}${unifiedTxt}${avisoTxt}${failTxt}${!isOnline ? ' (offline)' : ''}`
       : (ok > 0
-        ? `Huérfano asignado a ${selectedClient.email}${recibidoTxt}${unifiedTxt}${avisoTxt}${seguimientoTxt}${!isOnline ? ' (offline)' : ''}`
+        ? `Huérfano asignado a ${selectedClient.email}${recibidoTxt}${unifiedTxt}${avisoTxt}${!isOnline ? ' (offline)' : ''}`
         : `No se pudo asignar: ${conflictMsg || 'error desconocido'}`);
     if (ok === 0 && fail > 0) toast.error(msg);
     else toast.success(msg);
