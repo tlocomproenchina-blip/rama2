@@ -1,4 +1,6 @@
 import React from 'react';
+import { Camera, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { portalDayText, portalEstadoLabel, portalOrigenLabel } from '@/lib/sharedPortalFormat';
 
@@ -17,7 +19,7 @@ function EstadoBadge({ estado }) {
   );
 }
 
-export default function PortalTrackingTable({ rows, selected, onToggle, onToggleAll, loading }) {
+export default function PortalTrackingTable({ rows, selected, onToggle, onToggleAll, loading, onOpenPhoto, photoLoadingId }) {
   const allSelected = rows.length > 0 && rows.every((row) => selected.has(row.id));
 
   return (
@@ -37,17 +39,18 @@ export default function PortalTrackingTable({ rows, selected, onToggle, onToggle
               <th className="px-4 py-3">Fecha de recepción</th>
               <th className="px-4 py-3">Estado</th>
               <th className="px-4 py-3">Origen</th>
+              <th className="px-4 py-3">Foto</th>
             </tr>
           </thead>
           <tbody>
             {loading && rows.length === 0 ? (
               <tr>
-                <td colSpan={9} className="px-4 py-10 text-center text-muted-foreground">Consultando los resultados…</td>
+                <td colSpan={10} className="px-4 py-10 text-center text-muted-foreground">Consultando los resultados…</td>
               </tr>
             ) : null}
             {!loading && rows.length === 0 ? (
               <tr>
-                <td colSpan={9} className="px-4 py-10 text-center text-muted-foreground">No hay registros con esos filtros.</td>
+                <td colSpan={10} className="px-4 py-10 text-center text-muted-foreground">No hay registros con esos filtros.</td>
               </tr>
             ) : null}
             {rows.map((row) => (
@@ -72,6 +75,26 @@ export default function PortalTrackingTable({ rows, selected, onToggle, onToggle
                 <td className="px-4 py-3 text-muted-foreground">{portalDayText(row.recepcion)}</td>
                 <td className="px-4 py-3"><EstadoBadge estado={row.estado} /></td>
                 <td className="px-4 py-3 text-muted-foreground">{portalOrigenLabel(row.origen)}</td>
+                <td className="px-4 py-3">
+                  {row.has_photo ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onOpenPhoto?.(row)}
+                      disabled={photoLoadingId === row.id}
+                      className="h-8 gap-1 px-2 text-xs"
+                      title="Foto de la entrega del vendedor"
+                    >
+                      {photoLoadingId === row.id
+                        ? <Loader2 className="h-4 w-4 animate-spin" />
+                        : <Camera className="h-4 w-4" />}
+                      Ver
+                    </Button>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">—</span>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>

@@ -17,6 +17,7 @@ export default function PackagesDesktopTable({
   onCancelReception,
   onStatusChange,
   onEditPackage,
+  onViewSellerPhoto,
 }) {
   return (
     <Card className="hidden 2xl:block border-0 shadow-lg overflow-hidden">
@@ -57,6 +58,7 @@ export default function PackagesDesktopTable({
                 onCancelReception={onCancelReception}
                 onStatusChange={onStatusChange}
                 onEditPackage={onEditPackage}
+                onViewSellerPhoto={onViewSellerPhoto}
               />
             ))}
           </tbody>

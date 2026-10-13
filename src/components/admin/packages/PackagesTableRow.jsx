@@ -19,6 +19,7 @@ import {
   MessageSquare,
   Pencil,
   MessageCircle,
+  Camera,
 } from 'lucide-react';
 import { buildWhatsAppUrl, buildPackageContactMessage } from '@/lib/whatsappContact';
 import { toast } from 'sonner';
@@ -44,6 +45,7 @@ function PackagesTableRow({
   onCancelReception,
   onStatusChange,
   onEditPackage,
+  onViewSellerPhoto,
 }) {
   const imageUrls = pkg.package_image_urls && pkg.package_image_urls.length > 0
     ? pkg.package_image_urls
@@ -181,6 +183,16 @@ function PackagesTableRow({
               className="w-full justify-start text-violet-600 hover:text-violet-700 border-violet-200"
             >
               <Eye className="h-4 w-4" /> Producto
+            </Button>
+          )}
+          {pkg.seller_delivery_photo_uri && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => onViewSellerPhoto?.(pkg)}
+              className="w-full min-w-0 justify-start gap-1 text-indigo-600 hover:text-indigo-700 border-indigo-200"
+            >
+              <Camera className="h-4 w-4" /> Foto vendedor
             </Button>
           )}
           {imageUrls.length > 0 && (

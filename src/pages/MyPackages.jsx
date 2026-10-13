@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
+// La foto del vendedor se sube directo al cliente, sin pasar por la cola: una
+// foto de celular puede tardar más de lo que la cola permite antes de cortar.
+import { base44 as base44Api } from '@/api/base44Client';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,7 +22,9 @@ import {
   Loader2,
   ExternalLink,
   Pencil,
-  Trash2
+  Trash2,
+  Camera,
+  X
 } from 'lucide-react';
 import StatusBadge from '@/components/StatusBadge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -50,6 +55,8 @@ export default function MyPackages({ user }) {
   const [editForm, setEditForm] = useState({ tracking_number: '', description: '', shipping_type: 'aereo', seller_delivery_date: '' });
   const [sellerDateModal, setSellerDateModal] = useState(null);
   const [sellerDateValue, setSellerDateValue] = useState('');
+  const [sellerPhotoFile, setSellerPhotoFile] = useState(null);
+  const [sellerPhotoPreview, setSellerPhotoPreview] = useState('');
   const [savingSellerDate, setSavingSellerDate] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
@@ -130,19 +137,54 @@ export default function MyPackages({ user }) {
   const openSellerDate = (pkg) => {
     setSellerDateModal(pkg);
     setSellerDateValue(pkg.seller_delivery_date || '');
+    setSellerPhotoFile(null);
+    setSellerPhotoPreview((prev) => { if (prev) URL.revokeObjectURL(prev); return ''; });
+  };
+
+  const pickSellerPhoto = (file) => {
+    if (!file) return;
+    setSellerPhotoFile(file);
+    setSellerPhotoPreview((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return URL.createObjectURL(file);
+    });
+  };
+
+  const clearSellerPhoto = () => {
+    setSellerPhotoFile(null);
+    setSellerPhotoPreview((prev) => { if (prev) URL.revokeObjectURL(prev); return ''; });
+  };
+
+  // La foto es un archivo privado: se pide un enlace temporal para abrirla.
+  const viewSellerPhoto = async (pkg) => {
+    try {
+      const res = await base44.functions.invoke('getPackagePhotoUrl', { package_id: pkg.id });
+      const url = res?.data?.url;
+      if (!url) { toast.error(res?.data?.error || 'No se pudo abrir la foto'); return; }
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } catch (err) {
+      toast.error(err?.response?.data?.error || 'No se pudo abrir la foto');
+    }
   };
 
   const saveSellerDate = async () => {
     if (!sellerDateModal) return;
     setSavingSellerDate(true);
-    const updates = { seller_delivery_date: sellerDateValue || null };
     try {
+      const updates = { seller_delivery_date: sellerDateValue || null };
+      if (sellerPhotoFile) {
+        const upload = await base44Api.integrations.Core.UploadPrivateFile({ file: sellerPhotoFile });
+        const uri = upload?.file_uri || '';
+        if (!uri) throw new Error('No se pudo cargar la foto. Intenta de nuevo.');
+        updates.seller_delivery_photo_uri = uri;
+      }
       await base44.functions.invoke('updateMyPackage', { package_id: sellerDateModal.id, updates });
       setPackages((prev) => prev.map((p) => p.id === sellerDateModal.id ? { ...p, ...updates } : p));
       setSellerDateModal(null);
+      clearSellerPhoto();
       toast.success('Fecha de entrega del vendedor guardada');
     } catch (err) {
-      toast.error(err?.response?.data?.error || 'No se pudo guardar la fecha');
+      toast.error(err?.response?.data?.error || err?.message || 'No se pudo guardar la fecha');
     }
     setSavingSellerDate(false);
   };
@@ -545,6 +587,43 @@ export default function MyPackages({ user }) {
                 onChange={(e) => setSellerDateValue(e.target.value)}
                 className="mt-1"
               />
+            </div>
+            <div>
+              <Label>Foto de la entrega</Label>
+              <p className="mt-1 text-[11px] text-slate-500">
+                Adjunta una foto del paquete como respaldo de esta entrega. Queda guardada con tu paquete y la ve el equipo de TLEC CARGO.
+              </p>
+              <input
+                id="seller-delivery-photo"
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => { pickSellerPhoto(e.target.files?.[0]); e.target.value = ''; }}
+              />
+              {sellerPhotoPreview ? (
+                <div className="mt-2 space-y-2">
+                  <img src={sellerPhotoPreview} alt="Foto de la entrega" className="max-h-48 w-full rounded-lg object-contain" />
+                  <div className="flex flex-wrap gap-2">
+                    <Button type="button" variant="outline" size="sm" onClick={() => document.getElementById('seller-delivery-photo')?.click()}>
+                      <Camera className="h-4 w-4 mr-2" /> Cambiar foto
+                    </Button>
+                    <Button type="button" variant="ghost" size="sm" onClick={clearSellerPhoto}>
+                      <X className="h-4 w-4 mr-2" /> Quitar
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <Button type="button" variant="outline" size="sm" onClick={() => document.getElementById('seller-delivery-photo')?.click()}>
+                    <Camera className="h-4 w-4 mr-2" /> {sellerDateModal?.seller_delivery_photo_uri ? 'Cambiar foto guardada' : 'Elegir foto'}
+                  </Button>
+                  {sellerDateModal?.seller_delivery_photo_uri && (
+                    <Button type="button" variant="ghost" size="sm" onClick={() => viewSellerPhoto(sellerDateModal)}>
+                      <ImageIcon className="h-4 w-4 mr-2" /> Ver foto guardada
+                    </Button>
+                  )}
+                </div>
+              )}
             </div>
           </div>
           <DialogFooter>

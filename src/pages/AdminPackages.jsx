@@ -100,6 +100,19 @@ export default function AdminPackages({ user }) {
   const [editPackageModal, setEditPackageModal] = useState(null);
   const [editPackageProcessing, setEditPackageProcessing] = useState(false);
 
+  // Foto con la que el cliente respaldó la entrega del vendedor. El archivo es
+  // privado: se pide el enlace temporal en el momento de abrirlo.
+  const openSellerDeliveryPhoto = async (pkg) => {
+    try {
+      const res = await base44.functions.invoke('getPackagePhotoUrl', { package_id: pkg.id });
+      const url = res?.data?.url;
+      if (!url) { toast.error(res?.data?.error || 'No se pudo abrir la foto'); return; }
+      setViewImage(url);
+    } catch (err) {
+      toast.error(err?.response?.data?.error || 'No se pudo abrir la foto');
+    }
+  };
+
   // Deep link desde notificaciones: ?packageId=... busca ese tracking
   useEffect(() => {
     const packageId = new URLSearchParams(window.location.search).get('packageId');
@@ -539,6 +552,7 @@ export default function AdminPackages({ user }) {
         onCancelReception={(pkg) => setCancelReceptionModal(pkg)}
         onStatusChange={handleStatusChange}
         onEditPackage={(pkg) => setEditPackageModal(pkg)}
+        onViewSellerPhoto={openSellerDeliveryPhoto}
       />
 
       <PackagesDesktopTable
@@ -554,6 +568,7 @@ export default function AdminPackages({ user }) {
         onCancelReception={(pkg) => setCancelReceptionModal(pkg)}
         onStatusChange={handleStatusChange}
         onEditPackage={(pkg) => setEditPackageModal(pkg)}
+        onViewSellerPhoto={openSellerDeliveryPhoto}
       />
       {hasMore && (
         <Button variant="outline" className="w-full mt-4" onClick={() => loadPackages(true, packages.length)} disabled={loadingMore}>

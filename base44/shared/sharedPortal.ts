@@ -19,6 +19,7 @@ export const PORTAL_PAGE_FIELDS = [
   'received_date',
   'created_date',
   'status',
+  'seller_delivery_photo_uri',
 ];
 
 const CARACAS_OFFSET_MS = 4 * 60 * 60 * 1000;
@@ -244,6 +245,16 @@ export async function portalPage(base44: any, query: any, limit: number, cursor?
   return await base44.asServiceRole.entities.Package.filter(query, options);
 }
 
+// La foto del vendedor es un archivo privado y solo se abre con un enlace
+// temporal. Antes de firmarlo se busca el paquete con el mismo alcance del
+// enlace: si no aparece entre los registros permitidos, no hay foto que dar.
+export async function portalPhotoPackage(base44: any, link: any, index: any, packageId: any) {
+  const id = String(packageId || '').trim();
+  if (!id) return null;
+  const page = await portalPage(base44, andFilters(scopeChunk(link, index), { id }), 1);
+  return (page?.items || [])[0] || null;
+}
+
 export function portalRow(pkg: any, index: any) {
   const owner = ownerOf(index, pkg);
   const registro = caracasDayKey(pkg?.created_date);
@@ -260,6 +271,9 @@ export function portalRow(pkg: any, index: any) {
     recepcion,
     estado: recepcion ? 'recibido' : 'por_recibir',
     origen: owner.origen,
+    // Solo se informa que hay foto: la dirección del archivo privado nunca sale
+    // del servidor, que la firma al momento de abrirla.
+    has_photo: !!String(pkg?.seller_delivery_photo_uri || '').trim(),
   };
 }
 

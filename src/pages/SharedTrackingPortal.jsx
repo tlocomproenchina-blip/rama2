@@ -41,6 +41,7 @@ export default function SharedTrackingPortal() {
   const [selected, setSelected] = useState(() => new Set());
   const [allFiltered, setAllFiltered] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [photoLoadingId, setPhotoLoadingId] = useState('');
 
   const invoke = useCallback(
     async (payload) => {
@@ -48,6 +49,24 @@ export default function SharedTrackingPortal() {
       return res?.data || null;
     },
     [token]
+  );
+
+  // Foto con la que el cliente respaldó la entrega del vendedor. Es un archivo
+  // privado: el servidor entrega un enlace temporal solo si ese tracking está
+  // dentro del alcance de este enlace.
+  const openPhoto = useCallback(
+    async (row) => {
+      setPhotoLoadingId(row.id);
+      try {
+        const data = await invoke({ action: 'photo', package_id: row.id });
+        if (data?.url) window.open(data.url, '_blank', 'noopener,noreferrer');
+        else toast.error(data?.error || 'No se pudo abrir la foto');
+      } catch (err) {
+        toast.error(err?.response?.data?.error || err?.message || 'No se pudo abrir la foto');
+      }
+      setPhotoLoadingId('');
+    },
+    [invoke]
   );
 
   const runQuery = useCallback(
@@ -234,8 +253,17 @@ export default function SharedTrackingPortal() {
           onToggle={toggleRow}
           onToggleAll={toggleVisible}
           loading={loading}
+          onOpenPhoto={openPhoto}
+          photoLoadingId={photoLoadingId}
         />
-        <PortalTrackingCards rows={data.rows} selected={selected} onToggle={toggleRow} loading={loading} />
+        <PortalTrackingCards
+          rows={data.rows}
+          selected={selected}
+          onToggle={toggleRow}
+          loading={loading}
+          onOpenPhoto={openPhoto}
+          photoLoadingId={photoLoadingId}
+        />
 
         {hasMore ? (
           <div className="flex justify-center">

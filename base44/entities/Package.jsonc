@@ -230,6 +230,10 @@
       "type": "string",
       "format": "date",
       "description": "Fecha en la que el vendedor entreg\u00f3 el paquete al almac\u00e9n (informada por el cliente)"
+    },
+    "seller_delivery_photo_uri": {
+      "type": "string",
+      "description": "Archivo privado de la foto con la que el cliente respalda la entrega del vendedor al almac\u00e9n. Se guarda en el almacenamiento privado de la app: para verla se pide un enlace temporal, as\u00ed que solo la abren los administradores, el personal de TLEC CARGO con rol por \u00e1rea y el due\u00f1o del paquete."
     }
   },
   "required": [

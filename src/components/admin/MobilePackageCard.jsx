@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CheckCircle, Eye, Image as ImageIcon, MessageSquare, Plane, Ship, Shield, Undo2, Upload, Flag, FlagOff, Pencil, MessageCircle } from 'lucide-react';
+import { CheckCircle, Eye, Image as ImageIcon, MessageSquare, Plane, Ship, Shield, Undo2, Upload, Flag, FlagOff, Pencil, MessageCircle, Camera } from 'lucide-react';
 import StatusBadge from '@/components/StatusBadge';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { buildWhatsAppUrl, buildPackageContactMessage } from '@/lib/whatsappContact';
@@ -30,6 +30,7 @@ function MobilePackageCard({
   onCancelReception,
   onStatusChange,
   onEditPackage,
+  onViewSellerPhoto,
 }) {
   const gallery = pkg.package_image_urls && pkg.package_image_urls.length > 0
     ? pkg.package_image_urls
@@ -134,6 +135,12 @@ function MobilePackageCard({
           {pkg.product_image_url && (
             <Button size="sm" variant="outline" onClick={() => onViewImage(pkg.product_image_url)} className="w-full justify-start gap-2 text-violet-600 hover:text-violet-700 border-violet-200">
               <Eye className="h-4 w-4" /> Foto Producto
+            </Button>
+          )}
+
+          {pkg.seller_delivery_photo_uri && (
+            <Button size="sm" variant="outline" onClick={onViewSellerPhoto} className="w-full justify-start gap-2 text-indigo-600 hover:text-indigo-700 border-indigo-200">
+              <Camera className="h-4 w-4" /> Foto del vendedor
             </Button>
           )}
 
