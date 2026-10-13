@@ -249,14 +249,10 @@ export function portalRow(pkg: any, index: any) {
   const owner = ownerOf(index, pkg);
   const registro = caracasDayKey(pkg?.created_date);
   const recepcion = caracasDayKey(pkg?.received_date);
-  const email = emailKeyOf(pkg?.client_email);
   return {
     id: pkg?.id || '',
     tracking_number: String(pkg?.tracking_number || ''),
     shipping_mark: String(pkg?.shipping_mark || ''),
-    wholesaler: owner.wholesaler_name,
-    client: owner.client_name || email,
-    client_email: email,
     registro,
     recepcion,
     estado: recepcion ? 'recibido' : 'por_recibir',

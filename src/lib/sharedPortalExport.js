@@ -6,9 +6,6 @@ import { portalEstadoLabel, portalOrigenLabel } from '@/lib/sharedPortalFormat';
 export const PORTAL_COLUMNS = [
   { key: 'tracking_number', label: 'Tracking' },
   { key: 'shipping_mark', label: 'Shipping Mark' },
-  { key: 'wholesaler', label: 'Mayorista' },
-  { key: 'client', label: 'Cliente' },
-  { key: 'client_email', label: 'Correo del cliente' },
   { key: 'registro', label: 'Fecha de registro' },
   { key: 'recepcion', label: 'Fecha de recepción' },
   { key: 'estado', label: 'Estado' },
