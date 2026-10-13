@@ -54,6 +54,8 @@ const PACKAGE_ID_LINKS = [
   { entity: 'Bulto', field: 'package_ids', kind: 'array' },
   { entity: 'Consolidation', field: 'package_ids', kind: 'array' },
   { entity: 'ConsolidationRequest', field: 'package_ids', kind: 'array' },
+  // El aviso de recepción al mayorista apunta al paquete: sigue vivo tras unificar.
+  { entity: 'WholesalerLog', field: 'package_id', kind: 'single' },
 ];
 
 // El escáner suele leer el sub-tracking (master + sufijo de caja: 001, 002…),
@@ -137,6 +139,36 @@ export async function findSameShipmentMatches(
   }
 
   return { pending, received };
+}
+
+// Descripción genérica con la que queda una carga que el almacén dio de alta por su
+// cuenta (sin que el cliente la hubiera declarado): no es la descripción del cliente.
+export function looksGenericDescription(pkg: any): boolean {
+  const text = String(pkg?.description || '').trim().toLowerCase();
+  if (!text) return true;
+  return PREFILL_DESCRIPTIONS.includes(text)
+    || text.startsWith('paquete huérfano')
+    || text.startsWith('paquete sin pre-alerta')
+    || text.startsWith('pre-alerta rápida')
+    || text.startsWith('etiqueta tlec');
+}
+
+// Cuando el cliente tiene dos registros del mismo envío, el que se conserva es el
+// suyo: manda su pre-alerta pendiente (es donde declaró la carga) y, si ya no hay
+// pendiente, el que trae su descripción de producto o su foto.
+export function pickClientRecordToKeep(records: any[]): any | null {
+  const list = (records || []).filter(Boolean);
+  if (list.length <= 1) return list[0] || null;
+
+  const score = (pkg: any) => {
+    let value = 0;
+    if (isPendingPrealert(pkg)) value += 100;
+    if (String(pkg?.product_image_url || '').trim()) value += 10;
+    if (!looksGenericDescription(pkg)) value += 5;
+    return value;
+  };
+
+  return [...list].sort((a, b) => score(b) - score(a))[0];
 }
 
 // Si hay pre-alertas de más de un cliente con el mismo tracking, la coincidencia no
@@ -661,8 +693,16 @@ export async function unifyOrphanIntoClientRecord({
     }
   }
 
+  // Las notas del registro que se retira se conservan: son el rastro del alta en el
+  // almacén (quién la recibió y cómo se identificó).
+  const absorbedNotes = String(fresh.reception_notes || '').trim();
+  const keepNotes = String(keep.reception_notes || '').trim();
   const note = buildAbsorbNote({ tracking: String(fresh.tracking_number || ''), by });
-  patch.reception_notes = [keep.reception_notes, note].filter(Boolean).join('\n');
+  patch.reception_notes = [
+    keepNotes,
+    absorbedNotes && !keepNotes.includes(absorbedNotes) ? absorbedNotes : '',
+    note,
+  ].filter(Boolean).join('\n');
 
   const updated = await base44.asServiceRole.entities.Package.update(keep.id, patch);
   const relinked = await relinkPackageReferences(base44, fresh.id, keep.id);

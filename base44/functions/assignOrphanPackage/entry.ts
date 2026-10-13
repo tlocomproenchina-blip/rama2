@@ -3,6 +3,7 @@ import {
   buildTrackingCandidates,
   findSameShipmentMatches,
   hasReceptionEvidence,
+  pickClientRecordToKeep,
   unifyOrphanIntoClientRecord,
 } from '../../shared/orphanConsolidation.ts';
 import { confirmReceptionToWholesaler, noticeDeliveredWithPhoto, setOrphanFollowup } from '../../shared/wholesalerNotify.ts';
@@ -59,9 +60,9 @@ Deno.serve(async (req) => {
         (p) => String(p.client_email || '').trim().toLowerCase() === clientEmail.toLowerCase(),
       );
       if (clientRecords.length > 0) {
-        // Manda el registro del cliente que ya constaba recibido; si ninguno lo está,
-        // su pre-alerta pendiente.
-        const target = clientRecords.find((p) => hasReceptionEvidence(p)) || clientRecords[0];
+        // Manda el registro propio del cliente: su pre-alerta (donde declaró la carga)
+        // y, si ya no hay pendiente, el que trae su descripción o su foto.
+        const target = pickClientRecordToKeep(clientRecords) || clientRecords[0];
         const unification = await unifyOrphanIntoClientRecord({
           base44,
           orphan: pkg,
