@@ -7,6 +7,7 @@ import Sidebar from '@/components/Sidebar';
 import NotificationBell from '@/components/NotificationBell';
 import AdminNotificationCenter from '@/components/AdminNotificationCenter';
 import { getDefaultRoleConfig } from '@/lib/rolePermissions';
+import { allowedPagesFor, isAreaEmployee, pickLandingPage } from '@/lib/areaAccess';
 
 
 
@@ -242,17 +243,17 @@ export default function Layout({ children, currentPageName }) {
       }
 
       // Redirect admin when landing on Home/Dashboard or no page specified.
-      // Siempre mostrar el Resumen Diario al iniciar sesión o abrir la app.
-      // En app nativa, también redirigir desde cualquier página pública.
+      // El empleado con área entra a un módulo de su área; el administrador al
+      // Resumen Diario. En app nativa también se sale de las páginas públicas.
       const nativePublicPages = ['ShippingCalculator', 'Blog', 'BlogPost', 'About', 'Contact', 'Inicio2', 'CityLanding'];
       if (currentUser.role === 'admin' && (!currentPageName || currentPageName === 'Dashboard' || currentPageName === 'Inicio2' || ((isApkApp || isNative) && nativePublicPages.includes(currentPageName)))) {
-        navigate(createPageUrl('AdminDailySummary'));
+        const landing = isAreaEmployee(currentUser)
+          ? pickLandingPage(allowedPagesFor(currentUser, resolvedRoleConfig))
+          : 'AdminDailySummary';
+        navigate(createPageUrl(landing || 'AdminDailySummary'));
         setLoading(false);
         return;
       }
-
-      // Todos los administradores tienen las mismas opciones: el área
-      // personalizada ya no redirige a ninguna página.
 
       // Check contract and profile for regular users
       if (currentUser.role === 'user') {

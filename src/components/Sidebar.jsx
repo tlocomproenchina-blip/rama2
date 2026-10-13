@@ -15,10 +15,13 @@ import {
   clientMenuItems,
 } from '@/components/sidebar/sidebarConfig';
 import { getDefaultRoleConfig } from '@/lib/rolePermissions';
+import { allowedPagesFor, isAreaEmployee } from '@/lib/areaAccess';
+import useAreaAccess from '@/hooks/useAreaAccess';
 
 export default function Sidebar({ user, currentPage, isOpen, onClose, initialConfig }) {
   const [config, setConfig] = useState(initialConfig || null);
-  const [roleConfig, setRoleConfig] = useState(null);
+  // Módulos del área del empleado (misma fuente que usa el guardia de rutas)
+  const { roleConfig } = useAreaAccess(user, currentPage);
 
 
   const loadConfig = useCallback(async () => {
@@ -54,26 +57,6 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
     loadConfig();
   }, [loadConfig]);
 
-  useEffect(() => {
-    let active = true;
-    const loadRoleConfig = async () => {
-      if (user?.role !== 'admin' || !user?.custom_role) {
-        if (active) setRoleConfig(null);
-        return;
-      }
-      try {
-        const rows = await base44.entities.RoleConfig.filter({ role_code: user.custom_role, is_active: true }, '-updated_date', 1);
-        if (active) setRoleConfig(rows?.[0] || getDefaultRoleConfig(user.custom_role));
-      } catch {
-        if (active) setRoleConfig(getDefaultRoleConfig(user.custom_role));
-      }
-    };
-    loadRoleConfig();
-    return () => { active = false; };
-  }, [user?.role, user?.custom_role]);
-
-
-
 
   const isAdmin = user?.role === 'admin';
   const [attFlags, attMarkSeen] = useAttentionFlags({ user });
@@ -108,11 +91,14 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
 
   const visibleAdminPages = useMemo(() => {
     if (user?.role !== 'admin') return [];
-    // Todos los administradores ven las mismas opciones: el área personalizada
-    // ya no limita el menú. Solo aplica la lista global de páginas ocultas.
     const hidden = new Set(config?.sidebar_hidden_pages || []);
-    return adminMenuItems.map((item) => item.page).filter((page) => !hidden.has(page));
-  }, [user?.role, config?.sidebar_hidden_pages]);
+    const available = adminMenuItems.map((item) => item.page).filter((page) => !hidden.has(page));
+    // El empleado con área solo ve los módulos de su área; el administrador
+    // sin área ve todo el panel.
+    if (!isAreaEmployee(user)) return available;
+    const allowed = new Set(allowedPagesFor(user, roleConfig) || []);
+    return available.filter((page) => allowed.has(page));
+  }, [user, config?.sidebar_hidden_pages, roleConfig]);
 
   const filteredAdminMenuItems = useMemo(() => adminMenuItems.filter((item) => visibleAdminPages.includes(item.page)), [visibleAdminPages]);
   const filteredAdminGroups = useMemo(() => {
@@ -219,7 +205,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
                 <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold ${
                 isAdmin ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`
                 }>
-                  {isAdmin ? (roleConfig?.role_name || 'Administrador') : 'Cliente'}
+                  {isAdmin ? (roleConfig?.role_name || getDefaultRoleConfig(user?.custom_role)?.role_name || 'Administrador') : 'Cliente'}
                 </span>
               </div>
             </div>
