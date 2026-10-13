@@ -12,15 +12,7 @@ import {
   looksGenericDescription,
   unifyOrphanIntoClientRecord,
 } from '../../shared/orphanConsolidation.ts';
-
-const PAGE_SIZE = 500;
-const MAX_PAGES = 60;
-const FIELDS = [
-  'tracking_number', 'label_code', 'client_email', 'shipping_mark', 'status', 'is_orphan',
-  'orphan_pending_reception', 'received_date', 'warehouse_location_id', 've_recognized_date',
-  'package_image_url', 'package_image_urls', 'product_image_url', 'description',
-  'package_count', 'reception_notes', 'created_date',
-];
+import { fetchAllFilter } from '../../shared/paginatedFetch.ts';
 
 // El registro que el cliente declaró: su pre-alerta (pendiente o ya recibida) con su
 // descripción de producto o su foto. Los registros que el almacén dio de alta por su
@@ -29,6 +21,25 @@ function isDeclaredRecord(pkg: any): boolean {
   if (isPendingPrealert(pkg)) return true;
   if (String(pkg?.product_image_url || '').trim()) return true;
   return !looksGenericDescription(pkg);
+}
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// La base de datos corta las ráfagas de escritura: cada unificación se reintenta con
+// una pequeña espera antes de darla por fallida. Si el registro ya no está, la
+// unificación ya se había hecho: no es un error.
+async function unifyWithRetries(task: () => Promise<any>, attempts = 4) {
+  let lastError: any = null;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await task();
+    } catch (error: any) {
+      if (String(error?.message || '') === 'orphan_not_found') return null;
+      lastError = error;
+      await sleep(700 * (i + 1));
+    }
+  }
+  throw lastError;
 }
 
 function briefRecord(pkg: any) {
@@ -41,22 +52,9 @@ function briefRecord(pkg: any) {
   };
 }
 
-// Todos los paquetes, en campos ligeros, página por página.
-async function loadAllPackages(base44: any) {
-  const rows: any[] = [];
-  let cursor: string | null = null;
-  for (let page = 0; page < MAX_PAGES; page++) {
-    const result = await base44.asServiceRole.entities.Package.list({
-      sort: '-created_date',
-      limit: PAGE_SIZE,
-      cursor,
-      fields: FIELDS,
-    });
-    rows.push(...(result?.items || []));
-    if (!result?.has_more || !result?.next_cursor) break;
-    cursor = result.next_cursor;
-  }
-  return rows;
+// Todos los paquetes, página por página.
+function loadAllPackages(base44: any) {
+  return fetchAllFilter(base44.asServiceRole.entities.Package, {}, '-created_date');
 }
 
 Deno.serve(async (req) => {
@@ -70,6 +68,9 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     // Por defecto solo revisa: hay que pedir expresamente que unifique.
     const dryRun = body?.dry_run !== false;
+    // Las unificaciones se aplican por tandas: cada una escribe y borra, y una
+    // corrida muy larga se topa con el límite de la base de datos.
+    const maxPerRun = Math.max(1, Math.min(Number(body?.limit) || 15, 60));
 
     const rows = await loadAllPackages(base44);
     const groups = new Map<string, any[]>();
@@ -81,6 +82,8 @@ Deno.serve(async (req) => {
     }
 
     const unified: any[] = [];
+    const pendientes: any[] = [];
+    const fallidos: any[] = [];
     const review: any[] = [];
     const work: { tracking: string; client_email: string; keeper: any; absorbed: any[] }[] = [];
 
@@ -130,6 +133,10 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Respiro antes de empezar a escribir: la lectura completa de los paquetes ya
+    // consumió su propia ráfaga.
+    if (!dryRun && work.length > 0) await sleep(800);
+
     for (const item of work) {
       if (dryRun) {
         unified.push({
@@ -141,18 +148,40 @@ Deno.serve(async (req) => {
         continue;
       }
 
+      if (unified.length >= maxPerRun) {
+        pendientes.push({ tracking: item.tracking, client_email: item.client_email });
+        continue;
+      }
+
       let current = item.keeper;
       const removed: string[] = [];
-      for (const record of item.absorbed) {
-        const result = await unifyOrphanIntoClientRecord({
-          base44,
-          orphan: record,
-          clientRecord: current,
-          shippingMark: item.keeper.shipping_mark,
-          by: `Verificación de duplicados (${user.email})`,
+      try {
+        for (const record of item.absorbed) {
+          const result = await unifyWithRetries(() => unifyOrphanIntoClientRecord({
+            base44,
+            orphan: record,
+            clientRecord: current,
+            shippingMark: item.keeper.shipping_mark,
+            by: `Verificación de duplicados (${user.email})`,
+          }));
+          if (result?.package) current = result.package;
+          if (result?.removed_orphan_id) removed.push(result.removed_orphan_id);
+        }
+      } catch (error: any) {
+        // La base de datos cortó la tanda (límite de velocidad): lo que falte se
+        // retoma en la corrida siguiente, sin repetir lo ya unificado.
+        fallidos.push({
+          tracking: item.tracking,
+          client_email: item.client_email,
+          motivo: String(error?.message || error),
         });
-        if (result?.package) current = result.package;
-        if (result?.removed_orphan_id) removed.push(result.removed_orphan_id);
+        unified.push({
+          tracking: item.tracking,
+          client_email: item.client_email,
+          conserva: { id: current.id, descripcion: current.description || '', estado: current.status },
+          retira: removed,
+        });
+        break;
       }
 
       unified.push({
@@ -161,13 +190,18 @@ Deno.serve(async (req) => {
         conserva: { id: current.id, descripcion: current.description || '', estado: current.status },
         retira: removed,
       });
+      // Pausa entre unificaciones: cada una escribe y borra, y sin respirar se topa
+      // el límite de la base de datos.
+      await new Promise((resolve) => setTimeout(resolve, 250));
     }
 
     return Response.json({
       dry_run: dryRun,
       paquetes_revisados: rows.length,
-      envíos_con_repetidos: Array.from(groups.values()).filter((l) => l.length > 1).length,
+      envios_con_repetidos: Array.from(groups.values()).filter((l) => l.length > 1).length,
       unificados: unified.length,
+      pendientes_en_otra_tanda: pendientes.length,
+      cortados_por_limite: fallidos.length,
       por_revisar: review.length,
       detalle_unificados: unified.slice(0, 80),
       detalle_por_revisar: review.slice(0, 40),
