@@ -160,11 +160,16 @@ export default function AdminOrphanPackages({ user }) {
     })();
   }, []);
 
+  // Cargas visibles en esta lista: nunca las que ya tienen titular (correo o shipping
+  // mark de cliente). Es la garantía de que una carga recién asignada desaparece al
+  // instante, aunque el refresco de la lista todavía no haya llegado.
+  const listed = React.useMemo(() => orphans.filter((p) => !hasOwner(p)), [orphans]);
+
   // Estadísticas calculadas de los huérfanos cargados
   const stats = React.useMemo(() => {
-    const total = orphans.length;
+    const total = listed.length;
     let unreadable = 0, notRegistered = 0, pendingAi = 0, noPhoto = 0;
-    for (const p of orphans) {
+    for (const p of listed) {
       if (p.ai_unreadable) { unreadable++; continue; }
       if (p.ai_attempted_date) { notRegistered++; continue; }
       const hasPhoto = (Array.isArray(p.package_image_urls) && p.package_image_urls.length > 0) || p.package_image_url;
@@ -172,9 +177,9 @@ export default function AdminOrphanPackages({ user }) {
       else noPhoto++;
     }
     return { total, unreadable, notRegistered, pendingAi, noPhoto };
-  }, [orphans]);
+  }, [listed]);
 
-  const filtered = orphans.filter((p) => {
+  const filtered = listed.filter((p) => {
     // Filtro por categoría de tarjeta
     if (statFilter) {
       const hasPhoto = (Array.isArray(p.package_image_urls) && p.package_image_urls.length > 0) || p.package_image_url;
