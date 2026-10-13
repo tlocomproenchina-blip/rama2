@@ -308,7 +308,7 @@ export async function claimOrphanForWholesaler(base44: any, payload: any, connec
       const unificada = consolidado.package || pkg;
       const aviso = await confirmReceptionToWholesaler(base44, unificada, CLAIM_SOURCE);
       const sigueEnLista = !(hasReceptionEvidence(unificada) && noticeDeliveredWithPhoto(aviso));
-      if (!sigueEnLista) await setOrphanFollowup(base44, unificada.id, false);
+      await setOrphanFollowup(base44, unificada.id, sigueEnLista);
       await logClaim(base44, connection, unificada, {
         result: 'reclamado',
         client_email: titularEmail,

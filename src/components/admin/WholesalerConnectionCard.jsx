@@ -320,6 +320,20 @@ export default function WholesalerConnectionCard() {
         ))}
 
         <div className="rounded-lg border border-dashed p-3">
+          <p className="text-xs font-semibold text-foreground">Cargas sin titular que se comparten con su app</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Las cargas que entran al almacén de China sin pre-alerta y sin titular se comparten con todas las apps
+            conectadas, siempre que ya tengan su foto y se hayan registrado desde que se creó esa conexión: lo anterior a
+            su conexión no se comparte. Su app las ve con <span className="font-mono">list_orphans</span> y reclama la suya
+            con <span className="font-mono">claim_orphan</span>, indicando cuál de sus clientes es el titular. La carga
+            solo se puede reclamar para un cliente suyo: con otro correo responde{' '}
+            <span className="font-mono">cliente_no_encontrado</span>. El primero que la reclama se la queda: al que llega
+            después se le responde <span className="font-mono">ya_reclamado</span> (409), y la carga sale de la lista
+            compartida con su cliente asignado y su recepción ya confirmada en su app.
+          </p>
+        </div>
+
+        <div className="rounded-lg border border-dashed p-3">
           <p className="text-xs font-semibold text-foreground">Fotos de la carga</p>
           <p className="mt-1 text-xs text-muted-foreground">
             Tanto la consulta de tracking como el aviso de recepción traen el campo <span className="font-mono">fotos</span>:
