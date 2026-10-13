@@ -1,6 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 import { checkTracking, receiveTrackingBlock, reportPrealert } from '../../shared/wholesalerPackages.ts';
 import { notifyReceptionBlock } from '../../shared/wholesalerNotify.ts';
+import { claimOrphanForWholesaler, listOrphansForWholesaler } from '../../shared/wholesalerOrphans.ts';
 import { logWholesalerEvent, resolveConnectionForKey, stampOf, truncate } from '../../shared/wholesalerCore.ts';
 
 // Acceso externo de la app: servicio propio (APP_SERVICE_API_KEY) y las apps de
@@ -98,6 +99,19 @@ export default async function (req: Request): Promise<Response> {
     if (action === 'report_prealert') {
       const result = await reportPrealert(base44, body, connection);
       if (result.resultado === 'error') return Response.json(result, { status: 400 });
+      return Response.json(result);
+    }
+
+    if (action === 'list_orphans') {
+      const result = await listOrphansForWholesaler(base44, connection, body);
+      return Response.json(result);
+    }
+
+    if (action === 'claim_orphan') {
+      const result = await claimOrphanForWholesaler(base44, body, connection);
+      if (result.ok === false) {
+        return Response.json(result, { status: result.resultado === 'ya_reclamado' ? 409 : 400 });
+      }
       return Response.json(result);
     }
 

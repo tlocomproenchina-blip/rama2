@@ -81,6 +81,59 @@ const EXAMPLES = [
   "resultado": "reportada"
 }`,
   },
+  {
+    title: 'Ver las cargas sin titular que se comparten con su app (con foto)',
+    body: `{
+  "action": "list_orphans",
+  "limit": 20
+}`,
+    answer: `{
+  "ok": true,
+  "total": 2,
+  "desde": "2026-09-01T12:00:00.000Z",
+  "huerfanos": [
+    {
+      "package_id": "6a1b...",
+      "tracking": "TLEC123456",
+      "shipping_mark": "",
+      "descripcion": "Paquete huérfano (Bodega China, sin pre-alerta)",
+      "estado": "sin_cliente",
+      "recibido": "2026-10-01T09:15:00.000Z",
+      "almacen": "Almacén China",
+      "ciudad": "Guangzhou",
+      "peso_kg": 4.5,
+      "cbm": 0.032,
+      "fotos": [
+        "https://cdn.tu-cdn.com/tlec/1712345678-ab12cd34.jpg"
+      ],
+      "fotos_count": 1
+    }
+  ]
+}`,
+  },
+  {
+    title: 'Reclamar una de esas cargas para un cliente suyo',
+    body: `{
+  "action": "claim_orphan",
+  "package_id": "6a1b...",
+  "client_email": "cliente@correo.com"
+}`,
+    answer: `{
+  "ok": true,
+  "resultado": "reclamado",
+  "tracking": "TLEC123456",
+  "client_email": "cliente@correo.com",
+  "shipping_mark": "50001",
+  "estado": "recibido",
+  "fotos": [
+    "https://cdn.tu-cdn.com/tlec/1712345678-ab12cd34.jpg"
+  ],
+  "aviso": {
+    "enviado": true,
+    "fotos_count": 1
+  }
+}`,
+  },
 ];
 
 export default function WholesalerConnectionCard() {
