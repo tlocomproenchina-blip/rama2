@@ -90,7 +90,13 @@ export function isoOrNull(value: any) {
 // Índice de clientes mayoristas: dice de quién es cada tracking y de qué
 // mayorista es ese cliente. Sin él, un tracking solo se puede leer como
 // registro directo de TLEC CARGO.
+// El índice de clientes mayoristas cambia con los cortes diarios, no con cada
+// consulta: se guarda unos minutos en memoria para que el portal responda rápido.
+let indexCache: { at: number; value: any } | null = null;
+const INDEX_TTL_MS = 5 * 60 * 1000;
+
 export async function loadWholesalerIndex(base44: any) {
+  if (indexCache && Date.now() - indexCache.at < INDEX_TTL_MS) return indexCache.value;
   const rows = (await fetchAllFilter(base44.asServiceRole.entities.WholesalerClient, {}, '-fetched_date')) || [];
   const byEmail = new Map<string, any>();
   const byMark = new Map<string, any>();
@@ -100,7 +106,9 @@ export async function loadWholesalerIndex(base44: any) {
     if (email && !byEmail.has(email)) byEmail.set(email, row);
     if (mark && !byMark.has(mark)) byMark.set(mark, row);
   }
-  return { rows, byEmail, byMark, emails: [...byEmail.keys()], marks: [...byMark.keys()] };
+  const value = { rows, byEmail, byMark, emails: [...byEmail.keys()], marks: [...byMark.keys()] };
+  indexCache = { at: Date.now(), value };
+  return value;
 }
 
 export function ownerOf(index: any, pkg: any) {

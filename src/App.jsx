@@ -57,6 +57,8 @@ const AdminDuplicates = lazy(() => import('./pages/AdminDuplicates'));
 const AdminRevenueDashboard = lazy(() => import('./pages/AdminRevenueDashboard'));
 const AdminPreAlerts = lazy(() => import('./pages/AdminPreAlerts'));
 const AdminOrphanPackages = lazy(() => import('./pages/AdminOrphanPackages'));
+const AdminSharedPortal = lazy(() => import('./pages/AdminSharedPortal'));
+const SharedTrackingPortal = lazy(() => import('./pages/SharedTrackingPortal'));
 const AdminSupportQuickMessages = lazy(() => import('./pages/AdminSupportQuickMessages'));
 const AdminClients = lazy(() => import('./pages/AdminClients'));
 const AdminInvoices = lazy(() => import('./pages/AdminInvoices'));
@@ -179,6 +181,7 @@ const AuthenticatedApp = () => {
       <Route path="/AdminRevenueDashboard" element={lazyRoute(AdminRevenueDashboard, "AdminRevenueDashboard")} />
       <Route path="/AdminPreAlerts" element={lazyRoute(AdminPreAlerts, "AdminPreAlerts")} />
       <Route path="/AdminOrphanPackages" element={lazyRoute(AdminOrphanPackages, "AdminOrphanPackages")} />
+      <Route path="/AdminSharedPortal" element={lazyRoute(AdminSharedPortal, "AdminSharedPortal")} />
       <Route path="/AdminSupportQuickMessages" element={lazyRoute(AdminSupportQuickMessages, "AdminSupportQuickMessages")} />
       <Route path="/AdminClients" element={lazyRoute(AdminClients, "AdminClients")} />
       <Route path="/AdminInvoices" element={lazyRoute(AdminInvoices, "AdminInvoices")} />
@@ -202,6 +205,14 @@ const AuthenticatedApp = () => {
         <Route key={c.slug} path={`/envios-maritimos-china-${c.slug}`} element={lazyRoute(CityLanding, "CityLanding")} />
       ))}
       <Route path="/AdminCityAnalytics" element={lazyRoute(AdminCityAnalytics, "AdminCityAnalytics")} />
+      <Route
+        path="/Portal/:token"
+        element={
+          <Suspense fallback={<RouteFallback />}>
+            <SharedTrackingPortal />
+          </Suspense>
+        }
+      />
       <Route path="/Quote/:token" element={<QuotePublic />} />
       <Route path="/QuoteFeePayment" element={<QuoteFeePayment />} />
       <Route path="/BodegaScan" element={<BodegaScan />} />

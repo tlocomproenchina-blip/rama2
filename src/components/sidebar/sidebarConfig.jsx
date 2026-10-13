@@ -37,6 +37,7 @@ import {
   ScanLine,
   ClipboardList,
   Printer,
+  Share2,
 } from 'lucide-react';
 
 export const clientMenuItems = [
@@ -124,6 +125,7 @@ export const adminMenuItems = [
   { name: 'Gestionar FAQ', page: 'AdminFAQ', icon: HelpCircle },
   { name: 'Clientes', page: 'AdminClients', icon: Users },
   { name: 'Clientes Mayorista', page: 'AdminWholesalerClients', icon: UserCheck },
+  { name: 'Portal Compartido', page: 'AdminSharedPortal', icon: Share2 },
   { name: 'Empleados', page: 'AdminEmployees', icon: UserCheck },
   { name: 'Administradores', page: 'AdminAdministrators', icon: UserCheck },
   { name: 'Roles', page: 'AdminRoles', icon: Settings2 },
@@ -147,7 +149,7 @@ export const adminGroups = [
   { label: 'SEGUIMIENTO', items: ['AdminSeguimiento', 'AdminActivityAudit', 'ShipmentTracking', 'AdminSeguimientoRutas', 'ShippingCalculator', 'AdminInsured'] },
   { label: 'SOPORTE', items: ['AdminSupportTickets', 'AdminSupportQuickMessages', 'AdminInternalMessages', 'AdminFAQ'] },
   { label: 'EQUIPO Y ACCESOS', items: ['AdminEmployees', 'AdminAdministrators', 'AdminRoles', 'AdminEmployeeAudit', 'AdminEmployeePerformance'] },
-  { label: 'GESTIÓN', items: ['AdminClients', 'AdminWholesalerClients', 'AdminDuplicates', 'AdminKnowledgeBase', 'AdminDelete', 'AdminSettings'] },
+  { label: 'GESTIÓN', items: ['AdminClients', 'AdminWholesalerClients', 'AdminSharedPortal', 'AdminDuplicates', 'AdminKnowledgeBase', 'AdminDelete', 'AdminSettings'] },
 ];
 
 export const clientGroups = [

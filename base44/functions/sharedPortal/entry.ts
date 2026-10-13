@@ -124,14 +124,19 @@ export default async function (req: Request): Promise<Response> {
     const cursor = portalShortFormat(body?.cursor) ? String(body.cursor) : undefined;
     const scopeQuery = portalQuery({ link, index, filters: {} });
 
-    const [total, pendientes, recibidos, resultados, page, wholesalers] = await Promise.all([
+    const [total, recibidos, resultados, page, wholesalers] = await Promise.all([
       base44.asServiceRole.entities.Package.count(scopeQuery),
-      base44.asServiceRole.entities.Package.count(andFilters(scopeQuery, { received_date: null })),
       base44.asServiceRole.entities.Package.count(andFilters(scopeQuery, { received_date: { $ne: null } })),
-      base44.asServiceRole.entities.Package.count(query),
+      Object.keys(query).length ? base44.asServiceRole.entities.Package.count(query) : Promise.resolve(null),
       portalPage(base44, query, limit, cursor),
       portalWholesalerOptions(base44, link),
     ]);
+
+    const totalCount = Number(total) || 0;
+    // Un tracking tiene fecha de recepción o no la tiene: por recibir es el resto
+    // del alcance, así el portal no gasta una consulta extra en cada página.
+    const porRecibir = Math.max(0, totalCount - (Number(recibidos) || 0));
+    const filteredCount = resultados === null ? totalCount : Number(resultados) || 0;
 
     const rows = ((page?.items || []) as any[]).map((pkg) => portalRow(pkg, index));
     const next = page?.has_more && page?.next_cursor ? String(page.next_cursor) : null;
@@ -154,10 +159,10 @@ export default async function (req: Request): Promise<Response> {
       ok: true,
       link: publicLink(link),
       stats: {
-        total: Number(total) || 0,
-        por_recibir: Number(pendientes) || 0,
+        total: totalCount,
+        por_recibir: porRecibir,
         recibidos: Number(recibidos) || 0,
-        resultados: Number(resultados) || 0,
+        resultados: filteredCount,
       },
       rows,
       pagination: { limit, returned: rows.length, has_more: !!next, next_cursor: next },
