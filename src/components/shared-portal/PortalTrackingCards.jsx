@@ -1,5 +1,5 @@
 import React from 'react';
-import { Camera, Loader2 } from 'lucide-react';
+import { Camera } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { portalDayText, portalEstadoLabel, portalOrigenLabel } from '@/lib/sharedPortalFormat';
@@ -13,7 +13,7 @@ function CardRow({ label, value }) {
   );
 }
 
-export default function PortalTrackingCards({ rows, selected, onToggle, loading, onOpenPhoto, photoLoadingId }) {
+export default function PortalTrackingCards({ rows, selected, onToggle, loading }) {
   return (
     <div className="space-y-3 md:hidden">
       {loading && rows.length === 0 ? (
@@ -60,19 +60,11 @@ export default function PortalTrackingCards({ rows, selected, onToggle, loading,
             />
             <CardRow label="Origen" value={portalOrigenLabel(row.origen)} />
           </div>
-          {row.has_photo ? (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => onOpenPhoto?.(row)}
-              disabled={photoLoadingId === row.id}
-              className="mt-3 w-full gap-2"
-            >
-              {photoLoadingId === row.id
-                ? <Loader2 className="h-4 w-4 animate-spin" />
-                : <Camera className="h-4 w-4" />}
-              Ver foto de la entrega
+          {row.photo_url ? (
+            <Button asChild variant="outline" size="sm" className="mt-3 w-full gap-2">
+              <a href={row.photo_url} target="_blank" rel="noopener noreferrer">
+                <Camera className="h-4 w-4" /> Ver foto de la entrega
+              </a>
             </Button>
           ) : null}
         </div>

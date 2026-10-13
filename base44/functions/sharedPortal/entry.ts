@@ -11,7 +11,6 @@ import {
   portalErrorText,
   portalFiltersSummary,
   portalPage,
-  portalPhotoPackage,
   portalQuery,
   portalQueryHasText,
   portalRow,
@@ -20,7 +19,6 @@ import {
   publicLink,
   touchPortalLink,
 } from '../../shared/sharedPortal.ts';
-import { sellerPhotoUriOf, signPrivateFile } from '../../shared/packagePhoto.ts';
 
 // Consulta pública del Portal de Consulta Compartido: solo lectura, sin sesión
 // de la app. Valida el enlace, su vencimiento y su código de acceso en el
@@ -59,32 +57,6 @@ export default async function (req: Request): Promise<Response> {
 
     if (action === 'ping') {
       return Response.json({ ok: true, link: publicLink(link), generated_at: new Date().toISOString() });
-    }
-
-    // Foto con la que el cliente respaldó la entrega del vendedor: se entrega
-    // solo si el tracking está dentro del alcance de este enlace, y siempre como
-    // enlace temporal firmado (el archivo es privado).
-    if (action === 'photo') {
-      const index = await loadWholesalerIndex(base44);
-      const pkg = await portalPhotoPackage(base44, link, index, body?.package_id);
-      if (!pkg) {
-        return Response.json({ error: 'Ese tracking no está dentro de este enlace' }, { status: 404 });
-      }
-      const uri = sellerPhotoUriOf(pkg);
-      if (!uri) {
-        return Response.json({ error: 'Ese tracking no tiene foto del vendedor' }, { status: 404 });
-      }
-      const url = await signPrivateFile(base44, uri);
-      if (!url) {
-        return Response.json({ error: 'No se pudo abrir la foto' }, { status: 500 });
-      }
-      await logPortalEvent(base44, link, {
-        event_type: 'consulta',
-        result: 'foto',
-        rows: 1,
-        detail: `Foto del vendedor del tracking ${String(pkg?.tracking_number || '').slice(0, 40)}`,
-      });
-      return Response.json({ ok: true, url, tracking_number: String(pkg?.tracking_number || '') });
     }
 
     const filters = body?.filters || {};

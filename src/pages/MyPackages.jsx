@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
-// La foto del vendedor se sube directo al cliente, sin pasar por la cola: una
-// foto de celular puede tardar más de lo que la cola permite antes de cortar.
-import { base44 as base44Api } from '@/api/base44Client';
+// La foto del vendedor se sube directo al servicio de fotos, sin pasar por la
+// cola: una foto de celular puede tardar más de lo que la cola permite antes de cortar.
+import { uploadImageNoCredits } from '@/lib/imgbbUpload';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -155,16 +155,12 @@ export default function MyPackages({ user }) {
     setSellerPhotoPreview((prev) => { if (prev) URL.revokeObjectURL(prev); return ''; });
   };
 
-  // La foto es un archivo privado: se pide un enlace temporal para abrirla.
-  const viewSellerPhoto = async (pkg) => {
-    try {
-      const res = await base44.functions.invoke('getPackagePhotoUrl', { package_id: pkg.id });
-      const url = res?.data?.url;
-      if (!url) { toast.error(res?.data?.error || 'No se pudo abrir la foto'); return; }
-      window.open(url, '_blank', 'noopener,noreferrer');
-    } catch (err) {
-      toast.error(err?.response?.data?.error || 'No se pudo abrir la foto');
-    }
+  // La foto se guarda con su enlace permanente, igual que el resto de las fotos
+  // de la app: se abre directo, sin pedir nada.
+  const viewSellerPhoto = (pkg) => {
+    const url = String(pkg?.seller_delivery_photo_uri || '').trim();
+    if (!/^https?:\/\//i.test(url)) { toast.error('Esta foto no tiene enlace permanente. Vuelve a subirla.'); return; }
+    window.open(url, '_blank', 'noopener,noreferrer');
   };
 
   const saveSellerDate = async () => {
@@ -173,10 +169,10 @@ export default function MyPackages({ user }) {
     try {
       const updates = { seller_delivery_date: sellerDateValue || null };
       if (sellerPhotoFile) {
-        const upload = await base44Api.integrations.Core.UploadPrivateFile({ file: sellerPhotoFile });
-        const uri = upload?.file_uri || '';
-        if (!uri) throw new Error('No se pudo cargar la foto. Intenta de nuevo.');
-        updates.seller_delivery_photo_uri = uri;
+        // Mismo almacenamiento que las demás fotos: enlace permanente.
+        const url = await uploadImageNoCredits(sellerPhotoFile);
+        if (!url) throw new Error('No se pudo cargar la foto. Intenta de nuevo.');
+        updates.seller_delivery_photo_uri = url;
       }
       await base44.functions.invoke('updateMyPackage', { package_id: sellerDateModal.id, updates });
       setPackages((prev) => prev.map((p) => p.id === sellerDateModal.id ? { ...p, ...updates } : p));

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Camera, Loader2 } from 'lucide-react';
+import { Camera } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { portalDayText, portalEstadoLabel, portalOrigenLabel } from '@/lib/sharedPortalFormat';
@@ -19,7 +19,7 @@ function EstadoBadge({ estado }) {
   );
 }
 
-export default function PortalTrackingTable({ rows, selected, onToggle, onToggleAll, loading, onOpenPhoto, photoLoadingId }) {
+export default function PortalTrackingTable({ rows, selected, onToggle, onToggleAll, loading }) {
   const allSelected = rows.length > 0 && rows.every((row) => selected.has(row.id));
 
   return (
@@ -76,20 +76,16 @@ export default function PortalTrackingTable({ rows, selected, onToggle, onToggle
                 <td className="px-4 py-3"><EstadoBadge estado={row.estado} /></td>
                 <td className="px-4 py-3 text-muted-foreground">{portalOrigenLabel(row.origen)}</td>
                 <td className="px-4 py-3">
-                  {row.has_photo ? (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => onOpenPhoto?.(row)}
-                      disabled={photoLoadingId === row.id}
-                      className="h-8 gap-1 px-2 text-xs"
-                      title="Foto de la entrega del vendedor"
-                    >
-                      {photoLoadingId === row.id
-                        ? <Loader2 className="h-4 w-4 animate-spin" />
-                        : <Camera className="h-4 w-4" />}
-                      Ver
+                  {row.photo_url ? (
+                    <Button asChild variant="outline" size="sm" className="h-8 gap-1 px-2 text-xs">
+                      <a
+                        href={row.photo_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title="Foto de la entrega del vendedor"
+                      >
+                        <Camera className="h-4 w-4" /> Ver
+                      </a>
                     </Button>
                   ) : (
                     <span className="text-xs text-muted-foreground">—</span>
