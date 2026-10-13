@@ -12,6 +12,7 @@ import {
   portalFiltersSummary,
   portalPage,
   portalQuery,
+  portalQueryHasText,
   portalRow,
   portalShortFormat,
   portalWholesalerOptions,
@@ -127,7 +128,9 @@ export default async function (req: Request): Promise<Response> {
     const [total, recibidos, resultados, page, wholesalers] = await Promise.all([
       base44.asServiceRole.entities.Package.count(scopeQuery),
       base44.asServiceRole.entities.Package.count(andFilters(scopeQuery, { received_date: { $ne: null } })),
-      Object.keys(query).length ? base44.asServiceRole.entities.Package.count(query) : Promise.resolve(null),
+      Object.keys(query).length && !portalQueryHasText(filters)
+        ? base44.asServiceRole.entities.Package.count(query)
+        : Promise.resolve(null),
       portalPage(base44, query, limit, cursor),
       portalWholesalerOptions(base44, link),
     ]);
@@ -136,7 +139,7 @@ export default async function (req: Request): Promise<Response> {
     // Un tracking tiene fecha de recepción o no la tiene: por recibir es el resto
     // del alcance, así el portal no gasta una consulta extra en cada página.
     const porRecibir = Math.max(0, totalCount - (Number(recibidos) || 0));
-    const filteredCount = resultados === null ? totalCount : Number(resultados) || 0;
+    const filteredCount = resultados === null ? null : Number(resultados) || 0;
 
     const rows = ((page?.items || []) as any[]).map((pkg) => portalRow(pkg, index));
     const next = page?.has_more && page?.next_cursor ? String(page.next_cursor) : null;

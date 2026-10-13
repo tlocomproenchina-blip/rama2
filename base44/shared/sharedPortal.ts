@@ -230,6 +230,14 @@ export function portalQuery(params: any) {
   return andFilters(...chunks);
 }
 
+// Contar con búsqueda por texto libre cuesta demasiado en la base (la consulta
+// se cuelga): cuando hay texto el portal no calcula el total filtrado y lo
+// informa como no disponible, en vez de arriesgar un error o un número falso.
+export function portalQueryHasText(filters: any) {
+  const f = filters || {};
+  return !!String(f.q || '').trim() || !!String(f.cliente || '').trim();
+}
+
 export async function portalPage(base44: any, query: any, limit: number, cursor?: string) {
   const options: any = { sort: '-created_date', limit, fields: PORTAL_PAGE_FIELDS };
   if (cursor) options.cursor = cursor;

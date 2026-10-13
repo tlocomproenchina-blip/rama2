@@ -4,11 +4,16 @@ import { Button } from '@/components/ui/button';
 
 export default function PortalExportBar({ selectedCount, allFiltered, resultados, loadedCount, onToggleAllFiltered, onExport, exporting }) {
   const exportingAll = allFiltered || selectedCount === 0;
-  const scopeText = allFiltered
-    ? `Se exportarán los ${Number(resultados || 0).toLocaleString('es-VE')} resultados filtrados`
-    : selectedCount > 0
-      ? `Se exportarán ${selectedCount} registro(s) seleccionado(s)`
-      : `Se exportarán los ${Number(resultados || 0).toLocaleString('es-VE')} resultados filtrados`;
+  // Con búsqueda por texto el portal no calcula el total filtrado: se exporta
+  // igual todo lo que coincide, pero sin mostrar una cifra.
+  const totalKnown = resultados !== null && resultados !== undefined && Number.isFinite(Number(resultados));
+  const allText = totalKnown
+    ? `Se exportarán los ${Number(resultados).toLocaleString('es-VE')} resultados filtrados`
+    : 'Se exportarán todos los resultados filtrados';
+  const scopeText =
+    allFiltered || selectedCount === 0
+      ? allText
+      : `Se exportarán ${selectedCount} registro(s) seleccionado(s)`;
 
   return (
     <section className="rounded-2xl border border-border bg-card p-4 shadow-sm">
@@ -21,13 +26,17 @@ export default function PortalExportBar({ selectedCount, allFiltered, resultados
           </p>
           <p className="text-xs text-muted-foreground">{scopeText}</p>
           <div className="flex flex-wrap items-center gap-3 pt-1">
-            <button
-              type="button"
-              onClick={onToggleAllFiltered}
-              className="text-xs font-semibold text-primary underline-offset-4 hover:underline"
-            >
-              {allFiltered ? 'Quitar selección de todos los resultados' : `Seleccionar todos los resultados (${Number(resultados || 0).toLocaleString('es-VE')})`}
-            </button>
+            {totalKnown ? (
+              <button
+                type="button"
+                onClick={onToggleAllFiltered}
+                className="text-xs font-semibold text-primary underline-offset-4 hover:underline"
+              >
+                {allFiltered ? 'Quitar selección de todos los resultados' : `Seleccionar todos los resultados (${Number(resultados).toLocaleString('es-VE')})`}
+              </button>
+            ) : (
+              <span className="text-xs font-semibold text-muted-foreground">Todos los resultados filtrados</span>
+            )}
             <span className="text-xs text-muted-foreground">{loadedCount} cargado(s) en pantalla</span>
           </div>
         </div>
