@@ -6,8 +6,7 @@ import { queryClientInstance } from '@/lib/query-client';
 import Sidebar from '@/components/Sidebar';
 import NotificationBell from '@/components/NotificationBell';
 import AdminNotificationCenter from '@/components/AdminNotificationCenter';
-import { getDefaultRoleConfig } from '@/lib/rolePermissions';
-import { allowedPagesFor, isAreaEmployee, pickLandingPage } from '@/lib/areaAccess';
+import { allowedPagesFor, getAreaPreset, isAreaEmployee, pickLandingPage } from '@/lib/areaAccess';
 
 
 
@@ -187,8 +186,8 @@ export default function Layout({ children, currentPageName }) {
       setUser(currentUser);
 
       let resolvedRoleConfig = null;
-      if (currentUser?.role === 'admin' && currentUser?.custom_role) {
-        const roleCacheKey = `roleConfig:${currentUser.custom_role}`;
+      if (isAreaEmployee(currentUser)) {
+        const roleCacheKey = `roleConfig:${String(currentUser.custom_role).toLowerCase()}`;
         // Usa la copia en sesión de inmediato (sin roundtrip) y refresca en segundo plano
         try {
           const cached = sessionStorage.getItem(roleCacheKey);
@@ -207,12 +206,12 @@ export default function Layout({ children, currentPageName }) {
         } else {
           try {
             const roleRows = await base44.entities.RoleConfig.filter({ role_code: currentUser.custom_role, is_active: true }, '-updated_date', 1);
-            resolvedRoleConfig = roleRows?.[0] || getDefaultRoleConfig(currentUser.custom_role);
+            resolvedRoleConfig = roleRows?.[0] || getAreaPreset(currentUser.custom_role);
             if (roleRows?.[0]) {
               try { sessionStorage.setItem(roleCacheKey, JSON.stringify(roleRows[0])); } catch (_) {}
             }
           } catch {
-            resolvedRoleConfig = getDefaultRoleConfig(currentUser.custom_role);
+            resolvedRoleConfig = getAreaPreset(currentUser.custom_role);
           }
         }
       }

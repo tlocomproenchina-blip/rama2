@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
-import { allowedPagesFor, canAccessPage, isAreaEmployee } from '@/lib/areaAccess';
+import { allowedPagesFor, areaCodeOf, canAccessPage, getAreaPreset } from '@/lib/areaAccess';
 
 // Configuración de módulos por área: se pide una sola vez por sesión para que
 // cada cambio de página no repita la consulta. La copia en sesión la deja el
@@ -23,7 +23,7 @@ function readCachedConfig(area) {
 }
 
 export default function useAreaAccess(user, page) {
-  const area = isAreaEmployee(user) ? user.custom_role : null;
+  const area = areaCodeOf(user);
   const [roleConfig, setRoleConfig] = useState(() => readCachedConfig(area));
 
   useEffect(() => {
@@ -55,7 +55,7 @@ export default function useAreaAccess(user, page) {
 
   return {
     isEmployee: !!area,
-    areaName: user?.custom_role || '',
+    areaName: getAreaPreset(area)?.role_name || user?.custom_role || '',
     roleConfig,
     allowedPages,
     canAccess,

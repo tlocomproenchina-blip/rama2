@@ -1,13 +1,27 @@
 import { adminGroups, adminMenuItems } from '@/components/sidebar/sidebarConfig';
-import { ROLE_PRESETS } from '@/lib/rolePermissions';
+import { AREA_ROLE_OPTIONS, ROLE_PRESETS } from '@/lib/rolePermissions';
 
-// Un empleado es una cuenta con acceso al panel que tiene un área asignada.
-// Los administradores (sin área, o con el rol 'administrador') conservan
-// acceso a todos los módulos del sistema.
+// Áreas operativas que se asignan a los empleados: la misma lista que usa el
+// backend (base44/shared/roleAreas.ts). Cualquier otro valor (administrador, el
+// administrador oculto, roles antiguos o vacío) tiene acceso completo al panel.
+const AREA_CODES = new Set(AREA_ROLE_OPTIONS.map((code) => String(code).toLowerCase()));
+
+export function areaCodeOf(user) {
+  if (user?.role !== 'admin') return null;
+  const code = String(user?.custom_role || '').trim().toLowerCase();
+  return AREA_CODES.has(code) ? code : null;
+}
+
+// Un empleado es una cuenta con acceso al panel y un área operativa asignada.
+// Los administradores (sin área, con 'administrador' o cualquier otro valor)
+// conservan acceso a todos los módulos del sistema.
 export function isAreaEmployee(user) {
-  const area = user?.custom_role;
-  if (user?.role !== 'admin' || !area) return false;
-  return area !== 'administrador';
+  return !!areaCodeOf(user);
+}
+
+// Permisos predeterminados del área, sin importar mayúsculas.
+export function getAreaPreset(roleCode) {
+  return ROLE_PRESETS[String(roleCode || '').trim().toLowerCase()] || null;
 }
 
 // Módulos del panel: estas páginas solo se abren si el área del empleado las
@@ -32,9 +46,10 @@ export function isRestrictedPage(page) {
 // Se usa la configuración guardada del área y, si todavía no existe o quedó
 // vacía, los módulos predeterminados del área.
 export function allowedPagesFor(user, roleConfig) {
-  if (!isAreaEmployee(user)) return null;
+  const area = areaCodeOf(user);
+  if (!area) return null;
   if (roleConfig?.visible_pages?.length) return roleConfig.visible_pages;
-  return ROLE_PRESETS[user.custom_role]?.visible_pages || [];
+  return getAreaPreset(area)?.visible_pages || [];
 }
 
 export function canAccessPage(user, roleConfig, page) {

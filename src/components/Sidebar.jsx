@@ -14,8 +14,7 @@ import {
   clientGroups,
   clientMenuItems,
 } from '@/components/sidebar/sidebarConfig';
-import { getDefaultRoleConfig } from '@/lib/rolePermissions';
-import { allowedPagesFor, isAreaEmployee } from '@/lib/areaAccess';
+import { allowedPagesFor, getAreaPreset, isAreaEmployee } from '@/lib/areaAccess';
 import useAreaAccess from '@/hooks/useAreaAccess';
 
 export default function Sidebar({ user, currentPage, isOpen, onClose, initialConfig }) {
@@ -205,7 +204,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
                 <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold ${
                 isAdmin ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`
                 }>
-                  {isAdmin ? (roleConfig?.role_name || getDefaultRoleConfig(user?.custom_role)?.role_name || 'Administrador') : 'Cliente'}
+                  {isAdmin ? (roleConfig?.role_name || getAreaPreset(user?.custom_role)?.role_name || 'Administrador') : 'Cliente'}
                 </span>
               </div>
             </div>

@@ -3,9 +3,8 @@ import { Link } from 'react-router-dom';
 import { Lock, ShieldAlert } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
 import useAreaAccess from '@/hooks/useAreaAccess';
-import { pickLandingPage } from '@/lib/areaAccess';
+import { getAreaPreset, pickLandingPage } from '@/lib/areaAccess';
 import { adminMenuItems } from '@/components/sidebar/sidebarConfig';
-import { ROLE_PRESETS } from '@/lib/rolePermissions';
 
 // Deja pasar solo los módulos asignados al área del empleado. Los
 // administradores y las páginas que no son del panel pasan siempre.
@@ -18,7 +17,7 @@ export default function AreaAccessGate({ page, children, user: userProp, refresh
     return React.cloneElement(children, { user, refreshUser });
   }
 
-  const areaName = ROLE_PRESETS[user?.custom_role]?.role_name || user?.custom_role;
+  const areaName = getAreaPreset(user?.custom_role)?.role_name || 'tu área';
   const landing = pickLandingPage(allowedPages);
   const landingItem = adminMenuItems.find((item) => item.page === landing);
   const shortcuts = (allowedPages || [])
