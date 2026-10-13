@@ -1,0 +1,77 @@
+{
+  "name": "SharedPortalAccessLog",
+  "type": "object",
+  "properties": {
+    "link_id": {
+      "type": "string",
+      "description": "Enlace compartido con el que se hizo el movimiento"
+    },
+    "link_label": {
+      "type": "string",
+      "description": "Nombre del enlace (cache para mostrar en el historial)"
+    },
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "consulta",
+        "exportacion",
+        "rechazo"
+      ],
+      "description": "consulta (b\u00fasqueda o carga de resultados), exportacion (archivo generado) o rechazo (enlace revocado, vencido o c\u00f3digo de acceso incorrecto)"
+    },
+    "result": {
+      "type": "string",
+      "description": "Resultado del movimiento: ok, sin_resultados, con_tope, seleccion, codigo_incorrecto, codigo_requerido, revocado o vencido"
+    },
+    "rows": {
+      "type": "number",
+      "description": "Registros entregados o exportados en este movimiento"
+    },
+    "format": {
+      "type": "string",
+      "description": "Formato del archivo exportado (csv, xlsx o copia)"
+    },
+    "filters": {
+      "type": "string",
+      "maxLength": 500,
+      "description": "Resumen de los filtros usados en esta consulta o exportaci\u00f3n"
+    },
+    "detail": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Detalle del movimiento"
+    },
+    "event_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Momento del movimiento; es la fecha con la que se ordena el historial"
+    }
+  },
+  "required": [
+    "link_id",
+    "event_type",
+    "event_date"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

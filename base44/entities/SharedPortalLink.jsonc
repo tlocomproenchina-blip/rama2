@@ -1,0 +1,146 @@
+{
+  "name": "SharedPortalLink",
+  "type": "object",
+  "properties": {
+    "label": {
+      "type": "string",
+      "description": "Nombre con el que TLEC CARGO identifica este enlace (ej: 'Aliado log\u00edstico Panam\u00e1')"
+    },
+    "token_hash": {
+      "type": "string",
+      "description": "Huella SHA-256 del enlace. La app no guarda el enlace en claro: por eso solo se muestra al generarlo."
+    },
+    "token_hint": {
+      "type": "string",
+      "description": "\u00daltimos caracteres del enlace, para reconocerlo en el panel sin exponerlo completo"
+    },
+    "scope_mode": {
+      "type": "string",
+      "enum": [
+        "global",
+        "limitado"
+      ],
+      "default": "global",
+      "description": "global: todos los registros de mayoristas y de TLEC CARGO; limitado: solo los mayoristas, clientes y Shipping Marks indicados"
+    },
+    "scope_wholesaler_keys": {
+      "type": "array",
+      "default": [],
+      "description": "Claves de las conexiones mayoristas incluidas en el alcance del enlace",
+      "items": {
+        "type": "string"
+      }
+    },
+    "scope_wholesaler_names": {
+      "type": "array",
+      "default": [],
+      "description": "Nombres de esas conexiones, para mostrar en el panel",
+      "items": {
+        "type": "string"
+      }
+    },
+    "scope_client_emails": {
+      "type": "array",
+      "default": [],
+      "description": "Correos de clientes incluidos en el alcance del enlace",
+      "items": {
+        "type": "string"
+      }
+    },
+    "scope_shipping_marks": {
+      "type": "array",
+      "default": [],
+      "description": "Shipping Marks incluidos en el alcance del enlace",
+      "items": {
+        "type": "string"
+      }
+    },
+    "access_code_hash": {
+      "type": "string",
+      "description": "Huella del c\u00f3digo de acceso opcional que se pide antes de consultar el portal"
+    },
+    "access_code_set": {
+      "type": "boolean",
+      "default": false,
+      "description": "Indica que el enlace pide c\u00f3digo de acceso"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Momento en que el enlace deja de funcionar. Vac\u00edo significa sin vencimiento."
+    },
+    "active": {
+      "type": "boolean",
+      "default": true,
+      "description": "false cuando un administrador revoca el enlace"
+    },
+    "revoked_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha en que se revoc\u00f3 el enlace"
+    },
+    "revoked_by": {
+      "type": "string",
+      "description": "Administrador que revoc\u00f3 el enlace"
+    },
+    "created_by": {
+      "type": "string",
+      "description": "Administrador que gener\u00f3 el enlace"
+    },
+    "last_access_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "\u00daltima vez que alguien consult\u00f3 el portal con este enlace"
+    },
+    "access_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Consultas realizadas con este enlace"
+    },
+    "export_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Exportaciones realizadas con este enlace"
+    },
+    "last_export_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha de la \u00faltima exportaci\u00f3n hecha con este enlace"
+    },
+    "last_export_rows": {
+      "type": "number",
+      "description": "Registros que se exportaron en la \u00faltima exportaci\u00f3n"
+    },
+    "notes": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Nota interna sobre para qui\u00e9n es el enlace"
+    }
+  },
+  "required": [
+    "label",
+    "token_hash"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
