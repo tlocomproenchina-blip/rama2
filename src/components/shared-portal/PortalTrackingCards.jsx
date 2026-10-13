@@ -40,8 +40,6 @@ export default function PortalTrackingCards({ rows, selected, onToggle, loading 
             />
           </div>
           <div className="mt-3 divide-y divide-border/60">
-            <CardRow label="Mayorista" value={row.wholesaler || '—'} />
-            <CardRow label="Cliente" value={row.client || '—'} />
             <CardRow label="Registro" value={portalDayText(row.registro)} />
             <CardRow label="Recepción" value={portalDayText(row.recepcion)} />
             <CardRow

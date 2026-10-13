@@ -33,8 +33,6 @@ export default function PortalTrackingTable({ rows, selected, onToggle, onToggle
               </th>
               <th className="px-4 py-3">Tracking</th>
               <th className="px-4 py-3">Shipping Mark</th>
-              <th className="px-4 py-3">Mayorista</th>
-              <th className="px-4 py-3">Cliente</th>
               <th className="px-4 py-3">Fecha de registro</th>
               <th className="px-4 py-3">Fecha de recepción</th>
               <th className="px-4 py-3">Estado</th>
@@ -45,12 +43,12 @@ export default function PortalTrackingTable({ rows, selected, onToggle, onToggle
           <tbody>
             {loading && rows.length === 0 ? (
               <tr>
-                <td colSpan={10} className="px-4 py-10 text-center text-muted-foreground">Consultando los resultados…</td>
+                <td colSpan={8} className="px-4 py-10 text-center text-muted-foreground">Consultando los resultados…</td>
               </tr>
             ) : null}
             {!loading && rows.length === 0 ? (
               <tr>
-                <td colSpan={10} className="px-4 py-10 text-center text-muted-foreground">No hay registros con esos filtros.</td>
+                <td colSpan={8} className="px-4 py-10 text-center text-muted-foreground">No hay registros con esos filtros.</td>
               </tr>
             ) : null}
             {rows.map((row) => (
@@ -64,13 +62,6 @@ export default function PortalTrackingTable({ rows, selected, onToggle, onToggle
                 </td>
                 <td className="px-4 py-3 font-medium text-foreground">{row.tracking_number || '—'}</td>
                 <td className="px-4 py-3 text-foreground">{row.shipping_mark || '—'}</td>
-                <td className="px-4 py-3 text-muted-foreground">{row.wholesaler || '—'}</td>
-                <td className="px-4 py-3">
-                  <p className="text-foreground">{row.client || '—'}</p>
-                  {row.client_email && row.client_email !== row.client ? (
-                    <p className="text-xs text-muted-foreground">{row.client_email}</p>
-                  ) : null}
-                </td>
                 <td className="px-4 py-3 text-foreground">{portalDayText(row.registro)}</td>
                 <td className="px-4 py-3 text-muted-foreground">{portalDayText(row.recepcion)}</td>
                 <td className="px-4 py-3"><EstadoBadge estado={row.estado} /></td>
