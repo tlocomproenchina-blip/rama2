@@ -1,9 +1,9 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 import {
   buildTrackingCandidates,
-  consolidateOrphan,
   findSameShipmentMatches,
   hasReceptionEvidence,
+  unifyOrphanIntoClientRecord,
 } from '../../shared/orphanConsolidation.ts';
 import { confirmReceptionToWholesaler, noticeDeliveredWithPhoto, setOrphanFollowup } from '../../shared/wholesalerNotify.ts';
 
@@ -44,9 +44,10 @@ Deno.serve(async (req) => {
       } catch (_) {}
     }
 
-    // Sin duplicar: si ese cliente ya tiene una pre-alerta pendiente del mismo envío,
-    // se unifica con este huérfano en un solo paquete (se conserva el registro
-    // recibido, con su foto y sus datos de almacén) y la pre-alerta se retira.
+    // Sin duplicar: si ese cliente ya tenía registrado el mismo envío (su pre-alerta),
+    // ese registro es el que se actualiza —con su foto y sus datos— y la carga sin
+    // titular se une ahí: queda recibida, con la foto de la recepción del almacén y
+    // sin dejar un segundo paquete del mismo envío.
     const candidates = buildTrackingCandidates(String(pkg.tracking_number || ''));
     if (candidates.length > 0) {
       const matches = await findSameShipmentMatches(base44, {
@@ -54,23 +55,34 @@ Deno.serve(async (req) => {
         labelCode: String(pkg.tracking_number || ''),
         excludeId: pkg.id,
       });
-      const clientPending = matches.pending.filter(
+      const clientRecords = [...matches.pending, ...matches.received].filter(
         (p) => String(p.client_email || '').trim().toLowerCase() === clientEmail.toLowerCase(),
       );
-      if (clientPending.length > 0) {
-        const unification = await consolidateOrphan({ base44, orphan: pkg, prealert: clientPending[0], shippingMark });
-        const merged = unification.package || pkg;
-        const aviso = await confirmReceptionToWholesaler(base44, merged, `asignado a ${clientEmail}`);
-        const sigueEnLista = !(hasReceptionEvidence(merged) && noticeDeliveredWithPhoto(aviso));
-        await setOrphanFollowup(base44, merged.id, sigueEnLista);
-        return Response.json({
-          package: { ...merged, orphan_pending_reception: sigueEnLista },
-          consolidated: true,
-          merged_fields: unification.merged_fields,
-          unified_prealert_id: clientPending[0].id,
-          aviso_mayorista: aviso,
-          sigue_en_huerfanos: sigueEnLista,
+      if (clientRecords.length > 0) {
+        // Manda el registro del cliente que ya constaba recibido; si ninguno lo está,
+        // su pre-alerta pendiente.
+        const target = clientRecords.find((p) => hasReceptionEvidence(p)) || clientRecords[0];
+        const unification = await unifyOrphanIntoClientRecord({
+          base44,
+          orphan: pkg,
+          clientRecord: target,
+          shippingMark,
+          by: user.email,
         });
+        if (unification) {
+          const merged = unification.package;
+          const aviso = await confirmReceptionToWholesaler(base44, merged, `asignado a ${clientEmail}`);
+          await setOrphanFollowup(base44, merged.id, false);
+          return Response.json({
+            package: { ...merged, orphan_pending_reception: false },
+            consolidated: true,
+            merged_fields: unification.merged_fields,
+            updated_client_record_id: target.id,
+            removed_orphan_id: unification.removed_orphan_id,
+            aviso_mayorista: aviso,
+            sigue_en_huerfanos: false,
+          });
+        }
       }
       // Ese tracking ya está registrado como carga recibida: se avisa para revisión y
       // el huérfano queda sin asignar.

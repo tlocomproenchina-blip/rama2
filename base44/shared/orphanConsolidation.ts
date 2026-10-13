@@ -208,8 +208,12 @@ async function relinkPackageReferences(base44: any, oldId: string, newId: string
     try {
       const rows = await base44.asServiceRole.entities[link.entity].filter({ [link.field]: oldId }, '-created_date', 50);
       for (const row of rows || []) {
+        // Al re-apuntar se quita el ID repetido: si el registro que se conserva ya
+        // estaba en esa lista, el mismo paquete no se cuenta dos veces.
         const value = link.kind === 'array'
-          ? (Array.isArray(row[link.field]) ? row[link.field].map((id: string) => (id === oldId ? newId : id)) : [])
+          ? (Array.isArray(row[link.field])
+            ? Array.from(new Set(row[link.field].map((id: string) => (id === oldId ? newId : id))))
+            : [])
           : newId;
         await base44.asServiceRole.entities[link.entity].update(row.id, { [link.field]: value });
         relinked.push({ entity: link.entity, id: row.id, field: link.field });
@@ -522,6 +526,155 @@ export async function mergeDuplicateOrphans({
   await base44.asServiceRole.entities.Package.delete(freshDuplicate.id);
 
   return { skipped: false, package: updated, merged_fields, relinked, removed_id: freshDuplicate.id };
+}
+
+// ---------------------------------------------------------------------------
+// Unificación sobre el registro del cliente
+//
+// Cuando la carga sin titular se asigna a un cliente que YA tenía registrado ese
+// mismo envío (su pre-alerta), no se dejan dos paquetes del mismo paquete: se
+// conserva el registro del cliente —su descripción, sus datos y su foto de
+// producto— y ahí se completa la carga: queda recibida, con la foto de la
+// recepción del almacén y con todo lo que la carga sin titular traía (ubicación,
+// peso, medidas, CBM y las marcas internas de facturación). El registro sin
+// titular se retira, re-apuntando antes sus vínculos, así que el cliente ve un
+// solo paquete, recibido y con sus fotos.
+
+// Del registro sin titular solo se suma lo que el registro del cliente todavía no
+// tenía: nada de lo que el cliente declaró se pisa.
+const ABSORB_IF_EMPTY = [
+  'description',
+  'shipping_type',
+  'risk_category',
+  'has_insurance',
+  'fob_value',
+  'invoice_url',
+  'shipping_company',
+  'shipping_address',
+  'seller_delivery_date',
+  'label_code',
+  'consolidation_id',
+  'warehouse_id',
+  'warehouse_name',
+  'warehouse_city',
+  'warehouse_country',
+  'warehouse_zone',
+  'warehouse_location_id',
+  'warehouse_location_code',
+  'warehouse_location_name',
+  'actual_weight_kg',
+  'actual_length_cm',
+  'actual_width_cm',
+  'actual_height_cm',
+  'actual_cbm',
+  'received_by',
+  'billing_marked',
+  'billing_marked_by',
+  'billing_marked_date',
+  'billed_invoice_id',
+  'billed_date',
+  'order_locked',
+  'order_assigned_by',
+  'order_assigned_date',
+  've_recognized_date',
+  've_recognized_by',
+  've_notified_date',
+];
+
+// Nota de trazabilidad que queda en el registro del cliente.
+function buildAbsorbNote({ tracking, by }: { tracking: string; by?: string }): string {
+  const who = by ? ` por ${by}` : '';
+  const declared = tracking ? ` con el tracking ${tracking}` : '';
+  return `Unificado ${caracasStamp()}${who}: la carga sin titular${declared} se unió a esta pre-alerta del cliente; se conservan su foto y sus datos y se agregó la foto de la recepción del almacén.`;
+}
+
+// Une la carga sin titular al registro que el cliente ya tenía de ese envío. El
+// registro que se conserva es el del cliente (la pre-alerta que él hizo) y el otro
+// se retira. Devuelve null cuando el registro del cliente ya no existe.
+export async function unifyOrphanIntoClientRecord({
+  base44,
+  orphan,
+  clientRecord,
+  shippingMark,
+  by,
+}: {
+  base44: any;
+  orphan: any;
+  clientRecord: any;
+  shippingMark?: string;
+  by?: string;
+}): Promise<{
+  package: any;
+  merged_fields: string[];
+  removed_orphan_id: string;
+  kept_package_id: string;
+  relinked: any[];
+} | null> {
+  // Se releen los dos registros antes de tocar nada.
+  const orphanRows = await base44.asServiceRole.entities.Package.filter({ id: orphan?.id }, '-created_date', 1);
+  const fresh = orphanRows?.[0];
+  if (!fresh) throw new Error('orphan_not_found');
+
+  const clientRows = await base44.asServiceRole.entities.Package.filter({ id: clientRecord?.id }, '-created_date', 1);
+  const keep = clientRows?.[0];
+  if (!keep || keep.id === fresh.id) return null;
+
+  // La carga ya pasó por el almacén (cualquiera de los dos registros lo respalda).
+  const wasReceived = hasReceptionEvidence(fresh) || hasReceptionEvidence(keep);
+
+  const merged_fields: string[] = [];
+  const patch: Record<string, any> = {
+    client_email: keep.client_email,
+    shipping_mark: keep.shipping_mark || shippingMark || fresh.shipping_mark || '',
+    is_orphan: false,
+    reported: true,
+    // El registro del cliente no es un huérfano: no queda en la lista de huérfanos.
+    orphan_pending_reception: false,
+    ai_unreadable: false,
+    ai_attempted_date: null,
+  };
+
+  if (wasReceived) {
+    patch.status = 'recibido';
+    merged_fields.push('status');
+    if (!keep.received_date) {
+      patch.received_date = fresh.received_date || new Date().toISOString();
+      patch.received_by = keep.received_by || fresh.received_by || by || 'Registro en almacén';
+      merged_fields.push('received_date');
+    }
+  }
+
+  // Fotos: primero las del cliente (su foto del producto) y después la de la
+  // recepción del almacén. La ficha guarda hasta 3.
+  const photos = unionPhotos(keep, fresh);
+  const currentPhotos = Array.isArray(keep.package_image_urls) ? keep.package_image_urls : [];
+  if (photos.length > 0 && photos.join('|') !== currentPhotos.join('|')) {
+    patch.package_image_urls = photos;
+    if (!isFilled(keep.package_image_url)) patch.package_image_url = photos[0];
+    merged_fields.push('package_image_urls');
+  }
+
+  for (const field of ABSORB_IF_EMPTY) {
+    if (isFilled(fresh[field]) && !isFilled(keep[field])) {
+      patch[field] = fresh[field];
+      merged_fields.push(field);
+    }
+  }
+
+  const note = buildAbsorbNote({ tracking: String(fresh.tracking_number || ''), by });
+  patch.reception_notes = [keep.reception_notes, note].filter(Boolean).join('\n');
+
+  const updated = await base44.asServiceRole.entities.Package.update(keep.id, patch);
+  const relinked = await relinkPackageReferences(base44, fresh.id, keep.id);
+  await base44.asServiceRole.entities.Package.delete(fresh.id);
+
+  return {
+    package: updated,
+    merged_fields,
+    removed_orphan_id: fresh.id,
+    kept_package_id: keep.id,
+    relinked,
+  };
 }
 
 // ---------------------------------------------------------------------------

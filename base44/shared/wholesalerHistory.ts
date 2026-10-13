@@ -18,7 +18,13 @@ import {
 } from './wholesalerCore.ts';
 import { cleanTracking, findClientForNotice, queueReceptionNotice, receptionPhotos, trackingOwnerFor } from './wholesalerPackages.ts';
 import { notifyReceptionBlock } from './wholesalerNotify.ts';
-import { consolidateOrphan } from './orphanConsolidation.ts';
+import {
+  buildTrackingCandidates,
+  consolidateOrphan,
+  findSameShipmentMatches,
+  hasReceptionEvidence,
+  unifyOrphanIntoClientRecord,
+} from './orphanConsolidation.ts';
 
 const TIMEOUT_MS = 20000;
 const PAGE_SIZE = 200;
@@ -298,6 +304,27 @@ async function confirmMatchesToWholesaler(base44: any, connection: any, matches:
   return result;
 }
 
+// Registros que ese cliente ya tenía en TLEC CARGO con el mismo envío (su propia
+// pre-alerta), para unificar en ellos en vez de dejar el mismo paquete dos veces.
+async function findClientShipmentRecords(
+  base44: any,
+  { record, client, orphanId }: { record: any; client: any; orphanId: string },
+) {
+  const candidates = buildTrackingCandidates(record?.tracking || '');
+  if (candidates.length === 0) return [];
+
+  const matches = await findSameShipmentMatches(base44, {
+    candidates,
+    labelCode: record?.label_code || '',
+    excludeId: orphanId,
+  });
+
+  const email = String(client?.email || '').trim().toLowerCase();
+  return [...(matches.pending || []), ...(matches.received || [])].filter(
+    (p: any) => String(p.client_email || '').trim().toLowerCase() === email,
+  );
+}
+
 // Alinea un registro del historial con TLEC CARGO. Idempotente: repetir la misma
 // importación no crea ni cambia nada la segunda vez.
 export async function importHistoryRecord(base44: any, raw: any, connection: any = null) {
@@ -346,29 +373,52 @@ export async function importHistoryRecord(base44: any, raw: any, connection: any
   let vinculado = false;
 
   // Si la carga ya estaba en el almacén sin cliente, esta pre-alerta la reclama
-  // conservando su recepción y sus fotos.
+  // conservando su recepción y sus fotos. Si el cliente ya tenía registrado ese
+  // mismo envío en TLEC CARGO (su propia pre-alerta), la carga sin titular se une a
+  // ese registro en vez de quedar como un segundo paquete del mismo envío: el
+  // registro del cliente queda recibido y se le suma la foto de la recepción.
   if (existing.is_orphan === true && !String(existing.client_email || '').trim() && client) {
-    try {
-      const consolidado = await consolidateOrphan({
-        base44,
-        orphan: existing,
-        claim: {
-          client_email: client.email,
-          shipping_mark: client.shipping_mark || record.shipping_mark,
-          tracking_number: identity,
-          ...(record.label_code ? { label_code: record.label_code } : {}),
-          shipping_type: record.shipping_type,
-          risk_category: record.risk_category,
-          package_count: record.package_count,
-          description: record.description,
-        },
-      });
-      if (consolidado?.package) {
-        current = consolidado.package;
-        vinculado = true;
+    const propias = await findClientShipmentRecords(base44, { record, client, orphanId: existing.id });
+    if (propias.length > 0) {
+      const target = propias.find((p: any) => hasReceptionEvidence(p)) || propias[0];
+      try {
+        const unificado = await unifyOrphanIntoClientRecord({
+          base44,
+          orphan: existing,
+          clientRecord: target,
+          shippingMark: client.shipping_mark || record.shipping_mark,
+          by: 'Historial del mayorista',
+        });
+        if (unificado?.package) {
+          current = unificado.package;
+          vinculado = true;
+        }
+      } catch (_) {
+        // Si otro proceso la reclamó al mismo tiempo, se sigue con el llenado normal.
       }
-    } catch (_) {
-      // Si otro proceso la reclamó al mismo tiempo, se sigue con el llenado normal.
+    } else {
+      try {
+        const consolidado = await consolidateOrphan({
+          base44,
+          orphan: existing,
+          claim: {
+            client_email: client.email,
+            shipping_mark: client.shipping_mark || record.shipping_mark,
+            tracking_number: identity,
+            ...(record.label_code ? { label_code: record.label_code } : {}),
+            shipping_type: record.shipping_type,
+            risk_category: record.risk_category,
+            package_count: record.package_count,
+            description: record.description,
+          },
+        });
+        if (consolidado?.package) {
+          current = consolidado.package;
+          vinculado = true;
+        }
+      } catch (_) {
+        // Si otro proceso la reclamó al mismo tiempo, se sigue con el llenado normal.
+      }
     }
   }
 
