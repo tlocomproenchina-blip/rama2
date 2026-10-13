@@ -48,10 +48,12 @@ export function portalExpiryInput(iso) {
   return new Date(time - 4 * 60 * 60 * 1000 - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 }
 
+// Todos los enlaces del portal se construyen sobre el dominio registrado de la app.
+export const PORTAL_BASE_URL = 'https://tleccargo.com';
+
 export function portalLinkUrl(token) {
   if (!token) return '';
-  const origin = typeof window !== 'undefined' ? window.location.origin : '';
-  return `${origin}/Portal/${token}`;
+  return `${PORTAL_BASE_URL}/Portal/${token}`;
 }
 
 export async function copyText(value) {

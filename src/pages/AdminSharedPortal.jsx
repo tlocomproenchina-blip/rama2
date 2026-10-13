@@ -40,6 +40,7 @@ export default function AdminSharedPortal() {
   const [dialog, setDialog] = useState({ open: false, link: null });
   const [saving, setSaving] = useState(false);
   const [revealed, setRevealed] = useState(null);
+  const [tokens, setTokens] = useState({});
   const [confirm, setConfirm] = useState(null);
   const [activity, setActivity] = useState({ linkId: '', logs: [], loading: false });
 
@@ -87,6 +88,7 @@ export default function AdminSharedPortal() {
         const data = await call({ action: 'create', ...form });
         if (!data?.ok) throw new Error(data?.error || 'No se pudo generar el enlace');
         setRevealed({ token: data.token, label: data.link?.label || form.label });
+        if (data.link?.id) setTokens((prev) => ({ ...prev, [data.link.id]: data.token }));
         toast.success('Enlace generado');
       }
       setDialog({ open: false, link: null });
@@ -117,6 +119,7 @@ export default function AdminSharedPortal() {
       if (!data?.ok) throw new Error(data?.error || 'No se pudo completar la acción');
       if (target.action === 'regenerate') {
         setRevealed({ token: data.token, label: data.link?.label || target.link.label });
+        setTokens((prev) => ({ ...prev, [target.link.id]: data.token }));
       }
       toast.success(
         target.action === 'revoke' ? 'Enlace revocado' : target.action === 'delete' ? 'Enlace eliminado' : 'Enlace regenerado'
@@ -222,10 +225,12 @@ export default function AdminSharedPortal() {
           <AdminPortalLinkCard
             key={link.id}
             link={link}
+            token={tokens[link.id] || ''}
             activity={activity.linkId === link.id ? activity.logs : null}
             activityLoading={activity.linkId === link.id ? activity.loading : false}
             onEdit={(item) => setDialog({ open: true, link: item })}
             onAction={handleAction}
+            onCopy={copyUrl}
             onToggleActivity={toggleActivity}
           />
         ))}
