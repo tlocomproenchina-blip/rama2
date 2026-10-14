@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
+import useCedulaClientEmails from '@/hooks/useCedulaClientEmails';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,6 +32,8 @@ export default function AdminPayments({ user }) {
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  // Cédula escrita en el buscador → correos de los clientes que la tienen.
+  const cedulaEmails = useCedulaClientEmails(search);
   const [statusFilter, setStatusFilter] = useState('pending');
 
   useEffect(() => {
@@ -169,7 +172,8 @@ export default function AdminPayments({ user }) {
     const matchesSearch = 
       con.consolidation_tracking?.toLowerCase().includes(search.toLowerCase()) ||
       con.client_email?.toLowerCase().includes(search.toLowerCase()) ||
-      con.shipping_mark?.toLowerCase().includes(search.toLowerCase());
+      con.shipping_mark?.toLowerCase().includes(search.toLowerCase()) ||
+      cedulaEmails.has((con.client_email || '').toLowerCase());
     
     if (statusFilter === 'pending') {
       return matchesSearch && con.status === 'pago_pendiente_validacion';
@@ -185,7 +189,8 @@ export default function AdminPayments({ user }) {
     return (
       inv.invoice_number?.toLowerCase().includes(term) ||
       inv.client_email?.toLowerCase().includes(term) ||
-      inv.consolidation_tracking?.toLowerCase().includes(term)
+      inv.consolidation_tracking?.toLowerCase().includes(term) ||
+      cedulaEmails.has((inv.client_email || '').toLowerCase())
     );
   });
 

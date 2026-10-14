@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, History, Search, GitMerge, X, UserRound, Filter, FileText, DollarSign, Copy, Wrench, Clock } from 'lucide-react';
 import { toast } from 'sonner';
+import useCedulaClientEmails from '@/hooks/useCedulaClientEmails';
 import DispatchOrderCard from '@/components/warehouse/DispatchOrderCard';
 import { buildTrackingToReceiptMap } from '@/lib/dispatchOrderGroups';
 import DispatchOrderEditModal from '@/components/warehouse/DispatchOrderEditModal';
@@ -20,6 +21,8 @@ export default function WarehouseDispatchHistory({ user }) {
   const [serverRefreshing, setServerRefreshing] = useState(false);
   const [pendingDispatches, setPendingDispatches] = useState([]);
   const [search, setSearch] = useState('');
+  // Cédula escrita en el buscador → correos de los clientes que la tienen.
+  const cedulaEmails = useCedulaClientEmails(search);
   const [editOrder, setEditOrder] = useState(null);
   const [processing, setProcessing] = useState(false);
   const [togglingId, setTogglingId] = useState(null);
@@ -498,6 +501,7 @@ export default function WarehouseDispatchHistory({ user }) {
     (o.client_email || '').toLowerCase().includes(q) ||
     (o.client_name || '').toLowerCase().includes(q) ||
     (o.shipping_mark || '').toLowerCase().includes(q) ||
+    cedulaEmails.has((o.client_email || '').toLowerCase()) ||
     (o.items || []).some((i) => (i.tracking_number || '').toLowerCase().includes(q))
   );
 

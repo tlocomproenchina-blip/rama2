@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
+import useCedulaClientEmails from '@/hooks/useCedulaClientEmails';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +25,8 @@ export default function AdminInsured({ user }) {
   const [config, setConfig] = useState(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  // Cédula escrita en el buscador → correos de los clientes que la tienen.
+  const cedulaEmails = useCedulaClientEmails(search);
   const [filter, setFilter] = useState('todas');
   const [viewInvoice, setViewInvoice] = useState(null);
 
@@ -121,7 +124,8 @@ export default function AdminInsured({ user }) {
     const matchesSearch = (
       pkg.tracking_number.toLowerCase().includes(searchLower) ||
       (pkg.client_email || '').toLowerCase().includes(searchLower) ||
-      (pkg.shipping_mark || '').toLowerCase().includes(searchLower)
+      (pkg.shipping_mark || '').toLowerCase().includes(searchLower) ||
+      cedulaEmails.has((pkg.client_email || '').toLowerCase())
     );
     if (!matchesSearch) return false;
     if (filter === 'despachadas') {

@@ -70,7 +70,8 @@ export default function EditPackageModal({ pkg, processing, deleting, onClose, o
           const email = (c.email || '').toLowerCase();
           const name = `${c.first_name || ''} ${c.last_name || ''} ${c.full_name || ''}`.toLowerCase();
           const sm = (c.shipping_mark || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-          return email.includes(t) || name.includes(t) || (tAlnum && sm.includes(tAlnum));
+          const cedula = (c.cedula || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+          return email.includes(t) || name.includes(t) || (tAlnum && sm.includes(tAlnum)) || (tAlnum && cedula.includes(tAlnum));
         });
         setClientResults(strict);
         setShowResults(true);

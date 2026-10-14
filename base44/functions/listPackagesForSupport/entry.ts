@@ -89,12 +89,15 @@ Deno.serve(async (req) => {
 
       // Buscar usuarios coincidentes para incluir sus emails
       try {
-        const [byEmail, byMark, byName] = await Promise.all([
+        const [byEmail, byMark, byName, byCedula] = await Promise.all([
           base44.asServiceRole.entities.User.filter({ email: { $regex: r, $options: 'i' } }, '-updated_date', 10).catch(() => []),
           base44.asServiceRole.entities.User.filter({ shipping_mark: { $regex: r, $options: 'i' } }, '-updated_date', 10).catch(() => []),
           base44.asServiceRole.entities.User.filter({ full_name: { $regex: r, $options: 'i' } }, '-updated_date', 10).catch(() => []),
+          // La cédula también encuentra las cargas del cliente: se piden todos
+          // sus paquetes por su correo.
+          base44.asServiceRole.entities.User.filter({ cedula: { $regex: r, $options: 'i' } }, '-updated_date', 10).catch(() => []),
         ]);
-        const matchingEmails = Array.from(new Set([...byEmail, ...byMark, ...byName].map(u => u.email).filter(Boolean)));
+        const matchingEmails = Array.from(new Set([...byEmail, ...byMark, ...byName, ...byCedula].map(u => u.email).filter(Boolean)));
         if (matchingEmails.length > 0) {
           orClauses.push({ client_email: { $in: matchingEmails } });
         }

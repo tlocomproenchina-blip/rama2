@@ -149,7 +149,7 @@ export default function AdminBultoAudit() {
 
       if (!term) return true;
       const haystack = [
-        b.label_code, b.client_email, b.shipping_mark, b.created_by,
+        b.label_code, b.client_email, b.client_snapshot?.cedula, b.shipping_mark, b.created_by,
         ...(b.package_trackings || []),
         ...(b.cbm_order_numbers || []),
       ].map((v) => String(v || '').toLowerCase()).join(' ');

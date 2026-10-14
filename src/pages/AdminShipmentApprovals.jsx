@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
+import useCedulaClientEmails from '@/hooks/useCedulaClientEmails';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -38,6 +39,8 @@ export default function AdminShipmentApprovals({ user }) {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  // Cédula escrita en el buscador → correos de los clientes que la tienen.
+  const cedulaEmails = useCedulaClientEmails(search);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [allPackages, setAllPackages] = useState([]);
   const [selectedPackages, setSelectedPackages] = useState([]);
@@ -825,6 +828,7 @@ export default function AdminShipmentApprovals({ user }) {
     return (
       req.client_email?.toLowerCase().includes(searchLower) ||
       req.shipping_mark?.toLowerCase().includes(searchLower) ||
+      cedulaEmails.has((req.client_email || '').toLowerCase()) ||
       req.tracking_numbers?.some(t => t.toLowerCase().includes(searchLower))
     );
   });

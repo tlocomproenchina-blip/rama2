@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
+import useCedulaClientEmails from '@/hooks/useCedulaClientEmails';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -44,6 +45,8 @@ export default function AdminCargaRutas() {
   const [packages, setPackages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  // Cédula escrita en el buscador → correos de los clientes que la tienen.
+  const cedulaEmails = useCedulaClientEmails(search);
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -85,9 +88,10 @@ export default function AdminCargaRutas() {
       String(item.tracking_number || '').toLowerCase().includes(q) ||
       String(item.descripcion || '').toLowerCase().includes(q) ||
       String(item.cliente_email || '').toLowerCase().includes(q) ||
+      cedulaEmails.has(String(item.cliente_email || '').toLowerCase()) ||
       String(ruta?.codigo_ruta || '').toLowerCase().includes(q);
     return routeMatch && textMatch;
-  }), [cargas, rutaFilterId, rutasById, search]);
+  }), [cargas, rutaFilterId, rutasById, search, cedulaEmails]);
 
   const stats = useMemo(() => ({
     total: cargas.length,

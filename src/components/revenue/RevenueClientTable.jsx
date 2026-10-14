@@ -49,7 +49,11 @@ export default function RevenueClientTable({ data }) {
     let list = data;
     if (search) {
       const q = search.toLowerCase();
-      list = list.filter(c => c.name.toLowerCase().includes(q) || c.email.toLowerCase().includes(q));
+      list = list.filter(c =>
+        c.name.toLowerCase().includes(q) ||
+        c.email.toLowerCase().includes(q) ||
+        (c.cedula || '').toLowerCase().includes(q)
+      );
     }
     list = [...list].sort((a, b) => {
       const av = a[sortKey] ?? 0;

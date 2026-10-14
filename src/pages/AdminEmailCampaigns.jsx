@@ -214,11 +214,13 @@ export default function AdminEmailCampaigns({ user }) {
       const email = (client.email || '').toLowerCase();
       const phone = (client.whatsapp || '').toLowerCase();
       const mark = (client.shipping_mark || '').toLowerCase();
+      const cedula = (client.cedula || '').toLowerCase();
       
       return fullName.includes(query) || 
              email.includes(query) || 
              phone.includes(query) || 
-             mark.includes(query);
+             mark.includes(query) ||
+             cedula.includes(query);
     });
   }, [clients, searchQuery]);
 

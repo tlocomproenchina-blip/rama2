@@ -132,12 +132,17 @@ function matchesSearch(c, q, exact = false) {
   const ph = getDigits(c.phone || '');
   const sm = normalizeAlnum(c.shipping_mark || '');
   const fullAlnum = normalizeAlnum((c.first_name || '') + (c.last_name || ''));
+  // Cédula y cédula/RIF de facturación: se comparan sin letras ni guiones, así
+  // "V-12345678", "12345678" y "v12345678" encuentran al mismo cliente.
+  const ced = normalizeAlnum(c.cedula || '');
+  const billingCed = normalizeAlnum(c.billing_cedula_rif || '');
 
   if (exact) {
     // Coincidencias exactas (tras normalizar) en cualquiera de los campos
     if (qText && (email === qText || first === qText || last === qText || full === qText || cityNorm === qText)) return true;
     if (qDigits && (wa === qDigits || ph === qDigits)) return true;
     if (qAlnum && (sm === qAlnum || fullAlnum === qAlnum)) return true;
+    if (qAlnum && ((ced && ced === qAlnum) || (billingCed && billingCed === qAlnum))) return true;
     return false;
   }
 
@@ -147,6 +152,8 @@ function matchesSearch(c, q, exact = false) {
   // números de teléfono que contengan esos dígitos por casualidad.
   if (qDigits && qDigits.length >= 5 && (wa.includes(qDigits) || ph.includes(qDigits))) return true;
   if (qAlnum && (sm.includes(qAlnum) || fullAlnum.includes(qAlnum))) return true;
+  // La cédula es un identificador directo del cliente: se admite coincidencia parcial.
+  if (qAlnum && ((ced && ced.includes(qAlnum)) || (billingCed && billingCed.includes(qAlnum)))) return true;
   return false;
 }
 

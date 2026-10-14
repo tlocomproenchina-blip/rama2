@@ -685,6 +685,7 @@ export default function AdminInvoices({ user }) {
       const matchesSearch = !q || (
         (inv.invoice_number || '').toLowerCase().includes(q) ||
         (inv.client_email || '').toLowerCase().includes(q) ||
+        (inv.client_cedula || '').toLowerCase().includes(q) ||
         (inv.consolidation_tracking || '').toLowerCase().includes(q) ||
         (inv.shipping_mark || '').toLowerCase().includes(q) ||
         `${inv.client_first_name || ''} ${inv.client_last_name || ''}`.toLowerCase().includes(q)

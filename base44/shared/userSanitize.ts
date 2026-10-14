@@ -56,9 +56,15 @@ export function userMatchesSearch(u: any, q: string): boolean {
   const ph = getDigits(u.phone || '');
   const sm = normalizeAlnum(u.shipping_mark || '');
   const fullAlnum = normalizeAlnum((u.first_name || '') + (u.last_name || ''));
+  // Cédula y cédula/RIF de facturación: sin letras ni guiones, así
+  // "V-12345678", "12345678" y "v12345678" encuentran al mismo cliente.
+  const ced = normalizeAlnum(u.cedula || '');
+  const billingCed = normalizeAlnum(u.billing_cedula_rif || '');
 
   if (qText && (email.includes(qText) || first.includes(qText) || last.includes(qText) || full.includes(qText) || fullName.includes(qText) || cityNorm.includes(qText))) return true;
   if (qDigits && (wa.includes(qDigits) || ph.includes(qDigits))) return true;
   if (qAlnum && (sm.includes(qAlnum) || fullAlnum.includes(qAlnum))) return true;
+  // La cédula es un identificador directo del cliente: se admite coincidencia parcial.
+  if (qAlnum && ((ced && ced.includes(qAlnum)) || (billingCed && billingCed.includes(qAlnum)))) return true;
   return false;
 }

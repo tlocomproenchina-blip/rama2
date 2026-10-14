@@ -44,8 +44,10 @@ Deno.serve(async (req) => {
 
     // Build user name map
     const userNameMap = {};
+    const userCedulaMap = {};
     users.forEach(u => {
       userNameMap[u.email] = u.full_name || u.first_name || u.email;
+      if (u.cedula) userCedulaMap[u.email] = u.cedula;
     });
 
     // Filter by date range if provided
@@ -169,6 +171,7 @@ Deno.serve(async (req) => {
       return {
         email,
         name: revInfo.name || cbmInfo.name || userNameMap[email] || email,
+        cedula: userCedulaMap[email] || '',
         cbm: Math.round((cbmInfo.cbm || 0) * 100) / 100,
         paid: Math.round(revInfo.paid * 100) / 100,
         pending: Math.round(revInfo.pending * 100) / 100,

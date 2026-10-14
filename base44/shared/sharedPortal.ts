@@ -176,6 +176,27 @@ export function wholesalerChunk(key: any, index: any) {
   return ownersChunk(sets.emails, sets.marks);
 }
 
+// La cédula del cliente también encuentra su carga: se buscan los clientes
+// mayoristas del índice cuyo número de cédula coincida y se devuelven sus
+// correos y Shipping Marks para sumarlos a la búsqueda.
+function cedulaOwners(index: any, value: string) {
+  const needle = String(value || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
+  if (needle.length < 4) return { emails: [] as string[], marks: [] as string[] };
+  const emails = new Set<string>();
+  const marks = new Set<string>();
+  for (const row of index?.rows || []) {
+    const ced = String(row?.cedula || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
+    if (!ced || !ced.includes(needle)) continue;
+    const email = emailKeyOf(row?.email);
+    const mark = markKeyOf(row?.shipping_mark);
+    if (email) emails.add(email);
+    if (mark) marks.add(mark);
+  }
+  emails.delete('');
+  marks.delete('');
+  return { emails: [...emails], marks: [...marks] };
+}
+
 export function andFilters(...chunks: any[]) {
   const list = chunks.filter((chunk) => chunk && Object.keys(chunk).length > 0);
   if (list.length === 0) return {};
@@ -197,12 +218,15 @@ export function portalQuery(params: any) {
 
   const q = String(f.q || '').trim();
   if (q) {
-    chunks.push({
-      $or: [
-        { tracking_number: { $regex: escapeRegex(q), $options: 'i' } },
-        { shipping_mark: { $regex: escapeRegex(q), $options: 'i' } },
-      ],
-    });
+    const clauses: any[] = [
+      { tracking_number: { $regex: escapeRegex(q), $options: 'i' } },
+      { shipping_mark: { $regex: escapeRegex(q), $options: 'i' } },
+    ];
+    // Escribir la cédula del cliente trae su carga, igual que su tracking o su mark.
+    const owners = cedulaOwners(index, q);
+    if (owners.emails.length) clauses.push({ client_email: { $in: owners.emails } });
+    if (owners.marks.length) clauses.push({ shipping_mark: { $in: owners.marks } });
+    chunks.push({ $or: clauses });
   }
 
   const client = emailKeyOf(f.cliente);

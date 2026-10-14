@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Loader2, Search, Printer, ShieldCheck, CheckCircle2, XCircle, Clock } from 'lucide-react';
 import { toast } from 'sonner';
+import useCedulaClientEmails from '@/hooks/useCedulaClientEmails';
 
 const PAGE_SIZE = 50;
 
@@ -26,6 +27,8 @@ export default function WarehousePrintAudit() {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
+  // Cédula escrita en el buscador → correos de los clientes que la tienen.
+  const cedulaEmails = useCedulaClientEmails(search);
   const [typeFilter, setTypeFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [page, setPage] = useState(0);
@@ -52,7 +55,8 @@ export default function WarehousePrintAudit() {
           const by = (l.printed_by || '').toLowerCase();
           const reason = (l.reason || '').toLowerCase();
           const detail = (l.reason_detail || '').toLowerCase();
-          return label.includes(q) || email.includes(q) || by.includes(q) || reason.includes(q) || detail.includes(q);
+          const cedulaMatch = cedulaEmails.has(email);
+          return label.includes(q) || email.includes(q) || by.includes(q) || reason.includes(q) || detail.includes(q) || cedulaMatch;
         });
       }
 
@@ -64,7 +68,7 @@ export default function WarehousePrintAudit() {
     } finally {
       setLoading(false);
     }
-  }, [search, typeFilter, statusFilter, page]);
+  }, [search, typeFilter, statusFilter, page, cedulaEmails]);
 
   useEffect(() => { load(); }, [load]);
   useEffect(() => { setPage(0); }, [search, typeFilter, statusFilter]);

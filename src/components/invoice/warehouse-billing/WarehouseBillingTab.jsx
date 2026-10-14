@@ -105,7 +105,7 @@ export default function WarehouseBillingTab({ search = '' }) {
     if (!matchesState) return false;
     if (!term) return true;
     const haystack = [
-      c.client_name, c.client_email, c.shipping_mark, c.city, c.state, c.whatsapp,
+      c.client_name, c.client_email, c.cedula, c.shipping_mark, c.city, c.state, c.whatsapp,
       ...c.bultos.map((b) => b.label), ...c.bultos.flatMap((b) => b.order_numbers || []),
       ...c.bultos.flatMap((b) => b.trackings || []),
       ...c.receipts.map((r) => r.label), ...c.receipts.flatMap((r) => r.trackings || []),

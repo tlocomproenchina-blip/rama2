@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
+import useCedulaClientEmails from '@/hooks/useCedulaClientEmails';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +23,8 @@ export default function AdminDelete({ user }) {
   const [consolidations, setConsolidations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  // Cédula escrita en el buscador → correos de los clientes que la tienen.
+  const cedulaEmails = useCedulaClientEmails(search);
   const [deleteDialog, setDeleteDialog] = useState({ open: false, type: null, item: null });
   const [deleting, setDeleting] = useState(false);
 
@@ -138,13 +141,15 @@ export default function AdminDelete({ user }) {
   const filteredPackages = packages.filter(pkg => 
     pkg.tracking_number.toLowerCase().includes(search.toLowerCase()) ||
     (pkg.shipping_mark || '').toLowerCase().includes(search.toLowerCase()) ||
-    (pkg.client_email || '').toLowerCase().includes(search.toLowerCase())
+    (pkg.client_email || '').toLowerCase().includes(search.toLowerCase()) ||
+    cedulaEmails.has((pkg.client_email || '').toLowerCase())
   );
 
   const filteredConsolidations = consolidations.filter(cons => 
     (cons.consolidation_tracking || '').toLowerCase().includes(search.toLowerCase()) ||
     (cons.shipping_mark || '').toLowerCase().includes(search.toLowerCase()) ||
-    (cons.client_email || '').toLowerCase().includes(search.toLowerCase())
+    (cons.client_email || '').toLowerCase().includes(search.toLowerCase()) ||
+    cedulaEmails.has((cons.client_email || '').toLowerCase())
   );
 
   if (loading) {

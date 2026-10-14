@@ -11,7 +11,7 @@ export default function WholesalerBillingClientPicker({ clients, selected, onTog
   const rows = useMemo(() => {
     const needle = query.trim().toLowerCase();
     if (!needle) return clients;
-    return clients.filter((client) => [client.full_name, client.email, client.shipping_mark]
+    return clients.filter((client) => [client.full_name, client.email, client.cedula, client.shipping_mark]
       .filter(Boolean)
       .join(' ')
       .toLowerCase()
