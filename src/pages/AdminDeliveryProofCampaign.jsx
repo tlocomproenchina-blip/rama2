@@ -20,6 +20,7 @@ import { Mail, Send, Loader2, Save, ImageIcon, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import CampaignImagesEditor from '@/components/delivery-proof/CampaignImagesEditor';
 import CampaignAudiencePanel from '@/components/delivery-proof/CampaignAudiencePanel';
+import CampaignSendChannel from '@/components/delivery-proof/CampaignSendChannel';
 import CampaignEmailPreview from '@/components/delivery-proof/CampaignEmailPreview';
 import CampaignSendResults from '@/components/delivery-proof/CampaignSendResults';
 
@@ -32,6 +33,7 @@ export default function AdminDeliveryProofCampaign() {
   const [saving, setSaving] = useState(false);
   const [sending, setSending] = useState(false);
   const [excludeNotified, setExcludeNotified] = useState(true);
+  const [provider, setProvider] = useState('brevo');
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [result, setResult] = useState(null);
   const skipAuto = useRef(true);
@@ -122,7 +124,7 @@ export default function AdminDeliveryProofCampaign() {
     setConfirmOpen(false);
     setSending(true);
     try {
-      const data = await call({ action: 'send', confirm: true, exclude_notified: excludeNotified, ...draft });
+      const data = await call({ action: 'send', confirm: true, exclude_notified: excludeNotified, provider, ...draft });
       if (!data?.ok) throw new Error(data?.error || 'No se pudo enviar la campaña');
       const runDate = new Date().toISOString();
       setResult({ ...data, date: runDate });
@@ -228,6 +230,7 @@ export default function AdminDeliveryProofCampaign() {
             </div>
 
             <div className="space-y-6">
+              <CampaignSendChannel provider={provider} onChange={setProvider} disabled={sending} />
               <CampaignAudiencePanel
                 totals={preview.totals}
                 sample={preview.sample}
@@ -250,8 +253,9 @@ export default function AdminDeliveryProofCampaign() {
             <AlertDialogDescription>
               Se enviará el correo del comprobante de entrega a {targets} {targets === 1 ? 'cliente' : 'clientes'} con
               Shipping Mark asignado. El correo les avisa que, desde su recepción, cargar la fecha y la foto del
-              comprobante es obligatorio para que el seguro de su carga sea válido. Después de enviarlo, cada correo
-              queda registrado en el resultado por cliente.
+              comprobante es obligatorio para que el seguro de su carga sea válido. El envío sale por{' '}
+              <strong>{provider === 'base44' ? 'Base44 (créditos de integración)' : 'Brevo'}</strong>. Después de
+              enviarlo, cada correo queda registrado en el resultado por cliente.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

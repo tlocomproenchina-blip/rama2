@@ -238,6 +238,9 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => ({}));
     const action = String(body.action || 'preview');
+    // Canal de envío elegido por el admin: 'brevo' (cuota diaria de Brevo) o
+    // 'base44' (servicio de correo de Base44, con créditos de integración).
+    const provider = String(body.provider || 'brevo') === 'base44' ? 'base44' : 'brevo';
     const saved = await loadConfig(base44);
 
     const draft = {
@@ -326,7 +329,8 @@ Deno.serve(async (req) => {
           body: html,
           from_name: 'TLEC CARGO',
           source: 'campaign',
-          campaign_name: CAMPAIGN_NAME
+          campaign_name: CAMPAIGN_NAME,
+          provider
         });
         results.push({
           email: recipient.email,
@@ -357,7 +361,8 @@ Deno.serve(async (req) => {
 
       const remaining = Math.max(0, targets.length - queue.length);
       const status = failed === 0 ? 'enviada' : sent === 0 ? 'fallida' : 'parcial';
-      const message = `${sent} de ${queue.length} correos entregados${failed ? `, ${failed} fallidos` : ''}.${remaining ? ` Quedan ${remaining} clientes para el siguiente envío.` : ''}`;
+      const channel = provider === 'base44' ? 'Base44' : 'Brevo';
+      const message = `Enviado por ${channel}: ${sent} de ${queue.length} correos entregados${failed ? `, ${failed} fallidos` : ''}.${remaining ? ` Quedan ${remaining} clientes para el siguiente envío.` : ''}`;
 
       await base44.asServiceRole.entities.DeliveryProofCampaign.update(saved.id, {
         subject: draft.subject,
@@ -376,6 +381,7 @@ Deno.serve(async (req) => {
       return Response.json({
         ok: true,
         status,
+        provider,
         sent,
         failed,
         total: queue.length,

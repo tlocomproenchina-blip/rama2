@@ -60,8 +60,10 @@ async function logDailyStat(base44: any, via: 'brevo' | 'fallback', quotaExceede
   } catch (_) {}
 }
 
-export async function sendBrevoEmail(base44: any, params: SendEmailParams & { source?: string; campaign_name?: string }): Promise<{ sent: boolean; error?: string; via: 'brevo' | 'fallback' }> {
-  const { to, subject, body, from_name, source, campaign_name } = params;
+// provider: 'brevo' (por defecto) usa la API de Brevo; 'base44' envía directo por
+// el servicio de correo de Base44, usando los créditos de integración del plan.
+export async function sendBrevoEmail(base44: any, params: SendEmailParams & { source?: string; campaign_name?: string; provider?: 'brevo' | 'base44' }): Promise<{ sent: boolean; error?: string; via: 'brevo' | 'fallback' }> {
+  const { to, subject, body, from_name, source, campaign_name, provider } = params;
   if (!to || !subject) return { sent: false, error: 'Falta to/subject', via: 'fallback' };
 
   const brevoApiKey = Deno.env.get('BREVO_API_KEY');
@@ -71,7 +73,9 @@ export async function sendBrevoEmail(base44: any, params: SendEmailParams & { so
 
   // === PLAN B: verificar cuota diaria de Brevo ===
   const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-  let useBrevo = !!(brevoApiKey && brevoSender);
+  // Con provider 'base44' se omite Brevo por completo y el correo sale por el
+  // servicio de Base44.
+  let useBrevo = provider !== 'base44' && !!(brevoApiKey && brevoSender);
   let configId: string | null = null;
   let currentCount = 0;
   let dailyLimit = 295;
