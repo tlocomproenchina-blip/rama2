@@ -2,6 +2,7 @@ import React from 'react';
 import { Copy, Sparkles, Footprints, TriangleAlert, MessageSquareQuote } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import AssistantWarehouseBlock from '@/components/support/assistant/AssistantWarehouseBlock';
 import { toast } from 'sonner';
 
 const copyText = async (text) => {
@@ -33,6 +34,10 @@ export default function AssistantTurnCard({ answer, onEscalate }) {
           <p className="text-sm font-medium text-foreground">{answer.paso_a_seguir}</p>
         </div>
       </div>
+
+      {answer.requiere_verificacion_almacen ? (
+        <AssistantWarehouseBlock pasos={answer.pasos_verificacion_almacen} mensaje={answer.mensaje_almacen} />
+      ) : null}
 
       <div className="space-y-2 rounded-2xl bg-muted/60 p-3">
         <div className="flex items-center justify-between gap-2">

@@ -40,7 +40,8 @@ export default function AssistantChatPanel({ client, turns, asking, onAsk, onEsc
               <ol className="mt-2 list-decimal space-y-1 pl-4">
                 <li>Busca al cliente por su teléfono o Shipping Mark y ábrelo.</li>
                 <li>Copia la pregunta que llegó por WhatsApp y pégala abajo.</li>
-                <li>Sigue el paso a seguir, envía la respuesta sugerida y vuelve con lo que el cliente responda.</li>
+                <li>Si el asistente pide verificar la carga, sigue los pasos, copia el mensaje y mándalo al almacén por WhatsApp.</li>
+                <li>Pega aquí la respuesta del almacén para continuar con el caso y responderle al cliente.</li>
                 <li>Si el caso necesita supervisión, escálalo a un supervisor en un clic.</li>
               </ol>
             </div>
@@ -50,7 +51,7 @@ export default function AssistantChatPanel({ client, turns, asking, onAsk, onEsc
             <div key={`${turn.at}-${index}`} className="space-y-2">
               <div className="flex justify-end">
                 <div className="max-w-[90%] rounded-2xl rounded-br-sm bg-primary px-3.5 py-2 text-sm text-primary-foreground">
-                  <p className="text-[11px] uppercase tracking-[0.12em] opacity-80">Mensaje del cliente · {index + 1}</p>
+                  <p className="text-[11px] uppercase tracking-[0.12em] opacity-80">Pegado por el ATC · {index + 1}</p>
                   <p className="whitespace-pre-wrap">{turn.question}</p>
                 </div>
               </div>
@@ -78,7 +79,7 @@ export default function AssistantChatPanel({ client, turns, asking, onAsk, onEsc
             }}
             rows={3}
             disabled={!client}
-            placeholder={client ? 'Pega aquí el mensaje que el cliente envió por WhatsApp…' : 'Primero selecciona al cliente'}
+            placeholder={client ? 'Pega aquí el mensaje del cliente o la respuesta del almacén…' : 'Primero selecciona al cliente'}
           />
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-xs text-muted-foreground">Enter para analizar · Shift + Enter para salto de línea</p>

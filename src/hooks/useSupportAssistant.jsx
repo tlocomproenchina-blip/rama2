@@ -82,8 +82,17 @@ export default function useSupportAssistant() {
       setAsking(true);
       try {
         const history = turns.flatMap((turn) => [
-          { role: 'cliente', text: turn.question },
-          { role: 'asistente', text: `${turn.answer.paso_a_seguir}\nRespuesta enviada: ${turn.answer.respuesta_sugerida}` },
+          { role: 'atc', text: turn.question },
+          {
+            role: 'asistente',
+            text: [
+              `Paso indicado: ${turn.answer.paso_a_seguir}`,
+              turn.answer.mensaje_almacen ? `Mensaje enviado al almacén: ${turn.answer.mensaje_almacen}` : null,
+              `Respuesta al cliente: ${turn.answer.respuesta_sugerida}`,
+            ]
+              .filter(Boolean)
+              .join('\n'),
+          },
         ]);
         const res = await base44.functions.invoke('supportAssistant', {
           action: 'ask',
