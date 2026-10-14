@@ -197,11 +197,20 @@ async function loadConfig(base44: any) {
   });
 }
 
-// Clientes con Shipping Mark asignado: se recorre el directorio de clientes (sin
-// administradores ni empleados por área), se descartan los registros sin correo
-// válido y se deduplica por correo.
-async function collectRecipients(base44: any) {
-  const map = new Map<string, any>();
+// Directorio de clientes: se recorren los usuarios (sin administradores ni
+// empleados por área) y se descartan los que no tienen correo válido. Se guarda
+// un minuto en memoria para que la búsqueda de la selección personalizada y la
+// vista previa no recorran el directorio entero en cada movimiento del admin.
+let _clientsCache: { at: number; list: any[] } = { at: 0, list: [] };
+const CLIENTS_TTL_MS = 60 * 1000;
+
+async function loadClients(base44: any) {
+  const now = Date.now();
+  if (_clientsCache.list.length > 0 && now - _clientsCache.at < CLIENTS_TTL_MS) {
+    return _clientsCache.list;
+  }
+
+  const list: any[] = [];
   const PAGE = 200;
 
   for (let page = 0; page < 60; page++) {
@@ -213,19 +222,50 @@ async function collectRecipients(base44: any) {
       if (user.is_active === false) continue;
       const email = String(user.email || '').trim().toLowerCase();
       if (!isEmail(email)) continue;
-      const shippingMark = String(user.shipping_mark || '').trim();
-      if (!shippingMark) continue;
-      if (map.has(email)) continue;
-      map.set(email, {
+      list.push({
         email,
-        shipping_mark: shippingMark,
-        client_name: String(user.full_name || '').trim() || shippingMark
+        shipping_mark: String(user.shipping_mark || '').trim(),
+        client_name: String(user.full_name || '').trim() || String(user.shipping_mark || '').trim() || email
       });
     }
     if (batch.length < PAGE) break;
   }
 
-  return [...map.values()].sort((a, b) => String(a.client_name).localeCompare(String(b.client_name)));
+  _clientsCache = { at: now, list };
+  return list;
+}
+
+// Audiencia de siempre: los clientes con Shipping Mark asignado.
+async function collectRecipients(base44: any) {
+  const map = new Map<string, any>();
+  for (const client of await loadClients(base44)) {
+    if (!client.shipping_mark) continue;
+    if (map.has(client.email)) continue;
+    map.set(client.email, client);
+  }
+  return sortByName([...map.values()]);
+}
+
+// Destinatarios elegidos a mano: se buscan en el directorio para llevar su
+// nombre y su Shipping Mark al correo y al registro del envío.
+async function collectSelected(base44: any, emails: Set<string>) {
+  const found = new Map<string, any>();
+  for (const client of await loadClients(base44)) {
+    if (!emails.has(client.email)) continue;
+    if (found.has(client.email)) continue;
+    found.set(client.email, client);
+  }
+  // Un correo seleccionado que no aparezca en el directorio se conserva: así el
+  // envío lo reporta como fallido en vez de perder la selección sin avisar.
+  for (const email of emails) {
+    if (found.has(email)) continue;
+    found.set(email, { email, shipping_mark: '', client_name: email });
+  }
+  return sortByName([...found.values()]);
+}
+
+function sortByName(rows: any[]) {
+  return rows.sort((a, b) => String(a.client_name).localeCompare(String(b.client_name)));
 }
 
 Deno.serve(async (req) => {
@@ -241,6 +281,14 @@ Deno.serve(async (req) => {
     // Canal de envío elegido por el admin: 'brevo' (cuota diaria de Brevo) o
     // 'base44' (servicio de correo de Base44, con créditos de integración).
     const provider = String(body.provider || 'brevo') === 'base44' ? 'base44' : 'brevo';
+    // Grupo de destinatarios: la audiencia completa (clientes con Shipping Mark)
+    // o la selección personalizada que el admin marcó a mano.
+    const group = String(body.group || 'elegibles') === 'personalizada' ? 'personalizada' : 'elegibles';
+    const selectedEmails = new Set(
+      (Array.isArray(body.recipient_emails) ? body.recipient_emails : [])
+        .map((value: any) => String(value || '').trim().toLowerCase())
+        .filter((value: string) => isEmail(value))
+    );
     const saved = await loadConfig(base44);
 
     const draft = {
@@ -258,19 +306,23 @@ Deno.serve(async (req) => {
       return Response.json({ ok: true, config: draft });
     }
 
-    const eligible = await collectRecipients(base44);
+    const audience = group === 'personalizada'
+      ? await collectSelected(base44, selectedEmails)
+      : await collectRecipients(base44);
     const notified = new Set(
       (saved.results || [])
         .filter((row: any) => row?.status === 'enviado')
         .map((row: any) => String(row.email || '').trim().toLowerCase())
     );
     const excludeNotified = body.exclude_notified === true;
-    const targets = excludeNotified ? eligible.filter((r) => !notified.has(r.email)) : eligible;
+    const targets = excludeNotified ? audience.filter((r) => !notified.has(r.email)) : audience;
     const totals = {
-      eligible: eligible.length,
-      notified: eligible.filter((r) => notified.has(r.email)).length,
+      group,
+      selected: selectedEmails.size,
+      eligible: audience.length,
+      notified: audience.filter((r) => notified.has(r.email)).length,
       targets: targets.length,
-      excluded: excludeNotified ? Math.max(0, eligible.length - targets.length) : 0
+      excluded: excludeNotified ? Math.max(0, audience.length - targets.length) : 0
     };
 
     if (action === 'preview') {
@@ -309,7 +361,11 @@ Deno.serve(async (req) => {
         return Response.json({ error: 'Falta la confirmación del envío.' }, { status: 400 });
       }
       if (targets.length === 0) {
-        return Response.json({ error: 'No hay clientes elegibles para enviar.' }, { status: 400 });
+        return Response.json({
+          error: group === 'personalizada'
+            ? 'No hay destinatarios en la selección personalizada para enviar.'
+            : 'No hay clientes elegibles para enviar.'
+        }, { status: 400 });
       }
 
       const queue = targets.slice(0, MAX_RECIPIENTS);
@@ -382,6 +438,7 @@ Deno.serve(async (req) => {
         ok: true,
         status,
         provider,
+        group,
         sent,
         failed,
         total: queue.length,

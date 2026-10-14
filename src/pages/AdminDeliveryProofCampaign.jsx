@@ -34,6 +34,10 @@ export default function AdminDeliveryProofCampaign() {
   const [sending, setSending] = useState(false);
   const [excludeNotified, setExcludeNotified] = useState(true);
   const [provider, setProvider] = useState('brevo');
+  // Grupo de destinatarios: la audiencia completa (con Shipping Mark) o la
+  // selección personalizada que el admin marca cliente por cliente.
+  const [group, setGroup] = useState('elegibles');
+  const [selectedEmails, setSelectedEmails] = useState([]);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [result, setResult] = useState(null);
   const skipAuto = useRef(true);
@@ -101,11 +105,16 @@ export default function AdminDeliveryProofCampaign() {
       return;
     }
     const timer = setTimeout(() => {
-      refreshPreview({ ...draft, exclude_notified: excludeNotified });
+      refreshPreview({
+        ...draft,
+        exclude_notified: excludeNotified,
+        group,
+        recipient_emails: selectedEmails
+      });
     }, 700);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [draft, excludeNotified]);
+  }, [draft, excludeNotified, group, selectedEmails]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -124,7 +133,15 @@ export default function AdminDeliveryProofCampaign() {
     setConfirmOpen(false);
     setSending(true);
     try {
-      const data = await call({ action: 'send', confirm: true, exclude_notified: excludeNotified, provider, ...draft });
+      const data = await call({
+        action: 'send',
+        confirm: true,
+        exclude_notified: excludeNotified,
+        provider,
+        group,
+        recipient_emails: selectedEmails,
+        ...draft
+      });
       if (!data?.ok) throw new Error(data?.error || 'No se pudo enviar la campaña');
       const runDate = new Date().toISOString();
       setResult({ ...data, date: runDate });
@@ -237,6 +254,11 @@ export default function AdminDeliveryProofCampaign() {
                 loading={previewLoading}
                 excludeNotified={excludeNotified}
                 onToggleExclude={setExcludeNotified}
+                group={group}
+                onGroupChange={setGroup}
+                selected={selectedEmails}
+                onSelectionChange={setSelectedEmails}
+                disabled={sending}
               />
               <CampaignEmailPreview html={preview.html} subject={draft.subject} loading={previewLoading} />
             </div>
@@ -251,8 +273,10 @@ export default function AdminDeliveryProofCampaign() {
           <AlertDialogHeader>
             <AlertDialogTitle>¿Enviar la campaña a {targets} clientes?</AlertDialogTitle>
             <AlertDialogDescription>
-              Se enviará el correo del comprobante de entrega a {targets} {targets === 1 ? 'cliente' : 'clientes'} con
-              Shipping Mark asignado. El correo les avisa que, desde su recepción, cargar la fecha y la foto del
+              {group === 'personalizada'
+                ? `Se enviará el correo del comprobante de entrega solo a los ${targets} ${targets === 1 ? 'cliente' : 'clientes'} que seleccionaste.`
+                : `Se enviará el correo del comprobante de entrega a ${targets} ${targets === 1 ? 'cliente' : 'clientes'} con Shipping Mark asignado.`}{' '}
+              El correo les avisa que, desde su recepción, cargar la fecha y la foto del
               comprobante es obligatorio para que el seguro de su carga sea válido. El envío sale por{' '}
               <strong>{provider === 'base44' ? 'Base44 (créditos de integración)' : 'Brevo'}</strong>. Después de
               enviarlo, cada correo queda registrado en el resultado por cliente.

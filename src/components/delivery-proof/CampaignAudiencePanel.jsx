@@ -4,6 +4,8 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Users, MailCheck, Loader2 } from 'lucide-react';
+import CampaignRecipientGroupSelect from '@/components/delivery-proof/CampaignRecipientGroupSelect';
+import CampaignRecipientPicker from '@/components/delivery-proof/CampaignRecipientPicker';
 
 function Metric({ icon: Icon, label, value }) {
   return (
@@ -17,22 +19,60 @@ function Metric({ icon: Icon, label, value }) {
   );
 }
 
-export default function CampaignAudiencePanel({ totals, sample, loading, excludeNotified, onToggleExclude }) {
+export default function CampaignAudiencePanel({
+  totals,
+  sample,
+  loading,
+  excludeNotified,
+  onToggleExclude,
+  group,
+  onGroupChange,
+  selected,
+  onSelectionChange,
+  disabled
+}) {
   const clients = sample || [];
+  const selection = selected || [];
+  const custom = group === 'personalizada';
 
   return (
     <Card className="border-border/70 shadow-card">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 font-display text-lg">
-          <Users className="h-4 w-4 text-primary" /> Clientes que recibirán el correo
+          <Users className="h-4 w-4 text-primary" /> Destinatarios
           {loading ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /> : null}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        <CampaignRecipientGroupSelect
+          value={group}
+          onChange={onGroupChange}
+          eligibleCount={totals?.eligible ?? 0}
+          selectedCount={selection.length}
+          disabled={disabled}
+        />
+
         <div className="grid grid-cols-2 gap-3">
-          <Metric icon={Users} label="Clientes" value={totals?.targets ?? 0} />
-          <Metric icon={MailCheck} label="Con Shipping Mark" value={totals?.eligible ?? 0} />
+          {custom ? (
+            <>
+              <Metric icon={Users} label="Seleccionados" value={selection.length} />
+              <Metric icon={MailCheck} label="Recibirán el correo" value={totals?.targets ?? 0} />
+            </>
+          ) : (
+            <>
+              <Metric icon={Users} label="Clientes" value={totals?.targets ?? 0} />
+              <Metric icon={MailCheck} label="Con Shipping Mark" value={totals?.eligible ?? 0} />
+            </>
+          )}
         </div>
+
+        {custom ? (
+          <CampaignRecipientPicker
+            selected={selection}
+            onChange={onSelectionChange}
+            disabled={disabled}
+          />
+        ) : null}
 
         {totals?.notified > 0 ? (
           <div className="flex items-start gap-3 rounded-2xl border border-border/70 bg-card p-3">
@@ -46,13 +86,13 @@ export default function CampaignAudiencePanel({ totals, sample, loading, exclude
                 No repetir el correo a quienes ya se les envió
               </Label>
               <p className="text-xs text-muted-foreground">
-                {totals.notified} de {totals.eligible} clientes ya recibieron esta campaña. Si desmarcas, se les vuelve a enviar.
+                {totals.notified} de {totals.eligible} {custom ? 'seleccionados' : 'clientes'} ya recibieron esta campaña. Si desmarcas, se les vuelve a enviar.
               </p>
             </div>
           </div>
         ) : null}
 
-        {clients.length ? (
+        {custom ? null : clients.length ? (
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Primeros clientes</span>
