@@ -45,7 +45,7 @@ export const ROLE_PRESETS = {
     role_code: 'comunicaciones',
     role_name: 'Comunicaciones',
     description: 'Campañas, plantillas y alertas de comunicación.',
-    visible_pages: ['AdminDashboard', 'AdminEmailCampaigns', 'AdminEmailTemplates', 'AdminPaymentAlerts']
+    visible_pages: ['AdminDashboard', 'AdminEmailCampaigns', 'AdminDeliveryProofCampaign', 'AdminEmailTemplates', 'AdminPaymentAlerts']
   },
   seguimiento: {
     role_code: 'seguimiento',

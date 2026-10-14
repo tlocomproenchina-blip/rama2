@@ -1,0 +1,145 @@
+{
+  "name": "DeliveryProofCampaign",
+  "type": "object",
+  "properties": {
+    "config_key": {
+      "type": "string",
+      "default": "main",
+      "description": "Clave \u00fanica de la campa\u00f1a de comprobantes de entrega (siempre 'main')"
+    },
+    "subject": {
+      "type": "string",
+      "description": "Asunto del correo que recibe el cliente"
+    },
+    "intro_text": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "P\u00e1rrafo con el que abre el correo, antes de las instrucciones para cargar la fecha y la foto"
+    },
+    "images": {
+      "type": "array",
+      "default": [],
+      "description": "Im\u00e1genes que salen en el correo, en orden: ejemplos del comprobante (Pinduoduo, 1688), la carga vista en Mis Paquetes y el formulario donde se agrega la fecha y la foto. Las que no tengan enlace no se muestran.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "Enlace p\u00fablico de la imagen"
+          },
+          "caption": {
+            "type": "string",
+            "maxLength": 200,
+            "description": "Texto que explica la imagen dentro del correo"
+          }
+        }
+      }
+    },
+    "deadline_hours": {
+      "type": "number",
+      "default": 48,
+      "description": "Horas que tiene el cliente desde que recibe el correo para cargar la fecha y la foto del comprobante"
+    },
+    "last_run_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha del \u00faltimo env\u00edo de la campa\u00f1a"
+    },
+    "last_run_by": {
+      "type": "string",
+      "description": "Email del administrador que hizo el \u00faltimo env\u00edo"
+    },
+    "last_run_status": {
+      "type": "string",
+      "enum": [
+        "enviada",
+        "parcial",
+        "fallida",
+        "nunca"
+      ],
+      "default": "nunca",
+      "description": "Resultado del \u00faltimo env\u00edo: enviada (todos), parcial (algunos fallaron), fallida (ninguno sali\u00f3) o nunca"
+    },
+    "last_run_recipients": {
+      "type": "number",
+      "default": 0,
+      "description": "Clientes a los que apunt\u00f3 el \u00faltimo env\u00edo"
+    },
+    "last_run_sent": {
+      "type": "number",
+      "default": 0,
+      "description": "Correos entregados en el \u00faltimo env\u00edo"
+    },
+    "last_run_failed": {
+      "type": "number",
+      "default": 0,
+      "description": "Correos que no se pudieron entregar en el \u00faltimo env\u00edo"
+    },
+    "last_run_message": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Resumen del \u00faltimo env\u00edo"
+    },
+    "results": {
+      "type": "array",
+      "default": [],
+      "description": "Resultado del \u00faltimo env\u00edo cliente por cliente: a qui\u00e9n le lleg\u00f3 el correo y a qui\u00e9n no. Es el resumen que muestra el panel.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "client_name": {
+            "type": "string"
+          },
+          "trackings_count": {
+            "type": "number",
+            "description": "Cargas pre-alertadas de ese cliente que se le recordaron"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "enviado",
+              "fallido"
+            ]
+          },
+          "error": {
+            "type": "string",
+            "maxLength": 300,
+            "description": "Motivo cuando el correo no sali\u00f3"
+          },
+          "date": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    }
+  },
+  "required": [
+    "config_key"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

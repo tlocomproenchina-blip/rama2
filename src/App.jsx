@@ -67,6 +67,7 @@ const AdminCreditUsage = lazy(() => import('./pages/AdminCreditUsage'));
 const AdminClientCredits = lazy(() => import('./pages/AdminClientCredits'));
 const AdminManualBilling = lazy(() => import('./pages/AdminManualBilling'));
 const AdminEmailHistory = lazy(() => import('./pages/AdminEmailHistory'));
+const AdminDeliveryProofCampaign = lazy(() => import('./pages/AdminDeliveryProofCampaign'));
 const AdminProviderCredits = lazy(() => import('./pages/AdminProviderCredits'));
 const AdminDispositivosBodega = lazy(() => import('./pages/AdminDispositivosBodega'));
 const AdminBodegaProductividad = lazy(() => import('./pages/AdminBodegaProductividad'));
@@ -193,6 +194,7 @@ const AuthenticatedApp = () => {
       <Route path="/AdminManualBilling" element={lazyRoute(AdminManualBilling, "AdminManualBilling")} />
       <Route path="/AdminWholesalerClients" element={lazyRoute(AdminWholesalerClients, "AdminWholesalerClients")} />
       <Route path="/AdminEmailHistory" element={lazyRoute(AdminEmailHistory, "AdminEmailHistory")} />
+      <Route path="/AdminDeliveryProofCampaign" element={lazyRoute(AdminDeliveryProofCampaign, "AdminDeliveryProofCampaign")} />
       <Route path="/AdminProviderCredits" element={lazyRoute(AdminProviderCredits, "AdminProviderCredits")} />
       <Route path="/AdminDispositivosBodega" element={lazyRoute(AdminDispositivosBodega, "AdminDispositivosBodega")} />
       <Route path="/AdminBodegaProductividad" element={lazyRoute(AdminBodegaProductividad, "AdminBodegaProductividad")} />
