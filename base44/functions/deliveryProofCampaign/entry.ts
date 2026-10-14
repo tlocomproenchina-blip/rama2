@@ -1,10 +1,10 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
 import { sendBrevoEmail } from '../../shared/brevoEmail.ts';
 
-// Campaña de recordatorio del comprobante de entrega.
-// Reúne a los clientes con cargas pre-alertadas de los últimos 30 días, arma el
-// correo con las imágenes de referencia y, tras la confirmación del admin, lo
-// envía a cada uno dejando el resultado registrado cliente por cliente.
+// Campaña del comprobante de entrega.
+// Reúne a todos los clientes con Shipping Mark asignado, arma el correo con las
+// cuatro imágenes de referencia y, tras la confirmación del admin, lo envía a
+// cada uno dejando el resultado registrado cliente por cliente.
 
 const APP_URL = 'https://tleccargo.com';
 const MY_PACKAGES_URL = `${APP_URL}/MyPackages`;
@@ -13,23 +13,31 @@ const TAGLINE = 'Tu carga asegurada desde China hasta Venezuela';
 const LOGO_URL = 'https://media.base44.com/images/public/695da428c9924ef9b68e8866/362c2e6ac_WhatsAppImage2026-08-17at90120AM.jpeg';
 const CAMPAIGN_NAME = 'Comprobantes de entrega';
 const CONFIG_KEY = 'main';
-const WINDOW_DAYS = 30;
-const MAX_RECIPIENTS = 500;
+// Cada corrida envía un lote: el correo a cada cliente toma tiempo y la corrida
+// debe alcanzar a completarse para que quede registrado quién lo recibió. Los
+// clientes que sobran salen en la corrida siguiente, sin repetir a los anteriores.
+const MAX_RECIPIENTS = 120;
 const SEND_DELAY_MS = 120;
 
-const DEFAULT_SUBJECT = 'Nos falta el comprobante de entrega de tu carga (48 horas)';
-const DEFAULT_INTRO = 'Recibimos tu pre-alerta, pero todavía nos falta la evidencia de que el vendedor entregó la carga en nuestro almacén de China: la fecha de entrega y la foto del comprobante. Ese respaldo es indispensable para mantener la cobertura del seguro de tu carga.';
+const DEFAULT_SUBJECT = 'Carga la fecha y la foto del comprobante de entrega: ahora es obligatorio';
+const DEFAULT_INTRO = 'Queremos informarte de un cambio importante. A partir de la recepción de este correo, cargar la fecha en que el vendedor entregó tu paquete en nuestro almacén de China y la foto del comprobante de entrega es obligatorio para todos los clientes con Shipping Mark asignado. Ese respaldo es lo que permite validar el seguro de tu carga si alguna vez necesitas reclamarlo.';
 const DEFAULT_IMAGES = [
   {
-    url: 'https://media.base44.com/images/public/695da428c9924ef9b68e8866/2484aa300_WhatsAppImage2026-04-03at12951PM.jpg',
-    caption: 'Ejemplo del comprobante en Pinduoduo'
+    url: 'https://media.base44.com/images/public/695da428c9924ef9b68e8866/e234e21ac_image.png',
+    caption: 'Ejemplo en Pinduoduo: la entrega del vendedor aparece como recibida con su fecha y hora.'
   },
   {
-    url: 'https://media.base44.com/images/public/695da428c9924ef9b68e8866/d11b83368_WhatsAppImage2026-04-03at12833PM.jpg',
-    caption: 'Ejemplo del comprobante en 1688'
+    url: 'https://media.base44.com/images/public/695da428c9924ef9b68e8866/c534edb13_image.png',
+    caption: 'Ejemplo en 1688: la guía del vendedor muestra la entrega con su fecha exacta.'
   },
-  { url: '', caption: 'Cómo se ve tu carga en Mis Paquetes' },
-  { url: '', caption: 'Dónde agregas la fecha y la foto del comprobante' }
+  {
+    url: 'https://media.base44.com/images/public/695da428c9924ef9b68e8866/b2ab15b8a_Untitleddesign.png',
+    caption: 'En Mis Paquetes, pulsa Agregar fecha entrega en la carga que quieras respaldar.'
+  },
+  {
+    url: 'https://media.base44.com/images/public/695da428c9924ef9b68e8866/f0674fd71_Capturadepantalla2026-10-13195620.png',
+    caption: 'Elige la fecha de entrega del vendedor, adjunta la foto con Elegir foto y pulsa Guardar.'
+  }
 ];
 
 function isEmail(value: any) {
@@ -43,22 +51,6 @@ function escapeHtml(value: any) {
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#39;');
-}
-
-// Fecha límite en hora de Caracas: se calcula desde el momento del correo,
-// no como una fecha fija para todos.
-function caracasDeadline(hours: number) {
-  const target = new Date(Date.now() + Number(hours || 48) * 3600 * 1000);
-  const formatted = new Intl.DateTimeFormat('es-VE', {
-    timeZone: 'America/Caracas',
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: true
-  }).format(target);
-  return formatted.charAt(0).toUpperCase() + formatted.slice(1);
 }
 
 // Guarda las posiciones (incluidas las vacías) para que el panel muestre los
@@ -84,17 +76,9 @@ function stepRow(number: number, text: string) {
   </tr>`;
 }
 
-function buildEmail({ intro, hours, images, recipient }: { intro: string; hours: number; images: any[]; recipient: any }) {
+function buildEmail({ intro, images, recipient }: { intro: string; images: any[]; recipient: any }) {
   const name = String(recipient?.client_name || recipient?.name || '').trim() || 'cliente';
   const email = String(recipient?.email || '').trim();
-  const trackings: string[] = Array.isArray(recipient?.trackings) ? recipient.trackings.map((t: any) => String(t)) : [];
-  const total = Number(recipient?.count || trackings.length || 0);
-  const shown = trackings.slice(0, 5);
-  const extra = Math.max(0, total - shown.length);
-  const chips = shown
-    .map((t) => `<span style="display:inline-block;background-color:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:3px 8px;margin:3px 6px 3px 0;font-family:Courier New,monospace;font-size:12px;color:#1e3a8a;">${escapeHtml(t)}</span>`)
-    .join('');
-  const deadline = caracasDeadline(hours);
 
   const imagesHtml = images
     .map((img: any) => `<tr><td style="padding:0 0 16px;">
@@ -108,7 +92,7 @@ function buildEmail({ intro, hours, images, recipient }: { intro: string; hours:
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Comprobante de entrega pendiente</title>
+<title>Comprobante de entrega obligatorio</title>
 </head>
 <body style="margin:0;padding:0;background-color:#f7fafd;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f7fafd;padding:24px 12px;">
@@ -134,7 +118,7 @@ function buildEmail({ intro, hours, images, recipient }: { intro: string; hours:
 
           <tr>
             <td style="padding:28px 24px 0;font-family:Inter,Arial,sans-serif;">
-              <h1 style="margin:0;font-size:22px;line-height:1.3;color:#0f172a;">Hola ${escapeHtml(name)}, falta el comprobante de entrega de tu carga</h1>
+              <h1 style="margin:0;font-size:22px;line-height:1.3;color:#0f172a;">Hola ${escapeHtml(name)}, el comprobante de entrega ahora es obligatorio</h1>
             </td>
           </tr>
 
@@ -144,25 +128,12 @@ function buildEmail({ intro, hours, images, recipient }: { intro: string; hours:
             </td>
           </tr>
 
-          ${total > 0 ? `<tr>
-            <td style="padding:16px 24px 0;font-family:Manrope,Arial,sans-serif;">
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f7fafd;border:1px solid #e5e7eb;border-radius:12px;">
-                <tr>
-                  <td style="padding:14px 16px;">
-                    <div style="font-size:13px;font-weight:700;color:#0f172a;">Cargas pre-alertadas sin comprobante: ${total}</div>
-                    ${total > 1 ? `<div style="font-size:12px;color:#64748b;padding-top:8px;">${chips}${extra ? `<span style="font-size:12px;color:#64748b;">y ${extra} más</span>` : ''}</div>` : ''}
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>` : ''}
-
           <tr>
             <td style="padding:14px 24px 0;font-family:Manrope,Arial,sans-serif;">
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#fff7ed;border:1px solid #fed7aa;border-radius:12px;">
                 <tr>
                   <td style="padding:14px 16px;font-size:14px;line-height:1.55;color:#7c2d12;">
-                    <strong>Tienes ${Number(hours || 48)} horas</strong> desde que recibes este correo para cargarla: hasta el <strong>${deadline}</strong> (hora de Caracas). Pasado el plazo, tu carga queda sin el respaldo que exige el seguro.
+                    <strong>Obligatorio desde la recepción de este correo.</strong> La fecha de entrega del vendedor y la foto del comprobante son indispensables para que el seguro de tu carga pueda ser válido. Sin ese respaldo no podemos atender un reclamo por pérdida o daño.
                   </td>
                 </tr>
               </table>
@@ -174,15 +145,15 @@ function buildEmail({ intro, hours, images, recipient }: { intro: string; hours:
               <div style="font-size:15px;font-weight:700;color:#0f172a;padding-bottom:10px;">Cómo cargar el comprobante en 3 pasos</div>
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="font-family:Manrope,Arial,sans-serif;font-size:14px;color:#0f172a;">
                 ${stepRow(1, 'Entra a tu cuenta de TLEC CARGO y abre <strong>Mis Paquetes</strong>.')}
-                ${stepRow(2, 'Busca la carga con la pre-alerta y pulsa <strong>Agregar fecha entrega</strong>.')}
-                ${stepRow(3, 'Registra la <strong>fecha en que el vendedor entregó el paquete</strong> en el almacén y sube la <strong>foto del comprobante</strong> (guía o recibo de entrega).')}
+                ${stepRow(2, 'Ubica tu carga y pulsa <strong>Agregar fecha entrega</strong>.')}
+                ${stepRow(3, 'Elige la <strong>fecha en que el vendedor entregó el paquete</strong> en nuestro almacén, adjunta la <strong>foto del comprobante</strong> con <strong>Elegir foto</strong> y pulsa <strong>Guardar</strong>.')}
               </table>
             </td>
           </tr>
 
           ${imagesHtml ? `<tr>
             <td style="padding:18px 24px 0;font-family:Inter,Arial,sans-serif;">
-              <div style="font-size:15px;font-weight:700;color:#0f172a;padding-bottom:10px;">Ejemplos y guía rápida</div>
+              <div style="font-size:15px;font-weight:700;color:#0f172a;padding-bottom:10px;">Ejemplos reales y dónde cargas los datos</div>
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">${imagesHtml}</table>
             </td>
           </tr>` : ''}
@@ -195,14 +166,14 @@ function buildEmail({ intro, hours, images, recipient }: { intro: string; hours:
 
           <tr>
             <td style="padding:0 24px 24px;font-family:Manrope,Arial,sans-serif;font-size:13px;line-height:1.6;color:#64748b;">
-              Si ya cargaste la fecha y la foto, puedes ignorar este correo.
+              Si ya cargaste la fecha y la foto de tu carga, ya cumples con este requisito.
             </td>
           </tr>
 
           <tr>
             <td style="background-color:#f7fafd;border-top:1px solid #e5e7eb;padding:18px 24px;font-family:Manrope,Arial,sans-serif;font-size:12px;line-height:1.6;color:#64748b;">
               ${BRAND_NAME} · ${TAGLINE}<br />
-              <a href="${APP_URL}" style="color:#5c9eeb;text-decoration:none;">tleccargo.com</a>${email ? ` · Este correo llegó a ${escapeHtml(email)} porque tienes una carga pre-alertada en nuestro almacén de China.` : ''}
+              <a href="${APP_URL}" style="color:#5c9eeb;text-decoration:none;">tleccargo.com</a>${email ? ` · Este correo llegó a ${escapeHtml(email)} porque tienes un Shipping Mark asignado en TLEC CARGO.` : ''}
             </td>
           </tr>
 
@@ -222,64 +193,39 @@ async function loadConfig(base44: any) {
     subject: DEFAULT_SUBJECT,
     intro_text: DEFAULT_INTRO,
     images: DEFAULT_IMAGES,
-    deadline_hours: 48,
     last_run_status: 'nunca'
   });
 }
 
-// Clientes con cargas pre-alertadas creadas en los últimos 30 días: se deduplica
-// por correo y se descartan los registros sin correo válido.
+// Clientes con Shipping Mark asignado: se recorre el directorio de clientes (sin
+// administradores ni empleados por área), se descartan los registros sin correo
+// válido y se deduplica por correo.
 async function collectRecipients(base44: any) {
-  const since = new Date(Date.now() - WINDOW_DAYS * 24 * 3600 * 1000).toISOString();
   const map = new Map<string, any>();
-  let skip = 0;
   const PAGE = 200;
 
-  for (let page = 0; page < 40; page++) {
-    const batch = await base44.asServiceRole.entities.Package.filter(
-      { status: 'pre_alerta', created_date: { $gte: since } },
-      '-created_date',
-      PAGE,
-      skip
-    );
+  for (let page = 0; page < 60; page++) {
+    const batch = await base44.asServiceRole.entities.User.list('-created_date', PAGE, page * PAGE);
     if (!batch || batch.length === 0) break;
-    for (const pkg of batch) {
-      const email = String(pkg.client_email || '').trim().toLowerCase();
+    for (const user of batch) {
+      if (!user) continue;
+      if (user.role === 'admin' || user.custom_role) continue;
+      if (user.is_active === false) continue;
+      const email = String(user.email || '').trim().toLowerCase();
       if (!isEmail(email)) continue;
-      const entry = map.get(email) || { email, trackings: [], shipping_mark: '', created_date: pkg.created_date || '' };
-      if (pkg.tracking_number) entry.trackings.push(String(pkg.tracking_number));
-      if (!entry.shipping_mark && pkg.shipping_mark) entry.shipping_mark = String(pkg.shipping_mark);
-      map.set(email, entry);
+      const shippingMark = String(user.shipping_mark || '').trim();
+      if (!shippingMark) continue;
+      if (map.has(email)) continue;
+      map.set(email, {
+        email,
+        shipping_mark: shippingMark,
+        client_name: String(user.full_name || '').trim() || shippingMark
+      });
     }
     if (batch.length < PAGE) break;
-    skip += PAGE;
   }
 
-  const recipients = [...map.values()].map((entry) => ({
-    email: entry.email,
-    trackings: entry.trackings,
-    count: entry.trackings.length,
-    shipping_mark: entry.shipping_mark,
-    client_name: entry.shipping_mark || 'cliente'
-  }));
-
-  // Nombre del cliente para el saludo del correo.
-  const names = new Map<string, string>();
-  const emails = recipients.map((r) => r.email);
-  for (let i = 0; i < emails.length; i += 50) {
-    const chunk = emails.slice(i, i + 50);
-    try {
-      const users = await base44.asServiceRole.entities.User.filter({ email: { $in: chunk } });
-      for (const user of users || []) {
-        const key = String(user.email || '').trim().toLowerCase();
-        if (key && user.full_name) names.set(key, String(user.full_name));
-      }
-    } catch (_) {
-      // Si no se puede leer el directorio, el correo sale con el shipping mark.
-    }
-  }
-
-  return recipients.map((r) => ({ ...r, client_name: names.get(r.email) || r.client_name }));
+  return [...map.values()].sort((a, b) => String(a.client_name).localeCompare(String(b.client_name)));
 }
 
 Deno.serve(async (req) => {
@@ -297,16 +243,14 @@ Deno.serve(async (req) => {
     const draft = {
       subject: String(body.subject ?? saved.subject ?? DEFAULT_SUBJECT).trim().slice(0, 200) || DEFAULT_SUBJECT,
       intro_text: String(body.intro_text ?? saved.intro_text ?? DEFAULT_INTRO).trim().slice(0, 1000),
-      images: body.images ? sanitizeImages(body.images) : sanitizeImages(saved.images?.length ? saved.images : DEFAULT_IMAGES),
-      deadline_hours: Number(body.deadline_hours ?? saved.deadline_hours ?? 48) || 48
+      images: body.images ? sanitizeImages(body.images) : sanitizeImages(saved.images?.length ? saved.images : DEFAULT_IMAGES)
     };
 
     if (action === 'save') {
       await base44.asServiceRole.entities.DeliveryProofCampaign.update(saved.id, {
         subject: draft.subject,
         intro_text: draft.intro_text,
-        images: draft.images,
-        deadline_hours: draft.deadline_hours
+        images: draft.images
       });
       return Response.json({ ok: true, config: draft });
     }
@@ -319,13 +263,10 @@ Deno.serve(async (req) => {
     );
     const excludeNotified = body.exclude_notified === true;
     const targets = excludeNotified ? eligible.filter((r) => !notified.has(r.email)) : eligible;
-    const packages = targets.reduce((sum, r) => sum + Number(r.count || 0), 0);
-
     const totals = {
       eligible: eligible.length,
       notified: eligible.filter((r) => notified.has(r.email)).length,
       targets: targets.length,
-      packages,
       excluded: excludeNotified ? Math.max(0, eligible.length - targets.length) : 0
     };
 
@@ -333,25 +274,21 @@ Deno.serve(async (req) => {
       const sample = targets[0] || {
         email: 'cliente@ejemplo.com',
         client_name: 'Cliente de ejemplo',
-        trackings: ['TLEC000000'],
-        count: 1,
         shipping_mark: 'TLEC000000'
       };
       return Response.json({
         ok: true,
         html: buildEmail({
           intro: draft.intro_text,
-          hours: draft.deadline_hours,
           images: usableImages(draft.images),
           recipient: sample
         }),
         totals,
-        sample: targets.slice(0, 60).map((r) => ({ email: r.email, client_name: r.client_name, count: r.count })),
+        sample: targets.slice(0, 60).map((r) => ({ email: r.email, client_name: r.client_name, shipping_mark: r.shipping_mark })),
         config: {
           subject: draft.subject,
           intro_text: draft.intro_text,
           images: draft.images,
-          deadline_hours: draft.deadline_hours,
           last_run_date: saved.last_run_date || null,
           last_run_by: saved.last_run_by || null,
           last_run_status: saved.last_run_status || 'nunca',
@@ -380,7 +317,6 @@ Deno.serve(async (req) => {
       for (const recipient of queue) {
         const html = buildEmail({
           intro: draft.intro_text,
-          hours: draft.deadline_hours,
           images: usableImages(draft.images),
           recipient
         });
@@ -395,24 +331,38 @@ Deno.serve(async (req) => {
         results.push({
           email: recipient.email,
           client_name: recipient.client_name,
-          trackings_count: recipient.count,
+          shipping_mark: recipient.shipping_mark || '',
           status: outcome.sent ? 'enviado' : 'fallido',
           error: outcome.sent ? '' : String(outcome.error || 'No se pudo enviar').slice(0, 300),
           date: new Date().toISOString()
         });
         if (outcome.sent) sent++;
         else failed++;
+        // Se guarda el avance cada 25 correos: si la corrida se corta, el panel
+        // conserva a quién se le envió y a quién no.
+        if (results.length % 25 === 0) {
+          await base44.asServiceRole.entities.DeliveryProofCampaign.update(saved.id, {
+            last_run_date: new Date().toISOString(),
+            last_run_by: me.email || '',
+            last_run_status: 'parcial',
+            last_run_recipients: queue.length,
+            last_run_sent: sent,
+            last_run_failed: failed,
+            last_run_message: `Envío en curso: ${sent} de ${queue.length} correos entregados.`,
+            results
+          });
+        }
         if (SEND_DELAY_MS) await new Promise((resolve) => setTimeout(resolve, SEND_DELAY_MS));
       }
 
+      const remaining = Math.max(0, targets.length - queue.length);
       const status = failed === 0 ? 'enviada' : sent === 0 ? 'fallida' : 'parcial';
-      const message = `${sent} de ${queue.length} correos entregados${failed ? `, ${failed} fallidos.` : '.'}`;
+      const message = `${sent} de ${queue.length} correos entregados${failed ? `, ${failed} fallidos` : ''}.${remaining ? ` Quedan ${remaining} clientes para el siguiente envío.` : ''}`;
 
       await base44.asServiceRole.entities.DeliveryProofCampaign.update(saved.id, {
         subject: draft.subject,
         intro_text: draft.intro_text,
         images: draft.images,
-        deadline_hours: draft.deadline_hours,
         last_run_date: new Date().toISOString(),
         last_run_by: me.email || '',
         last_run_status: status,
@@ -429,6 +379,7 @@ Deno.serve(async (req) => {
         sent,
         failed,
         total: queue.length,
+        remaining,
         message,
         totals,
         results

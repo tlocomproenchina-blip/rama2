@@ -16,7 +16,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle
 } from '@/components/ui/alert-dialog';
-import { Mail, Send, Loader2, Save, ImageIcon, Clock3, FileText } from 'lucide-react';
+import { Mail, Send, Loader2, Save, ImageIcon, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import CampaignImagesEditor from '@/components/delivery-proof/CampaignImagesEditor';
 import CampaignAudiencePanel from '@/components/delivery-proof/CampaignAudiencePanel';
@@ -80,8 +80,7 @@ export default function AdminDeliveryProofCampaign() {
         setDraft({
           subject: config.subject || '',
           intro_text: config.intro_text || '',
-          images: config.images || [],
-          deadline_hours: config.deadline_hours || 48
+          images: config.images || []
         });
       }
       setLoading(false);
@@ -153,7 +152,7 @@ export default function AdminDeliveryProofCampaign() {
         icon={Mail}
         badge="Comunicaciones"
         title="Comprobantes de entrega"
-        description="Recordatorio a los clientes con cargas pre-alertadas de los últimos 30 días: deben registrar la fecha en que el vendedor entregó el paquete y subir la foto del comprobante, dentro de las 48 horas siguientes al correo, para respaldar la cobertura del seguro."
+        description="Correo para todos los clientes con Shipping Mark asignado: desde que lo reciben, cargar la fecha en que el vendedor entregó el paquete y la foto del comprobante es obligatorio para que el seguro de su carga pueda ser válido."
         loadingLabel={loading ? 'Preparando la campaña…' : undefined}
         actions={
           <>
@@ -206,23 +205,6 @@ export default function AdminDeliveryProofCampaign() {
                       Después de este párrafo el correo explica los 3 pasos para cargar la fecha y la foto dentro de Mis Paquetes.
                     </p>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="campaign-hours" className="flex items-center gap-2">
-                      <Clock3 className="h-3.5 w-3.5" /> Horas para cargar el comprobante
-                    </Label>
-                    <Input
-                      id="campaign-hours"
-                      type="number"
-                      min={1}
-                      max={168}
-                      value={draft.deadline_hours}
-                      onChange={(event) => setDraft({ ...draft, deadline_hours: Number(event.target.value) || 48 })}
-                      disabled={sending}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      El plazo se cuenta desde el momento en que sale cada correo.
-                    </p>
-                  </div>
                 </CardContent>
               </Card>
 
@@ -266,9 +248,10 @@ export default function AdminDeliveryProofCampaign() {
           <AlertDialogHeader>
             <AlertDialogTitle>¿Enviar la campaña a {targets} clientes?</AlertDialogTitle>
             <AlertDialogDescription>
-              Se enviará el correo de comprobante de entrega a {targets} {targets === 1 ? 'cliente' : 'clientes'} con cargas
-              pre-alertadas de los últimos 30 días, con un plazo de {draft?.deadline_hours || 48} horas desde la recepción.
-              Después de enviarlo, cada correo queda registrado en el resultado por cliente.
+              Se enviará el correo del comprobante de entrega a {targets} {targets === 1 ? 'cliente' : 'clientes'} con
+              Shipping Mark asignado. El correo les avisa que, desde su recepción, cargar la fecha y la foto del
+              comprobante es obligatorio para que el seguro de su carga sea válido. Después de enviarlo, cada correo
+              queda registrado en el resultado por cliente.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

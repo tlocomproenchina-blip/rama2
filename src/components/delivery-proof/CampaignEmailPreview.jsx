@@ -56,7 +56,7 @@ export default function CampaignEmailPreview({ html, subject, loading }) {
           </div>
         </div>
         <p className="text-xs text-muted-foreground">
-          El plazo de 48 horas que aparece en el correo se calcula desde el momento del envío, así que cada cliente ve su propia fecha límite.
+          El correo sale con las cuatro imágenes y el aviso de que cargar la fecha y la foto del comprobante es obligatorio desde su recepción para que el seguro sea válido.
         </p>
       </CardContent>
     </Card>

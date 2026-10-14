@@ -5,7 +5,7 @@
     "config_key": {
       "type": "string",
       "default": "main",
-      "description": "Clave \u00fanica de la campa\u00f1a de comprobantes de entrega (siempre 'main')"
+      "description": "Clave \u00fanica de la campa\u00f1a del comprobante de entrega (siempre 'main')"
     },
     "subject": {
       "type": "string",
@@ -14,12 +14,12 @@
     "intro_text": {
       "type": "string",
       "maxLength": 1000,
-      "description": "P\u00e1rrafo con el que abre el correo, antes de las instrucciones para cargar la fecha y la foto"
+      "description": "P\u00e1rrafo con el que abre el correo, antes del aviso de obligatoriedad y de los pasos para cargar la fecha y la foto"
     },
     "images": {
       "type": "array",
       "default": [],
-      "description": "Im\u00e1genes que salen en el correo, en orden: ejemplos del comprobante (Pinduoduo, 1688), la carga vista en Mis Paquetes y el formulario donde se agrega la fecha y la foto. Las que no tengan enlace no se muestran.",
+      "description": "Im\u00e1genes que salen en el correo, en orden: ejemplo del comprobante en Pinduoduo, ejemplo en 1688, la carga en Mis Paquetes y el formulario donde se agrega la fecha y la foto. Las que no tengan enlace no se muestran.",
       "items": {
         "type": "object",
         "properties": {
@@ -34,11 +34,6 @@
           }
         }
       }
-    },
-    "deadline_hours": {
-      "type": "number",
-      "default": 48,
-      "description": "Horas que tiene el cliente desde que recibe el correo para cargar la fecha y la foto del comprobante"
     },
     "last_run_date": {
       "type": "string",
@@ -93,9 +88,9 @@
           "client_name": {
             "type": "string"
           },
-          "trackings_count": {
-            "type": "number",
-            "description": "Cargas pre-alertadas de ese cliente que se le recordaron"
+          "shipping_mark": {
+            "type": "string",
+            "description": "Shipping Mark del cliente al que se le envi\u00f3 el correo"
           },
           "status": {
             "type": "string",
