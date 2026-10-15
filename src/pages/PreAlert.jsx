@@ -432,7 +432,7 @@ export default function PreAlert({ user }) {
                     ))}
                   </SelectContent>
                 </Select>
-                <p className="text-xs text-slate-500">Si generaste una etiqueta con código de barras, selecciónala aquí para vincularla y evitar paquetes duplicados al escanear.</p>
+                <p className="text-xs text-slate-500">Si generaste una etiqueta con su código QR, selecciónala aquí para vincularla y evitar paquetes duplicados al escanear.</p>
               </div>
             )}
 

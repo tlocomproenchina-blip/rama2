@@ -1,16 +1,17 @@
 // PDF combinado de etiquetas de bulto (100×100 mm, una página por etiqueta).
 // Se usa al crear bultos en lote para imprimir todas las etiquetas del lote en un
-// solo archivo, con la misma información que la etiqueta térmica: código de barras,
-// estado del cliente, N° de contenedor y datos de entrega.
+// solo archivo, con la misma información que la etiqueta térmica: el código QR de la
+// etiqueta nueva, estado del cliente, N° de contenedor y datos de entrega.
+import { isNewLabel, labelSymbolImage } from '@/lib/labelSymbol';
+
 export async function downloadCombinedBultoLabelsPdf({ bultos = [], nameHint = 'bultos' }) {
   if (!bultos.length) return 0;
 
   const { default: jsPDF } = await import('jspdf');
-  const JsBarcode = (await import('jsbarcode')).default;
-
   const doc = new jsPDF({ unit: 'mm', format: [100, 100] });
 
-  bultos.forEach((bulto, idx) => {
+  for (let idx = 0; idx < bultos.length; idx += 1) {
+    const bulto = bultos[idx];
     if (idx > 0) doc.addPage();
     const cs = bulto.client_snapshot || {};
     const pkgCount = ((bulto.package_ids?.length || 0) + (bulto.unregistered_codes?.length || 0))
@@ -18,13 +19,18 @@ export async function downloadCombinedBultoLabelsPdf({ bultos = [], nameHint = '
     let y = 5;
 
     try {
-      const canvas = document.createElement('canvas');
-      JsBarcode(canvas, bulto.label_code, { format: 'CODE128', width: 4, height: 80, displayValue: true, fontSize: 18, margin: 0 });
-      const imgData = canvas.toDataURL('image/png');
-      const imgWidth = 85;
-      const imgHeight = (canvas.height / canvas.width) * imgWidth;
-      doc.addImage(imgData, 'PNG', (100 - imgWidth) / 2, y, imgWidth, imgHeight);
+      const symbol = await labelSymbolImage(bulto.label_code, { qr: isNewLabel(bulto) });
+      const imgWidth = symbol.isQr ? 45 : 85;
+      const imgHeight = symbol.ratio * imgWidth;
+      doc.addImage(symbol.data, 'PNG', (100 - imgWidth) / 2, y, imgWidth, imgHeight);
       y += imgHeight + 3;
+      if (symbol.isQr) {
+        doc.setFont(undefined, 'bold');
+        doc.setFontSize(14);
+        doc.setTextColor(0);
+        doc.text(bulto.label_code, 50, y + 4, { align: 'center' });
+        y += 8;
+      }
     } catch (_) {}
 
     doc.setLineWidth(0.3);
@@ -75,7 +81,7 @@ export async function downloadCombinedBultoLabelsPdf({ bultos = [], nameHint = '
     }
     const cityState = [cs.city, cs.state].filter(Boolean).join(', ');
     if (cityState) { doc.text(cityState, 5, y); }
-  });
+  }
 
   const safeName = String(nameHint || 'bultos').replace(/[^a-zA-Z0-9]/g, '');
   doc.save(`etiquetas-${safeName}-${bultos.length}.pdf`);

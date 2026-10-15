@@ -165,6 +165,7 @@ export default function ContinuousLabelsDialog({ guide, open, onOpenChange }) {
         guideNumber,
         emittedAt: guide?.emitted_date || '',
         barcodeCode: cajaOf(number)?.label_code || '',
+        qr: true,
       })
     );
 

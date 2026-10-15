@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,8 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Tag, Download, Printer, Loader2, QrCode, FileText } from 'lucide-react';
-import JsBarcode from 'jsbarcode';
 import { toast } from 'sonner';
+import QrCodeCanvas from '@/components/common/QrCodeCanvas';
 
 export default function ShippingLabelGenerator({ user, config }) {
   const [open, setOpen] = useState(false);
@@ -25,7 +25,6 @@ export default function ShippingLabelGenerator({ user, config }) {
   const [labelCode, setLabelCode] = useState(null);
   const [labelId, setLabelId] = useState(null);
   const labelRefs = useRef([]);
-  const barcodeRefs = useRef([]);
 
   const shippingMark = user?.shipping_mark || '';
   const logoUrl = config?.app_logo_url || config?.invoice_logo_url || '';
@@ -34,35 +33,10 @@ export default function ShippingLabelGenerator({ user, config }) {
   const boxCount = Math.max(1, Number(form.boxCount) || 1);
   const isMultiBox = boxCount > 1;
 
-  // Render barcode en todas las copias cuando se asigna el código
-  useEffect(() => {
-    if (labelCode) {
-      barcodeRefs.current.forEach((ref) => {
-        if (ref) {
-          try {
-            JsBarcode(ref, labelCode, {
-              format: 'CODE128',
-              displayValue: true,
-              fontSize: 12,
-              fontOptions: 'bold',
-              height: 50,
-              width: 1.8,
-              margin: 2,
-              textMargin: 2,
-            });
-          } catch (e) {
-            console.error('Error rendering barcode:', e);
-          }
-        }
-      });
-    }
-  }, [labelCode, open, boxCount]);
-
   const resetState = () => {
     setLabelCode(null);
     setLabelId(null);
     labelRefs.current = [];
-    barcodeRefs.current = [];
     setForm({
       content: '',
       dimensions: '',
@@ -281,7 +255,7 @@ export default function ShippingLabelGenerator({ user, config }) {
                 {generating ? (
                   <><Loader2 className="h-4 w-4 animate-spin" /> Generando...</>
                 ) : (
-                  <><QrCode className="h-4 w-4" /> Generar código de barras y guardar</>
+                  <><QrCode className="h-4 w-4" /> Generar código QR y guardar</>
                 )}
               </Button>
             ) : (
@@ -329,7 +303,6 @@ export default function ShippingLabelGenerator({ user, config }) {
                     labelCode={labelCode}
                     boxIndex={i + 1}
                     boxTotal={boxCount}
-                    barcodeRef={el => (barcodeRefs.current[i] = el)}
                   />
                 </div>
               </div>
@@ -342,7 +315,7 @@ export default function ShippingLabelGenerator({ user, config }) {
   );
 }
 
-function LabelContent({ shippingMark, form, logoUrl, companyName, config, labelCode, boxIndex, boxTotal, barcodeRef }) {
+function LabelContent({ shippingMark, form, logoUrl, companyName, config, labelCode, boxIndex, boxTotal }) {
   const check = (val) => val ? '☑' : '☐';
 
   // Dirección del almacén: preferir almacén 2 (Yiwu) si está activo, sino almacén 1
@@ -408,14 +381,14 @@ function LabelContent({ shippingMark, form, logoUrl, companyName, config, labelC
         </div>
       </div>
 
-      {/* Barcode + box count */}
+      {/* Código QR + número de caja */}
       <div style={{ display: 'flex', borderBottom: '2px solid #000', minHeight: 70 }}>
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4px 8px', borderRight: '1px solid #999' }}>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '6px 8px', borderRight: '1px solid #999' }}>
           {labelCode ? (
-            <svg ref={barcodeRef} style={{ maxWidth: '100%', height: 'auto' }}></svg>
+            <QrCodeCanvas value={labelCode} size={104} />
           ) : (
-            <div style={{ width: '100%', height: 50, background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 10 }}>
-              CÓDIGO DE BARRAS
+            <div style={{ width: '100%', height: 104, background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 10 }}>
+              CÓDIGO QR
             </div>
           )}
         </div>

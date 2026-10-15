@@ -4,6 +4,7 @@ import { Printer, Loader2, Bluetooth, BluetoothConnected, FileDown, AlertTriangl
 import { toast } from 'sonner';
 import { buildBultoLabelPayload, concatUint8Arrays } from '@/lib/tspl';
 import { labelContentCodes, realPackageCount } from '@/lib/bultoCounts';
+import { isNewLabel, labelSymbolImage } from '@/lib/labelSymbol';
 
 // Common BLE service/characteristic UUIDs for ESC/POS thermal printers (POS-9250-L / ZJ-9250)
 const PRINTER_SERVICES = [
@@ -128,7 +129,9 @@ export default function BluetoothPrinter({ bultos = [], onPrinted, size = 'defau
       setStatus('printing');
 
       // Build combined payload for all bultos (single Bluetooth session)
-      const payloads = bultos.map((b) => buildBultoLabelPayload(b));
+      // Cada etiqueta nueva sale con código QR; las que ya se imprimieron antes
+      // conservan su código de barras para no cambiar lo que ya está pegado.
+      const payloads = bultos.map((b) => buildBultoLabelPayload(b, { qr: isNewLabel(b) }));
       const combined = concatUint8Arrays(payloads);
       await writeData(combined);
 
@@ -149,7 +152,6 @@ export default function BluetoothPrinter({ bultos = [], onPrinted, size = 'defau
     if (!bultos.length) return;
     try {
       const { default: jsPDF } = await import('jspdf');
-      const JsBarcode = (await import('jsbarcode')).default;
 
       for (const bulto of bultos) {
         const doc = new jsPDF({ unit: 'mm', format: [100, 100] });
@@ -162,12 +164,11 @@ export default function BluetoothPrinter({ bultos = [], onPrinted, size = 'defau
         const cityState = [cs.city, cs.state].filter(Boolean).join(', ');
         const addrLines = cs.address ? doc.splitTextToSize(cs.address, 90).slice(0, 2) : [];
 
-        // Código de barras como imagen (centrado, ancho)
-        let barcode = null;
+        // Símbolo escaneable como imagen: QR en las etiquetas nuevas y código de barras
+        // cuando esta etiqueta ya había salido impresa.
+        let symbol = null;
         try {
-          const canvas = document.createElement('canvas');
-          JsBarcode(canvas, bulto.label_code, { format: 'CODE128', width: 4, height: 80, displayValue: true, fontSize: 18, margin: 0 });
-          barcode = { data: canvas.toDataURL('image/png'), ratio: canvas.height / canvas.width };
+          symbol = await labelSymbolImage(bulto.label_code, { qr: isNewLabel(bulto) });
         } catch (_) {}
 
         // Métricas verticales (mm). Cada bloque conoce su alto y se dibuja centrado.
@@ -180,11 +181,19 @@ export default function BluetoothPrinter({ bultos = [], onPrinted, size = 'defau
         const blocks = [];
         const addBlock = (h, render) => blocks.push({ h, render });
 
-        // 1. Código de barras + código de etiqueta (la imagen ya lo incluye)
-        if (barcode) {
-          const imgWidth = 85;
-          const imgHeight = barcode.ratio * imgWidth;
-          addBlock(imgHeight + 2, (yy) => doc.addImage(barcode.data, 'PNG', (100 - imgWidth) / 2, yy, imgWidth, imgHeight));
+        // 1. Símbolo escaneable + el código de etiqueta escrito debajo
+        if (symbol) {
+          const imgWidth = symbol.isQr ? 45 : 85;
+          const imgHeight = symbol.ratio * imgWidth;
+          addBlock(imgHeight + (symbol.isQr ? 12 : 2), (yy) => {
+            doc.addImage(symbol.data, 'PNG', (100 - imgWidth) / 2, yy, imgWidth, imgHeight);
+            if (symbol.isQr) {
+              doc.setFont(undefined, 'bold');
+              doc.setFontSize(14);
+              doc.setTextColor(0);
+              doc.text(bulto.label_code, 50, yy + imgHeight + 8, { align: 'center' });
+            }
+          });
         }
 
         // 2. Separador

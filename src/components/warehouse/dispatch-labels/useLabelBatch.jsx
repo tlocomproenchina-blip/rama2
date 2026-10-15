@@ -208,6 +208,7 @@ export default function useLabelBatch() {
         client: snapshotOf(client),
         cajas: lote,
         emittedAt: new Date().toISOString(),
+        qr: true,
         onProgress: (done, total) => {
           printed = done;
           setStatusText('');
@@ -277,6 +278,7 @@ export default function useLabelBatch() {
           client: log.client_snapshot || {},
           cajas: lote,
           emittedAt: log.printed_date || new Date().toISOString(),
+          qr: false,
           onProgress: (done) => {
             printed = done;
           },

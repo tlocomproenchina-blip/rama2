@@ -2,10 +2,11 @@ import { buildContinuousLabelPayload, concatUint8Arrays } from '@/lib/tspl';
 import { bluetoothSupported, ensurePrinterConnected, writePayload } from '@/lib/thermalPrinter';
 
 // Imprime la tira continua de un lote de cajas: una etiqueta por caja, numerada X/N y
-// con el código de barras de esa caja, su conteo de paquetes y su CBM. Reporta el
-// avance por etiqueta para que la pantalla muestre cuál va saliendo.
+// con el símbolo de esa caja (código QR en las etiquetas nuevas, código de barras al
+// reimprimir un lote ya impreso), su conteo de paquetes y su CBM. Reporta el avance por
+// etiqueta para que la pantalla muestre cuál va saliendo.
 // Si algo falla, lanza el error: quien llama decide (y no se crea ninguna guía).
-export const printCajaLabelBatch = async ({ client = {}, cajas = [], emittedAt = '', onProgress }) => {
+export const printCajaLabelBatch = async ({ client = {}, cajas = [], emittedAt = '', qr = false, onProgress }) => {
   if (!bluetoothSupported()) {
     throw new Error('La impresión Bluetooth solo funciona en Android (Chrome/WebView)');
   }
@@ -21,6 +22,7 @@ export const printCajaLabelBatch = async ({ client = {}, cajas = [], emittedAt =
       packageCount: Number(caja.package_count) || 0,
       cbm: Number(caja.cbm) || 0,
       emittedAt,
+      qr,
     })
   );
 

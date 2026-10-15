@@ -1,5 +1,6 @@
 import React from 'react';
 import { AlertTriangle } from 'lucide-react';
+import QrCodeCanvas from '@/components/common/QrCodeCanvas';
 
 // Vista previa de lo que llevará cada etiqueta continua: el mismo contenido que se
 // manda a la impresora (número X/N, datos del cliente y pie con la guía) y el aviso
@@ -39,16 +40,8 @@ export default function ContinuousLabelPreview({ client, rangeStart = 1, rangeEn
           </p>
         ) : null}
         {barcodeCode ? (
-          <div className="mt-2 border-t border-border/70 pt-2">
-            <div className="flex h-9 items-end gap-[2px] overflow-hidden">
-              {Array.from({ length: 46 }).map((_, i) => (
-                <span
-                  key={i}
-                  className="block h-full bg-foreground"
-                  style={{ width: i % 3 === 0 ? 3 : i % 2 === 0 ? 2 : 1 }}
-                />
-              ))}
-            </div>
+          <div className="mt-2 flex flex-col items-center border-t border-border/70 pt-2">
+            <QrCodeCanvas value={barcodeCode} size={64} />
             <p className="mt-1 font-mono text-[10px] font-semibold text-foreground break-all">
               {barcodeCode}
             </p>

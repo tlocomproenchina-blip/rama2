@@ -4,6 +4,7 @@
 // Reference: TSPL/TSPL2 Programming Manual (TSC / Zijiang-compatible).
 
 import { labelContentCodes, realPackageCount } from '@/lib/bultoCounts';
+import { qrModuleCount } from '@/lib/qrCode';
 
 const enc = new TextEncoder();
 
@@ -52,10 +53,62 @@ const wrapText = (text, maxChars) => {
   return lines.length ? lines : [''];
 };
 
+// Bloque del código de barras CODE128 con el código escrito debajo, en el tamaño que usa
+// la etiqueta de bulto.
+const bultoBarcodeBlock = (code) => {
+  const codeLen = code.length;
+  const narrow = codeLen > 16 ? 3 : 4;
+  const wide = narrow * 2;
+  const barsWidth = (11 * (codeLen + 2) + 2) * narrow;
+  const x = Math.max(20, Math.floor((LABEL_W - barsWidth) / 2));
+  return {
+    h: 238,
+    render: (y) => [
+      `BARCODE ${x},${y},${q('128')},180,2,0,${narrow},${wide},${q(code)}`,
+      `TEXT ${centerX(code, '2', 2)},${y + 192},${q('2')},0,2,2,${q(code)}`,
+    ],
+  };
+};
+
+// Bloque del código de barras de la etiqueta continua (caja): barras más bajas y el
+// código escrito debajo, como salía en los lotes ya impresos.
+const continuousBarcodeBlock = (code) => {
+  const narrow = code.length > 22 ? 1 : 2;
+  const wide = narrow * 2;
+  const barsWidth = (11 * (code.length + 2) + 2) * narrow;
+  const codeScale = code.length > 18 ? 1 : 2;
+  return {
+    h: 154,
+    render: (y) => [
+      `BARCODE ${Math.max(20, Math.floor((LABEL_W - barsWidth) / 2))},${y},${q('128')},120,0,0,${narrow},${wide},${q(code)}`,
+      `TEXT ${centerX(code, '2', codeScale)},${y + 126},${q('2')},0,${codeScale},${codeScale},${q(code)}`,
+    ],
+  };
+};
+
+// Bloque del código QR: cuadrado y centrado, con el código escrito debajo para poderlo
+// leer a mano. El tamaño del módulo se ajusta para que el símbolo entre en el alto
+// reservado al símbolo escaneable, con el ancho de la etiqueta como tope.
+const qrBlock = (code, { targetH = 190, maxCell = 10 } = {}) => {
+  const modules = qrModuleCount(code);
+  const cell = Math.max(2, Math.min(maxCell, Math.floor(targetH / modules)));
+  const side = modules * cell;
+  const x = Math.max(20, Math.floor((LABEL_W - side) / 2));
+  return {
+    h: side + 44,
+    render: (y) => [
+      `QRCODE ${x},${y},M,${cell},A,0,${q(code)}`,
+      `TEXT ${centerX(code, '2', 2)},${y + side + 12},${q('2')},0,2,2,${q(code)}`,
+    ],
+  };
+};
+
 // Build the full bulto label payload in TSPL (100×100mm).
 // bulto: { label_code, bulto_number, total_bultos, shipping_mark, client_snapshot, package_ids, package_trackings }
+// qr: true en las etiquetas nuevas (llevan código QR) y false al reimprimir una etiqueta
+// que ya salió con código de barras.
 // Returns Uint8Array ready for Web Bluetooth writeValue.
-export const buildBultoLabelPayload = (bulto) => {
+export const buildBultoLabelPayload = (bulto, { qr = false } = {}) => {
   const cs = bulto.client_snapshot || {};
   const estado = (cs.state || 'SIN ESTADO').toUpperCase();
   const labelCode = bulto.label_code || '';
@@ -83,16 +136,10 @@ export const buildBultoLabelPayload = (bulto) => {
   const blocks = [];
   const addBlock = (h, render) => blocks.push({ h, render });
 
-  // 1. Código de barras + código de etiqueta
-  const codeLen = labelCode.length;
-  const narrow = codeLen > 16 ? 3 : 4;
-  const wide = narrow * 2;
-  const barcodeW = (11 * (codeLen + 2) + 2) * narrow;
-  const barcodeX = Math.max(20, Math.floor((LABEL_W - barcodeW) / 2));
-  addBlock(238, (y) => [
-    `BARCODE ${barcodeX},${y},${q('128')},180,2,0,${narrow},${wide},${q(labelCode)}`,
-    `TEXT ${centerX(labelCode, '2', 2)},${y + 192},${q('2')},0,2,2,${q(labelCode)}`,
-  ]);
+  // 1. Símbolo escaneable + código de etiqueta: código QR en las etiquetas nuevas y
+  //    código de barras cuando la etiqueta ya había salido impresa.
+  const symbolBlock = qr ? qrBlock(labelCode) : bultoBarcodeBlock(labelCode);
+  addBlock(symbolBlock.h, symbolBlock.render);
 
   // 2. Separador
   addBlock(22, (y) => [`BAR 50,${y + 9},700,3`]);
@@ -204,6 +251,7 @@ export const buildContinuousLabelPayload = ({
   barcodeCode = '',
   packageCount = 0,
   cbm = 0,
+  qr = false,
 }) => {
   const cs = client || {};
   const counter = `${index}/${total}`;
@@ -278,17 +326,14 @@ export const buildContinuousLabelPayload = ({
       addBlock(26, (y) => [`TEXT ${centerX(cajaInfo, '2', 1)},${y},${q('2')},0,1,1,${q(cajaInfo)}`]);
     }
 
-    // 6. Código de barras de la caja: identifica la caja que lleva pegada la etiqueta
-    //    y es el que se escanea al despachar. Va escrito también bajo las barras.
+    // 6. Símbolo de la caja: identifica la caja que lleva pegada la etiqueta y es el que
+    //    se escanea al despachar. Código QR en las etiquetas nuevas y código de barras al
+    //    reimprimir un lote que ya había salido impreso. Va escrito también bajo el símbolo.
     if (code) {
-      const narrow = code.length > 22 ? 1 : 2;
-      const wide = narrow * 2;
-      const barsWidth = (11 * (code.length + 2) + 2) * narrow;
-      const codeScale = code.length > 18 ? 1 : 2;
-      addBlock(154, (y) => [
-        `BARCODE ${Math.max(20, Math.floor((LABEL_W - barsWidth) / 2))},${y},${q('128')},120,0,0,${narrow},${wide},${q(code)}`,
-        `TEXT ${centerX(code, '2', codeScale)},${y + 126},${q('2')},0,${codeScale},${codeScale},${q(code)}`,
-      ]);
+      const symbol = qr
+        ? qrBlock(code, { targetH: 130, maxCell: 8 })
+        : continuousBarcodeBlock(code);
+      addBlock(symbol.h, symbol.render);
     }
 
     // 7. Pie: guía emitida y su fecha

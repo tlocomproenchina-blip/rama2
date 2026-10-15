@@ -90,6 +90,7 @@ export default function CajaLabelsDialog({ open, onOpenChange, clientEmail, onPr
         index: caja.caja_number,
         total: caja.caja_total,
         barcodeCode: caja.label_code,
+        qr: true,
       })
     );
     const boundaries = [];
@@ -149,7 +150,7 @@ export default function CajaLabelsDialog({ open, onOpenChange, clientEmail, onPr
         <DialogHeader>
           <DialogTitle className="font-display">Etiquetas continuas del lote</DialogTitle>
           <DialogDescription>
-            Una etiqueta por caja, numerada X/N, con el código de barras de la caja. Es la
+            Una etiqueta por caja, numerada X/N, con el código QR de la caja. Es la
             etiqueta que se pega en la caja y la que se escanea al despachar.
           </DialogDescription>
         </DialogHeader>
