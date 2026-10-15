@@ -55,6 +55,20 @@ export default function PortalFilterPanel({ draft, onChange, onApply, onClear, w
           </div>
 
           <div className="space-y-1.5">
+            <Label className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Foto de entrega</Label>
+            <Select value={draft.foto || 'todos'} onValueChange={(value) => set({ foto: value === 'todos' ? '' : value })}>
+              <SelectTrigger className="h-11">
+                <SelectValue placeholder="Todos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos</SelectItem>
+                <SelectItem value="con">Con foto</SelectItem>
+                <SelectItem value="sin">Sin foto</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1.5">
             <Label className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Origen del registro</Label>
             <Select value={draft.origen || 'todos'} onValueChange={(value) => set({ origen: value === 'todos' ? '' : value })}>
               <SelectTrigger className="h-11">

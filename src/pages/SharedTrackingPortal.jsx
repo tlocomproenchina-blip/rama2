@@ -17,6 +17,7 @@ const PAGE_SIZE = 25;
 const EMPTY_FILTERS = {
   q: '',
   estado: '',
+  foto: '',
   origen: '',
   cliente: '',
   wholesaler_key: '',

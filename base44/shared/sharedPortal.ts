@@ -236,6 +236,21 @@ export function portalQuery(params: any) {
   if (estado === 'recibido') chunks.push({ received_date: { $ne: null } });
   else if (estado === 'por_recibir') chunks.push({ received_date: null });
 
+  // Foto de entrega del vendedor: el portal solo entrega el enlace permanente,
+  // así que "con foto" es tener un enlace y "sin foto" es no tenerlo.
+  const foto = String(f.foto || '').trim();
+  if (foto === 'con') {
+    chunks.push({ seller_delivery_photo_uri: { $regex: '^https?://', $options: 'i' } });
+  } else if (foto === 'sin') {
+    chunks.push({
+      $or: [
+        { seller_delivery_photo_uri: { $exists: false } },
+        { seller_delivery_photo_uri: null },
+        { seller_delivery_photo_uri: '' },
+      ],
+    });
+  }
+
   const wholesalerKey = String(f.wholesaler_key || '').trim();
   if (wholesalerKey) chunks.push(wholesalerChunk(wholesalerKey, index));
 
@@ -344,8 +359,10 @@ export function portalFiltersSummary(filters: any) {
   const parts: string[] = [];
   const estadoText: any = { recibido: 'recibido', por_recibir: 'por recibir' };
   const origenText: any = { mayorista: 'mayorista', directo: 'registro directo' };
+  const fotoText: any = { con: 'con foto', sin: 'sin foto' };
   if (f.q) parts.push(`búsqueda: ${String(f.q).slice(0, 60)}`);
   if (f.estado) parts.push(`estado: ${estadoText[f.estado] || f.estado}`);
+  if (f.foto) parts.push(`foto: ${fotoText[f.foto] || f.foto}`);
   if (f.origen) parts.push(`origen: ${origenText[f.origen] || f.origen}`);
   if (f.cliente) parts.push(`cliente: ${String(f.cliente).slice(0, 60)}`);
   if (f.wholesaler_key) parts.push(`mayorista: ${String(f.wholesaler_key).slice(0, 40)}`);
