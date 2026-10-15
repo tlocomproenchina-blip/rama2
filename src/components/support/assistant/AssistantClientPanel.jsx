@@ -153,6 +153,23 @@ export default function AssistantClientPanel({ client, context, loading }) {
           )}
         />
 
+        <AssistantHistoryList
+          title="Órdenes de despacho"
+          count={context.ordenes_despacho?.length || 0}
+          items={context.ordenes_despacho || []}
+          empty="Sin órdenes de despacho."
+          renderItem={(item) => (
+            <div className="space-y-0.5">
+              <p className="font-semibold">{item.numero}</p>
+              <p className="text-muted-foreground">
+                {item.estado}
+                {item.despachada ? ` · despachada ${item.despachada}` : ''}
+                {item.bultos ? ` · ${item.bultos} bulto(s)` : ''}
+              </p>
+            </div>
+          )}
+        />
+
         {context.notas_internas.length > 0 ? (
           <AssistantHistoryList
             title="Notas internas"

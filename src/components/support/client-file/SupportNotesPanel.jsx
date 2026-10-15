@@ -36,7 +36,11 @@ export default function SupportNotesPanel({
     }
     setLoading(true);
     try {
-      const query = ticketId ? { client_email: clientEmail, ticket_id: ticketId } : { client_email: clientEmail };
+      // En el expediente del cliente las indicaciones del supervisor se muestran
+      // en su propia tarjeta: aquí solo quedan las notas del equipo.
+      const query = ticketId
+        ? { client_email: clientEmail, ticket_id: ticketId }
+        : { client_email: clientEmail, note_type: { $ne: 'indicacion' } };
       const rows = await base44.entities.SupportClientNote.filter(query, '-created_date', 200);
       setNotes(rows || []);
     } catch {
@@ -115,7 +119,9 @@ export default function SupportNotesPanel({
               <li key={note.id} className="rounded-2xl border border-amber-200 bg-amber-50/70 p-3">
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-amber-900/80">
                   <Badge variant="outline" className="border-amber-300 bg-amber-100 text-[10px] text-amber-800">
-                    {note.ticket_id ? `Caso ${note.ticket_number || 'soporte'}` : 'Cliente'}
+                    {note.note_type === 'indicacion'
+                      ? 'Indicación al ATC'
+                      : note.ticket_id ? `Caso ${note.ticket_number || 'soporte'}` : 'Cliente'}
                   </Badge>
                   <span className="font-medium">{note.author_name || note.author_email || 'Equipo'}</span>
                   <span>·</span>

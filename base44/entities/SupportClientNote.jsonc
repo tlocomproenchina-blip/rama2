@@ -22,6 +22,23 @@
       "type": "string",
       "description": "N\u00famero visible del ticket al que pertenece la nota (cache para mostrar)"
     },
+    "note_type": {
+      "type": "string",
+      "enum": [
+        "nota",
+        "indicacion"
+      ],
+      "default": "nota",
+      "description": "nota: registro interno del equipo sobre la atenci\u00f3n. indicacion: orientaci\u00f3n de un supervisor para que el ATC sepa qu\u00e9 hacer con este cliente o con este caso."
+    },
+    "addressed_to": {
+      "type": "string",
+      "description": "A qui\u00e9n va dirigida la indicaci\u00f3n (ATC o \u00e1rea). Vac\u00edo en las notas del equipo."
+    },
+    "addressed_to_name": {
+      "type": "string",
+      "description": "Nombre con el que se muestra el destinatario de la indicaci\u00f3n"
+    },
     "note": {
       "type": "string",
       "maxLength": 4000,

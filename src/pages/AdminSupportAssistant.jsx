@@ -4,20 +4,29 @@ import { Headphones, MessageCircle, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import PageHero from '@/components/common/PageHero';
 import useSupportAssistant from '@/hooks/useSupportAssistant';
+import useSupportClientCases from '@/hooks/useSupportClientCases';
 import AssistantSearchPanel from '@/components/support/assistant/AssistantSearchPanel';
 import AssistantClientPanel from '@/components/support/assistant/AssistantClientPanel';
 import AssistantChatPanel from '@/components/support/assistant/AssistantChatPanel';
 import AssistantEscalateDialog from '@/components/support/assistant/AssistantEscalateDialog';
+import SupportClientProfileCard from '@/components/support/client-file/SupportClientProfileCard';
+import SupportNotesPanel from '@/components/support/client-file/SupportNotesPanel';
+import SupportGuidancePanel from '@/components/support/client-file/SupportGuidancePanel';
+import SupportFollowUpPanel from '@/components/support/client-file/SupportFollowUpPanel';
 
-// Sección de preguntas y respuestas del área de Soporte: el ATC busca al
-// cliente por teléfono o Shipping Mark, pega la pregunta que llegó por
-// WhatsApp y recibe la guía paso a paso con la respuesta lista para enviar.
-export default function AdminSupportAssistant() {
+// Panel único del área de Soporte: el ATC busca al cliente (por cédula,
+// teléfono, correo, nombre o Shipping Mark) y en la misma pantalla tiene su
+// expediente completo, la guía de respuestas y el registro interno de notas,
+// indicaciones y seguimiento, aunque no esté chateando con el cliente.
+export default function AdminSupportAssistant({ user }) {
   const assistant = useSupportAssistant();
+  const { cases } = useSupportClientCases(assistant.client?.email);
   const [escalateOpen, setEscalateOpen] = useState(false);
   const [escalated, setEscalated] = useState(null);
 
   const lastTurn = assistant.turns[assistant.turns.length - 1] || null;
+  const client = assistant.client;
+  const clientName = client?.full_name || [client?.first_name, client?.last_name].filter(Boolean).join(' ') || client?.email || '';
 
   const handleEscalate = async (payload) => {
     const result = await assistant.escalate({
@@ -33,8 +42,8 @@ export default function AdminSupportAssistant() {
       <PageHero
         icon={Headphones}
         badge="Área Soporte"
-        title="Preguntas y respuestas (ATC)"
-        description="Busca al cliente por teléfono o Shipping Mark, pega su mensaje de WhatsApp y recibe el paso a paso con la respuesta lista para enviar."
+        title="Asistente ATC y expediente del cliente"
+        description="Busca al cliente por cédula, teléfono, correo, nombre o Shipping Mark y ten todo a la vista: su perfil, su historial, la guía para responderle y el registro interno del equipo."
         actions={
           <Button asChild variant="outline">
             <Link to="/AdminSupportTickets">
@@ -52,18 +61,21 @@ export default function AdminSupportAssistant() {
             onSearch={assistant.search}
             searching={assistant.searching}
             results={assistant.results}
-            client={assistant.client}
+            client={client}
             onSelect={assistant.selectClient}
             onClear={assistant.clearClient}
           />
+
+          {client ? <SupportClientProfileCard client={client} /> : null}
+
           <AssistantClientPanel
-            client={assistant.client}
+            client={client}
             context={assistant.context}
             loading={assistant.loadingContext}
           />
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-5">
           {escalated ? (
             <div className="flex flex-col gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900 sm:flex-row sm:items-center sm:justify-between">
               <p className="flex items-center gap-2">
@@ -76,19 +88,53 @@ export default function AdminSupportAssistant() {
           ) : null}
 
           <AssistantChatPanel
-            client={assistant.client}
+            client={client}
             turns={assistant.turns}
             asking={assistant.asking}
             onAsk={assistant.ask}
             onEscalate={() => setEscalateOpen(true)}
           />
+
+          {client ? (
+            <>
+              <div className="grid gap-5 xl:grid-cols-2">
+                <SupportNotesPanel
+                  clientEmail={client.email}
+                  clientName={clientName}
+                  clientCedula={client.cedula}
+                  user={user}
+                  title="Notas internas del cliente"
+                />
+                <SupportGuidancePanel
+                  clientEmail={client.email}
+                  clientName={clientName}
+                  clientCedula={client.cedula}
+                  cases={cases}
+                  user={user}
+                />
+              </div>
+
+              <SupportFollowUpPanel
+                clientEmail={client.email}
+                clientName={clientName}
+                clientCedula={client.cedula}
+                shippingMark={client.shipping_mark}
+                cases={cases}
+                user={user}
+              />
+            </>
+          ) : (
+            <div className="rounded-2xl border border-dashed border-border p-4 text-sm text-muted-foreground">
+              Busca y abre un cliente para ver su expediente: datos de contacto, historial, notas internas, indicaciones del supervisor y seguimiento de casos.
+            </div>
+          )}
         </div>
       </div>
 
       <AssistantEscalateDialog
         open={escalateOpen}
         onOpenChange={setEscalateOpen}
-        client={assistant.client}
+        client={client}
         lastTurn={lastTurn}
         submitting={assistant.escalating}
         onConfirm={handleEscalate}

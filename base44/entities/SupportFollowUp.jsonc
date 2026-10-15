@@ -1,0 +1,114 @@
+{
+  "name": "SupportFollowUp",
+  "type": "object",
+  "properties": {
+    "client_email": {
+      "type": "string",
+      "description": "Correo del cliente al que pertenece el seguimiento"
+    },
+    "client_name": {
+      "type": "string",
+      "description": "Nombre del cliente (cache para mostrar en el panel)"
+    },
+    "client_cedula": {
+      "type": "string",
+      "description": "C\u00e9dula del cliente (cache para mostrar en el panel)"
+    },
+    "shipping_mark": {
+      "type": "string",
+      "description": "Shipping Mark del cliente al momento de asignar el seguimiento"
+    },
+    "ticket_id": {
+      "type": "string",
+      "description": "ID del ticket del caso al que se le asigna el seguimiento. Vac\u00edo cuando el seguimiento es del cliente en general."
+    },
+    "ticket_number": {
+      "type": "string",
+      "description": "N\u00famero visible del ticket al que se le asigna el seguimiento"
+    },
+    "case_subject": {
+      "type": "string",
+      "description": "Asunto del caso (cache para mostrar)"
+    },
+    "responsible_email": {
+      "type": "string",
+      "description": "Correo del responsable de sacar el caso adelante"
+    },
+    "responsible_name": {
+      "type": "string",
+      "description": "Nombre del responsable (cache para mostrar)"
+    },
+    "next_action": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Pr\u00f3xima acci\u00f3n concreta que debe ejecutar el responsable"
+    },
+    "due_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha en la que debe estar hecha la pr\u00f3xima acci\u00f3n"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pendiente",
+        "en_proceso",
+        "hecho"
+      ],
+      "default": "pendiente",
+      "description": "Estado del seguimiento: pendiente, en proceso o hecho"
+    },
+    "status_note": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Nota del equipo al actualizar el estado del seguimiento"
+    },
+    "assigned_by_email": {
+      "type": "string",
+      "description": "Correo del supervisor que asign\u00f3 el seguimiento"
+    },
+    "assigned_by_name": {
+      "type": "string",
+      "description": "Nombre del supervisor que asign\u00f3 el seguimiento"
+    },
+    "updated_by_email": {
+      "type": "string",
+      "description": "Correo del \u00faltimo usuario que cambi\u00f3 el estado"
+    },
+    "updated_by_name": {
+      "type": "string",
+      "description": "Nombre del \u00faltimo usuario que cambi\u00f3 el estado"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Descripci\u00f3n opcional"
+    }
+  },
+  "required": [
+    "client_email",
+    "next_action"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
