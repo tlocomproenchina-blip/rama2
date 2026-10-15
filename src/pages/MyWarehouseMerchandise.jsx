@@ -2,26 +2,21 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { Warehouse, Search, RefreshCw, Loader2, Package, FileText, Hash } from 'lucide-react';
+import { Warehouse, Search, RefreshCw, Loader2, Boxes, FileText } from 'lucide-react';
 import { toast } from 'sonner';
-import { groupItemsByReceipt } from '@/lib/dispatchOrderGroups';
 import ClientPageHero from '@/components/client-portal/ClientPageHero';
+import ClientBultoCard from '@/components/client-portal/ClientBultoCard';
+import ClientGuideCard from '@/components/client-portal/ClientGuideCard';
 import { ListSkeletonLoader } from '@/components/SkeletonLoaders';
 
-const STATUS_LABELS = {
-  emitida: 'En almacén',
-  despachado: 'Despachada',
-};
-
-const STATUS_TONE = {
-  emitida: 'bg-amber-100 text-amber-700 border-amber-200',
-  despachado: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-};
+function matches(value, q) {
+  return (value || '').toLowerCase().includes(q);
+}
 
 export default function MyWarehouseMerchandise({ user }) {
-  const [orders, setOrders] = useState([]);
+  const [bultos, setBultos] = useState([]);
+  const [guides, setGuides] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
@@ -29,11 +24,12 @@ export default function MyWarehouseMerchandise({ user }) {
   const load = useCallback(async (silent = false) => {
     if (silent) setRefreshing(true); else setLoading(true);
     try {
-      const res = await base44.functions.invoke('getMyDispatchOrders', {});
+      const res = await base44.functions.invoke('getMyWarehouseCargo', {});
       const data = res?.data ?? res;
-      setOrders(data?.orders || []);
+      setBultos(data?.bultos || []);
+      setGuides(data?.guides || []);
     } catch (e) {
-      if (!silent) toast.error('No se pudo cargar tu mercancía en almacén');
+      if (!silent) toast.error('No se pudo cargar tu carga en almacén');
     } finally {
       if (silent) setRefreshing(false); else setLoading(false);
     }
@@ -41,32 +37,38 @@ export default function MyWarehouseMerchandise({ user }) {
 
   useEffect(() => {
     load();
-    // Refrescar al volver a la pestaña (la data cambia cuando el admin crea despachos)
+    // Refrescar al volver a la pestaña (la data cambia cuando el almacén escanea o despacha)
     const onVisible = () => { if (!document.hidden) load(true); };
     document.addEventListener('visibilitychange', onVisible);
     return () => document.removeEventListener('visibilitychange', onVisible);
   }, [load]);
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return orders;
-    return orders.filter((o) => {
-      if ((o.order_number || '').toLowerCase().includes(q)) return true;
-      if ((o.notes || '').toLowerCase().includes(q)) return true;
-      return (o.items || []).some((it) =>
-        (it.tracking_number || '').toLowerCase().includes(q) ||
-        (it.consolidation_tracking || '').toLowerCase().includes(q) ||
-        (it.description || '').toLowerCase().includes(q)
-      );
-    });
-  }, [orders, search]);
+  const query = search.trim().toLowerCase();
+
+  const filteredBultos = useMemo(() => {
+    if (!query) return bultos;
+    return bultos.filter((b) =>
+      matches(b.label_code, query) ||
+      matches(b.status, query) ||
+      (b.order_numbers || []).some((n) => matches(n, query)) ||
+      (b.trackings || []).some((t) => matches(t, query))
+    );
+  }, [bultos, query]);
+
+  const filteredGuides = useMemo(() => {
+    if (!query) return guides;
+    return guides.filter((g) =>
+      matches(g.guide_number, query) ||
+      (g.bultos || []).some((b) => matches(b.label_code, query) || matches(b.order_number, query))
+    );
+  }, [guides, query]);
 
   const stats = useMemo(() => ({
-    total: orders.length,
-    enAlmacen: orders.filter((o) => o.status === 'emitida').length,
-    despachadas: orders.filter((o) => o.status === 'despachado').length,
-    trackings: orders.reduce((acc, o) => acc + (o.items?.length || 0), 0),
-  }), [orders]);
+    bultos: bultos.length,
+    cajas: bultos.filter((b) => b.is_caja).length,
+    guias: guides.length,
+    entregadas: guides.filter((g) => g.dispatch_status === 'entregada').length,
+  }), [bultos, guides]);
 
   if (loading) {
     return (
@@ -81,10 +83,10 @@ export default function MyWarehouseMerchandise({ user }) {
     <div className="space-y-4 md:space-y-5 lg:space-y-6 w-full">
       <ClientPageHero
         icon={Warehouse}
-        eyebrow="Disponible agrupado por recibo"
-        title="Disponible en Almacén"
-        description="Consulta tu mercancía agrupada por orden de despacho y recibo, con su estado actual."
-        badges={[`${stats.total} órdenes`, `${stats.trackings} trackings`]}
+        eyebrow="Carga en almacén"
+        title="Mis bultos y guías de despacho"
+        description="Consulta tus bultos y cajas consolidadas en almacén y las guías de despacho emitidas a tu nombre."
+        badges={[`${stats.bultos} bultos`, `${stats.guias} guías`]}
         action={
           <Button variant="outline" onClick={() => load(true)} disabled={refreshing}>
             {refreshing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
@@ -96,12 +98,20 @@ export default function MyWarehouseMerchandise({ user }) {
             <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Resumen</p>
             <div className="grid grid-cols-2 gap-2">
               <div className="rounded-2xl bg-amber-50/80 px-3 py-2">
-                <p className="text-[11px] text-amber-600 font-medium">En almacén</p>
-                <p className="text-lg font-semibold text-amber-700">{stats.enAlmacen}</p>
+                <p className="text-[11px] text-amber-600 font-medium">Bultos</p>
+                <p className="text-lg font-semibold text-amber-700">{stats.bultos}</p>
+              </div>
+              <div className="rounded-2xl bg-indigo-50/80 px-3 py-2">
+                <p className="text-[11px] text-indigo-600 font-medium">Cajas</p>
+                <p className="text-lg font-semibold text-indigo-700">{stats.cajas}</p>
+              </div>
+              <div className="rounded-2xl bg-blue-50/80 px-3 py-2">
+                <p className="text-[11px] text-blue-600 font-medium">Guías</p>
+                <p className="text-lg font-semibold text-blue-700">{stats.guias}</p>
               </div>
               <div className="rounded-2xl bg-emerald-50/80 px-3 py-2">
-                <p className="text-[11px] text-emerald-600 font-medium">Despachadas</p>
-                <p className="text-lg font-semibold text-emerald-700">{stats.despachadas}</p>
+                <p className="text-[11px] text-emerald-600 font-medium">Entregadas</p>
+                <p className="text-lg font-semibold text-emerald-700">{stats.entregadas}</p>
               </div>
             </div>
           </div>
@@ -113,7 +123,7 @@ export default function MyWarehouseMerchandise({ user }) {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <Input
-              placeholder="Buscar por orden, tracking o recibo..."
+              placeholder="Buscar por etiqueta, tracking, contenedor o N° de guía..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-10 text-sm"
@@ -122,118 +132,49 @@ export default function MyWarehouseMerchandise({ user }) {
         </CardContent>
       </Card>
 
-      {filtered.length === 0 ? (
-        <Card className="border-border/70 bg-card/95 shadow-card">
-          <CardContent className="p-6 md:p-12 text-center">
-            <Warehouse className="h-12 md:h-16 w-12 md:w-16 mx-auto mb-3 md:mb-4 text-slate-300" />
-            <h3 className="text-base md:text-lg font-semibold text-slate-700 mb-2">
-              {search ? 'No se encontraron resultados' : 'No tienes mercancía en almacén aún'}
-            </h3>
-            <p className="text-xs md:text-sm text-slate-500">
-              {search
-                ? 'Prueba con otro término de búsqueda.'
-                : 'Cuando el almacén genere una orden de despacho con tus paquetes, la verás aquí agrupada por recibo.'}
-            </p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid gap-3 md:gap-4">
-          {filtered.map((order) => (
-            <OrderCard key={order.id} order={order} />
-          ))}
+      <section className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Boxes className="h-4 w-4 text-slate-500" />
+          <h2 className="text-sm font-semibold text-slate-700">Bultos y cajas consolidadas en almacén</h2>
+          <span className="text-xs text-slate-500">({filteredBultos.length})</span>
         </div>
-      )}
-    </div>
-  );
-}
-
-function OrderCard({ order }) {
-  const groups = useMemo(() => groupItemsByReceipt(order.items || []), [order.items]);
-  const date = order.dispatched_confirmed_date || order.dispatched_date || order.created_date;
-  const isDispatched = order.status === 'despachado';
-
-  return (
-    <Card className="border border-border/70 bg-card/95 shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-premium">
-      <CardContent className="p-3 md:p-4 lg:p-5">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-3 mb-3">
-          <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
-            <div className="p-2 bg-slate-100 rounded-lg flex-shrink-0">
-              <Package className="h-4 w-4 md:h-5 text-blue-600" />
-            </div>
-            <div className="min-w-0">
-              <h3 className="font-semibold text-slate-800 text-sm md:text-base truncate">
-                {order.source === 've_recognized'
-                  ? (order.order_number || 'Bulto en almacén')
-                  : `Orden ${order.order_number || '—'}`}
-              </h3>
-              <p className="text-[11px] md:text-xs text-slate-500">
-                {date ? new Date(date).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Sin fecha'}
-                {order.source === 've_recognized' && (
-                  <span className="text-blue-600 ml-1">· Reconocido en Venezuela</span>
-                )}
-                {isDispatched && order.dispatched_confirmed_date && (
-                  <span className="text-emerald-600 ml-1">· Despachada</span>
-                )}
+        {filteredBultos.length === 0 ? (
+          <Card className="border-border/70 bg-card/95 shadow-card">
+            <CardContent className="p-6 text-center">
+              <Boxes className="h-10 w-10 mx-auto mb-3 text-slate-300" />
+              <p className="text-sm text-slate-500">
+                {search ? 'No se encontraron bultos con ese criterio.' : 'Aún no tienes bultos registrados en almacén.'}
               </p>
-            </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid gap-3 md:gap-4">
+            {filteredBultos.map((bulto) => <ClientBultoCard key={bulto.id} bulto={bulto} />)}
           </div>
-          <div className="flex items-center gap-2 flex-wrap md:ml-auto">
-            {order.pending_invoice && (
-              <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700">
-                Pendiente de facturación
-              </Badge>
-            )}
-            <Badge className={`${STATUS_TONE[order.status] || 'bg-slate-100 text-slate-600 border-slate-200'} border`}>
-              {STATUS_LABELS[order.status] || order.status}
-            </Badge>
-          </div>
-        </div>
-
-        {/* Recibos agrupados */}
-        <div className="space-y-2">
-          {groups.map((g) => (
-            <div key={g.receipt} className="rounded-xl border border-border/60 bg-slate-50/60 overflow-hidden">
-              <div className="flex items-center gap-2 px-3 py-2 bg-white/70 border-b border-border/50">
-                <FileText className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                <span className="text-xs font-semibold text-slate-700 truncate">
-                  {g.receipt === 'Sin recibo' ? 'Sin recibo asignado' : `Recibo: ${g.receipt}`}
-                </span>
-                <Badge variant="secondary" className="ml-auto text-[10px] py-0 px-1.5">
-                  {g.count} {g.count === 1 ? 'paquete' : 'paquetes'}
-                </Badge>
-              </div>
-              <div className="p-2 space-y-1">
-                {g.items.map((it, idx) => (
-                  <div key={idx} className="flex items-start gap-2 px-1 py-1">
-                    <span className="text-slate-300 text-xs mt-0.5">•</span>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <p className="font-mono text-xs text-slate-800 break-all">{it.tracking_number || '—'}</p>
-                        {it.cbm_order_number && (
-                          <span className="inline-flex items-center gap-0.5 rounded-full bg-blue-100 text-blue-700 px-1.5 py-0.5 text-[10px] font-medium shrink-0">
-                            <Hash className="h-2.5 w-2.5" />
-                            {it.cbm_order_number}
-                          </span>
-                        )}
-                      </div>
-                      {it.description && (
-                        <p className="text-[11px] text-slate-500 line-clamp-1">{it.description}</p>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {order.notes && (
-          <p className="text-[11px] md:text-xs text-slate-500 mt-3 pt-2 border-t border-border/40">
-            <span className="font-medium">Notas: </span>{order.notes}
-          </p>
         )}
-      </CardContent>
-    </Card>
+      </section>
+
+      <section className="space-y-3">
+        <div className="flex items-center gap-2">
+          <FileText className="h-4 w-4 text-slate-500" />
+          <h2 className="text-sm font-semibold text-slate-700">Guías de despacho</h2>
+          <span className="text-xs text-slate-500">({filteredGuides.length})</span>
+        </div>
+        {filteredGuides.length === 0 ? (
+          <Card className="border-border/70 bg-card/95 shadow-card">
+            <CardContent className="p-6 text-center">
+              <FileText className="h-10 w-10 mx-auto mb-3 text-slate-300" />
+              <p className="text-sm text-slate-500">
+                {search ? 'No se encontraron guías con ese criterio.' : 'Cuando se emita una guía de despacho con tu carga, la verás aquí.'}
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid gap-3 md:gap-4">
+            {filteredGuides.map((guide) => <ClientGuideCard key={guide.id} guide={guide} />)}
+          </div>
+        )}
+      </section>
+    </div>
   );
 }

@@ -28,7 +28,8 @@ import StatusBadge from '@/components/StatusBadge';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import useFileViewer from '@/hooks/useFileViewer';
-import ClientDispatchTab from '@/components/admin/clients/ClientDispatchTab';
+import ClientCargoPanel from '@/components/client-cargo/ClientCargoPanel';
+import ClientGuidesPanel from '@/components/client-cargo/ClientGuidesPanel';
 
 export default function ClientDetailsModal({ client, open, onClose, onClientUpdated }) {
   const [loading, setLoading] = useState(true);
@@ -258,8 +259,8 @@ export default function ClientDetailsModal({ client, open, onClose, onClientUpda
             <Tabs defaultValue="packages" className="w-full">
               <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5 h-auto gap-1">
                 <TabsTrigger value="packages">Paquetes</TabsTrigger>
-                <TabsTrigger value="dispatch">Despacho</TabsTrigger>
-                <TabsTrigger value="consolidations">Consolidaciones</TabsTrigger>
+                <TabsTrigger value="cargo">Carga en almacén</TabsTrigger>
+                <TabsTrigger value="guides">Guías de despacho</TabsTrigger>
                 <TabsTrigger value="payments">Pagos</TabsTrigger>
                 <TabsTrigger value="notes">Notas</TabsTrigger>
               </TabsList>
@@ -315,138 +316,14 @@ export default function ClientDetailsModal({ client, open, onClose, onClientUpda
                 )}
               </TabsContent>
 
-              {/* Dispatch Tab */}
-              <TabsContent value="dispatch" className="mt-4">
-                <ClientDispatchTab client={client} />
+              {/* Carga en almacén: bultos y cajas consolidadas */}
+              <TabsContent value="cargo" className="mt-4">
+                <ClientCargoPanel client={client} />
               </TabsContent>
 
-              {/* Consolidations Tab */}
-              <TabsContent value="consolidations" className="space-y-3 mt-4">
-                {consolidations.length === 0 ? (
-                  <div className="text-center py-8 text-slate-500">
-                    <Layers className="h-12 w-12 mx-auto mb-2 text-slate-300" />
-                    <p>No hay consolidaciones</p>
-                  </div>
-                ) : (
-                  consolidations.map((con) => (
-                    <Card key={con.id} className="border-0 shadow-sm hover:shadow-md transition-shadow">
-                     <CardContent className="p-4">
-                       <div className="flex items-start justify-between">
-                         <div className="flex-1">
-                           <div className="flex items-center gap-3 mb-2">
-                             <p className="font-mono font-medium text-slate-800">
-                               {con.consolidation_tracking}
-                             </p>
-                             <StatusBadge status={con.status} size="sm" />
-                           </div>
-                           <div className="grid grid-cols-2 gap-2 text-sm text-slate-600">
-                             <span>Peso: {con.billable_weight} kg</span>
-                             <span>Costo: ${con.total_cost?.toFixed(2)}</span>
-                             <span>
-                               {con.tracking_numbers?.length || 0} paquetes
-                             </span>
-                             <span className="flex items-center gap-1">
-                               <Calendar className="h-3 w-3" />
-                               {format(new Date(con.created_date), 'dd/MM/yyyy')}
-                             </span>
-                           </div>
-                           {con.estimated_delivery && (
-                             <p className="text-sm text-slate-500 mt-2">
-                               Entrega estimada: {format(new Date(con.estimated_delivery), 'dd/MM/yyyy')}
-                             </p>
-                           )}
-
-                           {/* Timeline */}
-                           <div className="mt-4 space-y-2">
-                             <div className={`flex items-center gap-2 text-xs ${
-                               con.status === 'en_transito' || con.status === 'pago_validado' || con.status === 'disponible' || con.status === 'entregado' 
-                                 ? 'text-emerald-600' : 'text-slate-400'
-                             }`}>
-                               <div className={`w-4 h-4 rounded-full flex items-center justify-center ${
-                                 con.status === 'en_transito' || con.status === 'pago_validado' || con.status === 'disponible' || con.status === 'entregado'
-                                   ? 'bg-emerald-100' : 'bg-slate-100'
-                               }`}>
-                                 {(con.status === 'en_transito' || con.status === 'pago_validado' || con.status === 'disponible' || con.status === 'entregado') && 
-                                   <CheckCircle className="h-3 w-3" />
-                                 }
-                               </div>
-                               <span className="font-medium">Consolidación Creada</span>
-                               <span className="text-slate-500">
-                                 {format(new Date(con.created_date), 'dd/MM/yyyy HH:mm')}
-                               </span>
-                             </div>
-
-                             <div className={`flex items-center gap-2 text-xs ${
-                               con.status === 'en_transito' || con.status === 'pago_validado' || con.status === 'disponible' || con.status === 'entregado' 
-                                 ? 'text-blue-600' : 'text-slate-400'
-                             }`}>
-                               <div className={`w-4 h-4 rounded-full flex items-center justify-center ${
-                                 con.status === 'en_transito' || con.status === 'pago_validado' || con.status === 'disponible' || con.status === 'entregado'
-                                   ? 'bg-blue-100' : 'bg-slate-100'
-                               }`}>
-                                 {(con.status === 'en_transito' || con.status === 'pago_validado' || con.status === 'disponible' || con.status === 'entregado') && 
-                                   <CheckCircle className="h-3 w-3" />
-                                 }
-                               </div>
-                               <span className="font-medium">En Tránsito</span>
-                             </div>
-
-                             <div className={`flex items-center gap-2 text-xs ${
-                               con.status === 'pago_validado' || con.status === 'disponible' || con.status === 'entregado' 
-                                 ? 'text-emerald-600' : 'text-slate-400'
-                             }`}>
-                               <div className={`w-4 h-4 rounded-full flex items-center justify-center ${
-                                 con.status === 'pago_validado' || con.status === 'disponible' || con.status === 'entregado'
-                                   ? 'bg-emerald-100' : 'bg-slate-100'
-                               }`}>
-                                 {(con.status === 'pago_validado' || con.status === 'disponible' || con.status === 'entregado') && 
-                                   <CheckCircle className="h-3 w-3" />
-                                 }
-                               </div>
-                               <span className="font-medium">Pago Validado</span>
-                               {con.payment_validation_date && (
-                                 <span className="text-slate-500">
-                                   {format(new Date(con.payment_validation_date), 'dd/MM/yyyy HH:mm')}
-                                 </span>
-                               )}
-                             </div>
-
-                             <div className={`flex items-center gap-2 text-xs ${
-                               con.status === 'disponible' || con.status === 'entregado' 
-                                 ? 'text-amber-600' : 'text-slate-400'
-                             }`}>
-                               <div className={`w-4 h-4 rounded-full flex items-center justify-center ${
-                                 con.status === 'disponible' || con.status === 'entregado'
-                                   ? 'bg-amber-100' : 'bg-slate-100'
-                               }`}>
-                                 {(con.status === 'disponible' || con.status === 'entregado') && 
-                                   <CheckCircle className="h-3 w-3" />
-                                 }
-                               </div>
-                               <span className="font-medium">Disponible para Retiro</span>
-                             </div>
-
-                             <div className={`flex items-center gap-2 text-xs ${
-                               con.status === 'entregado' 
-                                 ? 'text-purple-600' : 'text-slate-400'
-                             }`}>
-                               <div className={`w-4 h-4 rounded-full flex items-center justify-center ${
-                                 con.status === 'entregado'
-                                   ? 'bg-purple-100' : 'bg-slate-100'
-                               }`}>
-                                 {con.status === 'entregado' && 
-                                   <CheckCircle className="h-3 w-3" />
-                                 }
-                               </div>
-                               <span className="font-medium">Entregado</span>
-                             </div>
-                           </div>
-                         </div>
-                       </div>
-                     </CardContent>
-                    </Card>
-                  ))
-                )}
+              {/* Guías de despacho */}
+              <TabsContent value="guides" className="mt-4">
+                <ClientGuidesPanel client={client} />
               </TabsContent>
 
               {/* Notes Tab */}

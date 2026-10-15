@@ -15,7 +15,8 @@ import ClientStateRatesCard from '@/components/manual-billing/ClientStateRatesCa
 import ClientPackagesTable from '@/components/client-analytics/ClientPackagesTable';
 import ClientCbmHistory from '@/components/client-analytics/ClientCbmHistory';
 import ClientInvoicesList from '@/components/client-analytics/ClientInvoicesList';
-import ClientDispatchOrders from '@/components/client-analytics/ClientDispatchOrders';
+import ClientCargoPanel from '@/components/client-cargo/ClientCargoPanel';
+import ClientGuidesPanel from '@/components/client-cargo/ClientGuidesPanel';
 
 function getLastMonths(count) {
   const now = new Date();
@@ -264,7 +265,9 @@ export default function ClientAnalytics() {
 
       {selectedClient && <ClientInvoicesList invoices={invoices} client={selectedClient} />}
 
-      {selectedClient && <ClientDispatchOrders orders={dispatchOrders} client={selectedClient} />}
+      {selectedClient && <ClientCargoPanel client={selectedClient} />}
+
+      {selectedClient && <ClientGuidesPanel client={selectedClient} />}
 
       {selectedClient && (
         <ClientPackagesTable
