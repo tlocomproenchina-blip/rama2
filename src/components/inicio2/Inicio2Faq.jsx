@@ -8,6 +8,10 @@ const faqs = [
     a: 'El Casillero Virtual de TLEC Cargo para importar desde China es 100% gratuito. No cobramos mensualidad, afiliación ni registro. Al registrarte obtienes un código exclusivo de cliente (ej: TLEC-5540) y la dirección de nuestro almacén físico en Guangdong, China. Al comprar a tus proveedores de Alibaba, 1688, Pinduoduo, Weidian, etc, ingresas esa dirección. Nosotros recibimos tu mercancía, la registramos en sistema, la consolidamos y la llevamos mediante flete marítimo seguro hasta la puerta de tu casa u oficina en Venezuela.',
   },
   {
+    q: '¿Tienen un mínimo de envío? ¿El servicio puerta a puerta tiene costo adicional?',
+    a: 'No tenemos mínimo de envío: puedes mandar desde un lápiz hasta un contenedor completo, sin peso, volumen ni cantidad mínima de bultos. El servicio puerta a puerta tiene un costo adicional de 9 USD por bulto y solo se cobra cuando lo solicitas; si retiras tu carga en el punto acordado o eliges otra modalidad de entrega, ese cargo no aplica.',
+  },
+  {
     q: '¿Qué es la consolidacion y cómo me ayuda a ahorrar?',
     a: 'La consolidación en TLEC Cargo consiste en recibir las compras que realizas a distintos proveedores y unificar todos esos paquetes en uno solo. Esto te ayuda a ahorrar porque te permite pagar un único flete por toda tu mercancía agrupada, evitando los altos costos operativos y las tarifas mínimas de hacer envíos individuales por cada paquete.',
   },
