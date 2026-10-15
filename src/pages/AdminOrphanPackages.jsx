@@ -15,6 +15,8 @@ import ImageViewerModal from '@/components/common/ImageViewerModal';
 import moment from 'moment';
 import { useOfflineWriteQueue } from '@/hooks/useOfflineWriteQueue';
 import OfflineSyncBadge from '@/components/warehouse/OfflineSyncBadge';
+import OrphanWholesalerSelect from '@/components/admin/orphans/OrphanWholesalerSelect';
+import OrphanWholesalerBadge from '@/components/admin/orphans/OrphanWholesalerBadge';
 import { getAll } from '@/lib/offlineDb';
 
 const PAGE_SIZE = 50;
@@ -46,6 +48,12 @@ export default function AdminOrphanPackages({ user }) {
   const [shippingType, setShippingType] = useState('maritimo');
   const [assigning, setAssigning] = useState(false);
 
+  // Mayorista de cada carga sin titular y filtro por mayorista.
+  const [wholesalerLinks, setWholesalerLinks] = useState({});
+  const [wholesalerOptions, setWholesalerOptions] = useState([]);
+  const [wholesalerFilter, setWholesalerFilter] = useState('todos');
+  const resolvedLinks = React.useRef(new Set());
+
   // Multi-select y acciones en lote
   const [selectedIds, setSelectedIds] = useState([]);
   const [warehouses, setWarehouses] = useState([]);
@@ -73,6 +81,9 @@ export default function AdminOrphanPackages({ user }) {
   const loadOrphans = useCallback(async (reset = false) => {
     try {
       setLoading(true);
+      // Al recargar se vuelve a resolver el mayorista de cada carga: su vínculo
+      // cambia cuando el mayorista la consulta, la recibe o la reclama.
+      if (reset) resolvedLinks.current = new Set();
       const s = reset ? 0 : skip;
       // Sin conexión: servir del cache de IndexedDB (no hay servidor disponible).
       // Con conexión: se espera siempre la lista del servidor, para no pintar primero
@@ -188,10 +199,43 @@ export default function AdminOrphanPackages({ user }) {
       if (statFilter === 'unreadable' && !p.ai_unreadable) return false;
       if (statFilter === 'noPhoto' && hasPhoto) return false;
     }
+    // Filtro por mayorista: el vínculo propio de la carga o, si todavía no lo
+    // tiene, las conexiones a las que su lista compartida le está ofreciendo la carga.
+    if (wholesalerFilter !== 'todos') {
+      const link = wholesalerLinks[p.id];
+      if (wholesalerFilter === 'sin') {
+        if (link) return false;
+      } else if (!link) {
+        return false;
+      } else if (link.mayorista?.key !== wholesalerFilter && !(link.compartido || []).some((c) => c.key === wholesalerFilter)) {
+        return false;
+      }
+    }
     const q = search.trim().toLowerCase();
     if (!q) return true;
     return (p.tracking_number || '').toLowerCase().includes(q) || (p.shipping_mark || '').toLowerCase().includes(q);
   });
+
+  // Mayorista de cada carga sin titular: se resuelve del lado del servidor con los
+  // vínculos que ya existen (los movimientos del mayorista y sus clientes) y con las
+  // conexiones a las que les aparece en su lista compartida. Sin conexión no se
+  // consulta: las cargas se ven igual, sin la marca del mayorista.
+  useEffect(() => {
+    if (!navigator.onLine) return;
+    const pendientes = listed.filter((p) => !resolvedLinks.current.has(p.id)).map((p) => p.id);
+    if (pendientes.length === 0) return;
+    pendientes.forEach((id) => resolvedLinks.current.add(id));
+    let cancelado = false;
+    (async () => {
+      try {
+        const { data } = await base44.functions.invoke('getOrphanWholesalers', { package_ids: pendientes });
+        if (cancelado || !data?.ok) return;
+        setWholesalerOptions(data.connections || []);
+        setWholesalerLinks((prev) => ({ ...prev, ...(data.links || {}) }));
+      } catch (_) {}
+    })();
+    return () => { cancelado = true; };
+  }, [listed]);
 
   const allSelected = filtered.length > 0 && filtered.every((p) => selectedIds.includes(p.id));
   const toggleSelect = (id) => {
@@ -628,11 +672,12 @@ export default function AdminOrphanPackages({ user }) {
       </Card>
 
       <Card className="shadow-sm">
-        <CardContent className="p-4">
-          <div className="relative">
+        <CardContent className="p-4 flex flex-col md:flex-row md:items-center gap-3">
+          <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <Input placeholder="Buscar por tracking o shipping mark..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
           </div>
+          <OrphanWholesalerSelect connections={wholesalerOptions} value={wholesalerFilter} onChange={setWholesalerFilter} />
         </CardContent>
       </Card>
 
@@ -672,8 +717,14 @@ export default function AdminOrphanPackages({ user }) {
       ) : filtered.length === 0 ? (
         <Card><CardContent className="p-10 text-center text-slate-500">
           <UserX className="h-12 w-12 mx-auto mb-3 text-slate-300" />
-          <p className="font-medium">No hay paquetes huérfanos</p>
-          <p className="text-sm">Los paquetes que lleguen sin pre-alerta aparecerán aquí.</p>
+          <p className="font-medium">
+            {wholesalerFilter === 'todos' ? 'No hay paquetes huérfanos' : 'No hay huérfanos para este mayorista'}
+          </p>
+          <p className="text-sm">
+            {wholesalerFilter === 'todos'
+              ? 'Los paquetes que lleguen sin pre-alerta aparecerán aquí.'
+              : 'Prueba con otro mayorista o vuelve a "Todos los mayoristas".'}
+          </p>
         </CardContent></Card>
       ) : (
         <div className="grid gap-3">
@@ -698,6 +749,7 @@ export default function AdminOrphanPackages({ user }) {
                       )}
                       <Badge variant="secondary">{p.shipping_type === 'maritimo' ? 'Marítimo' : 'Aéreo'}</Badge>
                       {p.shipping_mark && <Badge variant="outline">SM: {p.shipping_mark}</Badge>}
+                      <OrphanWholesalerBadge link={wholesalerLinks[p.id]} />
                       {p.ai_unreadable && (
                         <Badge variant="outline" className="text-red-600 border-red-200 bg-red-50 gap-1">
                           <AlertTriangle className="h-3 w-3" /> No legible por IA

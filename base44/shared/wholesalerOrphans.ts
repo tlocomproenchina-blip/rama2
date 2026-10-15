@@ -70,6 +70,13 @@ function isShareable(connection: any, pkg: any) {
   return withinSharedPeriod(connection, pkg);
 }
 
+// Conexiones a las que les aparece esa carga en su lista compartida (la misma
+// regla de isShareable): sirve para saber a qué mayoristas se les está ofreciendo
+// una carga sin titular, aunque todavía no la hayan reclamado ni consultado.
+export function sharedConnectionsFor(connections: any[], pkg: any) {
+  return (connections || []).filter((connection: any) => isShareable(connection, pkg));
+}
+
 function describeOrphan(pkg: any) {
   const fotos = packagePhotos(pkg);
   return {
