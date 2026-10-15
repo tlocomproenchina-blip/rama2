@@ -7,6 +7,7 @@ import DispatchGuideHistoryPanel from '@/components/warehouse/dispatch-guides/Di
 import DispatchGuideSyncCard from '@/components/warehouse/dispatch-guides/DispatchGuideSyncCard';
 import PeriodGuidesCard from '@/components/warehouse/dispatch-guides/PeriodGuidesCard';
 import ManualGuideCard from '@/components/warehouse/dispatch-guides/ManualGuideCard';
+import PublicGuidesLinkCard from '@/components/warehouse/dispatch-guides/PublicGuidesLinkCard';
 
 // Guías de despacho: aquí se generan las guías de un período pagado (una por cliente,
 // todas en un solo PDF) y se consulta el historial para reimprimir, descargar o anotar
@@ -55,6 +56,8 @@ export default function DispatchGuides() {
           </Badge>
         )}
       </div>
+
+      <PublicGuidesLinkCard />
 
       <PeriodGuidesCard onGenerated={handleGuidesGenerated} />
 

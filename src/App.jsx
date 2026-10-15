@@ -86,6 +86,7 @@ const QuoteFeePayment = lazy(() => import('./pages/QuoteFeePayment'));
 const CityLanding = lazy(() => import('./pages/CityLanding'));
 const AdminCityAnalytics = lazy(() => import('./pages/AdminCityAnalytics'));
 const MyWarehouseMerchandise = lazy(() => import('./pages/MyWarehouseMerchandise'));
+const PublicDispatchGuides = lazy(() => import('./pages/PublicDispatchGuides'));
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -217,6 +218,14 @@ const AuthenticatedApp = () => {
         element={
           <Suspense fallback={<RouteFallback />}>
             <SharedTrackingPortal />
+          </Suspense>
+        }
+      />
+      <Route
+        path="/GuiasPublicas"
+        element={
+          <Suspense fallback={<RouteFallback />}>
+            <PublicDispatchGuides />
           </Suspense>
         }
       />
