@@ -755,6 +755,16 @@
       "default": "En TLEC CARGO estamos autorizados para gestionar la importaci\u00f3n de bater\u00edas de litio con todos los permisos y certificaciones vigentes. Tu carga viaja segura y cumpliendo con la normativa internacional.",
       "description": "Cuerpo HTML editable del banner de bater\u00eda"
     },
+    "pwa_install_prompt_enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Muestra el aviso flotante que invita a instalar la aplicaci\u00f3n. Si est\u00e1 apagado, el usuario puede instalarla desde su perfil."
+    },
+    "push_prompt_enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Muestra el aviso flotante que invita a activar las notificaciones. Si est\u00e1 apagado, el usuario puede activarlas desde su perfil."
+    },
     "description": {
       "type": "string",
       "maxLength": 1000,

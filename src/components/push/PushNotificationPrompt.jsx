@@ -1,17 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Bell, X, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { enablePushNotifications, pushSupported } from '@/lib/pushNotifications';
 
 const DISMISS_KEY = 'pushPromptDismissed';
-
-function urlBase64ToUint8Array(base64String) {
-  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-  const rawData = atob(base64);
-  return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)));
-}
 
 export default function PushNotificationPrompt({ user }) {
   const [visible, setVisible] = useState(false);
@@ -20,7 +13,7 @@ export default function PushNotificationPrompt({ user }) {
 
   useEffect(() => {
     if (!user?.email) return;
-    if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) return;
+    if (!pushSupported()) return;
     if (Notification.permission !== 'default') return;
 
     try {
@@ -36,34 +29,13 @@ export default function PushNotificationPrompt({ user }) {
     setSubscribing(true);
     setErrorMsg('');
     try {
-      const permission = await Notification.requestPermission();
-      if (permission !== 'granted') {
-        setErrorMsg('Bloqueaste las notificaciones. Actívalas en los ajustes del navegador para recibir alertas.');
-        return;
+      const result = await enablePushNotifications();
+      if (result.ok) {
+        toast.success(result.message);
+        setVisible(false);
+      } else {
+        setErrorMsg(result.message);
       }
-
-      // Timeout de seguridad: en WebView el SW puede tardar o no activarse
-      const registration = await Promise.race([
-        navigator.serviceWorker.ready,
-        new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('El servicio de notificaciones no respondió. Recarga la página e inténtalo de nuevo.')), 8000)
-        ),
-      ]);
-
-      const { data } = await base44.functions.invoke('getPushVapidKey', {});
-      const subscription = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(data.publicKey),
-      });
-
-      await base44.functions.invoke('savePushSubscription', {
-        subscription: subscription.toJSON(),
-      });
-      toast.success('Notificaciones activadas correctamente');
-      setVisible(false);
-    } catch (error) {
-      console.error('Error enabling push:', error);
-      setErrorMsg(error?.message || 'No se pudo activar las notificaciones. Inténtalo de nuevo.');
     } finally {
       setSubscribing(false);
     }

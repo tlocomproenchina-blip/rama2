@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Download, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { getInstallState, promptInstall, subscribeInstallState } from '@/lib/pwaInstall';
 
 const DISMISS_KEY = 'pwa_install_prompt_dismissed_at';
 const DISMISS_DAYS = 7;
@@ -12,51 +13,27 @@ function wasDismissedRecently() {
 }
 
 export default function PWAInstallPrompt() {
-  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [installState, setInstallState] = useState(getInstallState);
   const [showPrompt, setShowPrompt] = useState(false);
-  const [isIOS, setIsIOS] = useState(false);
-  const [isInstalled, setIsInstalled] = useState(false);
+
+  useEffect(() => subscribeInstallState(() => setInstallState(getInstallState())), []);
 
   useEffect(() => {
-    const iOS = ['iPad Simulator', 'iPhone Simulator', 'iPod Simulator', 'iPad', 'iPhone', 'iPod'].includes(navigator.platform) || (navigator.userAgent.includes('Mac') && 'ontouchend' in document);
-    const standalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
-
-    setIsIOS(iOS);
-    setIsInstalled(standalone);
-
-    if (standalone || wasDismissedRecently()) return;
-
-    const iosTimer = iOS ? window.setTimeout(() => setShowPrompt(true), 3500) : null;
-
-    const handleBeforeInstallPrompt = (e) => {
-      e.preventDefault();
-      if (wasDismissedRecently()) return;
-      setDeferredPrompt(e);
-      setShowPrompt(true);
-    };
-
-    const handleAppInstalled = () => {
-      setIsInstalled(true);
+    if (installState.installed || wasDismissedRecently()) {
       setShowPrompt(false);
-      setDeferredPrompt(null);
-      localStorage.removeItem(DISMISS_KEY);
-    };
+      return;
+    }
 
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    window.addEventListener('appinstalled', handleAppInstalled);
+    if (installState.ios) {
+      const iosTimer = window.setTimeout(() => setShowPrompt(true), 3500);
+      return () => window.clearTimeout(iosTimer);
+    }
 
-    return () => {
-      if (iosTimer) window.clearTimeout(iosTimer);
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-      window.removeEventListener('appinstalled', handleAppInstalled);
-    };
-  }, []);
+    if (installState.canPrompt) setShowPrompt(true);
+  }, [installState]);
 
   const handleInstallClick = async () => {
-    if (!deferredPrompt) return;
-    await deferredPrompt.prompt();
-    await deferredPrompt.userChoice;
-    setDeferredPrompt(null);
+    await promptInstall();
     setShowPrompt(false);
   };
 
@@ -65,9 +42,9 @@ export default function PWAInstallPrompt() {
     setShowPrompt(false);
   };
 
-  if (isInstalled || !showPrompt) return null;
+  if (installState.installed || !showPrompt) return null;
 
-  if (isIOS) {
+  if (installState.ios) {
     return (
       <div className="fixed inset-x-4 bottom-24 z-40 rounded-2xl border border-blue-200 bg-white p-4 shadow-xl lg:left-auto lg:right-6 lg:max-w-xs" style={{ marginBottom: 'env(safe-area-inset-bottom)' }}>
         <div className="flex items-start justify-between gap-3">
@@ -85,7 +62,7 @@ export default function PWAInstallPrompt() {
     );
   }
 
-  if (!deferredPrompt) return null;
+  if (!installState.canPrompt) return null;
 
   return (
     <div className="fixed inset-x-4 bottom-24 z-40 rounded-2xl border border-blue-200 bg-white p-4 shadow-xl lg:left-auto lg:right-6 lg:max-w-xs" style={{ marginBottom: 'env(safe-area-inset-bottom)' }}>

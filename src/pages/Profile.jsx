@@ -14,6 +14,7 @@ import BillingAddressCard from '@/components/profile/BillingAddressCard';
 import WhatsAppInput from '@/components/common/WhatsAppInput';
 import ClientPageHero from '@/components/client-portal/ClientPageHero';
 import DarkModeToggleCard from '@/components/admin/DarkModeToggleCard';
+import AppPromptsActionsCard from '@/components/profile/AppPromptsActionsCard';
 import { getDigits, sanitizeClientProfileData, sanitizeWhatsApp } from '@/lib/inputSanitizers';
 
 export default function Profile({ user, refreshUser }) {
@@ -445,6 +446,9 @@ export default function Profile({ user, refreshUser }) {
           </p>
         </CardContent>
       </Card>
+
+      {/* Instalar app y activar notificaciones */}
+      <AppPromptsActionsCard />
 
       {/* Modo Noche */}
       <DarkModeToggleCard />
