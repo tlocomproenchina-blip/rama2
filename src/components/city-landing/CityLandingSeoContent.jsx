@@ -116,7 +116,7 @@ export default function CityLandingSeoContent({ city }) {
               El <strong>costo de enviar un contenedor desde China a {city.city}</strong> depende del volumen real
               (CBM) de tu carga, la categoría (general o sensible/alto riesgo) y el estado de destino. Para cargas
               menores a 0.130 CBM aplicamos tarifas fijas por rango que incluyen recepción en nuestro almacén de
-              Valencia; el despacho final a {city.city} se realiza vía MRW con cobro en destino. Para cargas mayores,
+              Valencia; la entrega final a {city.city} es puerta a puerta en la dirección del cliente. Para cargas mayores,
               el cálculo es simple: <em>volumen CBM × tarifa por estado</em>, con un recargo del 100% (x2) si el peso
               real supera los 499 kg.
             </p>

@@ -9,7 +9,7 @@ const faqs = [
   },
   {
     q: '¿Tienen un mínimo de envío? ¿El servicio puerta a puerta tiene costo adicional?',
-    a: 'No tenemos mínimo de envío: puedes mandar desde un lápiz hasta un contenedor completo, sin peso, volumen ni cantidad mínima de bultos. El servicio puerta a puerta tiene un costo adicional de 9 USD por bulto y solo se cobra cuando lo solicitas; si retiras tu carga en el punto acordado o eliges otra modalidad de entrega, ese cargo no aplica.',
+    a: 'No tenemos mínimo de envío: puedes mandar desde un lápiz hasta un contenedor completo, sin peso, volumen ni cantidad mínima de bultos. Todas nuestras cargas se entregan puerta a puerta en la dirección del cliente, con un costo de 9 USD por bulto. No hay retiro en oficinas de encomiendas.',
   },
   {
     q: '¿Qué es la consolidacion y cómo me ayuda a ahorrar?',
@@ -17,7 +17,7 @@ const faqs = [
   },
   {
     q: '¿Cómo se calcula el costo del Envío Marítimo Consolidado?',
-    a: 'El flete marítimo desde China se calcula por volumen (CBM = largo × ancho × alto en metros cúbicos) y la tarifa varía según tu estado de destino en Venezuela. Las cargas menores a 0.130 CBM tienen tarifas fijas por rango y llegan a nuestro almacén en Valencia con despacho vía MRW cobro destino. Usa nuestra calculadora en esta misma página para estimar tu costo exacto al instante.',
+    a: 'El flete marítimo desde China se calcula por volumen (CBM = largo × ancho × alto en metros cúbicos) y la tarifa varía según tu estado de destino en Venezuela. Las cargas menores a 0.130 CBM tienen tarifas fijas por rango y la entrega final es puerta a puerta en tu dirección. Usa nuestra calculadora en esta misma página para estimar tu costo exacto al instante.',
   },
   {
     q: '¿Cuáles son las formas de pago aceptadas?',

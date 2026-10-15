@@ -71,7 +71,7 @@ export async function generateClientPriceListPdf({ states = [], pricing = {}, ap
   title('¿Cómo se calcula tu envío?');
   line('1. Medimos tu carga en CBM (metros cúbicos): largo x ancho x alto en cm, dividido entre 1.000.000.', 3);
   line(`2. Cargas de ${MIN_CBM.toFixed(3)} CBM o más: se cobra el precio por CBM de tu estado (servicio puerta a puerta incluido).`, 3);
-  line(`3. Cargas menores a ${MIN_CBM.toFixed(3)} CBM: aplica una tarifa fija por rango (ver tabla final). Llega a nuestro almacén en Valencia y el despacho final se hace por MRW con cobro en destino (no incluido).`, 3);
+  line(`3. Cargas menores a ${MIN_CBM.toFixed(3)} CBM: aplica una tarifa fija por rango (ver tabla final). La entrega es puerta a puerta en la dirección del cliente (9 USD por bulto).`, 3);
   line(`4. Cargo fijo de $1,00 por recepción de cada paquete en almacén.${appConfig.insurance_percentage ? ` Seguro opcional: ${appConfig.insurance_percentage}% del valor FOB.` : ''}`, 3);
   y += 3;
 
@@ -129,7 +129,7 @@ export async function generateClientPriceListPdf({ states = [], pricing = {}, ap
   const special = Array.isArray(appConfig.special_cbm_rates) ? [...appConfig.special_cbm_rates].sort((a, b) => Number(a.min_cbm) - Number(b.min_cbm)) : [];
   if (special.length) {
     title(`Cargas pequeñas (menores a ${MIN_CBM.toFixed(3)} CBM) - tarifa fija`);
-    line('Llegan a nuestro almacén en Valencia. El despacho final vía MRW se paga en destino y no está incluido.', 3);
+    line('La entrega es puerta a puerta en la dirección del cliente (9 USD por bulto). No hay retiro en oficinas de encomiendas.', 3);
     y += 2;
     ensure(20);
     doc.setFillColor(30, 64, 175);

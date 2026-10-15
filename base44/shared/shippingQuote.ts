@@ -126,7 +126,7 @@ export function calculateShipping(params: any, cfg: any, pricing: any, states: a
     freight_regular = rate_regular;
     freight_high = rate_high;
     service_type = 'almacen_valencia_mrw';
-    service_notes = 'Carga menor a 0.13 CBM. Llega a nuestro almacén en Valencia. El despacho final es vía MRW con cobro a destino.';
+    service_notes = 'Carga menor a 0.13 CBM. Aplica tarifa fija por rango. La entrega es puerta a puerta en la dirección del cliente.';
   }
 
   const reception_fee = PACKAGE_RECEIVED_FEE;

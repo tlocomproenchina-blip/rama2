@@ -27,7 +27,7 @@ export default function CityLandingFaq({ city }) {
     },
     {
       q: `¿Hacen entrega puerta a puerta en ${city.state_name}?`,
-      a: `Sí. Coordinamos la entrega final puerta a puerta en ${city.city} y toda la zona de ${city.state_name}. Para cargas menores a 0.130 CBM, el despacho final se realiza vía MRW con cobro en destino.`,
+      a: `Sí. Coordinamos la entrega final puerta a puerta en ${city.city} y toda la zona de ${city.state_name}. Aplica para cualquier volumen, también las cargas menores a 0.130 CBM: no tenemos mínimo de envío y la entrega siempre es puerta a puerta en la dirección del cliente.`,
     },
   ];
 

@@ -137,7 +137,7 @@ export default function ShippingCalculator({ user, defaultStateCode, defaultShip
     let shippingCost = finalRate * billableWeight;
     let specialRateApplied = false;
 
-    // Tarifa especial: cargas marítimas menores a 0.130 CBM (almacén Valencia + MRW cobro destino)
+    // Tarifa especial: cargas marítimas menores a 0.130 CBM (tarifa fija por rango + entrega puerta a puerta)
     if (shippingType === 'maritimo' && calculatedCbm > 0 && calculatedCbm < MIN_CBM) {
       const ranges = [...(config?.special_cbm_rates || [])].sort((a, b) => (a.min_cbm || 0) - (b.min_cbm || 0));
       const found = ranges.find(r => calculatedCbm <= (r.max_cbm || 0));
@@ -418,7 +418,7 @@ export default function ShippingCalculator({ user, defaultStateCode, defaultShip
                 <div className="rounded-lg bg-slate-100/80 px-3 py-2 md:col-span-2">Cargo por recepción de paquete: ${result.receptionFee.toFixed(2)}</div>
                 {shippingType === 'maritimo' && result.specialRateApplied && (
                   <div className="rounded-lg bg-sky-50 px-3 py-2 text-sky-700 md:col-span-2">
-                    Carga menor a 0.130 CBM: aplica tarifa fija por rango. Tu carga llega a nuestro almacén en Valencia y el despacho final es vía MRW cobro destino (costo de MRW no incluido).
+                    Carga menor a 0.130 CBM: aplica tarifa fija por rango. La entrega se realiza puerta a puerta en la dirección del cliente (9 USD por bulto), sin retiro en oficinas de encomiendas.
                   </div>
                 )}
                 {shippingType === 'maritimo' && result.densityKgPerCbm > 0 && (

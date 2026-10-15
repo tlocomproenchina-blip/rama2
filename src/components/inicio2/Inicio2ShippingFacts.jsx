@@ -9,8 +9,8 @@ const facts = [
   },
   {
     icon: Truck,
-    title: 'Puerta a puerta: +$9 por bulto',
-    desc: 'El servicio puerta a puerta tiene un costo adicional de 9 USD por bulto y solo se cobra cuando tú lo solicitas.',
+    title: 'Puerta a puerta siempre: $9 por bulto',
+    desc: 'Todos los envíos se entregan puerta a puerta en tu dirección en Venezuela, con un costo de 9 USD por bulto. No hay retiro en oficinas de encomiendas.',
   },
 ];
 

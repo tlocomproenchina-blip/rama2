@@ -28,7 +28,7 @@ export default function SpecialCbmRatesEditor({ rates, onChange, onSave, saving 
           Tarifas Especiales por CBM (cargas menores a 0.130 CBM)
         </CardTitle>
         <CardDescription>
-          Tarifa fija por rango de CBM para cargas pequeñas. Llegan al almacén en Valencia y el despacho final es vía MRW cobro destino.
+          Tarifa fija por rango de CBM para cargas pequeñas. La entrega final es puerta a puerta en la dirección del cliente (9 USD por bulto).
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4 p-4 md:p-6">

@@ -16,7 +16,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 // - Cargo fijo de $1 por recepción de paquete (siempre).
 // - CBM >= 0.130: servicio puerta a puerta (tarifas por CBM de PricingConfig + door_to_door_cost).
 // - CBM <= 0.129: tarifa especial fija por rango (AppConfig.special_cbm_rates).
-//   Llega a almacén en Valencia, despacho final vía MRW cobro destino (no incluido).
+//   Aplica tarifa fija por rango; la entrega es puerta a puerta en la dirección del cliente.
 // - Seguro: si include_insurance=true y hay fob_value, usar (AppConfig.insurance_percentage || 5)%
 
 const DOOR_TO_DOOR_THRESHOLD = 0.130;
@@ -98,7 +98,7 @@ Deno.serve(async (req) => {
       service_type = 'puerta_a_puerta';
       service_notes = 'Carga igual o mayor a 0.130 CBM. Incluye servicio puerta a puerta.';
     } else {
-      // Tarifa especial: llega a Valencia, despacho MRW cobro destino
+      // Tarifa especial: tarifa fija por rango con entrega puerta a puerta
       const sorted = [...special_rates].sort((x, y) => Number(x.min_cbm) - Number(y.min_cbm));
       const found = sorted.find(r => cbm <= Number(r.max_cbm));
 
@@ -110,7 +110,7 @@ Deno.serve(async (req) => {
       freight_subtotal = base_rate; // tarifa fija por rango
       d2d = 0;
       service_type = 'almacen_valencia_mrw_cobro_destino';
-      service_notes = 'Carga menor a 0.130 CBM. Llega a nuestro almacén en Valencia. Despacho final vía MRW cobro destino (costo de MRW no incluido).';
+      service_notes = 'Carga menor a 0.130 CBM. Aplica tarifa fija por rango. La entrega es puerta a puerta en la dirección del cliente.';
     }
 
     // 5) Cargo fijo por recepción de paquete

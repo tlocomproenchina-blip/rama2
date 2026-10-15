@@ -354,9 +354,9 @@ export default function Rates({ user }) {
               <Package className="h-6 w-6 text-amber-600" />
             </div>
             <div>
-              <h3 className="font-semibold text-slate-800 text-lg">Facturación mínima de envío</h3>
+              <h3 className="font-semibold text-slate-800 text-lg">Sin mínimo de envío</h3>
               <p className="text-sm text-slate-600 mt-1">
-                Se facturará toda carga o envío que no cumpla con el envío mínimo establecido, que es de 0.130 CBM o el equivalente a una caja de 50cm × 50cm × 50cm.
+                No tenemos mínimo de envío: puedes mandar desde un lápiz hasta un contenedor completo. Se factura el volumen real de tu carga y, si es menor a 0.130 CBM, aplica la tarifa fija por rango con entrega puerta a puerta en tu dirección (9 USD por bulto).
               </p>
             </div>
           </div>

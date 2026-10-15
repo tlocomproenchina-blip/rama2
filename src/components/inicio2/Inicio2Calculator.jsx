@@ -153,7 +153,7 @@ export default function Inicio2Calculator({ defaultStateCode }) {
             {result?.specialRate && (
               <div className="mt-4 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-700">
                 <Info className="mt-0.5 h-4 w-4 shrink-0" />
-                Carga menor a 0.130 CBM: aplica tarifa fija por rango. Llega a nuestro almacén en Valencia y el despacho final es vía MRW cobro destino (no incluido).
+                Carga menor a 0.130 CBM: aplica tarifa fija por rango. La entrega se realiza puerta a puerta en tu dirección (9 USD por bulto), sin retiro en oficinas de encomiendas.
               </div>
             )}
             {result?.multiplier === 2 && (
