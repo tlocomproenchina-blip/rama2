@@ -8,7 +8,7 @@ import Client360Recibos from './Client360Recibos';
 import Client360Tickets from './Client360Tickets';
 import Client360DispatchOrders from './Client360DispatchOrders';
 
-export default function ClientSupport360({ clientEmail, currentTicketId }) {
+export default function ClientSupport360({ clientEmail, currentTicketId, hideTickets = false }) {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState({ packages: [], invoices: [], recibos: [], tickets: [], dispatchOrders: [] });
   const [q, setQ] = useState('');
@@ -76,7 +76,7 @@ export default function ClientSupport360({ clientEmail, currentTicketId }) {
       <Client360Recibos recibos={filtered.recibos} />
       <Client360Invoices invoices={filtered.invoices} recibos={data.recibos} />
       <Client360DispatchOrders orders={filtered.dispatchOrders} />
-      <Client360Tickets tickets={filtered.tickets} />
+      {hideTickets ? null : <Client360Tickets tickets={filtered.tickets} />}
     </div>);
 
 }

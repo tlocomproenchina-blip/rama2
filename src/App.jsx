@@ -62,6 +62,7 @@ const AdminSharedPortal = lazy(() => import('./pages/AdminSharedPortal'));
 const SharedTrackingPortal = lazy(() => import('./pages/SharedTrackingPortal'));
 const AdminSupportQuickMessages = lazy(() => import('./pages/AdminSupportQuickMessages'));
 const AdminSupportAssistant = lazy(() => import('./pages/AdminSupportAssistant'));
+const AdminSupportClients = lazy(() => import('./pages/AdminSupportClients'));
 const AdminClients = lazy(() => import('./pages/AdminClients'));
 const AdminInvoices = lazy(() => import('./pages/AdminInvoices'));
 const AdminCreditUsage = lazy(() => import('./pages/AdminCreditUsage'));
@@ -190,6 +191,7 @@ const AuthenticatedApp = () => {
       <Route path="/AdminSharedPortal" element={lazyRoute(AdminSharedPortal, "AdminSharedPortal")} />
       <Route path="/AdminSupportQuickMessages" element={lazyRoute(AdminSupportQuickMessages, "AdminSupportQuickMessages")} />
       <Route path="/AdminSupportAssistant" element={lazyRoute(AdminSupportAssistant, "AdminSupportAssistant")} />
+      <Route path="/AdminSupportClients" element={lazyRoute(AdminSupportClients, "AdminSupportClients")} />
       <Route path="/AdminClients" element={lazyRoute(AdminClients, "AdminClients")} />
       <Route path="/AdminInvoices" element={lazyRoute(AdminInvoices, "AdminInvoices")} />
       <Route path="/AdminCreditUsage" element={lazyRoute(AdminCreditUsage, "AdminCreditUsage")} />

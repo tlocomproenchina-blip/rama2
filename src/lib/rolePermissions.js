@@ -27,7 +27,7 @@ export const ROLE_PRESETS = {
     role_code: 'soporte',
     role_name: 'Soporte',
     description: 'Atención al cliente, tickets y ayuda.',
-    visible_pages: ['AdminDashboard', 'AdminClients', 'AdminSupportAssistant', 'AdminSupportTickets', 'AdminInternalMessages', 'AdminFAQ', 'ClientAnalytics']
+    visible_pages: ['AdminDashboard', 'AdminClients', 'AdminSupportAssistant', 'AdminSupportTickets', 'AdminSupportClients', 'AdminInternalMessages', 'AdminFAQ', 'ClientAnalytics']
   },
   marketing: {
     role_code: 'marketing',
@@ -101,6 +101,7 @@ export const PAGE_LABELS = {
   AdminProviders: 'Proveedores',
   AdminPaymentAlerts: 'Alertas de Pago',
   AdminSupportTickets: 'Tickets Soporte',
+  AdminSupportClients: 'Ficha de Cliente',
   AdminSupportAssistant: 'Asistente ATC (Q&A)',
   AdminFAQ: 'Gestionar FAQ',
   AdminClients: 'Clientes',

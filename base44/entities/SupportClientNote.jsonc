@@ -1,0 +1,70 @@
+{
+  "name": "SupportClientNote",
+  "type": "object",
+  "properties": {
+    "client_email": {
+      "type": "string",
+      "description": "Email del cliente al que pertenece la nota interna"
+    },
+    "client_name": {
+      "type": "string",
+      "description": "Nombre del cliente (cache para mostrar en la ficha)"
+    },
+    "client_cedula": {
+      "type": "string",
+      "description": "C\u00e9dula del cliente (cache para mostrar en la ficha)"
+    },
+    "ticket_id": {
+      "type": "string",
+      "description": "ID del ticket al que pertenece la nota. Vac\u00edo cuando es una nota general del cliente. Las notas de un caso quedan solo en el expediente de ese caso."
+    },
+    "ticket_number": {
+      "type": "string",
+      "description": "N\u00famero visible del ticket al que pertenece la nota (cache para mostrar)"
+    },
+    "note": {
+      "type": "string",
+      "maxLength": 4000,
+      "description": "Contenido de la nota interna. Nunca se env\u00eda ni se muestra al cliente: es contexto y registro del equipo."
+    },
+    "author_email": {
+      "type": "string",
+      "description": "Email del agente que escribi\u00f3 la nota"
+    },
+    "author_name": {
+      "type": "string",
+      "description": "Nombre del agente que escribi\u00f3 la nota"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Descripci\u00f3n opcional"
+    }
+  },
+  "required": [
+    "client_email",
+    "note"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

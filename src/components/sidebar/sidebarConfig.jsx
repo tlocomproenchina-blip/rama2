@@ -39,6 +39,7 @@ import {
   Printer,
   Share2,
   Headphones,
+  UserSearch,
 } from 'lucide-react';
 
 export const clientMenuItems = [
@@ -122,6 +123,7 @@ export const adminMenuItems = [
   { name: 'Tracking Asegurados', page: 'AdminInsured', icon: ShieldCheck },
   { name: 'Asistente ATC', page: 'AdminSupportAssistant', icon: Headphones },
   { name: 'Tickets Soporte', page: 'AdminSupportTickets', icon: MessageCircle },
+  { name: 'Ficha de Cliente', page: 'AdminSupportClients', icon: UserSearch },
   { name: 'Mensajes Rápidos', page: 'AdminSupportQuickMessages', icon: MessageCircle },
   { name: 'Mensajería Interna', page: 'AdminInternalMessages', icon: MessageSquareMore },
   { name: 'Gestionar FAQ', page: 'AdminFAQ', icon: HelpCircle },
@@ -149,7 +151,7 @@ export const adminGroups = [
   { label: 'COMUNICACIONES', items: ['AdminEmailCampaigns', 'AdminDeliveryProofCampaign', 'AdminEmailHistory', 'AdminEmailTemplates', 'AdminPaymentAlerts'] },
   { label: 'MARKETING', items: ['AdminPromotions', 'AdminMarketing', 'AdminCityAnalytics', 'AdminBlog', 'AdminReferrals'] },
   { label: 'SEGUIMIENTO', items: ['AdminSeguimiento', 'AdminActivityAudit', 'ShipmentTracking', 'AdminSeguimientoRutas', 'ShippingCalculator', 'AdminInsured'] },
-  { label: 'SOPORTE', items: ['AdminSupportAssistant', 'AdminSupportTickets', 'AdminSupportQuickMessages', 'AdminInternalMessages', 'AdminFAQ'] },
+  { label: 'SOPORTE', items: ['AdminSupportAssistant', 'AdminSupportTickets', 'AdminSupportClients', 'AdminSupportQuickMessages', 'AdminInternalMessages', 'AdminFAQ'] },
   { label: 'EQUIPO Y ACCESOS', items: ['AdminEmployees', 'AdminAdministrators', 'AdminRoles', 'AdminEmployeeAudit', 'AdminEmployeePerformance'] },
   { label: 'GESTIÓN', items: ['AdminClients', 'AdminWholesalerClients', 'AdminSharedPortal', 'AdminDuplicates', 'AdminKnowledgeBase', 'AdminDelete', 'AdminSettings'] },
 ];

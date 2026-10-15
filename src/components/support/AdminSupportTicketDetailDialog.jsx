@@ -5,8 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import TicketChat from '@/components/support/TicketChat';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { MessageSquare, UserSearch, Bot, Send, X, AlertTriangle } from 'lucide-react';
+import { MessageSquare, UserSearch, Bot, Send, X, AlertTriangle, Lock } from 'lucide-react';
 import ClientSupport360 from '@/components/support/client360/ClientSupport360';
+import SupportNotesPanel from '@/components/support/client-file/SupportNotesPanel';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
 
@@ -138,6 +139,10 @@ export default function AdminSupportTicketDetailDialog({ selectedTicket, setSele
               <UserSearch className="h-4 w-4 mr-2" />
               Datos del cliente
             </TabsTrigger>
+            <TabsTrigger value="notas">
+              <Lock className="h-4 w-4 mr-2" />
+              Notas internas
+            </TabsTrigger>
           </TabsList>
           <TabsContent value="chat">
             {selectedTicket?.ai_pending_draft && (
@@ -189,6 +194,17 @@ export default function AdminSupportTicketDetailDialog({ selectedTicket, setSele
           </TabsContent>
           <TabsContent value="cliente">
             <ClientSupport360 clientEmail={selectedTicket?.client_email} currentTicketId={selectedTicket?.id} />
+          </TabsContent>
+          <TabsContent value="notas">
+            <SupportNotesPanel
+              clientEmail={selectedTicket?.client_email}
+              clientName={clientName}
+              clientCedula={client?.cedula || ''}
+              ticketId={selectedTicket?.id}
+              ticketNumber={selectedTicket?.ticket_number || ''}
+              user={user}
+              title="Notas internas del caso"
+            />
           </TabsContent>
         </Tabs>
       </DialogContent>
