@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2, Save, Pencil, Search, User as UserIcon, X, Trash2, AlertTriangle } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import PackageBillingInfo from '@/components/admin/packages/PackageBillingInfo';
+import DeliveryProofDeadlineCard from '@/components/admin/packages/DeliveryProofDeadlineCard';
 
 export default function EditPackageModal({ pkg, processing, deleting, onClose, onSave, onDelete }) {
   const [form, setForm] = useState({
@@ -19,6 +20,7 @@ export default function EditPackageModal({ pkg, processing, deleting, onClose, o
     risk_category: 'general',
     package_count: 1,
     client_email: '',
+    delivery_proof_exception: false,
   });
 
   const [clientSearch, setClientSearch] = useState('');
@@ -37,6 +39,7 @@ export default function EditPackageModal({ pkg, processing, deleting, onClose, o
         risk_category: pkg.risk_category || 'general',
         package_count: pkg.package_count || 1,
         client_email: pkg.client_email || '',
+        delivery_proof_exception: !!pkg.delivery_proof_exception,
       });
       setClientSearch('');
       setClientResults([]);
@@ -102,6 +105,10 @@ export default function EditPackageModal({ pkg, processing, deleting, onClose, o
     // limpiar la bandera is_orphan para que desaparezca de huérfanos.
     const wasOrphan = !!pkg?.is_orphan;
     const assigningClient = wasOrphan && clientEmail.length > 0;
+    // Excepción del plazo del comprobante de entrega: al habilitarla se reabre la
+    // carga para el cliente; al quitarla se borra la constancia de quién la dio.
+    const exceptionNow = !!form.delivery_proof_exception;
+    const exceptionChanged = exceptionNow !== !!pkg?.delivery_proof_exception;
     onSave({
       tracking_number: trackingTrimmed,
       shipping_mark: (form.shipping_mark || '').trim(),
@@ -110,6 +117,9 @@ export default function EditPackageModal({ pkg, processing, deleting, onClose, o
       risk_category: form.risk_category,
       package_count: Number(form.package_count) || 1,
       client_email: clientEmail,
+      delivery_proof_exception: exceptionNow,
+      ...(exceptionChanged && exceptionNow ? { delivery_proof_exception_date: new Date().toISOString() } : {}),
+      ...(exceptionChanged && !exceptionNow ? { delivery_proof_exception_date: null, delivery_proof_exception_by: '' } : {}),
       ...(assigningClient ? { is_orphan: false, status: pkg.status === 'sin_cliente' ? 'recibido' : pkg.status } : {}),
     });
   };
@@ -127,6 +137,11 @@ export default function EditPackageModal({ pkg, processing, deleting, onClose, o
         </DialogHeader>
         <div className="space-y-4 py-2">
           {pkg?.tracking_number && <PackageBillingInfo tracking={pkg.tracking_number} />}
+          <DeliveryProofDeadlineCard
+            pkg={pkg}
+            enabled={!!form.delivery_proof_exception}
+            onChange={(v) => setForm((prev) => ({ ...prev, delivery_proof_exception: v }))}
+          />
           <div className="space-y-2">
             <Label>Tracking *</Label>
             <Input

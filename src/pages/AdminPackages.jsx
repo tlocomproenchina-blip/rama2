@@ -149,6 +149,11 @@ export default function AdminPackages({ user }) {
       toast.error('El tracking es obligatorio');
       return;
     }
+    // Queda registrado qué administrador habilitó la excepción del plazo del
+    // comprobante de entrega.
+    if (patch.delivery_proof_exception === true) {
+      patch.delivery_proof_exception_by = user?.email || '';
+    }
     setEditPackageProcessing(true);
     try {
       const newTracking = patch.tracking_number.trim();

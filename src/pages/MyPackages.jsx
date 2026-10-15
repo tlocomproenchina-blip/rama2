@@ -42,6 +42,8 @@ import useEntitySubscription from '@/hooks/useEntitySubscription';
 import InsurePackageModal from '@/components/client-portal/InsurePackageModal';
 import InsuranceBadge, { getInsuranceState } from '@/components/client-portal/InsuranceBadge';
 import InsurancePaymentModal from '@/components/client-portal/InsurancePaymentModal';
+import DeliveryProofDeadlineAlert from '@/components/client-portal/DeliveryProofDeadlineAlert';
+import { getDeliveryProofState } from '@/lib/deliveryProofDeadline';
 
 export default function MyPackages({ user }) {
   const PAGE_SIZE = 200;
@@ -66,6 +68,10 @@ export default function MyPackages({ user }) {
   const [insureModal, setInsureModal] = useState(null);
   const [insurancePayments, setInsurancePayments] = useState({});
   const [retryInsurancePkg, setRetryInsurancePkg] = useState(null);
+
+  // Plazo de 10 días para cargar la fecha de entrega y su foto (y su excepción).
+  const sellerDateProof = getDeliveryProofState(sellerDateModal);
+  const editProof = getDeliveryProofState(editModal);
 
   useEffect(() => {
     loadPackages(false);
@@ -346,7 +352,9 @@ export default function MyPackages({ user }) {
           description="Consulta el detalle de cada registro, sus fotos y el estado actual del proceso."
         />
         <div className="grid gap-3 md:gap-4">
-          {filteredPackages.map((pkg) => (
+          {filteredPackages.map((pkg) => {
+            const proofState = getDeliveryProofState(pkg);
+            return (
             <Card key={pkg.id} className="border border-border/70 bg-card/95 shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-premium">
               <CardContent className="p-3 md:p-4 lg:p-6">
                 <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
@@ -449,19 +457,31 @@ export default function MyPackages({ user }) {
                         })()}
                       </div>
                     )}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => openSellerDate(pkg)}
-                      className="mt-1 text-[11px] md:text-xs"
-                    >
-                      {pkg.seller_delivery_date ? 'Editar fecha entrega' : 'Agregar fecha entrega'}
-                    </Button>
+                    {proofState.expired ? (
+                      <DeliveryProofDeadlineAlert deadline={proofState.deadline} className="mt-2" />
+                    ) : (
+                      <>
+                        {proofState.exception && proofState.pastDeadline && (
+                          <p className="mt-1 text-[11px] md:text-xs text-emerald-700">
+                            Excepción habilitada por TLEC CARGO: puedes volver a cargar la fecha y la foto.
+                          </p>
+                        )}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openSellerDate(pkg)}
+                          className="mt-1 text-[11px] md:text-xs"
+                        >
+                          {pkg.seller_delivery_date ? 'Editar fecha entrega' : 'Agregar fecha entrega'}
+                        </Button>
+                      </>
+                    )}
                   </div>
                 </div>
               </CardContent>
             </Card>
-          ))}
+            );
+          })}
         </div>
         {hasMore && (
           <Button variant="outline" className="w-full" onClick={() => loadPackages(true)} disabled={loadingMore}>
@@ -544,16 +564,20 @@ export default function MyPackages({ user }) {
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <Label>Fecha de entrega del vendedor al almacén</Label>
-              <Input
-                type="date"
-                value={editForm.seller_delivery_date || ''}
-                onChange={(e) => setEditForm({ ...editForm, seller_delivery_date: e.target.value })}
-                className="mt-1"
-              />
-              <p className="text-[11px] text-slate-500 mt-1">Fecha en que el vendedor entregó el paquete en el almacén.</p>
-            </div>
+            {editProof.expired ? (
+              <DeliveryProofDeadlineAlert deadline={editProof.deadline} />
+            ) : (
+              <div>
+                <Label>Fecha de entrega del vendedor al almacén</Label>
+                <Input
+                  type="date"
+                  value={editForm.seller_delivery_date || ''}
+                  onChange={(e) => setEditForm({ ...editForm, seller_delivery_date: e.target.value })}
+                  className="mt-1"
+                />
+                <p className="text-[11px] text-slate-500 mt-1">Fecha en que el vendedor entregó el paquete en el almacén.</p>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditModal(null)}>Cancelar</Button>
@@ -571,6 +595,9 @@ export default function MyPackages({ user }) {
           <DialogHeader>
             <DialogTitle className="text-base md:text-lg">Fecha de entrega del vendedor</DialogTitle>
           </DialogHeader>
+          {sellerDateProof.expired ? (
+            <DeliveryProofDeadlineAlert deadline={sellerDateProof.deadline} />
+          ) : (
           <div className="space-y-3">
             <p className="text-xs md:text-sm text-slate-600">
               Indica la fecha en que el vendedor entregó este paquete en el almacén. Esta información ayudará al equipo a hacer seguimiento.
@@ -622,12 +649,15 @@ export default function MyPackages({ user }) {
               )}
             </div>
           </div>
+          )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setSellerDateModal(null)}>Cancelar</Button>
-            <Button onClick={saveSellerDate} disabled={savingSellerDate} className="bg-blue-600 hover:bg-blue-700">
-              {savingSellerDate ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-              Guardar
-            </Button>
+            {!sellerDateProof.expired && (
+              <Button onClick={saveSellerDate} disabled={savingSellerDate} className="bg-blue-600 hover:bg-blue-700">
+                {savingSellerDate ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+                Guardar
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>

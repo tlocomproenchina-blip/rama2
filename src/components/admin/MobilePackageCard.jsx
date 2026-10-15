@@ -6,6 +6,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CheckCircle, Eye, Image as ImageIcon, MessageSquare, Plane, Ship, Shield, Undo2, Upload, Flag, FlagOff, Pencil, MessageCircle, Camera } from 'lucide-react';
 import StatusBadge from '@/components/StatusBadge';
+import { getDeliveryProofState } from '@/lib/deliveryProofDeadline';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { buildWhatsAppUrl, buildPackageContactMessage } from '@/lib/whatsappContact';
 import { toast } from 'sonner';
@@ -35,6 +36,7 @@ function MobilePackageCard({
   const gallery = pkg.package_image_urls && pkg.package_image_urls.length > 0
     ? pkg.package_image_urls
     : (pkg.package_image_url ? [pkg.package_image_url] : []);
+  const proofState = getDeliveryProofState(pkg);
 
   return (
     <TooltipProvider delayDuration={100}>
@@ -144,6 +146,16 @@ function MobilePackageCard({
             </Button>
           )}
 
+          {proofState.expired && (
+            <Badge variant="outline" className="w-full justify-center border-amber-300 bg-amber-50 text-amber-800">
+              Fuera de plazo entrega
+            </Badge>
+          )}
+          {proofState.exception && proofState.pastDeadline && (
+            <Badge variant="outline" className="w-full justify-center border-emerald-300 bg-emerald-50 text-emerald-700">
+              Excepción entrega
+            </Badge>
+          )}
           {gallery.length > 0 && (
             <div className="grid gap-2 sm:grid-cols-2">
               {gallery.map((url, idx) => (

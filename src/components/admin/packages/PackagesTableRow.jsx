@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import StatusBadge from '@/components/StatusBadge';
+import { getDeliveryProofState } from '@/lib/deliveryProofDeadline';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 import {
   Plane,
@@ -50,6 +51,7 @@ function PackagesTableRow({
   const imageUrls = pkg.package_image_urls && pkg.package_image_urls.length > 0
     ? pkg.package_image_urls
     : (pkg.package_image_url ? [pkg.package_image_url] : []);
+  const proofState = getDeliveryProofState(pkg);
 
   return (
     <TooltipProvider delayDuration={100}>
@@ -194,6 +196,16 @@ function PackagesTableRow({
             >
               <Camera className="h-4 w-4" /> Foto vendedor
             </Button>
+          )}
+          {proofState.expired && (
+            <Badge variant="outline" className="w-full justify-center border-amber-300 bg-amber-50 text-amber-800">
+              Fuera de plazo entrega
+            </Badge>
+          )}
+          {proofState.exception && proofState.pastDeadline && (
+            <Badge variant="outline" className="w-full justify-center border-emerald-300 bg-emerald-50 text-emerald-700">
+              Excepción entrega
+            </Badge>
           )}
           {imageUrls.length > 0 && (
             <>

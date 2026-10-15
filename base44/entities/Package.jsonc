@@ -234,6 +234,20 @@
     "seller_delivery_photo_uri": {
       "type": "string",
       "description": "Foto con la que el cliente respalda la entrega del vendedor al almac\u00e9n. Se sube al mismo almacenamiento de las dem\u00e1s fotos de la app y se guarda su enlace permanente, as\u00ed que se puede consultar siempre."
+    },
+    "delivery_proof_exception": {
+      "type": "boolean",
+      "default": false,
+      "description": "Excepci\u00f3n habilitada por un administrador para que el cliente pueda volver a cargar la fecha de entrega del vendedor y su foto despu\u00e9s de vencer los 10 d\u00edas contados desde la pre-alerta. Mientras est\u00e9 en true, el bloqueo por plazo no aplica a ese paquete."
+    },
+    "delivery_proof_exception_by": {
+      "type": "string",
+      "description": "Email del administrador que habilit\u00f3 la excepci\u00f3n del plazo del comprobante de entrega"
+    },
+    "delivery_proof_exception_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha y hora en que el administrador habilit\u00f3 la excepci\u00f3n del plazo del comprobante de entrega"
     }
   },
   "required": [

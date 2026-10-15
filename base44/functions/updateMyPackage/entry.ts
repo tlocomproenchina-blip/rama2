@@ -40,6 +40,22 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Sin cambios válidos' }, { status: 400 });
     }
 
+    // Plazo del comprobante de entrega: 10 días naturales contados desde que se
+    // creó la pre-alerta. Vencido el plazo, el cliente ya no puede cargar ni
+    // cambiar la fecha de entrega del vendedor ni su foto, salvo que un
+    // administrador haya habilitado la excepción del paquete.
+    const norm = (v) => (v === undefined || v === null || v === '' ? null : v);
+    const proofChanged = (key) =>
+      Object.prototype.hasOwnProperty.call(safeUpdates, key) && norm(safeUpdates[key]) !== norm(pkg[key]);
+    if (user.role !== 'admin' && !pkg.delivery_proof_exception && (proofChanged('seller_delivery_date') || proofChanged('seller_delivery_photo_uri'))) {
+      const createdMs = pkg.created_date ? new Date(pkg.created_date).getTime() : NaN;
+      if (!Number.isNaN(createdMs) && Date.now() > createdMs + 10 * 24 * 60 * 60 * 1000) {
+        return Response.json({
+          error: 'Fuera de fecha: ya venció el plazo de 10 días desde tu pre-alerta para cargar la fecha de entrega y su foto. Si tu paquete todavía no aparece como recibido en el almacén de China, abre un ticket en Soporte.',
+        }, { status: 403 });
+      }
+    }
+
     // Edición completa solo en pre-alerta; la fecha del vendedor y los datos de seguro se permiten siempre
     const flexibleFields = ['seller_delivery_date', 'seller_delivery_photo_uri', 'has_insurance', 'fob_value', 'invoice_url'];
     const onlyFlexible = Object.keys(safeUpdates).every((k) => flexibleFields.includes(k));
