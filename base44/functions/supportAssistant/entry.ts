@@ -206,6 +206,12 @@ Devuelve el diagnóstico, el siguiente paso para el ATC, si hay que verificar la
       status: 'abierto',
       related_tracking: body.related_tracking || null,
       assigned_to: supervisor,
+      escalated: true,
+      escalation_status: 'pendiente',
+      escalated_date: nowIso,
+      escalated_by: user.email,
+      escalated_by_name: user.full_name || user.email,
+      escalation_summary: summary,
       messages: [
         {
           sender_email: user.email,
@@ -231,7 +237,7 @@ Devuelve el diagnóstico, el siguiente paso para el ATC, si hay que verificar la
       message: `${subject} · Cliente: ${context.cliente.nombre} (${clientEmail})`,
       type: 'general',
       icon: 'alert',
-      reference_id: ticketNumber,
+      reference_id: ticket?.id || ticketNumber,
     }).catch(() => null);
 
     return Response.json({ ok: true, ticket_number: ticketNumber, ticket_id: ticket?.id || null, assigned_to: supervisor });

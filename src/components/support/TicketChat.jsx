@@ -11,7 +11,7 @@ import QuickMessagePicker from '@/components/support/QuickMessagePicker';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { base44 } from '@/api/base44Client';
 
-export default function TicketChat({ messages, onSendMessage, currentUserEmail, disabled, maxFiles = 3, status, onStatusChange, statusOptions = [], ticketId, feedbackReceived, onFeedbackSubmitted }) {
+export default function TicketChat({ messages, onSendMessage, currentUserEmail, disabled, maxFiles = 3, status, onStatusChange, statusOptions = [], ticketId, feedbackReceived, onFeedbackSubmitted, attachmentAccept = 'image/*', attachmentsLabel }) {
   const [newMessage, setNewMessage] = useState('');
   const [attachments, setAttachments] = useState([]);
   const [sending, setSending] = useState(false);
@@ -152,7 +152,13 @@ export default function TicketChat({ messages, onSendMessage, currentUserEmail, 
             setNewMessage(selected.message || '');
             setAttachments((selected.image_urls || []).map((url, index) => ({ url, name: `imagen-${index + 1}` })));
           }} />
-          <SupportImageUploader files={attachments} onChange={setAttachments} maxFiles={maxFiles} />
+          <SupportImageUploader
+            files={attachments}
+            onChange={setAttachments}
+            maxFiles={maxFiles}
+            accept={attachmentAccept}
+            label={attachmentsLabel}
+          />
           <div className="flex gap-2">
             <Textarea
               value={newMessage}

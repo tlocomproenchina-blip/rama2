@@ -82,16 +82,29 @@
           },
           "attachments": {
             "type": "array",
-            "maxItems": 3,
             "default": [],
             "items": {
               "type": "object",
               "properties": {
                 "url": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "Enlace de la foto o referencia del archivo privado (documentos y PDF se guardan en el almacenamiento privado y se abren con un enlace firmado)"
                 },
                 "name": {
                   "type": "string"
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "image",
+                    "document"
+                  ],
+                  "description": "image para las fotos; document para PDF y documentos adjuntos"
+                },
+                "private": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Indica que el archivo vive en el almacenamiento privado y requiere enlace firmado para abrirlo"
                 }
               }
             }
@@ -103,7 +116,7 @@
     },
     "assigned_to": {
       "type": "string",
-      "description": "Email del administrador asignado"
+      "description": "Email del administrador asignado. En un caso escalado es el supervisor responsable."
     },
     "related_tracking": {
       "type": "string",
@@ -113,6 +126,51 @@
       "type": "string",
       "format": "date-time",
       "description": "Fecha de resoluci\u00f3n"
+    },
+    "escalated": {
+      "type": "boolean",
+      "default": false,
+      "description": "Indica que el ATC escal\u00f3 este caso a un supervisor desde el Asistente ATC. Es lo que lo hace aparecer en la pesta\u00f1a Supervisor."
+    },
+    "escalation_status": {
+      "type": "string",
+      "enum": [
+        "pendiente",
+        "atendida"
+      ],
+      "default": "pendiente",
+      "description": "Estado de la escalaci\u00f3n: pendiente (el supervisor todav\u00eda no la atendi\u00f3) o atendida (ya tom\u00f3 el caso). El historial se conserva en ambos casos."
+    },
+    "escalated_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Momento en que el ATC escal\u00f3 el caso"
+    },
+    "escalated_by": {
+      "type": "string",
+      "description": "Email del ATC que escal\u00f3 el caso"
+    },
+    "escalated_by_name": {
+      "type": "string",
+      "description": "Nombre del ATC que escal\u00f3 el caso"
+    },
+    "escalation_summary": {
+      "type": "string",
+      "maxLength": 4000,
+      "description": "Resumen del caso que el ATC deja al supervisor: qu\u00e9 est\u00e1 pasando, qu\u00e9 necesita y qu\u00e9 verificar"
+    },
+    "escalation_attended_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Momento en que el supervisor marc\u00f3 la escalaci\u00f3n como atendida"
+    },
+    "escalation_attended_by": {
+      "type": "string",
+      "description": "Email del supervisor que atendi\u00f3 la escalaci\u00f3n"
+    },
+    "escalation_attended_by_name": {
+      "type": "string",
+      "description": "Nombre del supervisor que atendi\u00f3 la escalaci\u00f3n"
     },
     "ai_escalated": {
       "type": "boolean",

@@ -18,8 +18,16 @@ const STATUS = {
 export default function Client360Packages({ packages }) {
   const [expandedId, setExpandedId] = useState(null);
 
+  const insured = packages.filter((p) => p.has_insurance).length;
+
   return (
     <Client360Section icon={Package} title="Paquetes / Pre-alertas" count={packages.length}>
+      {packages.length > 0 && (
+        <div className="flex items-center gap-2 px-3 py-2 text-[11px] text-slate-500">
+          <ShieldCheck className="h-3.5 w-3.5 text-green-600" />
+          <span>{insured} con seguro · {packages.length - insured} sin seguro</span>
+        </div>
+      )}
       {packages.map((p) => {
         const isOpen = expandedId === p.id;
         const hasPhotos = (p.package_image_urls || []).length > 0 || p.package_image_url || p.product_image_url;
