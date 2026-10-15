@@ -1,7 +1,7 @@
 // PDF combinado de etiquetas de bulto (100×100 mm, una página por etiqueta).
 // Se usa al crear bultos en lote para imprimir todas las etiquetas del lote en un
 // solo archivo, con la misma información que la etiqueta térmica: código de barras,
-// estado del cliente, N° de orden y datos de entrega.
+// estado del cliente, N° de contenedor y datos de entrega.
 export async function downloadCombinedBultoLabelsPdf({ bultos = [], nameHint = 'bultos' }) {
   if (!bultos.length) return 0;
 
@@ -46,7 +46,7 @@ export async function downloadCombinedBultoLabelsPdf({ bultos = [], nameHint = '
     if (orderNumbers.length > 0) {
       doc.setFontSize(12);
       doc.setFont(undefined, 'bold');
-      doc.text(`ORDEN: ${orderNumbers.join(', ')}`, 50, y, { align: 'center' });
+      doc.text(`CONTENEDOR: ${orderNumbers.join(', ')}`, 50, y, { align: 'center' });
       y += 5;
       doc.setLineWidth(0.3);
       doc.line(5, y, 95, y);

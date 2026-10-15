@@ -2,7 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.49';
 import { markPackagesReceivedIfMissing, markPackagesRecognized } from '../../shared/bultoScan.ts';
 import { syncBultoToAccounting } from '../../shared/veAccountingSync.ts';
 
-// Asigna el/los N° de orden CbmIngreso a un bulto desde la pantalla de escaneo
+// Asigna el/los N° de contenedor CbmIngreso a un bulto desde la pantalla de escaneo
 // (/BultoOrderScan), que se comparte como enlace directo de trabajo y abre sin sesión.
 // Recibe: { bulto_id, cbm_order_numbers: string[], device_id?: string }
 // - Con sesión: solo administradores/empleados (regla anterior intacta).
@@ -10,7 +10,7 @@ import { syncBultoToAccounting } from '../../shared/veAccountingSync.ts';
 // - Guarda cbm_order_numbers, marca order_locked=true (sin cambiar el status) y
 //   registra quién lo asignó (order_assigned_by, order_assigned_date).
 // - Si el bulto ya tiene order_locked=true, rechaza la edición salvo si quien edita
-//   es un admin con sesión (puede corregir o agregar otra orden).
+//   es un admin con sesión (puede corregir o agregar otro contenedor).
 export default async function(req: Request): Promise<Response> {
   try {
     const base44 = createClientFromRequest(req);
@@ -40,7 +40,7 @@ export default async function(req: Request): Promise<Response> {
       .map((s: any) => String(s || '').trim())
       .filter(Boolean);
     if (!orderNumbers.length) {
-      return Response.json({ error: 'Debe ingresar al menos un N° de orden' }, { status: 400 });
+      return Response.json({ error: 'Debe ingresar al menos un N° de contenedor' }, { status: 400 });
     }
 
     // Foto del bulto capturada automáticamente por el escáner en el momento de leer
@@ -51,11 +51,11 @@ export default async function(req: Request): Promise<Response> {
     if (!bulto) return Response.json({ error: 'Bulto no encontrado' }, { status: 404 });
 
     // Si ya está bloqueado, rechazar: los empleados deben pedir el desbloqueo.
-    // Un admin con sesión sí puede corregir o agregar otra orden desde esta misma
+    // Un admin con sesión sí puede corregir o agregar otro contenedor desde esta misma
     // pantalla (el cambio queda registrado a su nombre).
     if (bulto.order_locked && sessionUser?.role !== 'admin') {
       return Response.json(
-        { error: 'Este bulto ya tiene el N° de orden asignado y está bloqueado. Solicita a un admin que lo desbloquee si necesitas corregirlo.' },
+        { error: 'Este bulto ya tiene el N° de contenedor asignado y está bloqueado. Solicita a un admin que lo desbloquee si necesitas corregirlo.' },
         { status: 409 }
       );
     }
@@ -82,7 +82,7 @@ export default async function(req: Request): Promise<Response> {
       await markPackagesReceivedIfMissing(base44, packageIds, now, assignedBy);
     }
 
-    // El almacén de Venezuela es la fuente definitiva para facturar: el N° de orden,
+    // El almacén de Venezuela es la fuente definitiva para facturar: el N° de contenedor,
     // el CBM y el conteo de paquetes del bulto se reflejan en el recibo de contabilidad
     // (se corrige el recibo vinculado o se crea uno si no existe).
     const sync: any = await syncBultoToAccounting(base44, updated, {

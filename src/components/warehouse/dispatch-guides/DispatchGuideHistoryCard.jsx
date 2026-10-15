@@ -40,7 +40,7 @@ const fmtDateTime = (value) => {
 };
 
 // Líneas de la guía de un cliente: se llaman bultos, salvo que el cliente tenga
-// carga emitida por su N° de orden / envío sin bulto registrado.
+// carga emitida por su N° de contenedor sin bulto registrado.
 const linesLabel = (client) => {
   const total = client?.totals?.bultos || (Array.isArray(client?.bultos) ? client.bultos.length : 0);
   const unregistered = Number(client?.totals?.unregistered) || 0;

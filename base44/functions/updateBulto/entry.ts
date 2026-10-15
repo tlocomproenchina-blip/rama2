@@ -70,7 +70,7 @@ export default async function(req: Request): Promise<Response> {
       update.unregistered_codes = unregistered;
       update.absorbed_bultos = [...(bulto.absorbed_bultos || []), ...plan.absorbed];
 
-      // El N° de orden del bulto fusionado pasa a este bulto.
+      // El N° de contenedor del bulto fusionado pasa a este bulto.
       if (plan.order_numbers.length) {
         const currentOrders = Array.isArray(body.cbm_order_numbers)
           ? body.cbm_order_numbers.filter(Boolean)
@@ -103,7 +103,7 @@ export default async function(req: Request): Promise<Response> {
       update.status = body.status;
     }
 
-    // --- Números de orden manuales (override) ---
+    // --- Números de contenedor manuales (override) ---
     if (Array.isArray(body.cbm_order_numbers)) {
       update.cbm_order_numbers = body.cbm_order_numbers.filter(Boolean);
     }
@@ -158,7 +158,7 @@ export default async function(req: Request): Promise<Response> {
     }
 
     // --- Marca manual de facturación (panel de Facturación Manual) ---
-    // El admin confirma que el bulto y su N° de orden/envío ya se facturaron, aunque
+    // El admin confirma que el bulto y su N° de contenedor/envío ya se facturaron, aunque
     // la factura no se haya generado desde el sistema. Queda registrado quién y cuándo.
     if (body.billing_marked !== undefined && body.billing_marked !== null) {
       const marked = body.billing_marked === true || body.billing_marked === 'true';
@@ -212,7 +212,7 @@ export default async function(req: Request): Promise<Response> {
     }
 
     // El almacén de Venezuela es la fuente definitiva para facturar: lo que registra
-    // o corrige (N° de orden, CBM y conteo de paquetes) se refleja en el recibo de
+    // o corrige (N° de contenedor, CBM y conteo de paquetes) se refleja en el recibo de
     // contabilidad, corrigiendo el recibo vinculado o creando uno si no existe.
     const ordersChanged = Array.isArray(body.cbm_order_numbers);
     const absorbedOrders: string[] = plan?.order_numbers || [];

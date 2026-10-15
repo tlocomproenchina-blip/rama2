@@ -11,7 +11,7 @@ const fmtDate = (value) => {
   return date.toLocaleDateString('es-VE');
 };
 
-// Una orden / envío que se puede meter en la guía: con sus bultos registrados si los
+// Un contenedor que se puede meter en la guía: con sus bultos registrados si los
 // tiene, o como línea de carga sin bulto registrado si el bulto no existe.
 export default function GuideOrderRow({ order, selected, onToggle }) {
   const blocked = !!order.already_in_guide;
@@ -31,7 +31,7 @@ export default function GuideOrderRow({ order, selected, onToggle }) {
         className="mt-0.5"
       />
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-semibold text-slate-800">Orden / envío {order.order_number}</p>
+        <p className="text-sm font-semibold text-slate-800">Contenedor {order.order_number}</p>
         <p className="text-[11px] text-slate-500 break-all">
           {order.client_name}
           {order.shipping_mark ? ` · Mark: ${order.shipping_mark}` : ''}

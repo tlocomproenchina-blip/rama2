@@ -1,5 +1,5 @@
 // Orden de almacén de una factura pagada: un bloque por shipping mark y N° de
-// orden/envío, con la etiqueta de cada bulto y el total de bultos al cierre.
+// contenedor, con la etiqueta de cada bulto y el total de bultos al cierre.
 // Se entrega al almacén para sacar y verificar la carga liberada.
 
 const fmtDate = (value) => {
@@ -114,13 +114,13 @@ export async function generateWarehouseOrderPdf({
     const bultos = Array.isArray(group.bultos) ? group.bultos : [];
     if (y > 235) startPage(false);
 
-    // Banda del N° de orden / envío
+    // Banda del N° de contenedor / envío
     doc.setFillColor(219, 234, 254);
     doc.rect(left, y - 5, right - left, 9, 'F');
     doc.setTextColor(30, 58, 138);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(11);
-    const orderLabel = `Orden/Envío: ${group.order_number || 'Sin N° de orden'}`;
+    const orderLabel = `Contenedor: ${group.order_number || 'Sin N° de contenedor'}`;
     doc.text(doc.splitTextToSize(orderLabel, 108)[0] || orderLabel, 16, y + 1);
     doc.setFontSize(9);
     doc.text(
@@ -139,7 +139,7 @@ export async function generateWarehouseOrderPdf({
         startPage(false);
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(10);
-        doc.text(`Orden/Envío: ${group.order_number || 'Sin N° de orden'} (continuación)`, 16, y);
+        doc.text(`Contenedor: ${group.order_number || 'Sin N° de contenedor'} (continuación)`, 16, y);
         y += 8;
         columnsHeader();
       }
@@ -162,7 +162,7 @@ export async function generateWarehouseOrderPdf({
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
     doc.text(
-      `Total orden ${group.order_number || 'Sin N° de orden'}: ${Number(group.bultos_count) || bultos.length} bulto(s) · ${Number(group.packages_count) || 0} paquete(s)`,
+      `Total contenedor ${group.order_number || 'Sin N° de contenedor'}: ${Number(group.bultos_count) || bultos.length} bulto(s) · ${Number(group.packages_count) || 0} paquete(s)`,
       right,
       y,
       { align: 'right' }

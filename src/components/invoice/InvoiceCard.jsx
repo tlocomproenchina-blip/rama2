@@ -187,7 +187,7 @@ function InvoiceCard({ invoice, user, onPay, onDownload, showPayButton = false, 
           )}
         </div>
 
-        {/* CBM de cada orden/envío y total de la factura */}
+        {/* CBM de cada contenedor y total de la factura */}
         <InvoiceCbmOrders invoice={invoice} />
 
         {/* Sección colapsable de abonos */}

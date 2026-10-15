@@ -64,7 +64,7 @@ export default function WarehousePaidTable({ search, dateFrom, dateTo }) {
     const header =
       pad('Cliente', 28) + pad('Cedula', 12) + pad('WhatsApp', 14) +
       pad('Ciudad', 18) + pad('Estado', 18) + pad('Shipping Mark', 14) +
-      pad('Nº Orden', 14) + pad('Paquetes', 9) + pad('Total', 10);
+      pad('Nº Contenedor', 14) + pad('Paquetes', 9) + pad('Total', 10);
     const lines = [header];
     for (const r of filteredRows) {
       const recibos = (r.cbm_order_numbers || []).join('; ') || '—';
@@ -145,10 +145,10 @@ export default function WarehousePaidTable({ search, dateFrom, dateTo }) {
                 <tr className="bg-slate-50 border-b border-slate-200 text-left">
                   <th className="px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">Cliente</th>
                   <th className="px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">Fecha último reconocimiento</th>
-                  <th className="px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">N° Orden</th>
+                  <th className="px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">N° Contenedor</th>
                   <th className="px-4 py-3 font-semibold text-slate-600 text-center whitespace-nowrap">Paquetes</th>
                   <th className="px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">Fecha Pago</th>
-                  <th className="px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">N° Envío</th>
+                  <th className="px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">N° Consolidación</th>
                   <th className="px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">N° Factura</th>
                   <th className="px-4 py-3 font-semibold text-slate-600 whitespace-nowrap">Trackings en Almacén</th>
                   <th className="px-4 py-3 font-semibold text-slate-600 text-right whitespace-nowrap">Total</th>
@@ -187,7 +187,7 @@ export default function WarehousePaidTable({ search, dateFrom, dateTo }) {
                               key={i}
                               href="/AdminCbmIngresos"
                               className="inline-block bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded text-xs font-mono hover:bg-blue-100 transition-colors"
-                              title={`N° Orden: ${num}`}
+                              title={`N° Contenedor: ${num}`}
                             >
                               {num}
                             </a>

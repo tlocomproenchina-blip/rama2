@@ -4,7 +4,7 @@ import { ChevronRight, Mail, MapPin } from 'lucide-react';
 const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 
 // Un cliente de la cola de facturación: lo justo para reconocerlo y el peso real
-// de lo que le falta facturar. Sus bultos y N° de orden se abren en el expediente.
+// de lo que le falta facturar. Sus bultos y N° de contenedor se abren en el expediente.
 export default function PendingBillingClientRow({ client, pendingBultos = [], selected, onSelect }) {
   const packages = pendingBultos.reduce((sum, b) => sum + num(b.package_count), 0);
   const cbm = pendingBultos.reduce((sum, b) => sum + num(b.cbm), 0);

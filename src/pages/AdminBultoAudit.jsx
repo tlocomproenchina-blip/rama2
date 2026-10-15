@@ -338,11 +338,11 @@ export default function AdminBultoAudit() {
               </SelectContent>
             </Select>
             <Select value={orderFilter} onValueChange={setOrderFilter}>
-              <SelectTrigger><SelectValue placeholder="N° de orden" /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder="N° de contenedor" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todas las órdenes</SelectItem>
-                <SelectItem value="with">Con n° de orden</SelectItem>
-                <SelectItem value="without">Sin n° de orden</SelectItem>
+                <SelectItem value="all">Todos los contenedores</SelectItem>
+                <SelectItem value="with">Con n° de contenedor</SelectItem>
+                <SelectItem value="without">Sin n° de contenedor</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -387,7 +387,7 @@ export default function AdminBultoAudit() {
               en <strong>Carga en almacén</strong> y puedan facturarse.
             </p>
             <div className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-800">
-              <strong>Advertencia:</strong> No cambia paquetes, números de orden ni facturas ya generadas. Puedes
+              <strong>Advertencia:</strong> No cambia paquetes, números de contenedor ni facturas ya generadas. Puedes
               ejecutarla más de una vez: si no quedan bultos cerrados, no cambia nada.
             </div>
           </div>

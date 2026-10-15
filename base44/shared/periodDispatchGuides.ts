@@ -2,7 +2,7 @@
 //
 // Una guía individual por cliente, armada con la MISMA orden de despacho del período
 // (shared/dispatchOrderSheet.ts): se toman los clientes con facturas pagadas dentro
-// del rango (fecha de pago, hora de Caracas), sus N° de orden/envío y las cajas y
+// del rango (fecha de pago, hora de Caracas), sus N° de contenedor y las cajas y
 // bultos que el almacén debe sacar, y cada cliente recibe su guía con su propio
 // número correlativo, guardada en el historial (DispatchGuide) para reimprimirla.
 //
@@ -23,7 +23,7 @@ import {
 import { fetchAllFilter } from './paginatedFetch.ts';
 
 const text = (value: any) => String(value ?? '').trim();
-const NO_ORDER = 'Sin N° de orden';
+const NO_ORDER = 'Sin N° de contenedor';
 const NO_CITY = 'Sin ciudad';
 
 export const periodKey = (from: string, to: string) => `${from}_${to}`;
@@ -44,8 +44,8 @@ async function loadProfiles(base44: any, emails: string[]) {
   return byEmail;
 }
 
-// Un solo grupo por cliente dentro de la orden de despacho: todas sus órdenes/envíos
-// y todas sus cajas y bultos, sin repetir un bulto que aparezca en más de una orden.
+// Un solo grupo por cliente dentro de la orden de despacho: todos sus contenedores
+// y todas sus cajas y bultos, sin repetir un bulto que aparezca en más de uno.
 function groupClients(sheet: any) {
   const groups = new Map<string, any>();
 

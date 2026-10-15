@@ -23,7 +23,7 @@ export default function WholesalerBillingSummary({ totals, invoiceEmail, notes, 
       <CardContent className="space-y-3">
         <div className="space-y-2">
           <TotalRow label="Clientes incluidos" value={totals.clients} />
-          <TotalRow label="Órdenes / envíos" value={totals.orders} />
+          <TotalRow label="Contenedores" value={totals.orders} />
           <TotalRow label="Bultos facturables" value={totals.bultos} />
           <TotalRow label="Trackings recibidos" value={totals.received} />
           <TotalRow label="Servicio de envío (por CBM)" value={`$${totals.shipping.toFixed(2)}`} />

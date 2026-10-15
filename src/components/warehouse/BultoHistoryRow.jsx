@@ -5,7 +5,7 @@ import { Pencil, Trash2, Printer, CheckSquare, Square, CloudOff, Hash } from 'lu
 import { realPackageCount } from '@/lib/bultoCounts';
 import PrintCountBadge from './PrintCountBadge';
 
-// Tarjeta de un bulto individual del historial: la usan los bultos sin N° de orden y los
+// Tarjeta de un bulto individual del historial: la usan los bultos sin N° de contenedor y los
 // bultos que se despliegan dentro de su grupo.
 export default function BultoHistoryRow({
   bulto: b, selectMode, selected, onToggleSelect, canDelete, onPrint, onEdit, onDelete,

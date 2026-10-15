@@ -71,7 +71,7 @@ export default async function (req: Request): Promise<Response> {
       loadOrdersForClients(base44, emails, marks),
     ]);
 
-    // N° de orden nuevos: se revisa que no exista ya un registro con ese número.
+    // N° de contenedor nuevos: se revisa que no exista ya un registro con ese número.
     const newOrderValues: string[] = [];
     for (const row of requested) {
       for (const item of Array.isArray(row?.orders) ? row.orders : []) {
@@ -116,7 +116,7 @@ export default async function (req: Request): Promise<Response> {
 
         if (!existing && wantsNew) {
           if (takenNumbers.has(orderKey)) {
-            warnings.push(`${label}: ya existe un registro con el N° de orden ${item.order_number}: no se incluyó.`);
+            warnings.push(`${label}: ya existe un registro con el N° de contenedor ${item.order_number}: no se incluyó.`);
             continue;
           }
           const cbm = round4(num(item?.cbm));
@@ -141,20 +141,20 @@ export default async function (req: Request): Promise<Response> {
         }
 
         if (!existing) {
-          warnings.push(`${label}: la orden ${item?.order_number} no está registrada en TLEC CARGO: no se incluyó.`);
+          warnings.push(`${label}: el contenedor ${item?.order_number} no está registrado en TLEC CARGO: no se incluyó.`);
           continue;
         }
         if (billed.orders.has(orderKey)) {
-          warnings.push(`${label}: la orden ${item.order_number} ya estaba facturada: no se incluyó.`);
+          warnings.push(`${label}: el contenedor ${item.order_number} ya estaba facturado: no se incluyó.`);
           continue;
         }
         billedThisRun.add(orderKey);
         const usePayload = !(item?.cbm === undefined || item?.cbm === null || item?.cbm === '');
-        // Bultos facturables de la orden: el conteo que envió la pantalla (editable)
+        // Bultos facturables del contenedor: el conteo que envió la pantalla (editable)
         // o, si no viene, sus trackings.
         const useBultos = !(item?.bultos === undefined || item?.bultos === null || item?.bultos === '');
-        // Trackings de la orden más los que se engancharon desde la pantalla: hay
-        // órdenes registradas sin su lista de trackings, y el manejo de 1 USD por
+        // Trackings del contenedor más los que se engancharon desde la pantalla: hay
+        // contenedores registrados sin su lista de trackings, y el manejo de 1 USD por
         // paquete recibido se cobra sobre lo que realmente llegó.
         const trackings = (Array.isArray(existing.tracking_numbers) ? existing.tracking_numbers : []).slice();
         for (const raw of Array.isArray(item?.tracking_numbers) ? item.tracking_numbers : []) {
@@ -173,7 +173,7 @@ export default async function (req: Request): Promise<Response> {
       }
 
       if (!selected.length) {
-        warnings.push(`${label}: no quedó ninguna orden por facturar.`);
+        warnings.push(`${label}: no quedó ningún contenedor por facturar.`);
         continue;
       }
 
@@ -225,7 +225,7 @@ export default async function (req: Request): Promise<Response> {
     if (!builtClients.length) {
       return Response.json({
         ok: false,
-        error: warnings[0] || 'Ninguna orden quedó por facturar.',
+        error: warnings[0] || 'Ningún contenedor quedó por facturar.',
         warnings,
       });
     }
@@ -259,7 +259,7 @@ export default async function (req: Request): Promise<Response> {
       status: 'sin_envio',
     });
 
-    // Órdenes nuevas: quedan registradas como el N° de orden/envío del cliente.
+    // Órdenes nuevas: quedan registradas como el N° de contenedor del cliente.
     const billedRows: any[] = [];
     for (const item of newOrders) {
       try {
@@ -272,7 +272,7 @@ export default async function (req: Request): Promise<Response> {
           shipping_mark: item.mark,
           invoice_number: item.order_number,
           tracking_numbers: item.trackings,
-          descripcion: `Orden registrada al facturar ${invoiceNumber}`,
+          descripcion: `Contenedor registrado al facturar ${invoiceNumber}`,
         });
         billedRows.push({
           item_type: 'orden',
@@ -283,11 +283,11 @@ export default async function (req: Request): Promise<Response> {
           description: created?.id || '',
         });
       } catch (_) {
-        warnings.push(`${item.name}: no se pudo registrar la orden ${item.order_number}.`);
+        warnings.push(`${item.name}: no se pudo registrar el contenedor ${item.order_number}.`);
       }
     }
 
-    // Marca de lo facturado: ni la orden ni el tracking vuelven a ofrecerse.
+    // Marca de lo facturado: ni el contenedor ni el tracking vuelven a ofrecerse.
     for (const client of builtClients) {
       for (const order of client.orders) {
         if (!order.is_new) {

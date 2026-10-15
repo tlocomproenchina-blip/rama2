@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Hash, Lock } from 'lucide-react';
 
-// Confirmación previa al cierre del bulto: deja ver y modificar el número de orden
+// Confirmación previa al cierre del bulto: deja ver y modificar el número de contenedor
 // (el detectado automáticamente o uno ingresado a mano) antes de sellarlo.
 export default function CloseBultoDialog({ open, bulto, onConfirm, onCancel }) {
   const [orderText, setOrderText] = useState('');
@@ -40,7 +40,7 @@ export default function CloseBultoDialog({ open, bulto, onConfirm, onCancel }) {
             <Lock className="h-4 w-4" /> Cerrar bulto
           </DialogTitle>
           <DialogDescription>
-            Revisa el número de orden antes de cerrar: después de cerrar, el bulto queda sellado y listo para despacho y facturación.
+            Revisa el número de contenedor antes de cerrar: después de cerrar, el bulto queda sellado y listo para despacho y facturación.
           </DialogDescription>
         </DialogHeader>
 
@@ -55,7 +55,7 @@ export default function CloseBultoDialog({ open, bulto, onConfirm, onCancel }) {
 
           <div>
             <Label htmlFor="close-bulto-order" className="flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
-              <Hash className="h-3.5 w-3.5" /> Número de orden
+              <Hash className="h-3.5 w-3.5" /> Número de contenedor
             </Label>
             <Input
               id="close-bulto-order"
@@ -67,7 +67,7 @@ export default function CloseBultoDialog({ open, bulto, onConfirm, onCancel }) {
             <p className="mt-1 text-[10px] text-slate-400">
               {detected.length > 0
                 ? `Detectada automáticamente: ${detected.join(', ')}. Puedes corregirla o reemplazarla antes de cerrar.`
-                : 'No se detectó orden automáticamente. Puedes ingresarla ahora o dejarla vacía.'}
+                : 'No se detectó contenedor automáticamente. Puedes ingresarlo ahora o dejarlo vacío.'}
             </p>
           </div>
         </div>

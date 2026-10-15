@@ -96,7 +96,7 @@ export default function AbsorbBultosConfirmDialog({
                 )}
               </div>
               <p className="text-xs">
-                N° de orden:{' '}
+                N° de contenedor:{' '}
                 <span className="font-mono">
                   {source.order_numbers?.length ? source.order_numbers.join(', ') : 'sin asignar'}
                 </span>
@@ -106,7 +106,7 @@ export default function AbsorbBultosConfirmDialog({
           ))}
 
           <p className="text-xs text-slate-500">
-            Se mueven sus paquetes, sus códigos sin registrar y su N° de orden. Las etiquetas de los demás bultos no cambian.
+            Se mueven sus paquetes, sus códigos sin registrar y su N° de contenedor. Las etiquetas de los demás bultos no cambian.
           </p>
         </div>
 

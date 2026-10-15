@@ -25,7 +25,7 @@ import { syncBultoToAccounting } from '../../shared/veAccountingSync.ts';
 //           recognition_photo_url }
 // - Crea o actualiza la caja con su código propio (nunca reutiliza el de un bulto).
 // - Resuelve cada código escaneado: si es un bulto registrado, se absorbe con todo su
-//   contenido (paquetes, códigos sin registrar y N° de orden); si es un paquete, entra
+//   contenido (paquetes, códigos sin registrar y N° de contenedor); si es un paquete, entra
 //   a la caja; si no existe y el almacén lo confirmó, cuenta como "sin registrar".
 // - Un paquete de otro cliente detiene el guardado: una caja nunca mezcla clientes.
 // - Sincroniza el recibo de contabilidad igual que el resto de los bultos del almacén.
@@ -128,7 +128,7 @@ export default async function (req: Request): Promise<Response> {
           warnings.push(`El código ${code} es una caja consolidada y no se absorbió.`);
           continue;
         }
-        // El bulto absorbido aporta todos sus paquetes, códigos y N° de orden.
+        // El bulto absorbido aporta todos sus paquetes, códigos y N° de contenedor.
         for (const id of source.package_ids || []) {
           const value = String(id || '').trim();
           if (value && !value.startsWith('local_') && !packageIds.includes(value)) packageIds.push(value);

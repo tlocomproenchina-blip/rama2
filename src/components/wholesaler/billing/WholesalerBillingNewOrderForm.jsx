@@ -5,8 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Plus, X } from 'lucide-react';
 
-// Crear un N° de orden/envío nuevo para el cliente al momento de facturarlo.
-// Los trackings recibidos que aún no están en ninguna orden se pueden enganchar
+// Crear un N° de contenedor nuevo para el cliente al momento de facturarlo.
+// Los trackings recibidos que aún no están en ningún contenedor se pueden enganchar
 // aquí, para que su manejo de 1 USD entre en la misma factura.
 export default function WholesalerBillingNewOrderForm({ available, onAdd }) {
   const [open, setOpen] = useState(false);
@@ -16,7 +16,7 @@ export default function WholesalerBillingNewOrderForm({ available, onAdd }) {
   const [picked, setPicked] = useState([]);
   const [query, setQuery] = useState('');
 
-  // Los bultos que se cobran son los trackings que se enganchen a la orden; el
+  // Los bultos que se cobran son los trackings que se enganchen al contenedor; el
   // campo acompaña ese conteo mientras el admin no escriba uno propio.
   const togglePick = (value) => {
     const next = picked.includes(value) ? picked.filter((item) => item !== value) : [...picked, value];
@@ -46,7 +46,7 @@ export default function WholesalerBillingNewOrderForm({ available, onAdd }) {
   if (!open) {
     return (
       <Button variant="outline" size="sm" className="gap-2" onClick={() => setOpen(true)}>
-        <Plus className="h-4 w-4" /> Crear N° de orden
+        <Plus className="h-4 w-4" /> Crear N° de contenedor
       </Button>
     );
   }
@@ -54,7 +54,7 @@ export default function WholesalerBillingNewOrderForm({ available, onAdd }) {
   return (
     <div className="space-y-3 rounded-xl border border-dashed border-border p-3">
       <div className="flex items-center justify-between gap-2">
-        <p className="text-sm font-medium text-foreground">Nueva orden / envío</p>
+        <p className="text-sm font-medium text-foreground">Nueva contenedor</p>
         <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => setOpen(false)} aria-label="Cerrar">
           <X className="h-4 w-4" />
         </Button>
@@ -62,7 +62,7 @@ export default function WholesalerBillingNewOrderForm({ available, onAdd }) {
 
       <div className="flex flex-wrap items-end gap-3">
         <div className="min-w-[10rem] flex-1">
-          <label className="mb-1 block text-xs text-muted-foreground">N° de orden / envío</label>
+          <label className="mb-1 block text-xs text-muted-foreground">N° de contenedor</label>
           <Input value={orderNumber} onChange={(event) => setOrderNumber(event.target.value)} placeholder="Ej: 2026-0148" />
         </div>
         <div className="w-32">
@@ -87,7 +87,7 @@ export default function WholesalerBillingNewOrderForm({ available, onAdd }) {
         <div className="space-y-2">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="text-xs text-muted-foreground">
-              Trackings recibidos sin orden ({picked.length} elegido(s) de {available.length})
+              Trackings recibidos sin contenedor ({picked.length} elegido(s) de {available.length})
             </p>
             <Input
               value={query}
@@ -119,7 +119,7 @@ export default function WholesalerBillingNewOrderForm({ available, onAdd }) {
       )}
 
       <Button size="sm" onClick={submit} disabled={!orderNumber.trim()}>
-        Agregar orden a la factura
+        Agregar contenedor a la factura
       </Button>
     </div>
   );

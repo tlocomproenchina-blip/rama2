@@ -76,7 +76,7 @@ export const buildBultoLabelPayload = (bulto) => {
   const cityState = [cs.city, cs.state].filter(Boolean).join(', ');
   const addrLines = cs.address ? wrapText(cs.address, 40).slice(0, 2) : [];
   const orderNumbers = Array.isArray(bulto.cbm_order_numbers) ? bulto.cbm_order_numbers.filter(Boolean) : [];
-  // N° de orden tal cual: la etiqueta lo rotula "ORDEN" en pequeño.
+  // N° de contenedor tal cual: la etiqueta lo rotula "CONTENEDOR" en pequeño.
   const ordenStr = orderNumbers.join(', ');
 
   // Cada bloque conoce su alto y se dibuja en la Y que se le asigna
@@ -97,10 +97,10 @@ export const buildBultoLabelPayload = (bulto) => {
   // 2. Separador
   addBlock(22, (y) => [`BAR 50,${y + 9},700,3`]);
 
-  // 3. ESTADO + N° de orden: van en la misma línea y con el mismo tamaño, con el
-  //    rótulo "ORDEN" en pequeño justo encima del número.
+  // 3. ESTADO + N° de contenedor: van en la misma línea y con el mismo tamaño, con
+  //    el rótulo "CONTENEDOR" en pequeño justo encima del número.
   const BIG_CW = FONT_WIDTH['3']; // ancho de carácter de la fuente grande (24 dots)
-  const ROW_GAP = 40; // separación entre ESTADO y el N° de orden
+  const ROW_GAP = 40; // separación entre ESTADO y el N° de contenedor
   addBlock(ordenStr ? 94 : 78, (y) => {
     // Escala común a los dos textos: llega al tamaño grande del ESTADO (3x) y baja
     // solo lo necesario para que ambos entren juntos en el ancho de la etiqueta.
@@ -118,8 +118,8 @@ export const buildBultoLabelPayload = (bulto) => {
     const lines = [`TEXT ${x0},${textY},${q('3')},0,${scale},${scale},${q(estado)}`];
     if (ordenStr) {
       const orderX = x0 + estadoW + ROW_GAP;
-      const captionW = 5 * 16; // "ORDEN" con la fuente 1 al doble de ancho
-      lines.push(`TEXT ${orderX + Math.max(0, Math.floor((orderW - captionW) / 2))},${y},${q('1')},0,2,1,${q('ORDEN')}`);
+      const captionW = 10 * 16; // "CONTENEDOR" con la fuente 1 al doble de ancho
+      lines.push(`TEXT ${orderX + Math.max(0, Math.floor((orderW - captionW) / 2))},${y},${q('1')},0,1,1,${q('CONTENEDOR')}`);
       lines.push(`TEXT ${orderX},${textY},${q('3')},0,${scale},${scale},${q(ordenStr)}`);
     }
     return lines;

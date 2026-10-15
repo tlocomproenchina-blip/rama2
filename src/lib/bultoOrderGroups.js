@@ -1,8 +1,8 @@
-// Agrupa los bultos del historial por cliente y N° de orden: todos los bultos de un mismo
-// cliente con el mismo N° de orden forman una sola tarjeta del historial.
+// Agrupa los bultos del historial por cliente y N° de contenedor: todos los bultos de un mismo
+// cliente con el mismo N° de contenedor forman una sola tarjeta del historial.
 //
-// - Un bulto sin N° de orden queda como entrada individual (una tarjeta por bulto).
-// - Cuando un bulto trae varios N° de orden se usa el primero, así aparece una sola vez.
+// - Un bulto sin N° de contenedor queda como entrada individual (una tarjeta por bulto).
+// - Cuando un bulto trae varios N° de contenedor se usa el primero, así aparece una sola vez.
 // - El grupo conserva la posición del bulto más reciente, porque la lista llega ordenada
 //   por fecha descendente.
 export function groupBultosByOrder(bultos) {

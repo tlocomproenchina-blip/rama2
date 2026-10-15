@@ -162,7 +162,7 @@ export default function WarehouseBillingTab({ search = '' }) {
         <div>
           <h2 className="text-lg font-semibold text-slate-800">Carga en almacén pendiente de facturar</h2>
           <p className="text-sm text-slate-500">
-            Bultos en almacén de Venezuela y envíos/recibos de CBM sin facturar, agrupados por cliente.
+            Bultos en almacén de Venezuela y contenedores/recibos de CBM sin facturar, agrupados por cliente.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -190,7 +190,7 @@ export default function WarehouseBillingTab({ search = '' }) {
             <Input
               value={localSearch}
               onChange={(e) => setLocalSearch(e.target.value)}
-              placeholder="Buscar por cliente, email, shipping mark, N° de orden, tracking o últimos caracteres del código..."
+              placeholder="Buscar por cliente, email, shipping mark, N° de contenedor, tracking o últimos caracteres del código..."
               className="pl-9"
             />
           </div>

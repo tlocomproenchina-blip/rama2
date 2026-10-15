@@ -17,7 +17,7 @@ import {
 // muestran los clientes que quedaron marcados con esa conexión. Sin
 // wholesaler_key devuelve solo la lista de mayoristas con sus clientes; con
 // wholesaler_key, la lista liviana de ese mayorista; y con client_emails, el
-// detalle de esos clientes (órdenes, trackings recibidos y trackings libres).
+// detalle de esos clientes (contenedores, trackings recibidos y trackings libres).
 const MAX_CLIENTS = 500;
 const MAX_AVAILABLE = 300;
 const DETAIL_BATCH = 6;
@@ -117,8 +117,8 @@ export default async function (req: Request): Promise<Response> {
             };
           });
 
-          // Trackings recibidos del cliente que no están en ninguna orden: sirven
-          // para armarle una orden nueva o engancharlos a una de las suyas.
+          // Trackings recibidos del cliente que no están en ningún contenedor: sirven
+          // para armarle un contenedor nuevo o engancharlos a uno de los suyos.
           const used = new Set<string>();
           for (const order of ordersForClient(orders, row.email, row.shipping_mark)) {
             for (const raw of order.tracking_numbers || []) used.add(normTracking(raw));

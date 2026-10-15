@@ -13,7 +13,7 @@ import DispatchOrderPhoneNotice from '@/components/dispatch-order/DispatchOrderP
 import { buildWhatsappLink, downloadDispatchOrderTxt } from '@/lib/dispatchOrderTxt';
 
 // Orden de despacho: agrupa TODO lo facturado en un período de días (por fecha de pago)
-// para que el almacén sepa qué clientes buscar, qué N° de orden/envío se pagó y qué
+// para que el almacén sepa qué clientes buscar, qué N° de contenedor se pagó y qué
 // cajas consolidadas o bultos sueltos le corresponden. Se manda por WhatsApp al teléfono
 // del almacén guardado en Configuración y también se descarga como TXT.
 const dayKey = (date) => format(date, 'yyyy-MM-dd');
@@ -132,7 +132,7 @@ export default function AdminDispatchOrders() {
         </h1>
         <p className="mt-1 text-sm text-slate-500">
           Elige el período: se agrupan todas las facturas pagadas en esos días y se arma la orden con los
-          clientes por ciudad, el N° de orden/envío pagado y cuántas cajas y bultos le corresponden a cada uno.
+          clientes por ciudad, el N° de contenedor pagado y cuántas cajas y bultos le corresponden a cada uno.
         </p>
       </div>
 

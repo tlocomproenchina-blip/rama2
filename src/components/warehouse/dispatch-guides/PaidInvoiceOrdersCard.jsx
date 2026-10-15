@@ -13,7 +13,7 @@ const fmtDate = (value) => {
   return date.toLocaleDateString('es-VE');
 };
 
-// Una factura pagada con sus órdenes / envíos: se marcan las que van en la guía,
+// Una factura pagada con sus contenedores: se marcan las que van en la guía,
 // aunque la carga todavía no tenga bulto registrado.
 export default function PaidInvoiceOrdersCard({ invoice, selected, onToggleOrder, onToggleMany }) {
   const [open, setOpen] = useState(false);
@@ -43,7 +43,7 @@ export default function PaidInvoiceOrdersCard({ invoice, selected, onToggleOrder
             {invoice.shipping_mark ? ` · Mark: ${invoice.shipping_mark}` : ''}
           </p>
           <p className="text-[11px] text-slate-500">
-            ${num(invoice.total).toFixed(2)} · {orders.length} orden(es)
+            ${num(invoice.total).toFixed(2)} · {orders.length} contenedor(es)
             {invoice.payment_date ? ` · Pagada ${fmtDate(invoice.payment_date)}` : ''}
             {chosen ? ` · ${chosen} marcada(s)` : ''}
           </p>
@@ -54,14 +54,14 @@ export default function PaidInvoiceOrdersCard({ invoice, selected, onToggleOrder
           className="flex shrink-0 items-center gap-1 rounded-lg border border-border/70 px-2 py-1 text-[11px] font-semibold text-slate-600"
         >
           {open ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-          Órdenes
+          Contenedores
         </button>
       </div>
 
       {open && (
         <div className="mt-3 space-y-2 border-t border-border/60 pt-3">
           {orders.length === 0 ? (
-            <p className="text-[11px] text-slate-500">Esta factura no tiene órdenes / envíos vinculados.</p>
+            <p className="text-[11px] text-slate-500">Esta factura no tiene contenedores vinculados.</p>
           ) : (
             orders.map((order) => (
               <GuideOrderRow

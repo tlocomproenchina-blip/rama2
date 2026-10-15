@@ -44,7 +44,7 @@ function formatBultoLine(b: any): string {
     : (Array.isArray(b.package_trackings) ? b.package_trackings.length : 0);
   const parts = [`• Bulto ${b.bulto_number || 1}/${b.total_bultos || b.bulto_number || 1} — ${b.label_code || ''}`];
   if (count) parts.push(`${count} paquete(s)`);
-  if (orders.length) parts.push(`N° de orden: ${orders.join(', ')}`);
+  if (orders.length) parts.push(`N° de contenedor: ${orders.join(', ')}`);
   return parts.join(' · ');
 }
 

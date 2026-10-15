@@ -8,8 +8,8 @@ import {
 
 // Candidatos para emitir una guía de despacho cuando la carga puede no tener bulto
 // registrado:
-//   intent 'orders'   → órdenes / envíos (recibos de carga) que se pueden elegir a mano.
-//   intent 'invoices' → facturas pagadas con las órdenes / envíos de cada una.
+//   intent 'orders'   → contenedores (recibos de carga) que se pueden elegir a mano.
+//   intent 'invoices' → facturas pagadas con las contenedores de cada una.
 // El cruce con los bultos registrados, el cliente y las guías anteriores lo resuelve
 // el módulo compartido; aquí solo se leen y se devuelven los candidatos.
 

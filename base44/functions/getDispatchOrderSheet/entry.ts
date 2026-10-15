@@ -8,7 +8,7 @@ import {
 
 // Orden de despacho para el almacén de un período: agrupa TODAS las facturas pagadas
 // dentro de las fechas elegidas y devuelve el documento con los clientes por ciudad,
-// shipping mark, el N° de orden/envío y el conteo de cajas y bultos de cada orden.
+// shipping mark, el N° de contenedor y el conteo de cajas y bultos de cada contenedor.
 // El armado vive en shared/dispatchOrderSheet.ts. El rango ya generado se reutiliza
 // tal cual; solo se recalcula cuando llega force = true.
 export default async function (req: Request): Promise<Response> {

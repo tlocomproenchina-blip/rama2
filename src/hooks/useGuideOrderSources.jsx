@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
 
 // Candidatos para emitir una guía con carga que puede no tener bulto registrado:
-// órdenes / envíos sueltos ('orders') o las órdenes de una factura pagada
+// contenedores sueltos ('orders') o los contenedores de una factura pagada
 // ('invoices'). El cruce con los bultos registrados, el cliente y las guías
 // anteriores lo resuelve el backend (getGuideSourceOrders); aquí solo se piden.
 //

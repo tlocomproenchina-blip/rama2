@@ -18,8 +18,8 @@ import { createOrdersForGuide } from '../../shared/manualGuideOrders.ts';
 // Emite una guía de despacho por dos vías, y las dos pueden combinarse:
 //   1) bultos escaneados que siguen pendientes (getDispatchGuides ya excluye los
 //      que entraron en una guía anterior), elegidos por cliente o por código;
-//   2) órdenes / envíos elegidos a mano (body.orders): la carga se emite aunque su
-//      bulto no esté registrado o no exista, con su N° de orden y, si se conoce, su
+//   2) contenedores elegidos a mano (body.orders): la carga se emite aunque su
+//      bulto no esté registrado o no exista, con su N° de contenedor y, si se conoce, su
 //      factura. Esa línea sale marcada como carga sin bulto registrado.
 // La guía recibe su número correlativo (DispatchGuideCounter), los escaneos
 // incluidos quedan marcados para no volver a ofrecerse y, si se pide, se generan
@@ -106,7 +106,7 @@ export default async function (req: Request): Promise<Response> {
     const requestedCodes = unique(
       (Array.isArray(body.codes) ? body.codes : []).map((code: any) => normCode(code)).filter(Boolean)
     );
-    // Órdenes / envíos elegidos a mano: permiten emitir la carga aunque su bulto no
+    // Contenedores elegidos a mano: permiten emitir la carga aunque su bulto no
     // esté registrado o no exista.
     const requestedOrders = unique(
       (Array.isArray(body.orders) ? body.orders : [])
@@ -118,7 +118,7 @@ export default async function (req: Request): Promise<Response> {
     });
 
     if (!clientEmails.length && !requestedCodes.length && !requestedOrders.length) {
-      return Response.json({ error: 'Marca al menos una orden/envío o un bulto para emitir la guía' }, { status: 400 });
+      return Response.json({ error: 'Marca al menos un contenedor o un bulto para emitir la guía' }, { status: 400 });
     }
 
     const emittedDate = new Date().toISOString();
@@ -142,7 +142,7 @@ export default async function (req: Request): Promise<Response> {
       }
     }
 
-    // --- 2) Órdenes / envíos elegidos a mano ---
+    // --- 2) Contenedores elegidos a mano ---
     const skippedOrders: any[] = [];
     let orderClients: any[] = [];
     let orderKeys: string[] = [];
@@ -156,13 +156,13 @@ export default async function (req: Request): Promise<Response> {
       requestedOrders.forEach((request: any) => {
         const candidate: any = byKey.get(orderKeyOf(request.client_email, request.order_number));
         if (!candidate) {
-          skippedOrders.push({ ...request, reason: 'No hay recibo de carga para esa orden' });
+          skippedOrders.push({ ...request, reason: 'No hay recibo de carga para ese contenedor' });
           return;
         }
         if (candidate.already_in_guide) {
           skippedOrders.push({
             ...request,
-            reason: `Esa orden ya salió en la guía ${candidate.guide_number || ''}`.trim(),
+            reason: `Ese contenedor ya salió en la guía ${candidate.guide_number || ''}`.trim(),
           });
           return;
         }
@@ -171,7 +171,7 @@ export default async function (req: Request): Promise<Response> {
 
       if (!chosen.length) {
         return Response.json(
-          { error: 'Las órdenes elegidas ya no están disponibles para guía', skipped_orders: skippedOrders },
+          { error: 'Los contenedores elegidos ya no están disponibles para guía', skipped_orders: skippedOrders },
           { status: 409 }
         );
       }

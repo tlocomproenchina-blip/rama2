@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowRightLeft, Boxes, CheckCircle2, Loader2, Package, Trash2 } from 'lucide-react';
 
 // Caja consolidada abierta en el almacén: su código, lo que lleva dentro (paquetes,
-// CBM y N° de orden), los bultos pequeños que absorbió y el cierre del bloque.
+// CBM y N° de contenedor), los bultos pequeños que absorbió y el cierre del bloque.
 export default function CajaActiveCard({
   caja, contents, ordersText, onOrdersChange, onClose, onRemoveUnregistered, onRemoveAbsorbed, busy,
 }) {
@@ -99,7 +99,7 @@ export default function CajaActiveCard({
         )}
 
         <div className="space-y-1.5">
-          <Label className="text-xs text-muted-foreground">N° de orden del lote</Label>
+          <Label className="text-xs text-muted-foreground">N° de contenedor del lote</Label>
           <Input
             value={ordersText}
             onChange={(e) => onOrdersChange(e.target.value)}
@@ -107,7 +107,7 @@ export default function CajaActiveCard({
             inputMode="numeric"
           />
           <p className="text-[11px] text-muted-foreground">
-            Se suman los N° de orden de los bultos absorbidos. La caja no se cierra sin al menos uno.
+            Se suman los N° de contenedor de los bultos absorbidos. La caja no se cierra sin al menos uno.
           </p>
         </div>
 

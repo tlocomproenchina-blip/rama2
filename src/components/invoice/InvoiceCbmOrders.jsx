@@ -1,9 +1,9 @@
 import React from 'react';
 import { Boxes } from 'lucide-react';
 
-// CBM de cada orden/envío de la factura y el total de la factura.
+// CBM de cada contenedor de la factura y el total de la factura.
 // Los recibos de la factura (manual_recibos) son la fuente: cada uno guarda su
-// N° de orden/envío y su CBM, así que el total es la suma de lo que se muestra.
+// N° de contenedor y su CBM, así que el total es la suma de lo que se muestra.
 
 const round4 = (value) => Math.round(Number(value || 0) * 10000) / 10000;
 
@@ -30,7 +30,7 @@ export default function InvoiceCbmOrders({ invoice }) {
     <div className="mb-3 rounded-lg border border-slate-200 bg-slate-50/70 p-3 text-sm">
       <div className="flex items-center justify-between gap-3">
         <span className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-600">
-          <Boxes className="h-3.5 w-3.5" /> CBM por orden / envío
+          <Boxes className="h-3.5 w-3.5" /> CBM por contenedor
         </span>
         <span className="text-xs font-semibold text-slate-800 shrink-0">{formatCbm(total)} CBM</span>
       </div>
@@ -39,7 +39,7 @@ export default function InvoiceCbmOrders({ invoice }) {
         <div className="mt-2 space-y-1">
           {rows.map((row) => (
             <div key={row.key} className="flex justify-between gap-3">
-              <span className="min-w-0 break-words text-slate-600">Orden / envío {row.order_number}</span>
+              <span className="min-w-0 break-words text-slate-600">Contenedor {row.order_number}</span>
               <span className="shrink-0 font-medium text-slate-800">{formatCbm(row.cbm)} CBM</span>
             </div>
           ))}

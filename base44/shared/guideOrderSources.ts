@@ -1,7 +1,7 @@
 // Fuentes de la emisión manual de guías cuando la carga no tiene bulto registrado.
 //
-// La unidad de trabajo es la orden / envío: el recibo de carga (CbmIngreso) y su
-// N° de orden (CbmIngreso.invoice_number). Desde aquí se resuelve todo lo que
+// La unidad de trabajo es el contenedor: el recibo de carga (CbmIngreso) y su
+// N° de contenedor (CbmIngreso.invoice_number). Desde aquí se resuelve todo lo que
 // necesita la guía: el cliente, su CBM y su conteo de paquetes, los bultos
 // registrados de esa orden (si existen) y si la orden ya entró en una guía anterior.
 //
@@ -24,10 +24,13 @@ const chunk = (list: string[], size = 50) => {
 
 export const orderKeyOf = (email: any, order: any) => `${lower(email)}#${text(order)}`;
 
-// «Sin N° de orden» no sirve como referencia: la guía se amarra al N° de orden.
+// Los rótulos de «sin contenedor» no sirven como referencia: la guía se amarra al
+// N° de contenedor. Se aceptan los dos rótulos porque los resúmenes ya guardados
+// conservan el anterior.
+const NO_ORDER_LABELS = ['SIN N° DE ORDEN', 'SIN N° DE CONTENEDOR'];
 export const isOrderNumber = (raw: any) => {
   const value = text(raw);
-  return !!value && upper(value) !== 'SIN N° DE ORDEN';
+  return !!value && !NO_ORDER_LABELS.includes(upper(value));
 };
 
 // Una línea sin bulto registrado es la que no tiene código de etiqueta.

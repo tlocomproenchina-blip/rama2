@@ -32,7 +32,7 @@ export function cbmText(value: any) {
   return round4(value).toFixed(4).replace(/\.?0+$/, '') || '0';
 }
 
-// Llaves de comparación: los correos y N° de orden no deben repetirse por
+// Llaves de comparación: los correos y N° de contenedor no deben repetirse por
 // mayúsculas o espacios, y los trackings se comparan sin distinguir caja.
 export function emailKeyOf(value: any) {
   return String(value ?? '').trim().toLowerCase();
@@ -74,7 +74,7 @@ export function clientAmounts(params: any) {
   return { shipping, doorToDoor, handling, total: round2(shipping + doorToDoor + handling) };
 }
 
-// Órdenes/envíos (CbmIngreso) de esos clientes. Se buscan por correo y también
+// Contenedores (CbmIngreso) de esos clientes. Se buscan por correo y también
 // por Shipping Mark, porque hay recibos que quedaron solo con la marca.
 export async function loadOrdersForClients(base44: any, emails: string[], marks: string[]) {
   const rows: any[] = [];
@@ -98,7 +98,7 @@ export async function loadOrdersForClients(base44: any, emails: string[], marks:
   for (const row of rows) {
     if (!row?.id || seen.has(row.id)) continue;
     seen.add(row.id);
-    // Sin N° de orden no hay envío facturable.
+    // Sin N° de contenedor no hay envío facturable.
     if (!String(row.invoice_number || '').trim()) continue;
     const email = emailKeyOf(row.client_email);
     const mark = markKeyOf(row.shipping_mark);
@@ -114,7 +114,7 @@ export async function loadOrdersForClients(base44: any, emails: string[], marks:
   return { byEmail, byMark };
 }
 
-// Órdenes de un cliente, sin repetir el mismo N° de orden.
+// Órdenes de un cliente, sin repetir el mismo N° de contenedor.
 export function ordersForClient(orders: any, email: any, mark: any) {
   const list: any[] = [];
   const seen = new Set<string>();
@@ -131,7 +131,7 @@ export function ordersForClient(orders: any, email: any, mark: any) {
   return list;
 }
 
-// Lo que ya se facturó a esos clientes: sus N° de orden y los trackings cuyo
+// Lo que ya se facturó a esos clientes: sus N° de contenedor y los trackings cuyo
 // manejo ya se cobró. Es lo que evita facturar dos veces lo mismo.
 export async function loadBilledIndex(base44: any, emails: string[]) {
   const orders = new Set<string>();
@@ -217,7 +217,7 @@ function money(value: any) {
 }
 
 // Factura consolidada que recibe el mayorista en su correo: el detalle de cada
-// uno de sus clientes con sus órdenes/envíos, sus cargos y el total de la factura.
+// uno de sus clientes con sus contenedores, sus cargos y el total de la factura.
 export function invoiceEmailHtml(params: any) {
   const clients: any[] = params?.clients || [];
   const totals: any = params?.totals || {};
@@ -225,7 +225,7 @@ export function invoiceEmailHtml(params: any) {
   const blocks = clients.map((client: any) => {
     const orderRows = (client.orders || []).map((order: any) => `
                   <tr>
-                    <td style="padding:7px 10px;border-bottom:1px solid #e5e7eb;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#0f172a;">${order.order_number || 'Sin N° de orden'}</td>
+                    <td style="padding:7px 10px;border-bottom:1px solid #e5e7eb;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#0f172a;">${order.order_number || 'Sin N° de contenedor'}</td>
                     <td align="right" style="padding:7px 10px;border-bottom:1px solid #e5e7eb;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#0f172a;">${cbmText(order.cbm)}</td>
                     <td align="right" style="padding:7px 10px;border-bottom:1px solid #e5e7eb;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#0f172a;">${num(order.bultos)}</td>
                     <td align="right" style="padding:7px 10px;border-bottom:1px solid #e5e7eb;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#0f172a;">${num(order.received_trackings)}</td>
@@ -248,7 +248,7 @@ export function invoiceEmailHtml(params: any) {
       <td style="padding:12px 24px 0;">
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;border:1px solid #e5e7eb;border-radius:12px;">
           <tr style="background-color:#f7fafd;">
-            <th align="left" style="padding:7px 10px;font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:0.04em;">N° de orden</th>
+            <th align="left" style="padding:7px 10px;font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:0.04em;">N° de contenedor</th>
             <th align="right" style="padding:7px 10px;font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:0.04em;">CBM</th>
             <th align="right" style="padding:7px 10px;font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:0.04em;">Bultos</th>
             <th align="right" style="padding:7px 10px;font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:0.04em;">Recibidos</th>

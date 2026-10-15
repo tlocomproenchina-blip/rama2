@@ -9,14 +9,14 @@ import {
 
 // Fusión de recibos duplicados de contabilidad (Ingresos de CBM).
 //
-// mode: 'scan'  → detecta los recibos del mismo cliente con el mismo N° de orden
+// mode: 'scan'  → detecta los recibos del mismo cliente con el mismo N° de contenedor
 //                 y devuelve, por grupo, qué recibo sobrevive, el CBM resultante
 //                 y cómo cambia cada factura afectada. No modifica nada.
 // mode: 'merge' → ejecuta la fusión de los grupos indicados (CBM y paquetes
 //                 sumados, trackings unidos, duplicados eliminados, facturas
 //                 recalculadas y rastro en la auditoría de actividad).
 // mode: 'auto'  → fusiona sin confirmación los repetidos del mismo cliente con
-//                 el mismo N° de orden y el mismo CBM que no estén dentro de
+//                 el mismo N° de contenedor y el mismo CBM que no estén dentro de
 //                 ninguna factura; el resto de grupos vuelven en `review` para
 //                 revisión manual. Con dry_run solo informa, no toca nada.
 //
@@ -85,7 +85,7 @@ export default async function (req: Request): Promise<Response> {
     }
 
     // ---------- Detección y fusión automática ----------
-    // Solo grupos del mismo cliente con el mismo N° de orden y el mismo CBM, y
+    // Solo grupos del mismo cliente con el mismo N° de contenedor y el mismo CBM, y
     // únicamente cuando ninguno de sus recibos está en una factura. Lo demás
     // (CBM distinto o ya facturado) se devuelve en `review` sin tocar nada.
     if (mode === 'auto') {

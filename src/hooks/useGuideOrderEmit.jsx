@@ -3,7 +3,7 @@ import { base44 } from '@/components/api/ApiQueueManager';
 import { toast } from 'sonner';
 import { generateDispatchGuidePdf } from '@/lib/dispatchGuidePdf';
 
-// Emite la guía con las órdenes / envíos marcados (tengan o no bulto registrado),
+// Emite la guía con las contenedores marcados (tengan o no bulto registrado),
 // genera sola la orden de despacho de cada cliente y descarga el PDF para imprimir.
 export default function useGuideOrderEmit({ appName, onGenerated }) {
   const [emitting, setEmitting] = useState(false);
@@ -12,7 +12,7 @@ export default function useGuideOrderEmit({ appName, onGenerated }) {
     async (orders) => {
       const list = Array.isArray(orders) ? orders : [];
       if (!list.length) {
-        toast.error('Marca al menos una orden / envío');
+        toast.error('Marca al menos una contenedor');
         return false;
       }
 

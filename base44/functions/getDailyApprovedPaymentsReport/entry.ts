@@ -2,7 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 import { buildReportText, caracasDay, dailyReportFileName } from '../../shared/paymentReport.ts';
 
 // Informe TXT acumulado de los pagos aprobados en un día (por defecto hoy,
-// hora de Caracas): Shipping Mark y N° de orden/envío de cada factura pagada.
+// hora de Caracas): Shipping Mark y N° de contenedor de cada factura pagada.
 export default async function(req: Request): Promise<Response> {
   try {
     const base44 = createClientFromRequest(req);

@@ -147,11 +147,11 @@ export async function generatePeriodGuidesPdf({
       doc.text(addressLines, left + 22, y);
       y += addressLines.length * 4.5 + 4;
 
-      // N° de orden / envío que cubre la guía (viene de la orden de despacho del período)
+      // N° de contenedor que cubre la guía (viene de la orden de despacho del período)
       const orders = [...new Set(bultos.map((b) => String(b.order_number || '').trim()).filter(Boolean))];
       if (orders.length) {
         doc.setFont('helvetica', 'bold');
-        doc.text('N° de orden / envío:', left, y);
+        doc.text('N° de contenedor:', left, y);
         doc.setFont('helvetica', 'normal');
         const orderLines = doc.splitTextToSize(orders.join(', '), 140);
         doc.text(orderLines, left + 34, y);

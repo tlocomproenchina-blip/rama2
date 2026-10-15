@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 // Aviso de foto perdida en un escaneo. La foto nunca se descarta en silencio:
 // queda el código en rojo con la opción de reintentar la subida.
 // Sin `onSkip` el código NO se procesa (pantallas estrictas: empacado, despacho
-// y escaneo de N° de orden). Con `onSkip` se puede continuar de forma consciente
+// y escaneo de N° de contenedor). Con `onSkip` se puede continuar de forma consciente
 // sin esa foto (recepción, registro de paquete y escaneo de bodega).
 export default function ScanPhotoFailureNotice({
   codes = [],

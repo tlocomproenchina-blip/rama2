@@ -117,7 +117,7 @@ export async function approveAbonoPayment(base44: any, paymentId: string, adminE
     referenceId: invoice.id
   });
 
-  // Anexo del informe: shipping mark y N° de orden/envío de la factura pagada.
+  // Anexo del informe: shipping mark y N° de contenedor de la factura pagada.
   const report = await recordApprovalForReport(base44, {
     payment_type: 'abono',
     source_id: paymentId,
@@ -165,7 +165,7 @@ export async function approveReportedInvoicePayment(base44: any, invoiceId: stri
     referenceId: invoiceId
   });
 
-  // Anexo del informe: shipping mark y N° de orden/envío de la factura pagada.
+  // Anexo del informe: shipping mark y N° de contenedor de la factura pagada.
   const report = await recordApprovalForReport(base44, {
     payment_type: 'factura',
     source_id: invoiceId,
@@ -226,7 +226,7 @@ export async function approveConsolidationPayment(base44: any, consolidationId: 
     referenceId: cons.id
   });
 
-  // Anexo del informe: shipping mark y N° de orden/envío de la factura pagada.
+  // Anexo del informe: shipping mark y N° de contenedor de la factura pagada.
   const paidInvoice = (relatedInvoices && relatedInvoices.length > 0) ? relatedInvoices[0] : null;
   const report = await recordApprovalForReport(base44, {
     payment_type: 'consolidacion',

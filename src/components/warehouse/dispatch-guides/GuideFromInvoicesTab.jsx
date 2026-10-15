@@ -8,7 +8,7 @@ import PaidInvoiceOrdersCard from './PaidInvoiceOrdersCard';
 import GuideOrderSelectionSummary from './GuideOrderSelectionSummary';
 import GuideSearchHint from './GuideSearchHint';
 
-// Emisión de la guía desde una factura pagada: se eligen las órdenes / envíos de esa
+// Emisión de la guía desde una factura pagada: se eligen las contenedores de esa
 // factura que se van a despachar. La carga entra aunque su bulto no esté registrado.
 export default function GuideFromInvoicesTab({ appName, onGenerated }) {
   const { search, setSearch, invoices, loading, searched, reload } = useGuideOrderSources('invoices');
@@ -36,14 +36,14 @@ export default function GuideFromInvoicesTab({ appName, onGenerated }) {
       </div>
 
       {!searched ? (
-        <GuideSearchHint text="Escribe el N° de factura o el email del cliente para ver sus órdenes pagadas." />
+        <GuideSearchHint text="Escribe el N° de factura o el email del cliente para ver sus contenedores pagados." />
       ) : loading ? (
         <div className="flex items-center justify-center py-6">
           <Loader2 className="h-6 w-6 animate-spin text-primary" />
         </div>
       ) : invoices.length === 0 ? (
         <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
-          No hay facturas pagadas con esa búsqueda. Las órdenes que ya salieron en una guía como carga sin
+          No hay facturas pagadas con esa búsqueda. Los contenedores que ya salieron en una guía como carga sin
           bulto no vuelven a ofrecerse.
         </p>
       ) : (

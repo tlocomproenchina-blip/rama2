@@ -15,7 +15,7 @@ import { base44 } from '@/api/base44Client';
  *   <cedula>
  *   <whatsapp>
  *   <dirección, ciudad, estado>
- *   *Facturas pagadas* (Numero de orden)
+ *   *Facturas pagadas* (Número de contenedor)
  *   25 - 13 - 7 - 6
  *
  * Los números de orden corresponden a los CBM registrados al momento de generar
@@ -36,7 +36,7 @@ function extractShippingOrderNumbers(invoice) {
       });
       continue;
     }
-    // Preferir el número de orden guardado en details.source_invoice
+    // Preferir el número de contenedor guardado en details.source_invoice
     let order = item?.details?.source_invoice;
     if (order === undefined || order === null || order === '' || order === '—') {
       // Fallback: extraer el primer número de la descripción (ej: "Envío - 25 (0.0040 CBM)" -> 25)
@@ -110,7 +110,7 @@ export default function DispatchReceiptModal({ open, onClose, invoice }) {
     if (invoice.client_cedula) lines.push(invoice.client_cedula);
     if (invoice.client_whatsapp) lines.push(invoice.client_whatsapp);
     if (address) lines.push(address);
-    lines.push('*Facturas pagadas* (Numero de orden)');
+    lines.push('*Facturas pagadas* (Número de contenedor)');
     lines.push(orders.join(' - '));
 
     // Sección de datos de facturación (solo si el cliente tiene datos personalizados)

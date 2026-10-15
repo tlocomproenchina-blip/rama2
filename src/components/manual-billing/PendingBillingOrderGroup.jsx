@@ -10,7 +10,7 @@ const fmtDate = (v) => {
   return Number.isNaN(d.getTime()) ? null : d.toLocaleDateString('es-VE');
 };
 
-// Pestaña de un N° de orden/envío: el número a la cabeza con la casilla maestra para
+// Pestaña de un N° de contenedor: el número a la cabeza con la casilla maestra para
 // marcar el envío completo de una vez y, adentro, todos los bultos que le corresponden.
 // Se factura y se despacha junto, así que se trabaja en un solo lugar.
 export default function PendingBillingOrderGroup({ group, markingId, onMarkBulto, onMarkOrderBultos }) {
@@ -20,7 +20,7 @@ export default function PendingBillingOrderGroup({ group, markingId, onMarkBulto
   const packages = bultos.reduce((sum, item) => sum + Number(item.bulto.package_count || 0), 0);
   const cbm = bultos.reduce((sum, item) => sum + Number(item.bulto.cbm || 0), 0);
 
-  // El envío completo es lo que sigue en la pestaña más lo ya marcado de ese N° de orden
+  // El envío completo es lo que sigue en la pestaña más lo ya marcado de ese N° de contenedor
   // (que vive abajo, en 'Envíos ya facturados'). Si ya hay marcados, el envío está parcial.
   const pending = bultos.map((item) => item.bulto);
   const partial = pending.length > 0 && markedBultos.length > 0;
@@ -36,7 +36,7 @@ export default function PendingBillingOrderGroup({ group, markingId, onMarkBulto
     <div className={`rounded-lg border p-2 ${unassigned ? 'border-amber-200 bg-amber-50/50' : 'border-border/70 bg-muted/40'}`}>
       <div className="flex items-start justify-between gap-2">
         <p className={`min-w-0 font-mono text-sm font-bold break-all ${unassigned ? 'text-amber-700' : 'text-blue-700'}`}>
-          {unassigned ? 'Sin N° de orden' : order}
+          {unassigned ? 'Sin N° de contenedor' : order}
         </p>
 
         {!unassigned && pending.length > 0 && (
@@ -87,7 +87,7 @@ export default function PendingBillingOrderGroup({ group, markingId, onMarkBulto
                 onMark={onMarkBulto}
               />
               {shared && (
-                <p className="mt-0.5 text-[10px] text-slate-500">También pertenece a otro N° de orden</p>
+                <p className="mt-0.5 text-[10px] text-slate-500">También pertenece a otro N° de contenedor</p>
               )}
             </div>
           ))}

@@ -3,14 +3,14 @@
 // Reúne TODAS las facturas que quedaron pagadas dentro del rango de fechas elegido
 // (Invoice.status = 'pagada' con payment_date dentro del período) y arma el documento
 // que el operador del almacén usa para sacar la carga: los clientes agrupados por
-// ciudad y shipping mark, el N° de orden/envío pagado y, dentro de cada orden, cuántas
+// ciudad y shipping mark, el N° de contenedor pagado y, dentro de cada contenedor, cuántas
 // cajas consolidadas y bultos sueltos le corresponden. Sin códigos de bulto: el almacén
-// solo necesita saber qué cliente, qué orden y cuántas unidades.
+// solo necesita saber qué cliente, qué contenedor y cuántas unidades.
 //
 // Los bultos y cajas se buscan por las mismas dos vías en que quedan ligados a una
 // factura (ver shared/warehouseOrder.ts):
 //   1. Bulto.billed_invoice_id = factura (carga facturada desde 'Carga en almacén').
-//   2. Bulto.cbm_order_numbers con el N° de orden/envío de la factura, que sale de los
+//   2. Bulto.cbm_order_numbers con el N° de contenedor de la factura, que sale de los
 //      recibos incluidos (manual_recibos), los recibos marcados con la factura y los
 //      items de envío de las facturas de consolidación.
 //
@@ -27,7 +27,7 @@ import { fetchAllFilter } from "./paginatedFetch.ts";
 const text = (value: any) => String(value ?? '').trim();
 const unique = (list: any[]) => [...new Set((list || []).map((v) => text(v)).filter(Boolean))];
 const norm = (value: any) => text(value).toUpperCase().replace(/^0+(?=\d)/, '');
-const NO_ORDER = 'Sin N° de orden';
+const NO_ORDER = 'Sin N° de contenedor';
 const NO_CITY = 'Sin ciudad';
 const NO_MARK = 'Sin shipping mark';
 const IN_CHUNK = 80;
@@ -64,7 +64,7 @@ function fmtStamp(value: any) {
   });
 }
 
-// N° de orden/envío (invoice_number de CbmIngreso) que cubre la factura.
+// N° de contenedor (invoice_number de CbmIngreso) que cubre la factura.
 function invoiceOrderNumbers(invoice: any, receipts: any[]) {
   const numbers = new Set<string>();
   const push = (value: any) => {
@@ -165,7 +165,7 @@ export async function buildDispatchOrderSheet(base44: any, { from, to, generated
   const receipts: any[] = await filterByIn(
     base44.asServiceRole.entities.CbmIngreso, 'billed_invoice_id', invoiceIds, '-fecha');
 
-  // N° de orden/envío de cada factura y qué factura cubre cada orden.
+  // N° de contenedor de cada factura y qué factura cubre cada orden.
   const ordersByInvoice = new Map<string, Set<string>>();
   const orderToInvoices = new Map<string, string[]>();
   const allOrderKeys = new Set<string>();
@@ -193,7 +193,7 @@ export async function buildDispatchOrderSheet(base44: any, { from, to, generated
   }
 
   // El número de la orden puede venir con distinto formato en el bulto: se comparan
-  // también los N° de orden normalizados.
+  // también los N° de contenedor normalizados.
   const allOrdersRaw = new Set<string>();
   for (const invoice of invoices) {
     for (const receipt of receipts.filter((r) => text(r.billed_invoice_id) === invoice.id)) {
@@ -360,7 +360,7 @@ function unitsLabel(cajas: any, bultos: any) {
 }
 
 // Mensaje que recibe el almacén: es el mismo texto del TXT y del WhatsApp.
-// Va directo al grano: cliente, N° de orden/envío y cuántas cajas y bultos le tocan,
+// Va directo al grano: cliente, N° de contenedor y cuántas cajas y bultos le tocan,
 // con el total al final de cada cliente y de cada ciudad. Sin códigos de bulto, ni
 // facturas, ni subtotales largos.
 export function renderDispatchOrderText(sheet: any) {
@@ -381,7 +381,7 @@ export function renderDispatchOrderText(sheet: any) {
         const label = (order.units || []).length
           ? unitsLabel(order.cajas, order.bultos_sueltos)
           : 'sin cajas ni bultos registrados';
-        lines.push(`   Orden/Envío ${order.order_number} · ${label}`);
+        lines.push(`   Contenedor ${order.order_number} · ${label}`);
       }
       lines.push(`   Total ${mark.shipping_mark}: ${unitsLabel(mark.cajas, mark.bultos_sueltos)}`);
     }

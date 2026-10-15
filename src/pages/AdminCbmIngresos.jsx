@@ -108,7 +108,7 @@ export default function AdminCbmIngresos({ user }) {
     setLoadingClients(false);
   };
 
-  // Orden descendente por número de orden (271, 270, 269...); los sin orden van al final por fecha
+  // Orden descendente por número de contenedor (271, 270, 269...); los sin contenedor van al final por fecha
   const sortByOrderDesc = (list) => [...list].sort((a, b) => {
     const na = parseFloat(a.invoice_number);
     const nb = parseFloat(b.invoice_number);
@@ -123,7 +123,7 @@ export default function AdminCbmIngresos({ user }) {
     const fromNum = orderFrom !== '' ? parseFloat(orderFrom) : null;
     const toNum = orderTo !== '' ? parseFloat(orderTo) : null;
     const hasRange = fromNum !== null || toNum !== null;
-    // Cuando hay búsqueda por orden o rango, buscar en TODO el histórico, ignorando el período y el filtro de disponibilidad
+    // Cuando hay búsqueda por contenedor o rango, buscar en TODO el histórico, ignorando el período y el filtro de disponibilidad
     if (q || hasRange) {
       return sortByOrderDesc((allIngresos || []).filter((item) => {
         const num = parseFloat(item.invoice_number);
@@ -279,7 +279,7 @@ export default function AdminCbmIngresos({ user }) {
             String(i.invoice_number || '').trim().toLowerCase() === orderNum.toLowerCase()
           );
           if (dup) {
-            toast.error(`El número de orden ${orderNum} ya está registrado (${dup.client_name || dup.client_email || 'otro registro'}).`);
+            toast.error(`El número de contenedor ${orderNum} ya está registrado (${dup.client_name || dup.client_email || 'otro registro'}).`);
             setSaving(false);
             return;
           }
@@ -296,13 +296,13 @@ export default function AdminCbmIngresos({ user }) {
         const validEntries = entries.filter(e => parseFloat(e.cbm) > 0);
         if (validEntries.length === 0) { toast.error('Agrega al menos una fila con CBM válido'); setSaving(false); return; }
 
-        // Validar duplicados de orden dentro del lote
+        // Validar duplicados de contenedor dentro del lote
         const seenOrders = new Set();
         for (const e of validEntries) {
           const orderNum = String(e.invoice_number || '').trim().toLowerCase();
           if (orderNum) {
             if (seenOrders.has(orderNum)) {
-              toast.error(`Número de orden duplicado en la lista: ${e.invoice_number}`);
+              toast.error(`Número de contenedor duplicado en la lista: ${e.invoice_number}`);
               setSaving(false);
               return;
             }
@@ -318,7 +318,7 @@ export default function AdminCbmIngresos({ user }) {
               String(i.invoice_number || '').trim().toLowerCase() === orderNum.toLowerCase()
             );
             if (dup) {
-              toast.error(`Orden ${orderNum} ya existe (${dup.client_name || dup.client_email}).`);
+              toast.error(`El contenedor ${orderNum} ya existe (${dup.client_name || dup.client_email}).`);
               setSaving(false);
               return;
             }
@@ -362,7 +362,7 @@ export default function AdminCbmIngresos({ user }) {
   };
 
   // Corrida de conciliación: el almacén de Venezuela es la fuente definitiva, así que
-  // sus bultos alinean los recibos de contabilidad (N° de orden, CBM y paquetes).
+  // sus bultos alinean los recibos de contabilidad (N° de contenedor, CBM y paquetes).
   const handleSyncFromWarehouse = async () => {
     setSyncingAccounting(true);
     const totals = { updated: 0, created: 0, matched: 0, without_match: 0 };
@@ -503,7 +503,7 @@ export default function AdminCbmIngresos({ user }) {
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                 <Input
-                  placeholder="Buscar por número de orden (ej: 238)..."
+                  placeholder="Buscar por número de contenedor (ej: 238)..."
                   value={orderSearch}
                   onChange={(e) => setOrderSearch(e.target.value)}
                   className="pl-10"
@@ -558,7 +558,7 @@ export default function AdminCbmIngresos({ user }) {
           )}
           {sinSalidaFilter && !orderSearch.trim() && orderFrom === '' && orderTo === '' && (
             <p className="text-xs text-amber-700 font-medium">
-              Mostrando todas las órdenes sin fecha de salida (histórico completo) · {filteredIngresos.length} registro(s)
+              Mostrando todos los contenedores sin fecha de salida (histórico completo) · {filteredIngresos.length} registro(s)
             </p>
           )}
           {loading ? (
@@ -630,7 +630,7 @@ export default function AdminCbmIngresos({ user }) {
                             </p>
                           )}
                           {item.invoice_number && (
-                            <p className="text-xs text-indigo-600 font-medium">📄 Orden N: {item.invoice_number}</p>
+                            <p className="text-xs text-indigo-600 font-medium">📄 Contenedor N: {item.invoice_number}</p>
                           )}
                           {Number(item.package_count || 0) > 0 && (
                             <p className="text-xs text-slate-500">{Number(item.package_count)} paquete(s) según almacén Venezuela</p>
@@ -770,7 +770,7 @@ export default function AdminCbmIngresos({ user }) {
             {editingId ? (
               <>
                 <div className="space-y-2">
-                  <Label>Número de Orden</Label>
+                  <Label>Número de Contenedor</Label>
                   <Input
                     placeholder="Ej: ORD-001234"
                     value={form.invoice_number}
@@ -792,7 +792,7 @@ export default function AdminCbmIngresos({ user }) {
             ) : (
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label>Órdenes y CBM *</Label>
+                  <Label>Contenedores y CBM *</Label>
                   <Button type="button" variant="outline" size="sm" onClick={addEntry} className="gap-1 h-7">
                     <Plus className="h-3.5 w-3.5" /> Agregar fila
                   </Button>
@@ -802,7 +802,7 @@ export default function AdminCbmIngresos({ user }) {
                     <div key={idx} className="flex items-start gap-2">
                       <div className="flex-1">
                         <Input
-                          placeholder="N° de Orden (ej: ORD-001234)"
+                          placeholder="N° de Contenedor (ej: ORD-001234)"
                           value={entry.invoice_number}
                           onChange={(e) => updateEntry(idx, 'invoice_number', e.target.value)}
                         />

@@ -5,14 +5,14 @@ import { CheckCircle2, ChevronDown } from 'lucide-react';
 import BilledReceiptRow from './BilledReceiptRow';
 
 // Envíos ya facturados por fuera del sistema: se conservan (no se borran), agrupados
-// por N° de orden en una sección plegable al final de la lista.
+// por N° de contenedor en una sección plegable al final de la lista.
 export default function BilledReceiptsSection({ receipts = [], markingId, onUnmark }) {
   const [open, setOpen] = useState(false);
 
   const groups = useMemo(() => {
     const map = new Map();
     for (const r of receipts) {
-      const key = r.order || 'Sin N° de orden';
+      const key = r.order || 'Sin N° de contenedor';
       if (!map.has(key)) map.set(key, []);
       map.get(key).push(r);
     }
@@ -45,7 +45,7 @@ export default function BilledReceiptsSection({ receipts = [], markingId, onUnma
               <div key={g.order} className="space-y-2">
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge className="bg-emerald-100 text-emerald-800 border border-emerald-300">
-                    N° de orden {g.order}
+                    N° de contenedor {g.order}
                   </Badge>
                   <span className="text-[11px] text-emerald-800/80">{g.items.length} envío(s)</span>
                 </div>

@@ -34,7 +34,7 @@ export const packageCountOfBulto = (bulto) => {
 };
 
 // Una línea sin bulto registrado es la que no tiene código de etiqueta: es la carga
-// que se emitió por su N° de orden / envío porque el bulto no existe o no se creó.
+// que se emitió por su N° de contenedor porque el bulto no existe o no se creó.
 export const isUnregisteredLine = (bulto) => !!bulto && (!!bulto.unregistered || !bulto.label_code);
 
 const scanDate = (log) => log?.scanned_at || log?.created_date || '';

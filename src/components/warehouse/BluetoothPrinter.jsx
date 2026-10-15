@@ -190,7 +190,7 @@ export default function BluetoothPrinter({ bultos = [], onPrinted, size = 'defau
         // 2. Separador
         addBlock(4, (yy) => sep(yy + 2));
 
-        // 3. Estado + N° de orden: misma línea y mismo tamaño, con el rótulo
+        // 3. Estado + N° de contenedor: misma línea y mismo tamaño, con el rótulo
         //    "ORDEN" en pequeño encima del número.
         const ordenStr = (Array.isArray(bulto.cbm_order_numbers) ? bulto.cbm_order_numbers.filter(Boolean) : []).join(', ');
         addBlock(ordenStr ? 15 : 12, (yy) => {
@@ -215,7 +215,7 @@ export default function BluetoothPrinter({ bultos = [], onPrinted, size = 'defau
             doc.text(estado, x0, baseY);
             doc.text(ordenStr, x0 + wE + gap, baseY);
             doc.setFontSize(7);
-            doc.text('ORDEN', x0 + wE + gap + wO / 2, yy + 3.5, { align: 'center' });
+            doc.text('CONTENEDOR', x0 + wE + gap + wO / 2, yy + 3.5, { align: 'center' });
           } else {
             doc.text(estado, 50, yy + 11, { align: 'center' });
           }

@@ -64,10 +64,10 @@ export default function AdminManualBilling({ user }) {
   const pending = usePendingBillingClients();
   // En móvil el panel arranca plegado para no empujar la facturación fuera de pantalla
   const [showPending, setShowPending] = useState(false);
-  // Envíos marcados a mano como ya facturados: no se borran, se agrupan aparte
+  // Contenedores marcados a mano como ya facturados: no se borran, se agrupan aparte
   const [markedReceipts, setMarkedReceipts] = useState([]);
   const [markingReceiptId, setMarkingReceiptId] = useState(null);
-  // Envíos que ya se facturaron en el sistema (con su factura): solo se muestran
+  // Contenedores que ya se facturaron en el sistema (con su factura): solo se muestran
   const [invoicedReceipts, setInvoicedReceipts] = useState([]);
 
   useEffect(() => {
@@ -368,7 +368,7 @@ export default function AdminManualBilling({ user }) {
         };
       });
       setRows(built);
-      // Envíos marcados a mano como ya facturados: se conservan (con su CBM y
+      // Contenedores marcados a mano como ya facturados: se conservan (con su CBM y
       // trackings intactos) agrupados en su propia sección, fuera de la facturable.
       setMarkedReceipts((ingresos || [])
         .filter((ing) => ing.billing_marked === true)
@@ -382,9 +382,9 @@ export default function AdminManualBilling({ user }) {
           billing_marked_by: ing.billing_marked_by || '',
           billing_marked_date: ing.billing_marked_date || null,
           })));
-          // Envíos ya facturados en el sistema: cada recibo con su factura (número, fecha,
+          // Contenedores ya facturados en el sistema: cada recibo con su factura (número, fecha,
           // estado y monto), para revisarlos aquí mismo sin salir a la pantalla de Facturas.
-          // Si la factura ya no existe, el envío se lista igual, marcado como sin factura vigente.
+          // Si la factura ya no existe, el contenedor se lista igual, marcado como sin factura vigente.
           const invoiceById = new Map((invoices || []).map((inv) => [inv.id, inv]));
           setInvoicedReceipts((ingresos || [])
           .filter((ing) => ing.billed === true && ing.billing_marked !== true)
@@ -428,7 +428,7 @@ export default function AdminManualBilling({ user }) {
     });
   };
 
-  // Marca manual de un N° de orden/envío: deja de ofrecerse como pendiente sin facturar
+  // Marca manual de un N° de contenedor: deja de ofrecerse como pendiente sin facturar
   const handleMarkBulto = async (bulto, marked) => {
     const res = await pending.markBulto(bulto, marked);
     if (res.ok) {
@@ -440,20 +440,20 @@ export default function AdminManualBilling({ user }) {
     }
   };
 
-  // Marca de una vez todo el envío: todos los bultos de un N° de orden se guardan en
-  // secuencia (avance visible en la pestaña) y deja el envío completo como facturado.
+  // Marca de una vez todo el contenedor: todos los bultos de un N° de contenedor se guardan en
+  // secuencia (avance visible en la pestaña) y deja el contenedor completo como facturado.
   const handleMarkOrderBultos = async (bultos, marked, onProgress) => {
     const res = await pending.markBultos(bultos, marked, onProgress);
     if (res.count > 0) {
       toast.success(marked
-        ? `${res.count} bulto(s) del envío marcados como facturados`
-        : `${res.count} bulto(s) del envío vuelven a pendientes`);
+        ? `${res.count} bulto(s) del contenedor marcados como facturados`
+        : `${res.count} bulto(s) del contenedor vuelven a pendientes`);
     }
-    if (res.failed > 0) toast.error(`No se pudieron guardar ${res.failed} bulto(s) del envío`);
+    if (res.failed > 0) toast.error(`No se pudieron guardar ${res.failed} bulto(s) del contenedor`);
     return res;
   };
 
-  // Marca manual de un envío/recibo: se guarda como ya facturado (usuario y fecha)
+  // Marca manual de un contenedor/recibo: se guarda como ya facturado (usuario y fecha)
   // sin borrarlo ni tocar su CBM, sus trackings o su estado billed.
   const handleMarkReceipt = async (receipt, marked) => {
     const order = receipt.order || receipt.invoice_number || receipt.label || '';
@@ -493,11 +493,11 @@ export default function AdminManualBilling({ user }) {
       }
 
       toast.success(marked
-        ? `Envío ${order} marcado como ya facturado`
-        : `Envío ${order} vuelve a la lista facturable`);
+        ? `Contenedor ${order} marcado como ya facturado`
+        : `Contenedor ${order} vuelve a la lista facturable`);
       pending.reload();
     } catch {
-      toast.error('No se pudo guardar la marca del envío');
+      toast.error('No se pudo guardar la marca del contenedor');
     }
     setMarkingReceiptId(null);
   };
@@ -575,7 +575,7 @@ export default function AdminManualBilling({ user }) {
       // Tipo de carga efectivo de cada recibo (el suyo o el de la factura)
       const rowTypeOf = (r) => r.cargo_type || cargoType;
       const isLinearShipping = billedCbmValue >= DOOR_TO_DOOR_THRESHOLD;
-      // Cada recibo (envío) se muestra como su propia línea con su CBM y la tarifa de su tipo de carga.
+      // Cada recibo (contenedor) se muestra como su propia línea con su CBM y la tarifa de su tipo de carga.
       // Para >= 0.130 CBM se escalan las tarifas por tipo para que el detalle sume el envío consolidado.
       const rowLines = selectedRows
         .filter((r) => r.invoice_number && r.invoice_number !== '—')
@@ -893,7 +893,7 @@ export default function AdminManualBilling({ user }) {
     }
   };
 
-  // Fusiona solos los repetidos del mismo cliente con igual N° de orden y CBM.
+  // Fusiona solos los repetidos del mismo cliente con igual N° de contenedor y CBM.
   const autoMergeDuplicates = async (selectedClient, force = false) => {
     const email = String(selectedClient?.email || '').trim();
     if (!email) return;
@@ -1042,7 +1042,7 @@ export default function AdminManualBilling({ user }) {
             Armar la factura del cliente
           </h1>
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-            A la izquierda está la carga que sigue en el almacén sin facturar. Elige un cliente, revisa sus N° de orden y arma su factura aquí mismo.
+            A la izquierda está la carga que sigue en el almacén sin facturar. Elige un cliente, revisa sus N° de contenedor y arma su factura aquí mismo.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -1125,7 +1125,7 @@ export default function AdminManualBilling({ user }) {
           <Boxes className="mx-auto h-8 w-8 text-muted-foreground" />
           <p className="mt-3 font-display text-sm font-semibold text-foreground">Elige un cliente de la carga pendiente</p>
           <p className="mx-auto mt-1 max-w-md text-xs text-muted-foreground">
-            Su expediente se abre aquí con la carga del almacén por N° de orden, y el resumen de facturación queda siempre a la derecha.
+            Su expediente se abre aquí con la carga del almacén por N° de contenedor, y el resumen de facturación queda siempre a la derecha.
           </p>
         </div>
       ) : (

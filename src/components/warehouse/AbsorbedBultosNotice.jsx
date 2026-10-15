@@ -25,7 +25,7 @@ export default function AbsorbedBultosNotice({ absorbed }) {
             </span>
             {' · '}
             {entry.package_count || 0} paquete(s)
-            {entry.order_numbers?.length ? ` · N° de orden ${entry.order_numbers.join(', ')}` : ''}
+            {entry.order_numbers?.length ? ` · N° de contenedor ${entry.order_numbers.join(', ')}` : ''}
             {entry.absorbed_by ? ` · por ${entry.absorbed_by}` : ''}
           </li>
         ))}

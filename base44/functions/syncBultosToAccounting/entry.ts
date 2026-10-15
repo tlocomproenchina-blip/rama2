@@ -3,7 +3,7 @@ import { fetchAllFilter } from '../../shared/paginatedFetch.ts';
 import { syncBultoToAccounting } from '../../shared/veAccountingSync.ts';
 
 // Corrida de conciliación: alinea los recibos de contabilidad (Ingresos de CBM) con lo
-// que ya quedó registrado por el almacén de Venezuela en los bultos (N° de orden, CBM y
+// que ya quedó registrado por el almacén de Venezuela en los bultos (N° de contenedor, CBM y
 // conteo de paquetes). Solo admin. Procesa por lotes para no expirar y reporta cuántos
 // recibos se actualizaron, cuántos se crearon y cuántos quedaron sin coincidencia.
 export default async function(req: Request): Promise<Response> {

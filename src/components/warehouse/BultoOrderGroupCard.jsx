@@ -4,8 +4,8 @@ import { ChevronDown, ChevronRight, Hash, CheckSquare, Square } from 'lucide-rea
 import { realPackageCount } from '@/lib/bultoCounts';
 import BultoHistoryRow from './BultoHistoryRow';
 
-// Tarjeta plegable que reúne todos los bultos de un mismo cliente con el mismo N° de orden.
-// El encabezado indica el cliente, su shipping mark, el N° de orden, los números de bulto
+// Tarjeta plegable que reúne todos los bultos de un mismo cliente con el mismo N° de contenedor.
+// El encabezado indica el cliente, su shipping mark, el N° de contenedor, los números de bulto
 // que contiene y cuántos bultos son; al desplegarse se ven los bultos individuales.
 export default function BultoOrderGroupCard({
   entry, expanded, onToggle, selectMode, selectedIds,

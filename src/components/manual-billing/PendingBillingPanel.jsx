@@ -98,7 +98,7 @@ export default function PendingBillingPanel({
           <Input
             value={term}
             onChange={(e) => setTerm(e.target.value)}
-            placeholder="Cliente, email, mark, N° de orden o código…"
+            placeholder="Cliente, email, mark, N° de contenedor o código…"
             className="pl-9"
           />
         </div>

@@ -125,7 +125,7 @@ export default function WarehouseOrderModal({ open, onClose, invoice, appName, o
                         {group.shipping_mark || order.shipping_mark || '—'}
                       </p>
                       <p className="font-semibold text-foreground">
-                        N° de orden / envío: {group.order_number || 'Sin N° de orden'}
+                        N° de contenedor: {group.order_number || 'Sin N° de contenedor'}
                       </p>
                     </div>
                     <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary whitespace-nowrap">

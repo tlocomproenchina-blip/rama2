@@ -16,7 +16,7 @@ export default function BilledReceiptRow({ receipt, marking, onUnmark }) {
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="font-mono text-sm font-semibold text-emerald-800 break-all">
-            {receipt.order || 'Sin N° de orden'}
+            {receipt.order || 'Sin N° de contenedor'}
           </p>
           <p className="text-[11px] text-slate-600 break-all">
             {(receipt.trackings || []).join(', ') || 'Sin tracking'}

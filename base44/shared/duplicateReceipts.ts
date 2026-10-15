@@ -1,7 +1,7 @@
 // Fusión de recibos duplicados de contabilidad (CbmIngreso).
 //
 // En Facturación Manual aparecen dos o más recibos del mismo cliente con el
-// mismo N° de orden y el mismo CBM: al facturarlos se duplican líneas y montos.
+// mismo N° de contenedor y el mismo CBM: al facturarlos se duplican líneas y montos.
 // Este módulo detecta esos grupos, decide cuál recibo sobrevive y ejecuta la
 // fusión real: CBM y paquetes sumados, trackings unidos, duplicado eliminado,
 // con rastro de auditoría. Si alguno de los recibos ya está dentro de una
@@ -15,7 +15,7 @@ import {
 // Los CBM se comparan con tolerancia: 0.05964 y 0.06 son el mismo volumen mal redondeado.
 export const CBM_TOLERANCE = 0.001;
 
-// N° de orden normalizado: sin prefijo "NO:", espacios, puntos ni guiones.
+// N° de contenedor normalizado: sin prefijo "NO:", espacios, puntos ni guiones.
 export function normOrder(raw: any) {
   return String(raw ?? "")
     .toUpperCase()
@@ -58,7 +58,7 @@ export function pickSurvivor(list: any[]) {
   })[0];
 }
 
-// Agrupa los recibos del mismo cliente que comparten N° de orden normalizado.
+// Agrupa los recibos del mismo cliente que comparten N° de contenedor normalizado.
 export function detectGroups(receipts: any[]) {
   const byKey: Record<string, any[]> = {};
   for (const r of receipts || []) {
@@ -115,7 +115,7 @@ function tokensFromDesc(desc: any) {
 }
 
 // Líneas de envío de la factura. En las facturas nuevas cada línea lleva el
-// número de orden en `details` y viene listada en `manual_recibos`; las
+// número de contenedor en `details` y viene listada en `manual_recibos`; las
 // facturas antiguas sólo describen los trackings ("Envío - <trackings> (X CBM)").
 function invoiceLines(invoice: any) {
   const items = Array.isArray(invoice.items) ? invoice.items : [];
@@ -165,7 +165,7 @@ function invoiceLines(invoice: any) {
 }
 
 // Casa un recibo con una línea de envío: primero por trackings, luego por
-// N° de orden y, si no hay nada mejor, por CBM cuando sólo hay una candidata.
+// N° de contenedor y, si no hay nada mejor, por CBM cuando sólo hay una candidata.
 function matchLine(lines: any[], usedIdx: Set<number>, receipt: any) {
   const keys = (receipt?.tracking_numbers || []).map(normTracking).filter(Boolean);
   if (keys.length) {

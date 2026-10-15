@@ -10,7 +10,7 @@ import ReprintDialog from './ReprintDialog';
 import CloseBultoDialog from './CloseBultoDialog';
 
 // Tarjeta del bulto activo destacado: shipping mark grande, contador,
-// lista de trackings, N° de orden editable y botones de cierre/impresión.
+// lista de trackings, N° de contenedor editable y botones de cierre/impresión.
 export default function OpenBultoCard({ bulto, onClose, onRemoveLast, onOrderChange }) {
   const [showReprint, setShowReprint] = useState(false);
   const [showCloseDialog, setShowCloseDialog] = useState(false);
@@ -20,7 +20,7 @@ export default function OpenBultoCard({ bulto, onClose, onRemoveLast, onOrderCha
 
   const existingOrders = Array.isArray(bulto.cbm_order_numbers) ? bulto.cbm_order_numbers.filter(Boolean) : [];
 
-  // N° de orden editable antes de cerrar el bulto (se guarda en el bulto y se
+  // N° de contenedor editable antes de cerrar el bulto (se guarda en el bulto y se
   // refleja en la etiqueta; el diálogo de cierre hace la última revisión).
   const [orderText, setOrderText] = useState(existingOrders.join(', '));
   const [savedOrderText, setSavedOrderText] = useState(existingOrders.join(', '));
@@ -40,15 +40,15 @@ export default function OpenBultoCard({ bulto, onClose, onRemoveLast, onOrderCha
     try {
       await onOrderChange?.(orders);
       setSavedOrderText(orders.join(', '));
-      toast.success('N° de orden guardado');
+      toast.success('N° de contenedor guardado');
     } catch (_) {
-      toast.error('No se pudo guardar el N° de orden');
+      toast.error('No se pudo guardar el N° de contenedor');
     } finally {
       setSavingOrder(false);
     }
   };
 
-  // El diálogo de cierre devuelve las órdenes ya revisadas/editadas (o null).
+  // El diálogo de cierre devuelve los contenedores ya revisados/editados (o null).
   const handleClose = (orders) => {
     setShowCloseDialog(false);
     onClose(orders);
@@ -89,10 +89,10 @@ export default function OpenBultoCard({ bulto, onClose, onRemoveLast, onOrderCha
           </div>
         )}
 
-        {/* N° de orden: se puede ver y editar antes de cerrar el bulto */}
+        {/* N° de contenedor: se puede ver y editar antes de cerrar el bulto */}
         <div className="rounded-lg border border-border bg-muted/20 p-2.5 space-y-1.5">
           <Label htmlFor="bulto-order" className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-            <Hash className="h-3.5 w-3.5" /> N° de orden
+            <Hash className="h-3.5 w-3.5" /> N° de contenedor
           </Label>
           <div className="flex items-center gap-2">
             <Input
@@ -114,7 +114,7 @@ export default function OpenBultoCard({ bulto, onClose, onRemoveLast, onOrderCha
           </div>
           <p className="text-[10px] text-slate-400">
             {existingOrders.length > 0
-              ? 'Esta es la orden detectada automáticamente. Corrígela si hace falta: se imprime en la etiqueta al cerrar.'
+              ? 'Este es el contenedor detectado automáticamente. Corrígelo si hace falta: se imprime en la etiqueta al cerrar.'
               : 'Ingrésala ahora o revísala al cerrar el bulto.'}
           </p>
         </div>

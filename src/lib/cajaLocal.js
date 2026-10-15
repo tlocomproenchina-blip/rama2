@@ -96,7 +96,7 @@ export async function createLocalCaja({ client, number, user }) {
 }
 
 // Mete un bulto pequeño dentro de la caja: aporta sus paquetes, sus códigos sin
-// registrar y su N° de orden. El bulto se elimina cuando la caja se sincroniza.
+// registrar y su N° de contenedor. El bulto se elimina cuando la caja se sincroniza.
 export async function absorbBultoIntoLocalCaja(caja, source) {
   if (!caja || !source) return caja;
   if (text(source.label_code) === text(caja.label_code)) return caja;

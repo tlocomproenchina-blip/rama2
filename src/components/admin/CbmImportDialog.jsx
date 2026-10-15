@@ -207,7 +207,7 @@ export default function CbmImportDialog({ open, onOpenChange, onDone }) {
                       </tr>
                       <tr>
                         <td className="px-2 py-1.5 text-center font-bold text-slate-500">B</td>
-                        <td className="px-2 py-1.5 font-medium text-slate-700">Orden / Recibo</td>
+                        <td className="px-2 py-1.5 font-medium text-slate-700">Contenedor / Recibo</td>
                         <td className="px-2 py-1.5 font-mono text-slate-500">ORD-001234</td>
                       </tr>
                       <tr>

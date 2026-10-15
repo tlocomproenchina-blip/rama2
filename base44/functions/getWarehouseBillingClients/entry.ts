@@ -6,7 +6,7 @@ import { fetchAllFilter, fetchByClientEmails, num, normTracking, errorMessage, B
 //
 // Combina dos fuentes:
 //  1) Bultos con status 'en_almacen_ve' (inventario físico real) con su
-//     N° de orden CbmIngreso y su CBM real (paquetes agrupados / recibo).
+//     N° de contenedor CbmIngreso y su CBM real (paquetes agrupados / recibo).
 //  2) Recibos de CBM (CbmIngreso) pendientes de facturar (billed=false),
 //     tal como los usa Facturación Manual.
 //
@@ -33,7 +33,7 @@ Deno.serve(async (req) => {
     ]);
 
     // Marca manual desde el panel de Facturación Manual: ese bulto (y su N° de
-    // orden/envío) ya se facturó por fuera, así que su recibo de CBM ya no se
+    // contenedor) ya se facturó por fuera, así que su recibo de CBM ya no se
     // ofrece (para no cobrarlo dos veces). El bulto sí sigue visible, marcado.
     const markedOrders = new Set<string>();
     for (const b of bultosCandidatos) {
@@ -43,16 +43,16 @@ Deno.serve(async (req) => {
         if (key) markedOrders.add(key);
       }
     }
-    // Un envío/recibo marcado a mano como ya facturado (Facturación Manual) tampoco
+    // Un contenedor/recibo marcado a mano como ya facturado (Facturación Manual) tampoco
     // se ofrece aquí como pendiente: se conserva, pero ya no está por facturar.
     const receiptsPending = receiptsBilledPending.filter(
       (r: any) => (r as any).billing_marked !== true && !markedOrders.has(String(r.invoice_number || '').trim())
     );
 
-    // Envío (N° de orden) que ya tiene recibo facturado con factura vigente: ya está
+    // Contenedor (N° de contenedor) que ya tiene recibo facturado con factura vigente: ya está
     // cobrado, así que no vuelve a ofrecerse como carga pendiente. Se resuelve por lotes
-    // con los N° de orden de los bultos en almacén, sin tocar bultos, recibos ni facturas:
-    // al desaparecer la factura, el envío vuelve solo.
+    // con los N° de contenedor de los bultos en almacén, sin tocar bultos, recibos ni facturas:
+    // al desaparecer la factura, el contenedor vuelve solo.
     const orderNumbers = [...new Set(bultosCandidatos.flatMap((b: any) =>
       ((b.cbm_order_numbers || []).filter(Boolean).map((o: any) => String(o).trim()))))].filter(Boolean) as string[];
     const invoicedOrders = new Set<string>();
@@ -88,7 +88,7 @@ Deno.serve(async (req) => {
     }
     // El bulto marcado a mano como facturado NO se oculta de la lista: sigue visible
     // (marcado en verde) para poder deshacer la marca. Se excluye lo que ya tiene una
-    // factura viva y lo que pertenece a un envío ya facturado (recibo billed con factura viva).
+    // factura viva y lo que pertenece a un contenedor ya facturado (recibo billed con factura viva).
     let bultos = bultosCandidatos.filter((b: any) => {
       if (b.billing_marked === true) return true;
       if (b.billed_invoice_id && aliveInvoiceIds.has(b.billed_invoice_id)) return false;
@@ -197,7 +197,7 @@ Deno.serve(async (req) => {
           const ing = ingByTracking.get(t);
           if (ing && !linkedIds.has(ing.id)) { linkedIds.add(ing.id); linkedReceipts.push(ing); }
         }
-        // Fallback por N° de orden: CBM del recibo asignado al bulto
+        // Fallback por N° de contenedor: CBM del recibo asignado al bulto
         for (const order of (b.cbm_order_numbers || []).filter(Boolean)) {
           const ing = ingByOrder.get(String(order).trim());
           if (ing && !linkedIds.has(ing.id)) { linkedIds.add(ing.id); linkedReceipts.push(ing); }
@@ -210,7 +210,7 @@ Deno.serve(async (req) => {
         const registeredCbm = num(b.cargo_cbm);
         const registeredCount = num(b.cargo_package_count);
         // Fecha real de reconocimiento en el almacén de Venezuela: la que dejó el
-        // escaneo de la etiqueta, o la del N° de orden asignado desde la pantalla
+        // escaneo de la etiqueta, o la del N° de contenedor asignado desde la pantalla
         // de escaneo. Si no hay escaneo, la fecha de registro del bulto se ofrece
         // aparte, etiquetada como aproximada.
         const veScanDate = b.ve_recognized_date || b.order_assigned_date || null;
@@ -248,7 +248,7 @@ Deno.serve(async (req) => {
         };
       });
 
-      // Bulto que ya contiene cada tracking y cada N° de orden: permite decir en qué
+      // Bulto que ya contiene cada tracking y cada N° de contenedor: permite decir en qué
       // bulto está cada recibo y con qué fecha se reconoció.
       const bultoByTracking = new Map<string, any>();
       const bultoByOrder = new Map<string, any>();
@@ -284,7 +284,7 @@ Deno.serve(async (req) => {
             ve_date_source: ownerBulto?.ve_date_source || null,
           };
         })
-        // Regla del panel: un envío (recibo de CBM) solo se muestra si tiene un bulto
+        // Regla del panel: un contenedor (recibo de CBM) solo se muestra si tiene un bulto
         // asignado en el almacén. Un recibo sin bulto no es carga reconocida aquí, así
         // que no se ofrece (sus datos quedan intactos y siguen disponibles por el buscador).
         .filter((r: any) => r.overlap_bulto);

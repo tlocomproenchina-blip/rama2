@@ -23,7 +23,7 @@ export async function generateDispatchGuidePdf({
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   const list = Array.isArray(clients) ? clients : [];
   const totals = summarizeGuide(list, list.map((c) => c.client_key || c.client_email));
-  // Líneas de carga sin bulto registrado: salen impresas por su N° de orden / envío.
+  // Líneas de carga sin bulto registrado: salen impresas por su N° de contenedor.
   const unregistered = list
     .flatMap((entry) => (Array.isArray(entry.bultos) ? entry.bultos : []))
     .filter(isUnregisteredLine).length;
@@ -75,7 +75,7 @@ export async function generateDispatchGuidePdf({
         22,
         { align: 'right' }
       );
-      doc.text('Cajas, bultos y carga emitida por N° de orden · verificación de entrega bloque por bloque', left, 29);
+      doc.text('Cajas, bultos y carga emitida por N° de contenedor · verificación de entrega bloque por bloque', left, 29);
       if (offline) {
         doc.setTextColor(185, 28, 28);
         doc.setFont('helvetica', 'bold');
@@ -157,7 +157,7 @@ export async function generateDispatchGuidePdf({
       doc.setFontSize(10);
       doc.text(String(index), 16, y);
       // Cada unidad se identifica con la posición X/N impresa en su etiqueta; la carga
-      // sin bulto registrado, con su N° de orden / envío.
+      // sin bulto registrado, con su N° de contenedor.
       const cajaTag = bulto.caja_number
         ? `[${bulto.caja_number}/${bulto.caja_total || '?'}] `
         : '';

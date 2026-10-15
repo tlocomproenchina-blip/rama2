@@ -1,7 +1,7 @@
 // Órdenes que se generan solas al emitir una guía a mano.
 //
 // Por cada cliente de la guía se crea su orden de despacho por la MISMA vía que usa
-// el almacén al despachar (createDispatchOrder): así el número de orden, la
+// el almacén al despachar (createDispatchOrder): así el número de contenedor, la
 // agrupación con las órdenes del mismo día y el marcado de recibos disponibles para
 // entrega quedan idénticos al flujo que ya funciona. Los ítems salen de los bultos
 // de la guía: cada tracking registrado en el bulto es un ítem y, si el bulto todavía
@@ -54,7 +54,7 @@ function itemsOfBultos(codes: string[], bultos: any[]) {
   return items;
 }
 
-// Ítems de una línea sin bulto registrado: la carga se emite por su N° de orden.
+// Ítems de una línea sin bulto registrado: la carga se emite por su N° de contenedor.
 // Si el recibo trae trackings, cada uno entra como paquete real de la orden; si no,
 // la línea entra con la referencia de la orden para que el almacén la ubique.
 function itemsOfUnregistered(lines: any[]) {
@@ -62,7 +62,7 @@ function itemsOfUnregistered(lines: any[]) {
 
   (Array.isArray(lines) ? lines : []).forEach((line) => {
     const order = text(line?.order_number);
-    const description = `Carga sin bulto registrado${order ? ` · Orden/Envío ${order}` : ''}`;
+    const description = `Carga sin bulto registrado${order ? ` · Contenedor ${order}` : ''}`;
     const trackings = [
       ...new Set(
         (Array.isArray(line?.tracking_numbers) ? line.tracking_numbers : [])
@@ -73,7 +73,7 @@ function itemsOfUnregistered(lines: any[]) {
 
     if (!trackings.length) {
       items.push({
-        tracking_number: order ? `ORDEN ${order}` : 'CARGA SIN BULTO',
+        tracking_number: order ? `CONTENEDOR ${order}` : 'CARGA SIN BULTO',
         description,
         consolidation_tracking: order,
         bulto_label_code: '',
@@ -106,7 +106,7 @@ export async function createOrdersForGuide(base44: any, { guide, user }: any) {
     const clientEmail = text(client?.client_email);
     const lines = Array.isArray(client?.bultos) ? client.bultos : [];
     const codes = lines.map((line: any) => text(line?.label_code)).filter(Boolean);
-    // Líneas de carga sin bulto registrado (emitidas por su N° de orden / envío).
+    // Líneas de carga sin bulto registrado (emitidas por su N° de contenedor).
     const unregistered = lines.filter((line: any) => line?.unregistered || !text(line?.label_code));
 
     if (!clientEmail || !lines.length) {

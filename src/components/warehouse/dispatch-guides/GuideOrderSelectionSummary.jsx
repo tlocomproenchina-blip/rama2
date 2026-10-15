@@ -2,7 +2,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { ClipboardList, Eraser, Loader2 } from 'lucide-react';
 
-// Resumen de las órdenes / envíos marcados y el botón que confirma la guía.
+// Resumen de los contenedores marcados y el botón que confirma la guía.
 export default function GuideOrderSelectionSummary({ summary, emitting, onEmit, onClear }) {
   const empty = !summary.orders;
 
@@ -11,7 +11,7 @@ export default function GuideOrderSelectionSummary({ summary, emitting, onEmit, 
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-700">
         <span className="font-semibold">{summary.clients} cliente(s)</span>
         <span>·</span>
-        <span>{summary.orders} orden(es)</span>
+        <span>{summary.orders} contenedor(es)</span>
         <span>·</span>
         <span>{summary.bultos} bulto(s)</span>
         <span>·</span>
@@ -26,8 +26,8 @@ export default function GuideOrderSelectionSummary({ summary, emitting, onEmit, 
 
       {summary.unregistered > 0 && (
         <p className="mt-1.5 text-[11px] font-semibold text-amber-700">
-          {summary.unregistered} orden(es) sin bulto registrado salen en la guía marcadas como carga sin
-          bulto, con su N° de orden.
+          {summary.unregistered} contenedor(es) sin bulto registrado salen en la guía marcadas como carga sin
+          bulto, con su N° de contenedor.
         </p>
       )}
 
@@ -44,7 +44,7 @@ export default function GuideOrderSelectionSummary({ summary, emitting, onEmit, 
 
       <p className="mt-2 text-[11px] text-slate-500">
         Al emitir se guarda la guía con su número correlativo y se genera sola la orden de despacho de
-        cada cliente con su carga. La orden ya no vuelve a ofrecerse para otra guía.
+        cada cliente con su carga. El contenedor ya no vuelve a ofrecerse para otra guía.
       </p>
     </div>
   );

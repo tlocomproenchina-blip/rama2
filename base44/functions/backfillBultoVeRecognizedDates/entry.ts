@@ -3,7 +3,7 @@ import { fetchAllFilter, errorMessage, BATCH } from '../../shared/paginatedFetch
 
 // Corrección de una sola pasada: escribe la fecha REAL de reconocimiento en el
 // almacén de Venezuela (ve_recognized_date / ve_recognized_by) en los bultos que
-// sí tienen registro real de escaneo: la asignación del N° de orden desde la
+// sí tienen registro real de escaneo: la asignación del N° de contenedor desde la
 // pantalla de escaneo (order_assigned_date / order_assigned_by).
 //
 // Idempotente: no vuelve a tocar bultos que ya tienen ve_recognized_date y NO

@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { downloadTxt } from '@/lib/paymentReportTxt';
 
 // Descarga el informe TXT acumulado de los pagos aprobados hoy (hora de Caracas):
-// shipping mark y N° de orden/envío de cada factura pagada.
+// shipping mark y N° de contenedor de cada factura pagada.
 export default function PaymentReportDownloadButton() {
   const [loading, setLoading] = useState(false);
 

@@ -1,7 +1,7 @@
 // Fusión de bultos (almacén de Venezuela).
 //
 // Cuando un paquete escaneado ya pertenece a otro bulto, ese bulto viejo se fusiona
-// con el que se está registrando —paquetes, códigos sin registrar y N° de orden— y se
+// con el que se está registrando —paquetes, códigos sin registrar y N° de contenedor— y se
 // elimina, para que el empleado no tenga que deshacer y rehacer el trabajo.
 //
 // Un solo motor, reutilizado por createBultoFromScan (bulto nuevo escaneado),
@@ -12,7 +12,7 @@
 // - Nunca bloquea: la fusión se decide en el servidor, no depende de un flag del cliente.
 // - El borrado NO renumera ni regenera label_code de los bultos restantes: las etiquetas ya
 //   impresas deben seguir siendo válidas. Solo se recuadra total_bultos del cliente.
-// - No se toca la contabilidad desde aquí: los N° de orden fusionados se envían como
+// - No se toca la contabilidad desde aquí: los N° de contenedor fusionados se envían como
 //   previous_orders al sincronizar, para corregir el recibo vinculado y no duplicarlo.
 // - Un bulto de otro cliente (dato inconsistente) NO se elimina: se conserva registrado y
 //   solo se le quita el paquete y el tracking movidos, para que un mismo paquete no quede
@@ -26,7 +26,7 @@ const uniq = (list: any[]) => [...new Set(list.map(text).filter(Boolean))];
 const isLocalId = (id: any) => !text(id) || text(id).startsWith("local_");
 
 // Señales de uso del bulto viejo que se muestran en la confirmación en pantalla:
-// etiqueta, contenido, N° de orden, estado, si fue impreso, si está en una guía de
+// etiqueta, contenido, N° de contenedor, estado, si fue impreso, si está en una guía de
 // despacho y si ya está facturado.
 export async function describeBultoForAbsorption(base44: any, bulto: any) {
   const label = text(bulto?.label_code);
@@ -103,7 +103,7 @@ async function buildAbsorptionEntry(base44: any, source: any, now: string, actor
 }
 
 // Plan de fusión: qué bultos se fusionan, qué paquetes, trackings, códigos sin
-// registrar y N° de orden entran al bulto nuevo, y los avisos para la pantalla.
+// registrar y N° de contenedor entran al bulto nuevo, y los avisos para la pantalla.
 // options: { packageIds, excludeBultoId, clientEmail, unregisteredCodes, actor }
 export async function planAbsorption(base44: any, options: any = {}) {
   const actor = text(options.actor) || "Almacén Venezuela";

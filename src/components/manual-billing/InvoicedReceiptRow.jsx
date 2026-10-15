@@ -13,7 +13,7 @@ export default function InvoicedReceiptRow({ receipt }) {
   return (
     <div className="rounded-lg border border-border bg-muted/40 p-2.5">
       <p className="font-mono text-sm font-semibold text-foreground break-all">
-        {receipt.order || 'Sin N° de orden'}
+        {receipt.order || 'Sin N° de contenedor'}
       </p>
       <p className="text-[11px] text-muted-foreground break-all">
         {(receipt.trackings || []).join(', ') || 'Sin tracking'}

@@ -8,9 +8,9 @@ import GuideOrderRow from './GuideOrderRow';
 import GuideOrderSelectionSummary from './GuideOrderSelectionSummary';
 import GuideSearchHint from './GuideSearchHint';
 
-// Emisión de la guía por N° de orden / envío: la carga entra aunque su bulto no esté
-// registrado o no exista. Si la orden tiene bultos registrados, entran con su código;
-// si no, la línea sale marcada como carga sin bulto con su N° de orden.
+// Emisión de la guía por N° de contenedor: la carga entra aunque su bulto no esté
+// registrado o no exista. Si el contenedor tiene bultos registrados, entran con su código;
+// si no, la línea sale marcada como carga sin bulto con su N° de contenedor.
 export default function GuideFromOrdersTab({ appName, onGenerated }) {
   const { search, setSearch, orders, loading, searched, reload } = useGuideOrderSources('orders');
   const { selected, toggle, clear, summary } = useGuideOrderSelection();
@@ -31,20 +31,20 @@ export default function GuideFromOrdersTab({ appName, onGenerated }) {
         <Input
           value={search}
           onChange={(event) => setSearch(event.target.value)}
-          placeholder="Buscar por N° de orden / envío, cliente o mark"
+          placeholder="Buscar por N° de contenedor, cliente o mark"
           className="pl-9"
         />
       </div>
 
       {!searched ? (
-        <GuideSearchHint text="Escribe un N° de orden / envío, el cliente o su mark para ver las órdenes." />
+        <GuideSearchHint text="Escribe un N° de contenedor, el cliente o su mark para ver los contenedores." />
       ) : loading ? (
         <div className="flex items-center justify-center py-6">
           <Loader2 className="h-6 w-6 animate-spin text-primary" />
         </div>
       ) : orders.length === 0 ? (
         <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
-          No hay órdenes / envíos con esa búsqueda. Las órdenes que ya salieron en una guía como carga sin
+          No hay contenedores con esa búsqueda. Los contenedores que ya salieron en una guía como carga sin
           bulto no vuelven a ofrecerse.
         </p>
       ) : (

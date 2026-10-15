@@ -98,7 +98,7 @@ export default function AssistantClientPanel({ client, context, loading }) {
           empty="Sin recibos de CBM."
           renderItem={(item) => (
             <div className="space-y-0.5">
-              <p className="font-semibold">{item.orden || 'Sin N° de orden'} · {cbm(item.cbm)}</p>
+              <p className="font-semibold">{item.orden || 'Sin N° de contenedor'} · {cbm(item.cbm)}</p>
               <p className="text-muted-foreground">
                 {item.trackings} tracking(s){item.disponible_para_entrega ? ' · disponible para entrega' : ''}
                 {item.llegada_estimada ? ` · llegada estimada ${item.llegada_estimada}` : ''}

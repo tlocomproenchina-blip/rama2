@@ -76,9 +76,9 @@ const cleanValue = (value: any): string => {
   return /^(n\/a|-)$/i.test(text) ? '' : text;
 };
 
-// CBM de cada orden/envío (CbmIngreso.invoice_number) de la factura confirmada:
+// CBM de cada contenedor (CbmIngreso.invoice_number) de la factura confirmada:
 // los recibos incluidos en la factura, los CbmIngreso facturados en ella y, cuando
-// la factura se armó desde 'Carga en almacén', los N° de orden de sus bultos.
+// la factura se armó desde 'Carga en almacén', los N° de contenedor de sus bultos.
 export async function resolveOrderCbm(base44: any, invoice: any): Promise<Array<{ order_number: string; cbm: number }>> {
   const rows = new Map<string, number>();
 
@@ -98,7 +98,7 @@ export async function resolveOrderCbm(base44: any, invoice: any): Promise<Array<
     });
 
     // Bultos facturados sin recibo propio: su CBM oficial se reparte entre sus
-    // N° de orden, solo para los que aún no tienen CBM registrado.
+    // N° de contenedor, solo para los que aún no tienen CBM registrado.
     const bultos = await base44.asServiceRole.entities.Bulto
       .filter({ billed_invoice_id: invoice.id }, '-created_date', 200)
       .catch(() => []);
@@ -132,7 +132,7 @@ export async function resolveShippingMark(base44: any, clientEmail: string, invo
 }
 
 // Guarda la aprobación para el informe del día (sin repetirla) y devuelve el
-// registro con el Shipping Mark y los N° de orden/envío de su factura.
+// registro con el Shipping Mark y los N° de contenedor de su factura.
 export async function recordApprovedPayment(base44: any, input: ApprovalReportInput) {
   const approvedDate = new Date();
   const approvalDay = caracasDay(approvedDate);
@@ -196,13 +196,13 @@ export async function recordApprovalForReport(base44: any, input: ApprovalReport
 function entryBlock(entry: any): string[] {
   const lines = [
     `Shipping Mark: ${cleanValue(entry.shipping_mark)}`,
-    `Numero de orden/envio: ${(Array.isArray(entry.order_numbers) ? entry.order_numbers : []).join(', ')}`
+    `Número de contenedor: ${(Array.isArray(entry.order_numbers) ? entry.order_numbers : []).join(', ')}`
   ];
 
-  // CBM de cada orden/envío y CBM total de la factura pagada.
+  // CBM de cada contenedor y CBM total de la factura pagada.
   const cbmRows = Array.isArray(entry.order_cbm) ? entry.order_cbm : [];
   if (cbmRows.length > 0) {
-    lines.push(`CBM por orden/envio: ${cbmRows.map((row: any) => `${cleanValue(row.order_number)} (${formatCbm(row.cbm)} CBM)`).join(' | ')}`);
+    lines.push(`CBM por contenedor: ${cbmRows.map((row: any) => `${cleanValue(row.order_number)} (${formatCbm(row.cbm)} CBM)`).join(' | ')}`);
   }
   const totalCbm = entry.total_cbm != null
     ? Number(entry.total_cbm)

@@ -6,7 +6,7 @@ import { fetchAllFilter, normTracking, errorMessage, BATCH } from '../../shared/
 // - Bultos cuyos paquetes ya están dentro de una orden de despacho NO cancelada
 //   → 'despachado' (su carga ya fue asignada al cliente).
 // - El resto → 'en_almacen_ve' (carga en almacén de Venezuela, lista para facturar).
-// No crea ni suelta paquetes, no toca números de orden ni facturas ya generadas.
+// No crea ni suelta paquetes, no toca números de contenedor ni facturas ya generadas.
 // Idempotente: al repetirla ya no encuentra bultos en 'cerrado' y no cambia nada.
 // Devuelve { updated, to_almacen_ve, to_despachado, total_cerrados, errors }.
 export default async function(req: Request): Promise<Response> {

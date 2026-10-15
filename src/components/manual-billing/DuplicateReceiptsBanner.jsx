@@ -3,7 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, Loader2, RefreshCw } from 'lucide-react';
 
-// Banda de aviso: hay recibos repetidos (mismo cliente y mismo N° de orden).
+// Banda de aviso: hay recibos repetidos (mismo cliente y mismo N° de contenedor).
 export default function DuplicateReceiptsBanner({ groups, scanning, onOpen, onRescan, hasClient }) {
   if (!groups.length) return null;
 
@@ -20,7 +20,7 @@ export default function DuplicateReceiptsBanner({ groups, scanning, onOpen, onRe
               {groups.length} recibo{groups.length > 1 ? 's' : ''} repetido{groups.length > 1 ? 's' : ''} detectado{groups.length > 1 ? 's' : ''}
             </p>
             <p className="text-sm text-amber-800 dark:text-amber-200">
-              Mismo cliente y mismo N° de orden: {orders}{groups.length > 4 ? '…' : ''}. Al fusionarlos se suma su CBM y queda un solo recibo.
+              Mismo cliente y mismo N° de contenedor: {orders}{groups.length > 4 ? '…' : ''}. Al fusionarlos se suma su CBM y queda un solo recibo.
               {blocked > 0 ? ` ${blocked} requiere${blocked > 1 ? 'n' : ''} revisión manual.` : ''}
             </p>
           </div>

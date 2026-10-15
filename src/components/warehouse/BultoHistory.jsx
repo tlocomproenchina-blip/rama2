@@ -151,8 +151,8 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
 
       setTotal(filtered.length);
 
-      // Agrupación por cliente + N° de orden: cada grupo es una tarjeta plegable y los
-      // bultos sin N° de orden cuentan como una tarjeta individual cada uno.
+      // Agrupación por cliente + N° de contenedor: cada grupo es una tarjeta plegable y los
+      // bultos sin N° de contenedor cuentan como una tarjeta individual cada uno.
       const grouped = groupBultosByOrder(filtered);
       setEntriesTotal(grouped.length);
 
@@ -269,7 +269,7 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
               onClick={() => setOrderAssignOpen(true)}
               disabled={!selectedIds.size}
             >
-              <Hash className="h-3.5 w-3.5" /> N° de orden ({selectedIds.size})
+              <Hash className="h-3.5 w-3.5" /> N° de contenedor ({selectedIds.size})
             </Button>
             <Button
               size="sm"
@@ -396,7 +396,7 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
         </Dialog>
       )}
 
-      {/* N° de orden para varios bultos a la vez */}
+      {/* N° de contenedor para varios bultos a la vez */}
       <BulkOrderAssignDialog
         bultos={bultos.filter((b) => selectedIds.has(b.id))}
         open={orderAssignOpen}

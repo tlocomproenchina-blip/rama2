@@ -1,7 +1,7 @@
 import React from 'react';
 import { AlertTriangle } from 'lucide-react';
 
-// Aviso claro para el almacén de Venezuela cuando el N° de orden del bulto no pudo
+// Aviso claro para el almacén de Venezuela cuando el N° de contenedor del bulto no pudo
 // aplicarse al recibo de contabilidad porque otro recibo ya usa ese número.
 export default function AccountingSyncNotice({ messages = [] }) {
   const list = (messages || []).filter(Boolean);

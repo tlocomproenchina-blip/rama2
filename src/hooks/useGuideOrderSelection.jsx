@@ -2,7 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 
 const num = (value) => Number(value) || 0;
 
-// Órdenes / envíos marcados para la guía, más el resumen de lo que se va a emitir.
+// Contenedores marcados para la guía, más el resumen de lo que se va a emitir.
 export default function useGuideOrderSelection() {
   const [selected, setSelected] = useState(() => new Map());
 

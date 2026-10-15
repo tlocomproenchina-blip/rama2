@@ -134,7 +134,7 @@ export default function DuplicateMergeDialog({ open, onOpenChange, groups, onDon
                     )}
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-semibold text-slate-800">N° de orden {g.order}</span>
+                        <span className="font-semibold text-slate-800">N° de contenedor {g.order}</span>
                         {showClient && <Badge variant="outline">{g.client_name}</Badge>}
                         <Badge className="border-0 bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-200">
                           {fmtCbm(g.merged_cbm)} CBM final
@@ -144,7 +144,7 @@ export default function DuplicateMergeDialog({ open, onOpenChange, groups, onDon
                         )}
                       </div>
                       <p className="mt-1 text-sm text-slate-600">
-                        {g.absorbed.length + 1} recibos del mismo cliente con el mismo N° de orden → 1 · CBM {cbms} → {fmtCbm(g.merged_cbm)} · {g.merged_trackings_count} tracking(s) unidos
+                        {g.absorbed.length + 1} recibos del mismo cliente con el mismo N° de contenedor → 1 · CBM {cbms} → {fmtCbm(g.merged_cbm)} · {g.merged_trackings_count} tracking(s) unidos
                       </p>
                       {g.invoices.length > 0 && (
                         <div className="mt-2 space-y-1">

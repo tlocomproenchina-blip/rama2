@@ -10,8 +10,8 @@ const ordersOf = (bulto) => {
   return orders.length ? orders : [''];
 };
 
-// Carga del cliente que sigue en el almacén sin facturar, agrupada por N° de orden.
-// Solo existen los grupos con bultos pendientes: un N° de orden que ya no tiene carga
+// Carga del cliente que sigue en el almacén sin facturar, agrupada por N° de contenedor.
+// Solo existen los grupos con bultos pendientes: un N° de contenedor que ya no tiene carga
 // no se dibuja, así el expediente queda solo con lo que hay que trabajar. Los bultos
 // marcados como ya facturados viven aparte, plegados, para poder devolverlos.
 export default function ClientPendingLoad({ client, markingId, onMarkBulto, onMarkOrderBultos }) {
@@ -36,7 +36,7 @@ export default function ClientPendingLoad({ client, markingId, onMarkBulto, onMa
         ensure('').bultos.push({ bulto, shared: false });
         continue;
       }
-      // Si el bulto trae más de un N° de orden aparece en cada uno, para que ningún
+      // Si el bulto trae más de un N° de contenedor aparece en cada uno, para que ningún
       // envío quede incompleto al facturarlo.
       for (const order of orders) ensure(order).bultos.push({ bulto, shared: orders.length > 1 });
     }
@@ -51,7 +51,7 @@ export default function ClientPendingLoad({ client, markingId, onMarkBulto, onMa
     }
 
     // El recibo de referencia se muestra dentro del grupo de un bulto que lo contiene,
-    // o en su propio N° de orden cuando ese grupo existe.
+    // o en su propio N° de contenedor cuando ese grupo existe.
     const orderByBultoLabel = new Map();
     for (const group of map.values()) {
       for (const item of group.bultos) {
@@ -85,7 +85,7 @@ export default function ClientPendingLoad({ client, markingId, onMarkBulto, onMa
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-primary">
-            Carga en almacén · N° de orden
+            Carga en almacén · N° de contenedor
           </p>
           <p className="mt-1 text-[11px] text-muted-foreground">
             Marca el envío completo cuando ya se facturó por fuera: sale de aquí y queda en 'Envíos ya facturados'.

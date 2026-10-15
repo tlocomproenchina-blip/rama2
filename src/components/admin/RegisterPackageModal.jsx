@@ -146,26 +146,26 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
     const cleanedTrackingNumbers = trackingNumbers.map((item) => item.trim()).filter(Boolean);
     if (cleanedTrackingNumbers.length === 0) { toast.error('Ingresa al menos un número de tracking'); return; }
 
-    // Validar campos de orden (ambos deben estar llenos o ambos vacíos)
+    // Validar campos de contenedor (ambos deben estar llenos o ambos vacíos)
     const orderNum = orderNumber.trim();
     const cbmVal = parseFloat(cbmTotal);
     const hasOrder = !!orderNum;
     const hasCbm = Number.isFinite(cbmVal) && cbmVal > 0;
     if (hasOrder !== hasCbm) {
-      toast.error('Para registrar CBM por orden, completa Número de orden y Cantidad CBM (o deja ambos vacíos)');
+      toast.error('Para registrar CBM por contenedor, completa Número de contenedor y Cantidad CBM (o deja ambos vacíos)');
       return;
     }
 
-    // Validar duplicidad de número de orden contra CbmIngreso
+    // Validar duplicidad de número de contenedor contra CbmIngreso
     if (hasOrder && hasCbm) {
       try {
         const dup = await base44.entities.CbmIngreso.filter({ invoice_number: orderNum }, '-fecha', 1);
         if (dup && dup.length > 0) {
-          toast.error(`El número de orden ${orderNum} ya está registrado en CbmIngresos. Usa un número diferente.`);
+          toast.error(`El número de contenedor ${orderNum} ya está registrado en CbmIngresos. Usa un número diferente.`);
           return;
         }
       } catch (e) {
-        toast.error('No se pudo validar el número de orden. Intenta de nuevo.');
+        toast.error('No se pudo validar el número de contenedor. Intenta de nuevo.');
         return;
       }
     }
@@ -317,7 +317,7 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
       // Ejecutar los tres grupos en paralelo con concurrencia controlada
       await runWithConcurrency([...newTasks, ...alreadyReceivedTasks, ...orphanTasks]);
 
-      // Crear CbmIngreso por orden si los campos están llenos (incluye todos los trackings existentes)
+      // Crear CbmIngreso por contenedor si los campos están llenos (incluye todos los trackings existentes)
       if (hasOrder && hasCbm && existingTrackings.length > 0) {
         try {
           const fechaObj = fechaRegistro ? new Date(fechaRegistro) : new Date();
@@ -330,7 +330,7 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
             invoice_number: orderNum,
             tracking_numbers: existingTrackings,
             client_email: '',
-            client_name: `Orden ${orderNum}`,
+            client_name: `Contenedor ${orderNum}`,
             shipping_mark: '',
             disponible_entrega: false,
           });
@@ -338,7 +338,7 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
           if (alreadyReceivedTrackings.length > 0) msg += ` · ${alreadyReceivedTrackings.length} actualizado(s)`;
           if (orphanResults.length > 0) msg += ` · ${orphanResults.length} huérfano(s) enviado(s)`;
           if (orphanDuplicates > 0) msg += ` · ${orphanDuplicates} duplicado(s) omitido(s)`;
-          msg += ` · CBM ${cbmVal} registrado en orden ${orderNum}`;
+          msg += ` · CBM ${cbmVal} registrado en el contenedor ${orderNum}`;
           toast.success(msg);
         } catch (e) {
           toast.error(`Paquetes procesados, pero no se pudo registrar el CBM: ${e?.message || 'error'}`);
@@ -416,12 +416,12 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
         </DialogHeader>
 
         <div className="space-y-4 py-2">
-          {/* Bloque de orden / CBM (opcional) */}
+          {/* Bloque de contenedor / CBM (opcional) */}
           <div className="space-y-3 pb-3 border-b border-slate-200">
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Registrar CBM por orden (opcional)</p>
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Registrar CBM por contenedor (opcional)</p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               <div className="space-y-1">
-                <Label className="text-xs">Número de orden</Label>
+                <Label className="text-xs">Número de contenedor</Label>
                 <Input
                   placeholder="Ej: ORD-001234"
                   value={orderNumber}
@@ -448,7 +448,7 @@ export default function RegisterPackageModal({ open, onOpenChange, onCreated }) 
                 />
               </div>
             </div>
-            <p className="text-[11px] text-slate-400">Si llenas orden y CBM, se creará un registro de CBM agrupando todos los trackings válidos. Déjalo vacío para solo marcar recibidos.</p>
+            <p className="text-[11px] text-slate-400">Si llenas contenedor y CBM, se creará un registro de CBM agrupando todos los trackings válidos. Déjalo vacío para solo marcar recibidos.</p>
           </div>
 
           {/* Almacén para huérfanos (opcional) */}

@@ -391,7 +391,7 @@ export default function usePackUnit({
     if (unit.is_caja) {
       const orders = ordersText.split(',').map((s) => s.trim()).filter(Boolean);
       if (!orders.length) {
-        setError('Ingresa al menos un N° de orden para cerrar la caja.');
+        setError('Ingresa al menos un N° de contenedor para cerrar la caja.');
         return;
       }
       setBusy(true);

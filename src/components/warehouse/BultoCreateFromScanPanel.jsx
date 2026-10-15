@@ -15,7 +15,7 @@ import { toast } from 'sonner';
 // Registro del bulto cuando la etiqueta escaneada no existe en el sistema.
 // Conserva el código impreso (no se genera etiqueta ni número nuevo): confirma el
 // cliente deducido del shipping mark, acumula los paquetes escaneados y guarda el
-// bulto junto con el N° de orden y la foto capturada al escanear la etiqueta.
+// bulto junto con el N° de contenedor y la foto capturada al escanear la etiqueta.
 export default function BultoCreateFromScanPanel({
   scannedCode, shippingMark, bultoNumber, candidateClient, deviceId, photoApi, onCancel, onCreated,
 }) {
@@ -145,12 +145,12 @@ export default function BultoCreateFromScanPanel({
     }
     const parsed = orderNumbers.trim() ? orderNumbers.split(',').map((s) => s.trim()).filter(Boolean) : [];
     if (!parsed.length) {
-      toast.error('Ingresa al menos un N° de orden');
+      toast.error('Ingresa al menos un N° de contenedor');
       return;
     }
 
     // La foto capturada al escanear la etiqueta es obligatoria: el bulto no se guarda
-    // hasta que termine de subir, igual que en la asignación normal del N° de orden.
+    // hasta que termine de subir, igual que en la asignación normal del N° de contenedor.
     let photoUrl = null;
     if (photoStatus) {
       setPhotoRetrying(true);
@@ -181,7 +181,7 @@ export default function BultoCreateFromScanPanel({
         toast.error(res.data.error);
         return;
       }
-      toast.success('Bulto creado con su N° de orden');
+      toast.success('Bulto creado con su N° de contenedor');
       onCreated?.(res.data);
     } catch (e) {
       setError('Error al crear el bulto');
@@ -370,7 +370,7 @@ export default function BultoCreateFromScanPanel({
           <Card className="shadow-sm">
             <CardContent className="pt-4 space-y-3">
               <div className="space-y-2">
-                <Label className="text-xs">N° de orden CbmIngreso</Label>
+                <Label className="text-xs">N° de contenedor CbmIngreso</Label>
                 <Input
                   value={orderNumbers}
                   onChange={(e) => setOrderNumbers(e.target.value)}
@@ -378,7 +378,7 @@ export default function BultoCreateFromScanPanel({
                   inputMode="numeric"
                 />
                 <p className="text-[10px] text-slate-400">
-                  Al guardar, el bulto queda bloqueado con su N° de orden y los paquetes marcados como reconocidos en Venezuela.
+                  Al guardar, el bulto queda bloqueado con su N° de contenedor y los paquetes marcados como reconocidos en Venezuela.
                 </p>
               </div>
 
@@ -389,7 +389,7 @@ export default function BultoCreateFromScanPanel({
               <div className="flex flex-wrap gap-2 pt-1">
                 <Button onClick={handleSave} disabled={saving || !packages.length} className="bg-blue-600 hover:bg-blue-700">
                   {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                  Crear bulto y asignar N° de orden
+                  Crear bulto y asignar N° de contenedor
                 </Button>
                 <Button variant="outline" onClick={onCancel} disabled={saving}>
                   <RotateCcw className="h-4 w-4" /> Cancelar

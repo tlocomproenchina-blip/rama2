@@ -2,16 +2,16 @@
 //
 // Arma, a partir de los bultos que esa factura liberó, el resumen que el almacén
 // usa para sacar la carga: los bultos agrupados por shipping mark y N° de
-// orden/envío, cuántos bultos son de cada orden, la etiqueta de cada bulto, cuántos
+// contenedor, cuántos bultos son de cada contenedor, la etiqueta de cada bulto, cuántos
 // paquetes lleva y el total de bultos.
 //
 // Los bultos se buscan de las dos formas en que hoy quedan ligados a una factura:
 //   1. Bulto.billed_invoice_id = factura (carga facturada desde 'Carga en almacén').
-//   2. Bulto.cbm_order_numbers con el N° de orden/envío de la factura, que sale de
+//   2. Bulto.cbm_order_numbers con el N° de contenedor de la factura, que sale de
 //      los recibos incluidos (manual_recibos), los recibos marcados con la factura
 //      y los items de envío de las facturas de consolidación.
 // Si aun así no aparece nada, se revisan los bultos del cliente y se comparan los
-// N° de orden normalizados, por si cambiaron de formato.
+// N° de contenedor normalizados, por si cambiaron de formato.
 //
 // El resultado se guarda como snapshot dentro de la factura (Invoice.warehouse_order)
 // para que no cambie si luego se editan los bultos; solo se recalcula cuando un admin
@@ -26,9 +26,9 @@ import { packageCountOfBulto } from "./dispatchGuideAppend.ts";
 
 const text = (value: any) => String(value ?? '').trim();
 const norm = (value: any) => text(value).toUpperCase().replace(/^0+(?=\d)/, '');
-const NO_ORDER = 'Sin N° de orden';
+const NO_ORDER = 'Sin N° de contenedor';
 
-// N° de orden/envío (invoice_number de CbmIngreso) que cubre la factura.
+// N° de contenedor (invoice_number de CbmIngreso) que cubre la factura.
 function invoiceOrderNumbers(invoice: any, receipts: any[]) {
   const numbers = new Set<string>();
   const push = (value: any) => {
@@ -119,7 +119,7 @@ export async function buildWarehouseOrder(base44: any, invoiceId: string, option
   }
 
   // Un bulto pertenece a la orden si su factura es esta, o si comparte un N° de
-  // orden/envío de la factura.
+  // contenedor de la factura.
   const belongs = (bulto: any) => {
     if (text(bulto.billed_invoice_id) === invoiceId) return true;
     const own = Array.isArray(bulto.cbm_order_numbers) ? bulto.cbm_order_numbers : [];

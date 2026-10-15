@@ -17,7 +17,7 @@ function MoneyLine({ label, detail, value }) {
   );
 }
 
-// Un cliente dentro del lote: sus órdenes/envíos y el total que le corresponde
+// Un cliente dentro del lote: sus contenedores y el total que le corresponde
 // pagar con las tarifas del mayorista (envío por CBM y puerta a puerta por bulto).
 export default function WholesalerBillingClientCard({ draft, rates, onChange, onRemove }) {
   const amounts = draftAmounts(draft, rates);
@@ -26,8 +26,8 @@ export default function WholesalerBillingClientCard({ draft, rates, onChange, on
     onChange({ orders: draft.orders.map((order, position) => (position === index ? { ...order, ...patch } : order)) });
   };
 
-  // Trackings recibidos del cliente que todavía no están en ninguna orden: se
-  // pueden enganchar a la orden que se está facturando.
+  // Trackings recibidos del cliente que todavía no están en ningún contenedor: se
+  // pueden enganchar al contenedor que se está facturando.
   const allPicked = draft.orders.reduce((acc, order) => acc.concat(order.picked || []), []);
   const optionsFor = (order) => (draft.available || [])
     .map((item) => item.tracking_number)
@@ -80,7 +80,7 @@ export default function WholesalerBillingClientCard({ draft, rates, onChange, on
         </div>
 
         <div className="space-y-2">
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Órdenes / envíos</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Contenedores</p>
           {draft.orders.length ? (
             draft.orders.map((order, index) => (
               <WholesalerBillingOrderRow
@@ -93,7 +93,7 @@ export default function WholesalerBillingClientCard({ draft, rates, onChange, on
             ))
           ) : (
             <p className="text-sm text-muted-foreground">
-              Este cliente no tiene órdenes pendientes por facturar. Puedes crearle una aquí abajo.
+              Este cliente no tiene contenedores pendientes por facturar. Puedes crearle uno aquí abajo.
             </p>
           )}
         </div>

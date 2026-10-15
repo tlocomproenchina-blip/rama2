@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
 
 // Clientes con mercancía pendiente de facturar: bultos sin factura vigente agrupados
-// por cliente (misma fuente que alimenta 'Carga en almacén'), con sus N° de orden/envío.
+// por cliente (misma fuente que alimenta 'Carga en almacén'), con sus N° de contenedor.
 export default function usePendingBillingClients() {
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -58,7 +58,7 @@ export default function usePendingBillingClients() {
     }
   }, [applyMark]);
 
-  // Marca (o devuelve) de una vez todos los bultos de un N° de orden/envío. Se guarda
+  // Marca (o devuelve) de una vez todos los bultos de un N° de contenedor. Se guarda
   // uno por uno con el mismo endpoint para respetar el marcado actual, avisando el
   // avance, y cada bulto confirmado se refleja de inmediato en el panel.
   const markBultos = useCallback(async (bultos, marked, onProgress) => {

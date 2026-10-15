@@ -86,7 +86,7 @@ export default function WarehouseBillingItemRow({ item, amount, checked, onToggl
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2 flex-wrap">
             <span className="font-semibold text-slate-800 break-all">
-              {item.type === 'bulto' ? `Bulto ${item.label}` : `Envío ${item.label}`}
+              {item.type === 'bulto' ? `Bulto ${item.label}` : `Contenedor ${item.label}`}
             </span>
             <span className="font-semibold text-primary shrink-0">{money(shown)}</span>
           </div>
@@ -109,7 +109,7 @@ export default function WarehouseBillingItemRow({ item, amount, checked, onToggl
             {item.order_numbers?.length > 0 && (
               <>
                 <span className="text-slate-400">·</span>
-                <span className="font-mono">Orden {item.order_numbers.join(', ')}</span>
+                <span className="font-mono">Contenedor {item.order_numbers.join(', ')}</span>
               </>
             )}
             {item.fecha && (
@@ -168,7 +168,7 @@ export default function WarehouseBillingItemRow({ item, amount, checked, onToggl
             <Badge className="mt-2 mr-1 bg-sky-100 text-sky-700 border border-sky-200">Tarifa anterior</Badge>
           )}
           {(item.type === 'bulto' && !item.order_numbers?.length) && (
-            <Badge className="mt-2 mr-1 bg-amber-100 text-amber-700 border border-amber-200">Sin N° de orden</Badge>
+            <Badge className="mt-2 mr-1 bg-amber-100 text-amber-700 border border-amber-200">Sin N° de contenedor</Badge>
           )}
           {Number(item.cbm || 0) <= 0 && (
             <Badge className="mt-2 mr-1 bg-slate-100 text-slate-600 border border-slate-200">Sin CBM registrado</Badge>

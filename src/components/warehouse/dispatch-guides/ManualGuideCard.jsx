@@ -8,8 +8,8 @@ import GuideFromOrdersTab from './GuideFromOrdersTab';
 import GuideFromInvoicesTab from './GuideFromInvoicesTab';
 
 // Emisión manual de una guía por tres vías:
-//   · por N° de orden / envío, aunque la carga no tenga bulto registrado;
-//   · desde una factura pagada, eligiendo sus órdenes / envíos;
+//   · por N° de contenedor, aunque la carga no tenga bulto registrado;
+//   · desde una factura pagada, eligiendo sus contenedores;
 //   · eligiendo a mano los bultos escaneados que siguen pendientes.
 // Al emitir se guarda la guía numerada y se genera sola la orden de despacho de cada
 // cliente, más el PDF de la guía para imprimir.
@@ -34,7 +34,7 @@ export default function ManualGuideCard({ onGenerated }) {
           <div className="min-w-0 flex-1">
             <p className="font-display text-sm font-semibold text-foreground">Emisión manual de guía</p>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              Emite la guía por N° de orden / envío o desde una factura pagada aunque el bulto no esté
+              Emite la guía por N° de contenedor o desde una factura pagada aunque el bulto no esté
               registrado, o elige a mano los bultos escaneados. Se guarda la guía numerada y se genera sola
               la orden de despacho de cada cliente.
             </p>
@@ -43,7 +43,7 @@ export default function ManualGuideCard({ onGenerated }) {
 
         <Tabs defaultValue="orders" className="space-y-3">
           <TabsList className="h-auto w-full flex-wrap justify-start gap-1">
-            <TabsTrigger value="orders">Orden / envío</TabsTrigger>
+            <TabsTrigger value="orders">Contenedor</TabsTrigger>
             <TabsTrigger value="invoices">Factura pagada</TabsTrigger>
             <TabsTrigger value="bultos">Bultos escaneados</TabsTrigger>
           </TabsList>

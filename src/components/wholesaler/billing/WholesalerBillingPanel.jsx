@@ -37,7 +37,7 @@ function buildDraft(row) {
 }
 
 // Facturar a los clientes de un mayorista: se eligen varios clientes, se arman
-// sus órdenes/envíos con sus bultos y sale una sola factura, con el correo de
+// sus contenedores con sus bultos y sale una sola factura, con el correo de
 // cada cliente llevando su parte.
 export default function WholesalerBillingPanel({ initialWholesaler }) {
   const [groups, setGroups] = useState([]);
@@ -124,7 +124,7 @@ export default function WholesalerBillingPanel({ initialWholesaler }) {
     loadInvoices();
   }, [loadClients, loadInvoices]);
 
-  // El detalle de un cliente (sus órdenes, sus trackings recibidos y sus
+  // El detalle de un cliente (sus contenedores, sus trackings recibidos y sus
   // trackings todavía libres) se pide solo cuando se elige para facturar.
   useEffect(() => {
     const pending = selected.filter((email) => !drafts[email]);
@@ -193,7 +193,7 @@ export default function WholesalerBillingPanel({ initialWholesaler }) {
       .filter((client) => client.orders.length);
 
     if (!payloadClients.length) {
-      toast.info('Elige al menos un cliente con su orden para facturar.');
+      toast.info('Elige al menos un cliente con su contenedor para facturar.');
       return;
     }
 
@@ -234,7 +234,7 @@ export default function WholesalerBillingPanel({ initialWholesaler }) {
             Facturar a los clientes del mayorista
           </CardTitle>
           <CardDescription>
-            Elige el mayorista y sus clientes, asigna o crea el N° de orden/envío de cada uno y emite una
+            Elige el mayorista y sus clientes, asigna o crea el N° de contenedor de cada uno y emite una
             sola factura con las tarifas de su perfil: el envío se cobra por CBM y la puerta a puerta por
             bulto. La factura se envía al correo del mayorista.
           </CardDescription>
@@ -277,7 +277,7 @@ export default function WholesalerBillingPanel({ initialWholesaler }) {
 
       {detailLoading && (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" /> Cargando órdenes y trackings de los clientes elegidos…
+          <Loader2 className="h-4 w-4 animate-spin" /> Cargando contenedores y trackings de los clientes elegidos…
         </div>
       )}
 

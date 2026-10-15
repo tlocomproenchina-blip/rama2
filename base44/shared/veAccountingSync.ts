@@ -41,7 +41,7 @@ export function bultoPackageCount(bulto: any) {
 
 // Alinea el recibo de contabilidad del bulto con lo registrado en el almacén de
 // Venezuela. Devuelve { action: 'updated' | 'created' | 'skipped', warnings }.
-// options.previous_orders: N° de orden que tenía el bulto antes del cambio, para
+// options.previous_orders: N° de contenedor que tenía el bulto antes del cambio, para
 // poder encontrar el recibo vinculado cuando el número se corrige.
 export async function syncBultoToAccounting(base44: any, bulto: any, options: any = {}) {
   const warnings: string[] = [];
@@ -71,7 +71,7 @@ export async function syncBultoToAccounting(base44: any, bulto: any, options: an
       .filter((t: string) => t && trackings.includes(t)).length;
     if (count > hits) { hits = count; target = r; }
   }
-  // 2) Respaldo: por el N° de orden actual del bulto o el que tenía antes del cambio.
+  // 2) Respaldo: por el N° de contenedor actual del bulto o el que tenía antes del cambio.
   const searchOrders = [...new Set([...orders, ...previousOrders])].map(lower);
   if (!target && searchOrders.length) {
     target = receipts.find((r: any) => searchOrders.includes(lower(r.invoice_number))) || null;
@@ -81,12 +81,12 @@ export async function syncBultoToAccounting(base44: any, bulto: any, options: an
   const packageCount = bultoPackageCount(bulto);
   const orderForReceipt = orders[0] || text(target?.invoice_number);
 
-  // El N° de orden del almacén nunca puede duplicar el de otro recibo.
+  // El N° de contenedor del almacén nunca puede duplicar el de otro recibo.
   let conflict = "";
   if (orderForReceipt) {
     const dup = receipts.find((r: any) => r.id !== target?.id && lower(r.invoice_number) === lower(orderForReceipt));
     if (dup) {
-      conflict = `El N° de orden ${orderForReceipt} ya está registrado en otro recibo de contabilidad (${dup.client_name || dup.client_email || "otro registro"}). Corrígelo desde Ingresos de CBM para que quede alineado.`;
+      conflict = `El N° de contenedor ${orderForReceipt} ya está registrado en otro recibo de contabilidad (${dup.client_name || dup.client_email || "otro registro"}). Corrígelo desde Ingresos de CBM para que quede alineado.`;
       warnings.push(conflict);
     }
   }
@@ -106,7 +106,7 @@ export async function syncBultoToAccounting(base44: any, bulto: any, options: an
       if (cbm > 0 && cbm !== num(target.cbm)) updates.cbm = cbm;
       if (packageCount > 0 && packageCount !== num(target.package_count)) updates.package_count = packageCount;
     } else if (!receiptCovered && num(bulto.cargo_cbm) > 0) {
-      warnings.push(`El recibo ${text(target.invoice_number) || "vinculado"} cubre más paquetes que este bulto: se conservó su CBM y su conteo. Registra el bulto con su propio N° de orden para facturarlo aparte.`);
+      warnings.push(`El recibo ${text(target.invoice_number) || "vinculado"} cubre más paquetes que este bulto: se conservó su CBM y su conteo. Registra el bulto con su propio N° de contenedor para facturarlo aparte.`);
     }
     if (!conflict && orderForReceipt && text(target.invoice_number) !== orderForReceipt) {
       updates.invoice_number = orderForReceipt;
@@ -123,7 +123,7 @@ export async function syncBultoToAccounting(base44: any, bulto: any, options: an
   if (cbm <= 0 && !orderForReceipt) return empty;
 
   const notes = [`Registrado desde el almacén de Venezuela (bulto ${label || bulto.id}).`];
-  if (orders.length > 1) notes.push(`N° de orden del bulto: ${orders.join(", ")}.`);
+  if (orders.length > 1) notes.push(`N° de contenedor del bulto: ${orders.join(", ")}.`);
   if (cbm <= 0) notes.push("CBM pendiente de registrar en almacén.");
 
   const created = await base44.asServiceRole.entities.CbmIngreso.create({

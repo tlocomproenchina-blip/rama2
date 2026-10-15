@@ -1,7 +1,7 @@
 import React from 'react';
 import { unitsLabel } from '@/lib/dispatchOrderCounts';
 
-// Un cliente (shipping mark) con sus órdenes/envíos, el conteo de carga de cada una
+// Un cliente (shipping mark) con sus contenedores, el conteo de carga de cada uno
 // y, al final, el total del cliente. Sin códigos de bulto.
 export default function DispatchOrderMarkBlock({ mark }) {
   return (
@@ -17,7 +17,7 @@ export default function DispatchOrderMarkBlock({ mark }) {
             className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-lg border border-border/60 bg-card px-2.5 py-1.5"
           >
             <span className="text-xs font-semibold uppercase tracking-wide text-primary">
-              Orden/Envío {order.order_number}
+              Contenedor {order.order_number}
             </span>
             <span className="text-xs font-medium text-foreground">
               {(order.units || []).length === 0

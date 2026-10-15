@@ -9,7 +9,7 @@ const fmtDate = (v) => {
   return Number.isNaN(d.getTime()) ? null : d.toLocaleDateString('es-VE');
 };
 
-// Un bulto dentro de la pestaña de su N° de orden: su código, su CBM y su conteo,
+// Un bulto dentro de la pestaña de su N° de contenedor: su código, su CBM y su conteo,
 // con la casilla para marcarlo como ya facturado. Marcado se conserva en verde,
 // agrupado abajo, y la misma casilla lo devuelve a su pestaña.
 export default function PendingBillingBultoRow({ bulto, marking, onMark }) {
@@ -34,7 +34,7 @@ export default function PendingBillingBultoRow({ bulto, marking, onMark }) {
             <Checkbox
               checked={marked}
               onCheckedChange={(value) => onMark(bulto, !!value)}
-              title={marked ? 'Quitar la marca: el bulto vuelve a su N° de orden' : 'Marcar como ya facturado'}
+              title={marked ? 'Quitar la marca: el bulto vuelve a su N° de contenedor' : 'Marcar como ya facturado'}
               aria-label="Marcar como ya facturado"
               className={marked ? 'border-emerald-600 data-[state=checked]:bg-emerald-600 data-[state=checked]:text-white' : ''}
             />

@@ -15,7 +15,7 @@ import { getAll, bulkPut, put } from '@/lib/offlineDb';
 // Los bultos se crean sellados ('en_almacen_ve') y encolados para sincronizar como
 // siempre; el panel de resultado muestra etiqueta por etiqueta si quedó registrada en
 // el sistema, pendiente de sincronizar o no registrada por código repetido.
-// El N° de orden escrito aquí se aplica a TODAS las etiquetas del lote.
+// El N° de contenedor escrito aquí se aplica a TODAS las etiquetas del lote.
 const parseOrders = (raw) =>
   String(raw || '')
     .split(/[,\n;]/)
@@ -51,7 +51,7 @@ export default function BulkBultoCreator({
     setStatusById({});
   };
 
-  // Objeto que viaja a la cola de sincronización (incluye el N° de orden del lote).
+  // Objeto que viaja a la cola de sincronización (incluye el N° de contenedor del lote).
   const queuePayload = useCallback((b) => ({
     local_bulto_id: b.id,
     label_code: b.label_code,
@@ -307,9 +307,9 @@ export default function BulkBultoCreator({
                 </div>
               </div>
 
-              {/* Paso 3: número de orden del lote */}
+              {/* Paso 3: número de contenedor del lote */}
               <div className="space-y-2">
-                <Label className="text-xs font-semibold text-slate-600">3. N° de orden / envío (opcional)</Label>
+                <Label className="text-xs font-semibold text-slate-600">3. N° de contenedor (opcional)</Label>
                 <Input
                   value={orders}
                   onChange={(e) => setOrders(e.target.value)}
@@ -318,7 +318,7 @@ export default function BulkBultoCreator({
                 />
                 <p className="text-xs text-slate-500">
                   {orderList.length
-                    ? `Se guarda en todas las etiquetas del lote y sale impreso como ORDEN ${orderList.join(', ')}.`
+                    ? `Se guarda en todas las etiquetas del lote y sale impreso como CONTENEDOR ${orderList.join(', ')}.`
                     : 'Se aplica a todas las etiquetas del lote (puedes escribir varios separados por coma).'}
                 </p>
               </div>

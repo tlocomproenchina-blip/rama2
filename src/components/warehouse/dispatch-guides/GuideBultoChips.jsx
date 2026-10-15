@@ -56,14 +56,14 @@ export default function GuideBultoChips({ guide, clientGroup, onGuideUpdated }) 
       ) : (
         <div className="flex flex-wrap gap-1.5">
           {bultos.map((bulto, index) =>
-            // La carga sin bulto registrado se emitió por su N° de orden: se muestra
+            // La carga sin bulto registrado se emitió por su N° de contenedor: se muestra
             // aparte y no se puede quitar desde aquí (no tiene código de bulto).
             isUnregisteredLine(bulto) ? (
               <span
                 key={`orden-${clientGroup?.client_key}-${bulto.order_number}-${index}`}
                 className="flex items-center gap-1 rounded-lg border border-amber-200 bg-amber-50 px-2 py-0.5 font-mono text-[11px] text-amber-800"
               >
-                SIN BULTO · Orden {bulto.order_number || '—'} · {bulto.package_count || 0} paq.
+                SIN BULTO · Contenedor {bulto.order_number || '—'} · {bulto.package_count || 0} paq.
                 {bulto.invoice_number ? ` · ${bulto.invoice_number}` : ''}
               </span>
             ) : (

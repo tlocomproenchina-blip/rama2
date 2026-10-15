@@ -23,10 +23,10 @@ import { syncBultoToAccounting } from '../../shared/veAccountingSync.ts';
 // - Crea el bulto con el label_code escaneado, el número que trae el código, el snapshot
 //   del cliente y el estado de su factura más reciente.
 // - Fusiona los bultos que ya contenían los paquetes escaneados: su contenido (paquetes,
-//   códigos sin registrar y N° de orden) pasa a este bulto, que prevalece, y esos bultos se
+//   códigos sin registrar y N° de contenedor) pasa a este bulto, que prevalece, y esos bultos se
 //   eliminan; si uno es de otro cliente, se conserva sin el paquete movido. El escaneo
 //   nunca se bloquea por ese motivo.
-// - En la misma acción asigna el N° de orden, bloquea el bulto, guarda la foto capturada
+// - En la misma acción asigna el N° de contenedor, bloquea el bulto, guarda la foto capturada
 //   al escanear y marca los paquetes como reconocidos en Venezuela.
 // - Sin sesión exige device_id (el enlace de trabajo abre sin login).
 export default async function(req: Request): Promise<Response> {
@@ -75,7 +75,7 @@ export default async function(req: Request): Promise<Response> {
       .map((s: any) => String(s || '').trim())
       .filter(Boolean);
     if (!orderNumbers.length) {
-      return Response.json({ error: 'Debe ingresar al menos un N° de orden' }, { status: 400 });
+      return Response.json({ error: 'Debe ingresar al menos un N° de contenedor' }, { status: 400 });
     }
 
     const recognitionPhotoUrl = String(body.recognition_photo_url || '').trim();
@@ -86,7 +86,7 @@ export default async function(req: Request): Promise<Response> {
       .catch(() => []);
     if (taken?.[0]) {
       return Response.json({
-        error: 'Esta etiqueta ya fue registrada. Vuelve a escanearla para asignarle el N° de orden.',
+        error: 'Esta etiqueta ya fue registrada. Vuelve a escanearla para asignarle el N° de contenedor.',
       });
     }
 
@@ -175,7 +175,7 @@ export default async function(req: Request): Promise<Response> {
     const totalBultos = clientTotal || initialTotal;
 
     // El recibo de contabilidad queda alineado con lo registrado en el almacén de
-    // Venezuela (N° de orden, CBM y conteo de paquetes del bulto). Los N° de orden del
+    // Venezuela (N° de contenedor, CBM y conteo de paquetes del bulto). Los N° de contenedor del
     // bulto absorbido se envían como previous_orders para corregir su recibo en vez de
     // crear uno nuevo.
     const sync: any = await syncBultoToAccounting(

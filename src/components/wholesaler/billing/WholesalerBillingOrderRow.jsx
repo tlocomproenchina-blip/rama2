@@ -5,10 +5,10 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { ChevronDown, ChevronUp, Layers, X } from 'lucide-react';
 
-// Una orden/envío del cliente dentro de la factura: sus bultos (que es lo que se
+// Una contenedor del cliente dentro de la factura: sus bultos (que es lo que se
 // cobra), su CBM de referencia y sus trackings recibidos (cada uno cobra 1 USD de
 // manejo). Desde aquí también se pueden enganchar los trackings recibidos que aún
-// no tienen orden.
+// no tienen contenedor.
 export default function WholesalerBillingOrderRow({ order, onChange, onRemove, options }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -23,7 +23,7 @@ export default function WholesalerBillingOrderRow({ order, onChange, onRemove, o
     return needle ? all.filter((tracking) => tracking.toLowerCase().includes(needle)) : all;
   }, [options, query]);
 
-  // Enganchar un tracking recibido suma un bulto al conteo de la orden.
+  // Enganchar un tracking recibido suma un bulto al conteo del contenedor.
   const toggle = (tracking) => {
     const next = picked.includes(tracking)
       ? picked.filter((value) => value !== tracking)
@@ -43,7 +43,7 @@ export default function WholesalerBillingOrderRow({ order, onChange, onRemove, o
             {picked.length ? ` · ${picked.length} enganchado(s) aquí` : ''}
           </p>
         </div>
-        {order.is_new && <Badge variant="secondary">Orden nueva</Badge>}
+        {order.is_new && <Badge variant="secondary">Contenedor nuevo</Badge>}
         {(options || []).length > 0 && (
           <Button variant="ghost" size="sm" className="gap-1.5 text-xs" onClick={() => setOpen((value) => !value)}>
             <Layers className="h-3.5 w-3.5" />
@@ -76,7 +76,7 @@ export default function WholesalerBillingOrderRow({ order, onChange, onRemove, o
           <span className="text-xs text-muted-foreground">CBM</span>
         </div>
         {onRemove && (
-          <Button variant="ghost" size="icon" className="h-9 w-9" onClick={onRemove} aria-label="Quitar orden">
+          <Button variant="ghost" size="icon" className="h-9 w-9" onClick={onRemove} aria-label="Quitar contenedor">
             <X className="h-4 w-4" />
           </Button>
         )}
@@ -86,7 +86,7 @@ export default function WholesalerBillingOrderRow({ order, onChange, onRemove, o
         <div className="mt-3 space-y-2 border-t border-border/60 pt-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="text-xs text-muted-foreground">
-              Trackings recibidos sin orden: marca los que entran en esta factura
+              Trackings recibidos sin contenedor: marca los que entran en esta factura
             </p>
             <Input
               value={query}

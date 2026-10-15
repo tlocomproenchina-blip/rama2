@@ -123,7 +123,7 @@ export default function WarehouseBultos({ user }) {
     return [];
   }, [lastCreated]);
 
-  // Backfill de números de orden en bultos existentes con trackings
+  // Backfill de números de contenedor en bultos existentes con trackings
   const handleBackfillOrders = async () => {
     setBackfilling(true);
     setBackfillResult(null);
@@ -153,7 +153,7 @@ export default function WarehouseBultos({ user }) {
       }
 
       setBackfillResult({ totalUpdated, totalNoMatch, totalProcessed, withoutTrackings, totalCandidates });
-      toast.success(`${totalUpdated} bulto(s) actualizados con número de orden`);
+      toast.success(`${totalUpdated} bulto(s) actualizados con número de contenedor`);
       setHistoryRefreshKey((k) => k + 1);
     } catch (e) {
       toast.error('Error al ejecutar el backfill');
@@ -178,15 +178,15 @@ export default function WarehouseBultos({ user }) {
         <p className="text-slate-500">Agrupa paquetes recibidos en bultos físicos e imprime etiquetas térmicas 100×100 mm vía Bluetooth.</p>
       </div>
 
-      {/* Backfill de números de orden */}
+      {/* Backfill de números de contenedor */}
       <Card className="border-blue-200 bg-blue-50/30">
         <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center gap-3">
           <div className="flex items-center gap-2 flex-1 min-w-0">
             <Hash className="h-5 w-5 text-blue-600 shrink-0" />
             <div className="min-w-0">
-              <p className="font-semibold text-slate-800 text-sm">Asignar números de orden a bultos existentes</p>
+              <p className="font-semibold text-slate-800 text-sm">Asignar números de contenedor a bultos existentes</p>
               <p className="text-xs text-slate-500">
-                Busca bultos con trackings y les asigna el número de orden de CbmIngreso automáticamente.
+                Busca bultos con trackings y les asigna el número de contenedor de CbmIngreso automáticamente.
               </p>
             </div>
           </div>
@@ -202,9 +202,9 @@ export default function WarehouseBultos({ user }) {
         </CardContent>
         {backfillResult && (
           <div className="px-4 pb-3 text-xs text-slate-600 space-y-0.5">
-            <p>✅ {backfillResult.totalUpdated} bulto(s) actualizados con número de orden</p>
-            <p>⚠️ {backfillResult.totalNoMatch} bulto(s) sin match en CbmIngreso (sin orden asignada)</p>
-            <p>📋 {backfillResult.withoutTrackings} bulto(s) sin trackings (requieren orden manual)</p>
+            <p>✅ {backfillResult.totalUpdated} bulto(s) actualizados con número de contenedor</p>
+            <p>⚠️ {backfillResult.totalNoMatch} bulto(s) sin match en CbmIngreso (sin contenedor asignado)</p>
+            <p>📋 {backfillResult.withoutTrackings} bulto(s) sin trackings (requieren contenedor manual)</p>
             <p className="text-slate-400">Total candidatos procesados: {backfillResult.totalProcessed}</p>
           </div>
         )}

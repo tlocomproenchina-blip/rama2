@@ -14,7 +14,7 @@ export default function WarehouseBillingList({ clients, onOpen }) {
           <PackageX className="h-14 w-14 text-slate-300 mb-3" />
           <p className="text-slate-500">No hay carga pendiente de facturar en el almacén</p>
           <p className="text-sm text-slate-400 mt-1">
-            Aparecen aquí los bultos en almacén de Venezuela y los envíos/recibos de CBM sin facturar.
+            Aparecen aquí los bultos en almacén de Venezuela y los contenedores/recibos de CBM sin facturar.
           </p>
         </CardContent>
       </Card>
@@ -31,9 +31,9 @@ export default function WarehouseBillingList({ clients, onOpen }) {
               <tr className="bg-muted/40 border-b border-border text-left">
                 <th className="px-4 py-3 font-semibold text-slate-600">Cliente</th>
                 <th className="px-4 py-3 font-semibold text-slate-600 text-center">Bultos</th>
-                <th className="px-4 py-3 font-semibold text-slate-600 text-center">Envíos</th>
-                <th className="px-4 py-3 font-semibold text-slate-600">N° Orden</th>
-                <th className="px-4 py-3 font-semibold text-slate-600">N° Envío</th>
+                <th className="px-4 py-3 font-semibold text-slate-600 text-center">Contenedores</th>
+                <th className="px-4 py-3 font-semibold text-slate-600">N° Contenedor</th>
+                <th className="px-4 py-3 font-semibold text-slate-600">N° Recibo</th>
                 <th className="px-4 py-3 font-semibold text-slate-600 text-right">CBM</th>
                 <th className="px-4 py-3 font-semibold text-slate-600 text-center">Paq.</th>
                 <th className="px-4 py-3 font-semibold text-slate-600 text-right">Monto estimado</th>
@@ -104,7 +104,7 @@ export default function WarehouseBillingList({ clients, onOpen }) {
                 <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600">
                   <span className="inline-flex items-center gap-1"><Package className="h-3 w-3" /> {c.totals.bultos} bulto(s)</span>
                   <span className="text-slate-400">·</span>
-                  <span>{c.totals.receipts} envío(s)</span>
+                  <span>{c.totals.receipts} contenedor(es)</span>
                   <span className="text-slate-400">·</span>
                   <span>{Number(c.totals.cbm || 0).toFixed(4)} CBM</span>
                   <span className="text-slate-400">·</span>

@@ -8,12 +8,12 @@ import { toast } from 'sonner';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { getAll, put } from '@/lib/offlineDb';
 
-// Escribe uno o varios N° de orden (separados por coma) en varios bultos a la vez.
+// Escribe uno o varios N° de contenedor (separados por coma) en varios bultos a la vez.
 // - Los bultos que aún viven en el dispositivo se corrigen aquí y en su cola de
 //   sincronización, para que suban con el número ya puesto.
 // - Los bultos registrados se corrigen por el servidor (updateBulto), que además
 //   alinea el recibo de contabilidad.
-// - Un N° de orden ya asignado por un empleado (bloqueado) no se sobrescribe.
+// - Un N° de contenedor ya asignado por un empleado (bloqueado) no se sobrescribe.
 const parseOrders = (raw) => String(raw || '').split(/[,\n;]/).map((s) => s.trim()).filter(Boolean);
 
 export default function BulkOrderAssignDialog({ bultos = [], open, onClose, onDone }) {
@@ -26,11 +26,11 @@ export default function BulkOrderAssignDialog({ bultos = [], open, onClose, onDo
   const handleSave = async () => {
     const orders = parseOrders(value);
     if (!orders.length) {
-      toast.error('Escribe al menos un N° de orden');
+      toast.error('Escribe al menos un N° de contenedor');
       return;
     }
     if (!assignable.length) {
-      toast.error('Los bultos seleccionados tienen el N° de orden bloqueado por un empleado');
+      toast.error('Los bultos seleccionados tienen el N° de contenedor bloqueado por un empleado');
       return;
     }
     setSaving(true);
@@ -60,7 +60,7 @@ export default function BulkOrderAssignDialog({ bultos = [], open, onClose, onDo
     if (failed.length) {
       toast.warning(`${ok} bulto(s) actualizado(s). Fallaron: ${failed.join(', ')}`);
     } else {
-      toast.success(ok === 1 ? 'N° de orden actualizado' : `N° de orden actualizado en ${ok} bultos`);
+      toast.success(ok === 1 ? 'N° de contenedor actualizado' : `N° de contenedor actualizado en ${ok} bultos`);
     }
     setValue('');
     onDone?.();
@@ -72,13 +72,13 @@ export default function BulkOrderAssignDialog({ bultos = [], open, onClose, onDo
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Hash className="h-5 w-5 text-blue-600" /> N° de orden para {bultos.length} bulto(s)
+            <Hash className="h-5 w-5 text-blue-600" /> N° de contenedor para {bultos.length} bulto(s)
           </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-3">
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold text-slate-600">N° de orden / envío</Label>
+            <Label className="text-xs font-semibold text-slate-600">N° de contenedor</Label>
             <Input
               value={value}
               onChange={(e) => setValue(e.target.value)}
@@ -103,7 +103,7 @@ export default function BulkOrderAssignDialog({ bultos = [], open, onClose, onDo
             <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50/70 px-3 py-2 text-xs text-amber-800">
               <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
               <span>
-                {locked.length} bulto(s) tienen el N° de orden asignado y bloqueado por un empleado: no se
+                {locked.length} bulto(s) tienen el N° de contenedor asignado y bloqueado por un empleado: no se
                 cambiarán. Para corregirlos, un admin debe desbloquearlos desde la edición del bulto.
               </span>
             </div>

@@ -17,7 +17,7 @@ import { Loader2, Save, Lock, Package, ScanLine, RotateCcw, CheckCircle2, Printe
 import { toast } from 'sonner';
 
 // Página standalone de escaneo de etiquetas de bultos para empleados.
-// El empleado escanea el label_code, ve detalles básicos, ingresa el N° de orden
+// El empleado escanea el label_code, ve detalles básicos, ingresa el N° de contenedor
 // CbmIngreso y guarda. El bulto queda order_locked=true (sin cambiar su status).
 export default function BultoOrderScan({ user }) {
   const [scanValue, setScanValue] = useState('');
@@ -36,14 +36,14 @@ export default function BultoOrderScan({ user }) {
   const [showPrint, setShowPrint] = useState(false);
   const [photoErrors, setPhotoErrors] = useState([]);
   const [photoRetrying, setPhotoRetrying] = useState(false);
-  // Avisos cuando el N° de orden del bulto no pudo aplicarse al recibo de contabilidad.
+  // Avisos cuando el N° de contenedor del bulto no pudo aplicarse al recibo de contabilidad.
   const [syncWarnings, setSyncWarnings] = useState([]);
   // Bultos que este escaneo fusionó: su contenido pasó al bulto escaneado y esos bultos se
   // eliminaron (o quedaron registrados sin el paquete movido si eran de otro cliente).
   const [absorbedInfo, setAbsorbedInfo] = useState(null);
   const { handlePhotoCaptured, waitForPhoto, getPhotoStatus, retryPhoto } = useScannedPhotoUploader();
   // Mismo identificador persistente que usa la página del almacén de China.
-  // Cuando no hay sesión, con él se audita quién asignó el N° de orden.
+  // Cuando no hay sesión, con él se audita quién asignó el N° de contenedor.
   const deviceIdRef = useRef('');
 
   useEffect(() => {
@@ -108,7 +108,7 @@ export default function BultoOrderScan({ user }) {
         invoice_status: res?.data?.invoice_status,
         invoice_number: res?.data?.invoice_number,
       });
-      // Si ya tiene ordenes asignadas, precargarlas para mostrarlas (solo lectura si locked)
+      // Si ya tiene contenedores asignados, precargarlos para mostrarlos (solo lectura si locked)
       const existing = Array.isArray(found.cbm_order_numbers) ? found.cbm_order_numbers : [];
       if (existing.length) setOrderNumbers(existing.join(', '));
       toast.success(`Bulto ${found.label_code} encontrado`);
@@ -145,11 +145,11 @@ export default function BultoOrderScan({ user }) {
       ? orderNumbers.split(',').map((s) => s.trim()).filter(Boolean)
       : [];
     if (!parsed.length) {
-      toast.error('Ingresa al menos un N° de orden');
+      toast.error('Ingresa al menos un N° de contenedor');
       return;
     }
     // Foto tomada automáticamente al escanear la etiqueta: la asignación del N° de
-    // orden NO se guarda hasta que esa foto termine de subir. Si falla, queda en rojo
+    // contenedor NO se guarda hasta que esa foto termine de subir. Si falla, queda en rojo
     // con aviso y solo se puede reintentar la subida.
     const photoCode = scannedCode || bulto.label_code || '';
     let photoUrl = null;
@@ -176,15 +176,15 @@ export default function BultoOrderScan({ user }) {
         toast.error(res.data.error);
         return;
       }
-      // El recibo de contabilidad se alinea con lo registrado aquí; si el N° de orden
+      // El recibo de contabilidad se alinea con lo registrado aquí; si el N° de contenedor
       // ya lo usa otro recibo, se avisa sin bloquear el guardado del bulto.
       const warnings = res.data.sync?.warnings || [];
       setSyncWarnings(warnings);
-      toast.success('N° de orden asignado y bulto bloqueado');
+      toast.success('N° de contenedor asignado y bulto bloqueado');
       if (warnings.length) toast.warning(warnings[0]);
       setBulto(res.data.bulto);
     } catch (e) {
-      toast.error('Error al asignar el N° de orden');
+      toast.error('Error al asignar el N° de contenedor');
     } finally {
       setSaving(false);
     }
@@ -204,7 +204,7 @@ export default function BultoOrderScan({ user }) {
     await handleSave();
   };
 
-  // El bulto se creó desde esta pantalla: se muestra ya bloqueado con su N° de orden.
+  // El bulto se creó desde esta pantalla: se muestra ya bloqueado con su N° de contenedor.
   const handleCreated = useCallback((data) => {
     setBulto(data?.bulto || null);
     const warnings = data?.sync?.warnings || [];
@@ -235,9 +235,9 @@ export default function BultoOrderScan({ user }) {
       <div className="flex items-center gap-2">
         <ScanLine className="h-6 w-6 text-primary" />
         <div>
-          <h1 className="text-xl font-semibold text-slate-800">Asignar N° de Orden a Bulto</h1>
+          <h1 className="text-xl font-semibold text-slate-800">Asignar N° de Contenedor a Bulto</h1>
           <p className="text-sm text-slate-500">
-            Escanea la etiqueta del bulto, ingresa el N° de orden CbmIngreso y guárdalo. El bulto queda bloqueado.
+            Escanea la etiqueta del bulto, ingresa el N° de contenedor CbmIngreso y guárdalo. El bulto queda bloqueado.
           </p>
         </div>
       </div>
@@ -263,7 +263,7 @@ export default function BultoOrderScan({ user }) {
           codes={photoErrors}
           retrying={photoRetrying}
           onRetry={handleRetryPhoto}
-          description="El N° de orden no se guardó. Reintenta la subida de la foto para poder asignarlo."
+          description="El N° de contenedor no se guardó. Reintenta la subida de la foto para poder asignarlo."
         />
       )}
 
@@ -305,10 +305,10 @@ export default function BultoOrderScan({ user }) {
               </span>
               {isLocked ? (
                 <Badge className="bg-amber-100 text-amber-700 border-amber-200">
-                  <Lock className="h-3 w-3 mr-1" /> N° de orden asignado
+                  <Lock className="h-3 w-3 mr-1" /> N° de contenedor asignado
                 </Badge>
               ) : (
-                <Badge variant="outline" className="text-slate-600">Pendiente de orden</Badge>
+                <Badge variant="outline" className="text-slate-600">Pendiente de contenedor</Badge>
               )}
             </CardTitle>
           </CardHeader>
@@ -372,11 +372,11 @@ export default function BultoOrderScan({ user }) {
               </Button>
             </div>
 
-            {/* Campo de N° de orden */}
+            {/* Campo de N° de contenedor */}
             <div className="pt-2 border-t border-border">
               {readOnly ? (
                 <div className="space-y-2">
-                  <Label className="text-xs">N° de orden asignado (solo lectura)</Label>
+                  <Label className="text-xs">N° de contenedor asignado (solo lectura)</Label>
                   <div className="rounded-md border border-border bg-muted/40 px-3 py-2 text-sm text-slate-700 font-mono break-all">
                     {(bulto.cbm_order_numbers || []).join(', ') || '—'}
                   </div>
@@ -387,7 +387,7 @@ export default function BultoOrderScan({ user }) {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  <Label className="text-xs">N° de orden CbmIngreso</Label>
+                  <Label className="text-xs">N° de contenedor CbmIngreso</Label>
                   <Input
                     value={orderNumbers}
                     onChange={(e) => setOrderNumbers(e.target.value)}
@@ -397,8 +397,8 @@ export default function BultoOrderScan({ user }) {
                   />
                   <p className="text-[10px] text-slate-400">
                     {isAdmin && isLocked
-                      ? 'Este bulto ya tiene N° de orden asignado. Como admin puedes corregirlo o agregar otra orden: al guardar se reemplaza y queda registrado a tu usuario.'
-                      : 'Ingresa el número de orden del almacén de China. Al guardar, el bulto queda bloqueado y no podrás editarlo nuevamente.'}
+                      ? 'Este bulto ya tiene N° de contenedor asignado. Como admin puedes corregirlo o agregar otro contenedor: al guardar se reemplaza y queda registrado a tu usuario.'
+                      : 'Ingresa el número de contenedor del almacén de China. Al guardar, el bulto queda bloqueado y no podrás editarlo nuevamente.'}
                   </p>
                   <div className="flex flex-wrap gap-2 pt-1">
                     <Button onClick={handleSave} disabled={saving} className="bg-blue-600 hover:bg-blue-700">
@@ -429,7 +429,7 @@ export default function BultoOrderScan({ user }) {
                       // Para desbloquear, hacemos un update directo vía SDK.
                       const unlocked = await base44.entities.Bulto.update(bulto.id, { order_locked: false });
                       setBulto(unlocked);
-                      toast.success('Bulto desbloqueado. Ya puedes editar el N° de orden.');
+                      toast.success('Bulto desbloqueado. Ya puedes editar el N° de contenedor.');
                     } catch (e) {
                       toast.error('Error al desbloquear');
                     }

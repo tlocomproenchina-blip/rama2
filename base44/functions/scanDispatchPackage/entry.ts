@@ -100,7 +100,7 @@ Deno.serve(async (req) => {
       } catch (_) { return null; }
     };
 
-    // Carga el recibo: busca el número de orden (invoice_number) asignado en CbmIngreso
+    // Carga el recibo: busca el número de contenedor (invoice_number) asignado en CbmIngreso
     // (AdminCbmIngresos) usando el tracking del paquete. Si no se encuentra ahí,
     // usa consolidation_tracking de la consolidación como fallback.
     const loadConsolidationTracking = async () => {

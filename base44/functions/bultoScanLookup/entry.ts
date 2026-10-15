@@ -11,7 +11,7 @@ import { describeBultoForAbsorption } from '../../shared/bultoAbsorption.ts';
 
 // Consultas de apoyo del escaneo de bultos en el almacén de Venezuela.
 // La pantalla /BultoOrderScan se comparte como enlace directo y abre sin sesión:
-// sin sesión se exige device_id, igual que la asignación del N° de orden.
+// sin sesión se exige device_id, igual que la asignación del N° de contenedor.
 // Acciones:
 //   label   → deduce shipping mark y número desde el código y busca al cliente.
 //   clients → busca clientes por shipping mark, email, nombre o cédula.

@@ -5,7 +5,7 @@ import { CheckCircle2, ChevronDown, Loader2 } from 'lucide-react';
 import PendingBillingBultoRow from './PendingBillingBultoRow';
 
 // Bultos ya facturados por fuera del sistema: salen de sus pestañas y se conservan
-// aquí, en verde y agrupados por N° de orden, con su casilla para devolverlos —uno por
+// aquí, en verde y agrupados por N° de contenedor, con su casilla para devolverlos —uno por
 // uno o todo el envío de una sola vez.
 export default function PendingBillingMarkedBultos({ bultos = [], markingId, onMarkBulto, onMarkOrderBultos }) {
   const [open, setOpen] = useState(false);
@@ -46,13 +46,13 @@ export default function PendingBillingMarkedBultos({ bultos = [], markingId, onM
       {open && (
         <div className="space-y-2 px-3 pb-3">
           <p className="text-[11px] text-emerald-800/80">
-            Ya se facturaron por fuera del sistema: no se ofrecen para facturar. Quita la marca de un bulto, o de todo el envío, para devolverlos a su N° de orden.
+            Ya se facturaron por fuera del sistema: no se ofrecen para facturar. Quita la marca de un bulto, o de todo el envío, para devolverlos a su N° de contenedor.
           </p>
           {groups.map((g) => (
             <div key={g.order || 'sin-orden'} className="space-y-2">
               <div className="flex items-start justify-between gap-2">
                 <Badge className="min-w-0 bg-emerald-100 text-emerald-800 border border-emerald-300 break-all">
-                  N° de orden {g.order || 'sin asignar'}
+                  N° de contenedor {g.order || 'sin asignar'}
                 </Badge>
                 {g.order && (
                   <div className="shrink-0 flex flex-col items-center gap-0.5">
