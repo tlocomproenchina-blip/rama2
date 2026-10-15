@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
 import { sendBrevoEmail } from '../../shared/brevoEmail.ts';
+import { isDeliveryProofTracked } from '../../shared/deliveryProof.ts';
 
 const EXAMPLE_IMAGE_ONE = 'https://media.base44.com/images/public/695da428c9924ef9b68e8866/2484aa300_WhatsAppImage2026-04-03at12951PM.jpg';
 const EXAMPLE_IMAGE_TWO = 'https://media.base44.com/images/public/695da428c9924ef9b68e8866/d11b83368_WhatsAppImage2026-04-03at12833PM.jpg';
@@ -68,9 +69,11 @@ Deno.serve(async (req) => {
 
     const thresholdDate = getCaracasDateMinusDays(7);
     const packages = await base44.asServiceRole.entities.Package.filter({ status: 'pre_alerta' }, '-created_date', 500);
+    // El aviso solo aplica a los trackings registrados desde el 5 de octubre de
+    // 2026: los anteriores quedan fuera del plazo del comprobante de entrega.
     const targetPackages = (packages || []).filter((pkg) => {
       const createdDate = String(pkg.created_date || '').slice(0, 10);
-      return createdDate && createdDate <= thresholdDate && !pkg.delivery_proof_request_sent_date;
+      return isDeliveryProofTracked(pkg) && createdDate && createdDate <= thresholdDate && !pkg.delivery_proof_request_sent_date;
     });
 
     const appBaseUrl = req.headers.get('origin') || req.headers.get('referer')?.split('/').slice(0, 3).join('/') || 'https://tleccargo.com';

@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import { isDeliveryProofTracked } from '../../shared/deliveryProof.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -43,11 +44,12 @@ Deno.serve(async (req) => {
     // Plazo del comprobante de entrega: 10 días naturales contados desde que se
     // creó la pre-alerta. Vencido el plazo, el cliente ya no puede cargar ni
     // cambiar la fecha de entrega del vendedor ni su foto, salvo que un
-    // administrador haya habilitado la excepción del paquete.
+    // administrador haya habilitado la excepción del paquete. El plazo solo
+    // aplica a los trackings registrados desde el 5 de octubre de 2026.
     const norm = (v) => (v === undefined || v === null || v === '' ? null : v);
     const proofChanged = (key) =>
       Object.prototype.hasOwnProperty.call(safeUpdates, key) && norm(safeUpdates[key]) !== norm(pkg[key]);
-    if (user.role !== 'admin' && !pkg.delivery_proof_exception && (proofChanged('seller_delivery_date') || proofChanged('seller_delivery_photo_uri'))) {
+    if (user.role !== 'admin' && !pkg.delivery_proof_exception && isDeliveryProofTracked(pkg) && (proofChanged('seller_delivery_date') || proofChanged('seller_delivery_photo_uri'))) {
       const createdMs = pkg.created_date ? new Date(pkg.created_date).getTime() : NaN;
       if (!Number.isNaN(createdMs) && Date.now() > createdMs + 10 * 24 * 60 * 60 * 1000) {
         return Response.json({

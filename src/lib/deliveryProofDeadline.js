@@ -2,7 +2,21 @@
 // que se creó la pre-alerta. Vencido el plazo, el cliente ya no puede cargar ni
 // editar la fecha de entrega del vendedor ni su foto, salvo que un administrador
 // haya habilitado la excepción del paquete (delivery_proof_exception).
+//
+// El plazo solo corre para los trackings registrados desde el 5 de octubre de
+// 2026 (00:00 hora de Caracas): los registrados antes de esa fecha quedan fuera,
+// así que no se les avisa ni se les bloquea la carga.
 export const DELIVERY_PROOF_DAYS = 10;
+
+export const DELIVERY_PROOF_START = '2026-10-05T04:00:00.000Z';
+
+export function isDeliveryProofTracked(pkg) {
+  const created = pkg?.created_date;
+  if (!created) return false;
+  const ms = new Date(created).getTime();
+  if (Number.isNaN(ms)) return false;
+  return ms >= new Date(DELIVERY_PROOF_START).getTime();
+}
 
 export const DELIVERY_PROOF_ALERT =
   'Ya venció el plazo de 10 días desde tu pre-alerta para cargar la fecha de entrega y su foto. En este momento tu carga podría no localizarse en el almacén. Si tu paquete todavía no aparece como recibido en el almacén de China, abre un ticket en Soporte.';
@@ -10,6 +24,7 @@ export const DELIVERY_PROOF_ALERT =
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 export function getDeliveryProofDeadline(pkg) {
+  if (!isDeliveryProofTracked(pkg)) return null;
   const created = pkg?.created_date;
   if (!created) return null;
   const base = new Date(created);
