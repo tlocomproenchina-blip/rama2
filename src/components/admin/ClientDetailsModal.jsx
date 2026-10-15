@@ -28,6 +28,7 @@ import StatusBadge from '@/components/StatusBadge';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import useFileViewer from '@/hooks/useFileViewer';
+import ClientDispatchTab from '@/components/admin/clients/ClientDispatchTab';
 
 export default function ClientDetailsModal({ client, open, onClose, onClientUpdated }) {
   const [loading, setLoading] = useState(true);
@@ -255,8 +256,9 @@ export default function ClientDetailsModal({ client, open, onClose, onClientUpda
             </div>
           ) : (
             <Tabs defaultValue="packages" className="w-full">
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5 h-auto gap-1">
                 <TabsTrigger value="packages">Paquetes</TabsTrigger>
+                <TabsTrigger value="dispatch">Despacho</TabsTrigger>
                 <TabsTrigger value="consolidations">Consolidaciones</TabsTrigger>
                 <TabsTrigger value="payments">Pagos</TabsTrigger>
                 <TabsTrigger value="notes">Notas</TabsTrigger>
@@ -311,6 +313,11 @@ export default function ClientDetailsModal({ client, open, onClose, onClientUpda
                     </Card>
                   ))
                 )}
+              </TabsContent>
+
+              {/* Dispatch Tab */}
+              <TabsContent value="dispatch" className="mt-4">
+                <ClientDispatchTab client={client} />
               </TabsContent>
 
               {/* Consolidations Tab */}
