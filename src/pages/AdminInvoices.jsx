@@ -17,7 +17,7 @@ import InvoiceCard from '@/components/invoice/InvoiceCard';
 import ProviderCostControl from '@/components/invoice/ProviderCostControl';
 import ProviderInvoiceUploader from '@/components/manual-billing/ProviderInvoiceUploader';
 import DispatchReceiptModal from '@/components/invoice/DispatchReceiptModal';
-import { FileText, Search, Loader2, Download, Plus, Edit, Trash2, PackageX, Package, MessageCircle, Truck, ClipboardList } from 'lucide-react';
+import { FileText, Search, Loader2, Download, Edit, Trash2, PackageX, Package, MessageCircle, Truck, ClipboardList } from 'lucide-react';
 import InvoiceStatsCards from '@/components/invoice/InvoiceStatsCards';
 import WarehouseOrderModal from '@/components/invoice/WarehouseOrderModal';
 import { generateWarehouseOrder } from '@/lib/warehouseOrder';
@@ -727,10 +727,6 @@ export default function AdminInvoices({ user }) {
           <p className="text-slate-500">Administra facturas y pagos de clientes</p>
         </div>
         <div className="header-actions flex flex-wrap gap-2 w-full sm:w-auto">
-          <Button onClick={() => setShowCreateModal(true)} className="bg-blue-600 hover:bg-blue-700">
-            <Plus className="h-4 w-4 mr-2" />
-            Crear Factura
-          </Button>
           <Button onClick={handleExportAll} variant="outline">
             <Download className="h-4 w-4 mr-2" />
             Exportar CSV
