@@ -14,8 +14,9 @@ const LOGO_URL = 'https://media.base44.com/images/public/695da428c9924ef9b68e886
 const CAMPAIGN_NAME = 'Comprobantes de entrega';
 const CONFIG_KEY = 'main';
 // Cada corrida envía un lote: el correo a cada cliente toma tiempo y la corrida
-// debe alcanzar a completarse para que quede registrado quién lo recibió. Los
-// clientes que sobran salen en la corrida siguiente, sin repetir a los anteriores.
+// debe alcanzar a completarse para que quede registrado quién lo recibió. Con una
+// sola confirmación del admin el panel pide lote tras lote hasta cubrir a todos
+// los pendientes, sin repetir a los que ya recibieron el correo.
 const MAX_RECIPIENTS = 120;
 const SEND_DELAY_MS = 120;
 
@@ -268,6 +269,19 @@ function sortByName(rows: any[]) {
   return rows.sort((a, b) => String(a.client_name).localeCompare(String(b.client_name)));
 }
 
+// Junta el resultado de la corrida en curso con lo ya registrado: el panel
+// conserva el detalle de todos los clientes atendidos aunque el envío se reparta
+// en varias corridas, y los ya atendidos no vuelven a recibir el correo.
+function mergeResults(previous: any[], current: any[]) {
+  const byEmail = new Map<string, any>();
+  for (const row of [...(previous || []), ...(current || [])]) {
+    const key = String(row?.email || '').trim().toLowerCase();
+    if (!key) continue;
+    byEmail.set(key, row);
+  }
+  return [...byEmail.values()];
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -409,7 +423,7 @@ Deno.serve(async (req) => {
             last_run_sent: sent,
             last_run_failed: failed,
             last_run_message: `Envío en curso: ${sent} de ${queue.length} correos entregados.`,
-            results
+            results: mergeResults(saved.results, results)
           });
         }
         if (SEND_DELAY_MS) await new Promise((resolve) => setTimeout(resolve, SEND_DELAY_MS));
@@ -418,7 +432,8 @@ Deno.serve(async (req) => {
       const remaining = Math.max(0, targets.length - queue.length);
       const status = failed === 0 ? 'enviada' : sent === 0 ? 'fallida' : 'parcial';
       const channel = provider === 'base44' ? 'Base44' : 'Brevo';
-      const message = `Enviado por ${channel}: ${sent} de ${queue.length} correos entregados${failed ? `, ${failed} fallidos` : ''}.${remaining ? ` Quedan ${remaining} clientes para el siguiente envío.` : ''}`;
+      const message = `Enviado por ${channel}: ${sent} de ${queue.length} correos entregados${failed ? `, ${failed} fallidos` : ''}.${remaining ? ` Quedan ${remaining} clientes para el siguiente lote.` : ''}`;
+      const allResults = mergeResults(saved.results, results);
 
       await base44.asServiceRole.entities.DeliveryProofCampaign.update(saved.id, {
         subject: draft.subject,
@@ -431,7 +446,7 @@ Deno.serve(async (req) => {
         last_run_sent: sent,
         last_run_failed: failed,
         last_run_message: message,
-        results
+        results: allResults
       });
 
       return Response.json({
@@ -445,7 +460,7 @@ Deno.serve(async (req) => {
         remaining,
         message,
         totals,
-        results
+        results: allResults
       });
     }
 

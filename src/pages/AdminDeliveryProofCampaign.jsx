@@ -132,29 +132,54 @@ export default function AdminDeliveryProofCampaign() {
   const handleSend = async () => {
     setConfirmOpen(false);
     setSending(true);
+    let sent = 0;
+    let failed = 0;
+    let lastResults = [];
+    let status = 'enviada';
     try {
-      const data = await call({
-        action: 'send',
-        confirm: true,
-        exclude_notified: excludeNotified,
-        provider,
-        group,
-        recipient_emails: selectedEmails,
-        ...draft
-      });
-      if (!data?.ok) throw new Error(data?.error || 'No se pudo enviar la campaña');
-      const runDate = new Date().toISOString();
-      setResult({ ...data, date: runDate });
-      setLastRun({
-        status: data.status,
-        results: data.results || [],
-        message: data.message,
-        date: runDate,
-        sent: data.sent,
-        failed: data.failed
-      });
-      if (data.totals) setPreview((prev) => ({ ...prev, totals: data.totals }));
-      toast.success(data.message || 'Campaña enviada');
+      // Una sola confirmación: se piden lotes seguidos hasta cubrir a todos los
+      // clientes pendientes, sin repetir a los que ya recibieron el correo.
+      for (;;) {
+        const data = await call({
+          action: 'send',
+          confirm: true,
+          exclude_notified: excludeNotified,
+          provider,
+          group,
+          recipient_emails: selectedEmails,
+          ...draft
+        });
+        if (!data?.ok) throw new Error(data?.error || 'No se pudo enviar la campaña');
+
+        sent += Number(data.sent || 0);
+        failed += Number(data.failed || 0);
+        lastResults = data.results || lastResults;
+        status = failed === 0 ? 'enviada' : sent === 0 ? 'fallida' : 'parcial';
+        if (data.totals) setPreview((prev) => ({ ...prev, totals: data.totals }));
+
+        const remaining = Number(data.remaining || 0);
+        const continues = remaining > 0 && Number(data.sent || 0) > 0;
+        const runDate = new Date().toISOString();
+        const message = continues
+          ? `Enviando… ${sent} correos entregados${failed ? `, ${failed} fallidos` : ''}. Faltan ${remaining} clientes.`
+          : '';
+        setResult({ status, results: lastResults, sent, failed, date: runDate, message: message || data.message });
+        setLastRun({ status, results: lastResults, sent, failed, date: runDate, message: message || data.message });
+
+        if (continues) continue;
+        if (remaining > 0) {
+          toast.warning(`El envío se detuvo con ${remaining} clientes pendientes: el último lote no pudo entregarse.`);
+        }
+        break;
+      }
+
+      const channel = provider === 'base44' ? 'Base44' : 'Brevo';
+      const summary = failed
+        ? `Enviado por ${channel}: ${sent} correos entregados, ${failed} fallidos.`
+        : `Enviado por ${channel}: ${sent} correos entregados.`;
+      setResult({ status, results: lastResults, sent, failed, date: new Date().toISOString(), message: summary });
+      setLastRun({ status, results: lastResults, sent, failed, date: new Date().toISOString(), message: summary });
+      toast.success(summary);
     } catch (error) {
       toast.error(errorMessage(error));
     } finally {
@@ -278,8 +303,9 @@ export default function AdminDeliveryProofCampaign() {
                 : `Se enviará el correo del comprobante de entrega a ${targets} ${targets === 1 ? 'cliente' : 'clientes'} con Shipping Mark asignado.`}{' '}
               El correo les avisa que, desde su recepción, cargar la fecha y la foto del
               comprobante es obligatorio para que el seguro de su carga sea válido. El envío sale por{' '}
-              <strong>{provider === 'base44' ? 'Base44 (créditos de integración)' : 'Brevo'}</strong>. Después de
-              enviarlo, cada correo queda registrado en el resultado por cliente.
+              <strong>{provider === 'base44' ? 'Base44 (créditos de integración)' : 'Brevo'}</strong>. El envío sigue
+              solo hasta cubrir a todos los clientes pendientes y cada correo queda registrado en el resultado por
+              cliente.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
