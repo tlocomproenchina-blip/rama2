@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { ArrowLeft, CheckCircle2, Loader2, Lock, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Loader2, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import AssistantCaseSupervisorReplies from '@/components/support/assistant/AssistantCaseSupervisorReplies';
 import AssistantCaseClientReply from '@/components/support/assistant/AssistantCaseClientReply';
@@ -103,11 +102,6 @@ export default function SupervisorAnsweredCase({ ticket, user, onBack, onChange,
               ) : null}
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button asChild size="sm" variant="outline">
-                <Link to={`/AdminSupportSupervisor?ticketId=${ticket.id}`}>
-                  <ShieldCheck className="mr-1.5 h-3.5 w-3.5" /> Ver en Supervisor
-                </Link>
-              </Button>
               {pending ? (
                 <Button size="sm" variant="outline" onClick={handleMarkAttended} disabled={saving}>
                   {saving ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />}

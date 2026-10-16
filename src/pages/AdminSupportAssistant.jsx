@@ -25,7 +25,6 @@ export default function AdminSupportAssistant({ user }) {
   const [escalated, setEscalated] = useState(null);
   const [chatPrefill, setChatPrefill] = useState(null);
   const [askOrigin, setAskOrigin] = useState('atc');
-  const focusTicketId = new URLSearchParams(window.location.search).get('ticketId') || '';
 
   const lastTurn = assistant.turns[assistant.turns.length - 1] || null;
   const client = assistant.client;
@@ -134,11 +133,6 @@ export default function AdminSupportAssistant({ user }) {
                   <CheckCircle2 className="h-4 w-4" /> Caso escalado: ticket <strong>{escalated.ticket_number}</strong> asignado a {escalated.assigned_to}.
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  <Button asChild size="sm">
-                    <Link to={`/AdminSupportSupervisor${focusTicketId ? `?ticketId=${focusTicketId}` : ''}`}>
-                      <ShieldCheck className="mr-1.5 h-4 w-4" /> Ver en Supervisor
-                    </Link>
-                  </Button>
                   <Button asChild size="sm" variant="outline">
                     <Link to="/AdminSupportTickets">Abrir tickets</Link>
                   </Button>
