@@ -132,7 +132,7 @@ export default function SupervisorAnsweredCase({ ticket, user, onBack, onChange,
 
       <AssistantCaseClientReply ticket={ticket} user={user} onChange={onChange} />
 
-      <AssistantCaseContext ticket={ticket} client={client} loadingClient={loadingClient} />
+      <AssistantCaseContext ticket={ticket} client={client} loadingClient={loadingClient} user={user} />
     </div>
   );
 }

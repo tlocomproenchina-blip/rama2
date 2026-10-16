@@ -5,10 +5,11 @@ import TicketChat from '@/components/support/TicketChat';
 import SupportCaseSummary from '@/components/support/SupportCaseSummary';
 import SupportClientProfileCard from '@/components/support/client-file/SupportClientProfileCard';
 import ClientSupport360 from '@/components/support/client360/ClientSupport360';
+import SupportPackageEditCard from '@/components/support/package-edit/SupportPackageEditCard';
 
 // Todo lo que el ATC necesita a la vista para trabajar el caso: el resumen que
 // dejó al escalarlo, la conversación con el cliente, sus datos y su historial.
-export default function AssistantCaseContext({ ticket, client, loadingClient }) {
+export default function AssistantCaseContext({ ticket, client, loadingClient, user }) {
   return (
     <div className="space-y-5">
       {ticket.escalation_summary ? (
@@ -24,6 +25,14 @@ export default function AssistantCaseContext({ ticket, client, loadingClient }) 
           </CardContent>
         </Card>
       ) : null}
+
+      <SupportPackageEditCard
+        clientEmail={ticket.client_email}
+        clientName={client?.full_name || [client?.first_name, client?.last_name].filter(Boolean).join(' ') || ''}
+        shippingMark={client?.shipping_mark || ''}
+        ticket={ticket}
+        user={user}
+      />
 
       <div className="grid gap-5 xl:grid-cols-2">
         <Card className="border-border/70 shadow-card">

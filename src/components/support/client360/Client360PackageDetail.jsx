@@ -63,6 +63,15 @@ export default function Client360PackageDetail({ pkg }) {
         </div>
       )}
 
+      {pkg.dispatch_confirmation_image_url && (
+        <div>
+          <p className="text-xs font-semibold text-slate-600 mb-1.5">Confirmación de despacho en almacén</p>
+          <button type="button" onClick={() => imageViewer.open(pkg.dispatch_confirmation_image_url)} className="block cursor-pointer">
+            <img src={pkg.dispatch_confirmation_image_url} alt="Confirmación de despacho" className="h-20 w-20 rounded-lg object-cover border border-slate-200" />
+          </button>
+        </div>
+      )}
+
       {pkg.invoice_url && (
         <a href={pkg.invoice_url} target="_blank" rel="noopener noreferrer">
           <Badge variant="outline" className="cursor-pointer bg-blue-50 text-blue-700 border-blue-200">📄 Ver factura / documento adjunto</Badge>

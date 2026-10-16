@@ -1,0 +1,180 @@
+{
+  "name": "PackageEditRequest",
+  "type": "object",
+  "properties": {
+    "client_email": {
+      "type": "string",
+      "description": "Correo del cliente due\u00f1o del paquete"
+    },
+    "client_name": {
+      "type": "string",
+      "description": "Nombre del cliente (cache para mostrar en el panel)"
+    },
+    "shipping_mark": {
+      "type": "string",
+      "description": "Shipping Mark del cliente (cache para mostrar en el panel)"
+    },
+    "package_id": {
+      "type": "string",
+      "description": "ID del paquete cuyos datos se piden corregir"
+    },
+    "tracking_number": {
+      "type": "string",
+      "description": "Tracking que el paquete tiene hoy, al momento de enviar la solicitud"
+    },
+    "ticket_id": {
+      "type": "string",
+      "description": "ID del caso desde el que se envi\u00f3 la solicitud. Vac\u00edo cuando sali\u00f3 de la ficha del cliente."
+    },
+    "ticket_number": {
+      "type": "string",
+      "description": "N\u00famero visible del caso (cache para mostrar)"
+    },
+    "tracking_number_new": {
+      "type": "string",
+      "description": "Tracking corregido que el ATC pide dejar en el paquete. Vac\u00edo cuando no se pidi\u00f3 cambiarlo."
+    },
+    "insurance_amount": {
+      "type": "number",
+      "description": "Monto del seguro (USD) que el ATC pide registrar o corregir"
+    },
+    "dispatched_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de despacho en almac\u00e9n que el ATC pide dejar en el paquete (YYYY-MM-DD). Vac\u00eda cuando no se pidi\u00f3 corregirla."
+    },
+    "insurance_proof": {
+      "type": "object",
+      "description": "Imagen del comprobante de pago del seguro que adjunta el ATC",
+      "properties": {
+        "url": {
+          "type": "string",
+          "description": "Enlace de la imagen"
+        },
+        "name": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "image",
+            "document"
+          ]
+        }
+      }
+    },
+    "dispatch_proof": {
+      "type": "object",
+      "description": "Imagen de confirmaci\u00f3n del despacho en almac\u00e9n que adjunta el ATC",
+      "properties": {
+        "url": {
+          "type": "string",
+          "description": "Enlace de la imagen"
+        },
+        "name": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "image",
+            "document"
+          ]
+        }
+      }
+    },
+    "previous_values": {
+      "type": "object",
+      "description": "C\u00f3mo estaban los datos del paquete cuando el ATC envi\u00f3 la solicitud: sirve para comparar en el panel",
+      "properties": {
+        "tracking_number": {
+          "type": "string"
+        },
+        "insurance_amount": {
+          "type": "number"
+        },
+        "dispatched_date": {
+          "type": "string"
+        }
+      }
+    },
+    "note": {
+      "type": "string",
+      "maxLength": 2000,
+      "description": "Nota del ATC para Supervisi\u00f3n: qu\u00e9 cambia y por qu\u00e9"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pendiente",
+        "aplicada",
+        "rechazada"
+      ],
+      "default": "pendiente",
+      "description": "pendiente (esperando a Supervisi\u00f3n), aplicada (los cambios ya quedaron en el paquete) o rechazada (Supervisi\u00f3n no los aplic\u00f3)"
+    },
+    "requested_by_email": {
+      "type": "string",
+      "description": "Correo del ATC que envi\u00f3 la solicitud"
+    },
+    "requested_by_name": {
+      "type": "string",
+      "description": "Nombre del ATC que envi\u00f3 la solicitud"
+    },
+    "requested_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Momento en que se envi\u00f3 la solicitud a Supervisi\u00f3n"
+    },
+    "reviewed_by_email": {
+      "type": "string",
+      "description": "Correo del supervisor que atendi\u00f3 la solicitud"
+    },
+    "reviewed_by_name": {
+      "type": "string",
+      "description": "Nombre del supervisor que atendi\u00f3 la solicitud"
+    },
+    "reviewed_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Momento en que Supervisi\u00f3n atendi\u00f3 la solicitud"
+    },
+    "review_note": {
+      "type": "string",
+      "maxLength": 2000,
+      "description": "Lo que dej\u00f3 Supervisi\u00f3n al atender la solicitud: la decisi\u00f3n o la indicaci\u00f3n para el ATC"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Descripci\u00f3n opcional"
+    }
+  },
+  "required": [
+    "client_email",
+    "package_id",
+    "tracking_number"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

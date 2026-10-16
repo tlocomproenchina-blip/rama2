@@ -8,6 +8,7 @@ import SupportClientProfileCard from '@/components/support/client-file/SupportCl
 import SupportClientCasesCard from '@/components/support/client-file/SupportClientCasesCard';
 import SupportNotesPanel from '@/components/support/client-file/SupportNotesPanel';
 import ClientSupport360 from '@/components/support/client360/ClientSupport360';
+import SupportPackageEditCard from '@/components/support/package-edit/SupportPackageEditCard';
 
 // Ficha única de cliente del área de Soporte: se abre desde el buscador global
 // (por cédula, sin depender de un ticket) y reúne sus datos de contacto, sus
@@ -107,6 +108,12 @@ export default function AdminSupportClients({ user }) {
             </div>
             <div className="space-y-6 lg:col-span-2">
               <SupportClientCasesCard clientEmail={client.email} />
+              <SupportPackageEditCard
+                clientEmail={client.email}
+                clientName={client.full_name || [client.first_name, client.last_name].filter(Boolean).join(' ')}
+                shippingMark={client.shipping_mark || ''}
+                user={user}
+              />
               <ClientSupport360 clientEmail={client.email} hideTickets />
             </div>
           </div>

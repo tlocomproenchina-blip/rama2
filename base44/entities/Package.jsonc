@@ -152,6 +152,10 @@
       "type": "string",
       "description": "Usuario que marc\u00f3 el paquete como despachado"
     },
+    "dispatch_confirmation_image_url": {
+      "type": "string",
+      "description": "Foto de confirmaci\u00f3n del despacho de la carga en almac\u00e9n. La carga el ATC desde el asistente y queda en el paquete cuando Supervisi\u00f3n la aprueba."
+    },
     "reported": {
       "type": "boolean",
       "default": false,
