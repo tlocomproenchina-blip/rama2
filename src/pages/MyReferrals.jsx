@@ -9,6 +9,7 @@ import { Gift, Copy, Link2, Users, TrendingUp, DollarSign, Share2, Loader2, Info
 import { toast } from "sonner";
 import ClientPageHero from '@/components/client-portal/ClientPageHero';
 import PortalMetricCard from '@/components/client-portal/PortalMetricCard';
+import { publicAppUrl } from '@/lib/publicLinks';
 
 export default function MyReferrals() {
   const [loading, setLoading] = useState(true);
@@ -84,7 +85,7 @@ export default function MyReferrals() {
   const referralLink = useMemo(() => {
     if (!referralCode) return '';
     try {
-      return `${window.location.origin}?ref=${encodeURIComponent(referralCode)}`;
+      return publicAppUrl(`/?ref=${encodeURIComponent(referralCode)}`);
     } catch (_) { return `?ref=${encodeURIComponent(referralCode)}`; }
   }, [referralCode]);
 

@@ -73,7 +73,7 @@ export async function fulfillQuoteFeePayment(base44, paymentId, transactionRef =
   });
 
   // 6. Enviar email al cliente con el enlace
-  const origin = 'https://tleccargo.base44.app';
+  const origin = 'https://tleccargo.com';
   const quoteUrl = `${origin}/Quote/${token}`;
   const clientName = `${payment.client_first_name || ''} ${payment.client_last_name || ''}`.trim() || 'cliente';
 

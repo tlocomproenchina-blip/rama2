@@ -11,6 +11,7 @@ import CityLandingSeoContent from '@/components/city-landing/CityLandingSeoConte
 import CityLandingFaq from '@/components/city-landing/CityLandingFaq';
 import CityLandingLinks from '@/components/city-landing/CityLandingLinks';
 import Inicio2Calculator from '@/components/inicio2/Inicio2Calculator';
+import { PUBLIC_BASE_URL, publicAppUrl } from '@/lib/publicLinks';
 import { Loader2 } from 'lucide-react';
 
 function setMetaTag(attr, key, content) {
@@ -31,7 +32,7 @@ function removeMetaTag(attr, key) {
 function applySeo(city) {
   const title = `Envíos Marítimos desde China a ${city.city} | TLEC Cargo`;
   const description = `Envíos marítimos de China a ${city.city}, ${city.state_name}. Carga consolidada (LCL) y contenedor completo (FCL) con entrega puerta a puerta, seguro opcional y seguimiento en tiempo real. Tránsito ${city.transit_lcl}.`;
-  const canonical = `${window.location.origin}/envios-maritimos-china-${city.slug}`;
+  const canonical = publicAppUrl(`/envios-maritimos-china-${city.slug}`);
   const keywords = `envíos marítimos China ${city.city}, flete China ${city.state_name}, importar desde China a ${city.city}, casillero ${city.city}, carga consolidada China Venezuela, contenedor China ${city.city}, LCL FCL China ${city.state_name}`;
 
   document.title = title;
@@ -88,7 +89,7 @@ function applySeo(city) {
         '@type': 'Service',
         name: `Envío Marítimo de China a ${city.city}`,
         serviceType: 'Freight forwarding — Maritime shipping',
-        provider: { '@type': 'Organization', name: 'TLEC Cargo', url: window.location.origin },
+        provider: { '@type': 'Organization', name: 'TLEC Cargo', url: PUBLIC_BASE_URL },
         areaServed: { '@type': 'State', name: city.state_name, containedInPlace: { '@type': 'Country', name: 'Venezuela' } },
         description: `Consolidación y envío marítimo de carga desde China (Guangdong) a ${city.city}, ${city.state_name}. LCL y FCL con entrega puerta a puerta.`,
         url: canonical,
@@ -97,7 +98,7 @@ function applySeo(city) {
         '@type': 'LocalBusiness',
         name: 'TLEC Cargo',
         description: `Envíos marítimos y aéreos desde China a ${city.city}, ${city.state_name}.`,
-        url: window.location.origin,
+        url: PUBLIC_BASE_URL,
         areaServed: city.state_name,
         knowsAbout: ['Envíos marítimos', 'Importación desde China', 'Carga consolidada LCL', 'Contenedor completo FCL'],
       },

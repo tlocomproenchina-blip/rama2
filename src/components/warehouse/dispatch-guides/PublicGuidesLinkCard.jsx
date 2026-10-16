@@ -3,6 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Check, Copy, Link2 } from 'lucide-react';
+import { publicAppUrl } from '@/lib/publicLinks';
 
 export const PUBLIC_GUIDES_PATH = '/GuiasPublicas';
 
@@ -10,7 +11,7 @@ export const PUBLIC_GUIDES_PATH = '/GuiasPublicas';
 // consulta las guías emitidas sin iniciar sesión y sin clave.
 export default function PublicGuidesLinkCard() {
   const [copied, setCopied] = useState(false);
-  const link = `${window.location.origin}${PUBLIC_GUIDES_PATH}`;
+  const link = publicAppUrl(PUBLIC_GUIDES_PATH);
 
   const copy = async () => {
     try {

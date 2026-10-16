@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Loader2, Copy, Check, Link as LinkIcon } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
+import { publicAppUrl } from '@/lib/publicLinks';
 
 const ALL_METHODS = [
   { key: 'paypal', label: 'PayPal' },
@@ -62,7 +63,7 @@ export default function QuoteFeeConfigCard({ config, onSaved }) {
   };
 
   const handleCopyLink = () => {
-    const url = `${window.location.origin}/QuoteFeePayment`;
+    const url = publicAppUrl('/QuoteFeePayment');
     navigator.clipboard.writeText(url);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -85,7 +86,7 @@ export default function QuoteFeeConfigCard({ config, onSaved }) {
       {/* Enlace universal */}
       <div className="rounded-lg bg-purple-50 border border-purple-200 p-3 flex items-center gap-2">
         <LinkIcon className="h-4 w-4 text-purple-600 shrink-0" />
-        <code className="text-xs text-purple-700 break-all">{window.location.origin}/QuoteFeePayment</code>
+        <code className="text-xs text-purple-700 break-all">{publicAppUrl('/QuoteFeePayment')}</code>
       </div>
 
       {/* Monto */}

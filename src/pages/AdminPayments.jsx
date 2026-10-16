@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
 import useCedulaClientEmails from '@/hooks/useCedulaClientEmails';
+import { publicAppUrl } from '@/lib/publicLinks';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -143,7 +144,7 @@ export default function AdminPayments({ user }) {
       
       // Add feedback link for delivered status
       if (msg.feedbackLink) {
-        const feedbackUrl = `${window.location.origin}/feedback?tracking=${con.consolidation_tracking}`;
+        const feedbackUrl = publicAppUrl(`/feedback?tracking=${con.consolidation_tracking}`);
         emailBody += `\n\n📝 Déjanos tu opinión:\n${feedbackUrl}`;
       }
 

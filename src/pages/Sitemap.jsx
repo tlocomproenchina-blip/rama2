@@ -3,6 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Copy, Check, Download, RefreshCw, FileCode } from 'lucide-react';
+import { PUBLIC_BASE_URL } from '@/lib/publicLinks';
 
 export default function Sitemap() {
   const [xml, setXml] = useState('');
@@ -15,7 +16,7 @@ export default function Sitemap() {
     setLoading(true);
     setError(null);
     try {
-      const baseUrl = window.location.origin;
+      const baseUrl = PUBLIC_BASE_URL;
       const res = await base44.functions.invoke('generateSitemap', { baseUrl });
       const xmlContent = typeof res.data === 'string' ? res.data : res.data?.sitemap || '';
       setXml(xmlContent);

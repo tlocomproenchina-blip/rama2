@@ -9,6 +9,7 @@ import { useToast } from '@/components/ui/use-toast';
 import PagoMovilBsDisplay from '@/components/payments/PagoMovilBsDisplay';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { normalizeStates } from '@/components/utils/states';
+import { publicAppUrl } from '@/lib/publicLinks';
 
 const METHOD_LABELS = {
   paypal: { label: 'PayPal', icon: '🅿️' },
@@ -245,7 +246,7 @@ export default function QuoteFeePayment() {
           )}
           {success.quote_token && (
             <a
-              href={`${window.location.origin}/Quote/${success.quote_token}`}
+              href={publicAppUrl(`/Quote/${success.quote_token}`)}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-block"

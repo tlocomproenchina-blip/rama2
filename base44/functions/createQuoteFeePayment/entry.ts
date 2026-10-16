@@ -86,7 +86,7 @@ export default async function(req) {
       try {
         brandName = config.invoice_company_name || brandName;
       } catch (_) {}
-      const origin = (req.headers.get('origin') || 'https://tleccargo.base44.app');
+      const origin = 'https://tleccargo.com';
       const orderPayload = {
         intent: 'CAPTURE',
         purchase_units: [

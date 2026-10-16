@@ -43,7 +43,7 @@ function resolveBaseUrl(req: Request, explicit?: string): string {
     const proto = req.headers.get('x-forwarded-proto') || 'https';
     if (host) return `${proto}://${host}`;
   } catch (_) {}
-  return 'https://tlec-cargo.com';
+  return 'https://tleccargo.com';
 }
 
 export default async function(req: Request) {

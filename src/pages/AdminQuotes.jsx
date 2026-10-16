@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Loader2, ArrowLeft, Copy, Check, Send, Plus, Trash2, FileText, Search, Package, Upload, Clipboard } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { sendNotification } from '@/components/NotificationUtils';
+import { publicAppUrl } from '@/lib/publicLinks';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -308,7 +309,7 @@ function QuoteEditor({ quote, config, onBack, onUpdate, saving, setSaving, copie
   // Recalcular totales cuando cambian items, servicePercentage o conversionRate
   const totals = calcQuoteTotals(items, servicePercentage, conversionRate);
 
-  const publicUrl = `${window.location.origin}/Quote/${quote.token}`;
+  const publicUrl = publicAppUrl(`/Quote/${quote.token}`);
 
   // Debounced email lookup para buscar shipping mark
   useEffect(() => {
@@ -374,7 +375,7 @@ function QuoteEditor({ quote, config, onBack, onUpdate, saving, setSaving, copie
 
       // Notificar al cliente cuando el presupuesto pasa a "completado" (con precios)
       if (hasPricedItems && clientEmail && quote.status !== 'completado') {
-        const publicUrl = `${window.location.origin}/Quote/${quote.token}`;
+        const publicUrl = publicAppUrl(`/Quote/${quote.token}`);
         const clientName = `${clientFirstName} ${clientLastName}`.trim() || 'cliente';
         sendNotification({
           to: clientEmail,

@@ -1,5 +1,6 @@
 import { base44 } from '@/components/api/ApiQueueManager';
 import { replaceEmailVariables } from '@/components/EmailVariableReplacer';
+import { PUBLIC_BASE_URL } from '@/lib/publicLinks';
 
 const BASE_NOTIFICATION_TEMPLATES = [
   {
@@ -97,7 +98,7 @@ export function buildNotificationTemplateVariables({ client = {}, user = {}, ext
 
   return {
     app_name: 'TLEC CARGO',
-    app_url: typeof window !== 'undefined' ? window.location.origin : '',
+    app_url: PUBLIC_BASE_URL,
     cliente_nombre: clientName,
     chofer_nombre: clientName,
     email: person?.email || '',
