@@ -20,6 +20,7 @@ import {
 import RolePermissionsCard from '@/components/admin/RolePermissionsCard';
 import RoleAreaSidebar from '@/components/admin/RoleAreaSidebar';
 import { ROLE_OPTIONS, ROLE_PRESETS, PAGE_LABELS } from '@/lib/rolePermissions';
+import { clearRoleConfigCache } from '@/hooks/useAreaAccess';
 import { adminMenuItems } from '@/components/sidebar/sidebarConfig';
 import PageHero from '@/components/common/PageHero';
 
@@ -64,7 +65,7 @@ export default function AdminRoles({ user }) {
             mappedConfigs[code] = {
               ...mappedConfigs[code],
               ...row,
-              visible_pages: row.visible_pages?.length ? row.visible_pages : defaultPagesFor(code)
+              visible_pages: Array.isArray(row.visible_pages) ? row.visible_pages : defaultPagesFor(code)
             };
           }
         });
@@ -114,12 +115,13 @@ export default function AdminRoles({ user }) {
       const savedConfig = res?.data?.role_config;
 
       if (nextRole !== 'sin_area' && savedConfig?.id) {
+        clearRoleConfigCache(nextRole);
         setRoleConfigs((prev) => ({
           ...prev,
           [nextRole]: {
             ...prev[nextRole],
             ...savedConfig,
-            visible_pages: savedConfig.visible_pages?.length
+            visible_pages: Array.isArray(savedConfig.visible_pages)
               ? savedConfig.visible_pages
               : defaultPagesFor(nextRole)
           }
@@ -188,12 +190,13 @@ export default function AdminRoles({ user }) {
       });
       const savedConfig = res?.data?.role_config;
       if (savedConfig) {
+        clearRoleConfigCache(roleCode);
         setRoleConfigs((prev) => ({
           ...prev,
           [roleCode]: {
             ...prev[roleCode],
             ...savedConfig,
-            visible_pages: savedConfig.visible_pages?.length
+            visible_pages: Array.isArray(savedConfig.visible_pages)
               ? savedConfig.visible_pages
               : defaultPagesFor(roleCode)
           }
@@ -306,6 +309,7 @@ export default function AdminRoles({ user }) {
           <div>
             <h2 className="text-xl font-semibold text-slate-800">Permisos por área</h2>
             <p className="text-sm text-slate-500">Toca un área en el panel lateral para desplegar y editar sus permisos.</p>
+            <p className="mt-1 text-sm text-slate-500">Los módulos marcados son los que ve el empleado de esa área en su menú, aunque el módulo esté oculto en la visibilidad general del panel.</p>
           </div>
         </div>
 

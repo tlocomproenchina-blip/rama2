@@ -43,13 +43,28 @@ export function isRestrictedPage(page) {
 }
 
 // Páginas permitidas para el usuario: null significa sin restricción.
-// Se usa la configuración guardada del área y, si todavía no existe o quedó
-// vacía, los módulos predeterminados del área.
+// Manda la configuración guardada del área tal como está (una selección vacía es
+// intencional); los módulos predeterminados solo entran cuando el área todavía no
+// tiene configuración guardada.
 export function allowedPagesFor(user, roleConfig) {
   const area = areaCodeOf(user);
   if (!area) return null;
-  if (roleConfig?.visible_pages?.length) return roleConfig.visible_pages;
+  if (roleConfig) return roleConfig.visible_pages || [];
   return getAreaPreset(area)?.visible_pages || [];
+}
+
+// Módulos que el menú del panel muestra a este usuario. En un empleado de área
+// manda su configuración de área: sus módulos asignados se ven aunque la lista
+// general del panel los tenga ocultos, porque esa lista recorta el panel completo
+// y no puede dejar sin menú a un área. Para el resto, manda la lista general.
+export function menuPagesFor(user, config, roleConfig) {
+  const allPages = adminMenuItems.map((item) => item.page);
+  if (!isAreaEmployee(user)) {
+    const hidden = new Set(config?.sidebar_hidden_pages || []);
+    return allPages.filter((page) => !hidden.has(page));
+  }
+  const allowed = new Set(allowedPagesFor(user, roleConfig) || []);
+  return allPages.filter((page) => allowed.has(page));
 }
 
 export function canAccessPage(user, roleConfig, page) {

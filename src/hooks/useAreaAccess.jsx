@@ -2,24 +2,45 @@ import { useEffect, useMemo, useState } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { allowedPagesFor, areaCodeOf, canAccessPage, getAreaPreset } from '@/lib/areaAccess';
 
-// Configuración de módulos por área: se pide una sola vez por sesión para que
-// cada cambio de página no repita la consulta. La copia en sesión la deja el
-// Layout al cargar el usuario, así el primer render ya usa los módulos reales
-// del área (sin parpadeo).
-const roleConfigCache = new Map();
+// Configuración de módulos por área: se guarda un rato corto para no repetir la
+// consulta en cada cambio de página, pero se vuelve a pedir sola para que un
+// cambio de permisos no quede pegado en la sesión del empleado.
+const CACHE_TTL = 60000;
+const roleConfigCache = new Map(); // area -> { row, at }
+const cacheKey = (area) => `roleConfig:${area}`;
+
+// Copia de la sesión: sirve para el primer render sin parpadeo (la escribe el
+// propio Layout al cargar el usuario).
+function readSessionConfig(area) {
+  try {
+    const raw = sessionStorage.getItem(cacheKey(area));
+    return raw ? JSON.parse(raw) : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+function writeConfig(area, row) {
+  roleConfigCache.set(area, { row, at: Date.now() });
+  if (row) {
+    try { sessionStorage.setItem(cacheKey(area), JSON.stringify(row)); } catch (_) {}
+  }
+}
 
 function readCachedConfig(area) {
   if (!area) return null;
-  if (roleConfigCache.has(area)) return roleConfigCache.get(area);
-  try {
-    const raw = sessionStorage.getItem(`roleConfig:${area}`);
-    if (raw) {
-      const row = JSON.parse(raw);
-      roleConfigCache.set(area, row);
-      return row;
-    }
-  } catch (_) {}
-  return null;
+  const entry = roleConfigCache.get(area);
+  if (entry) return entry.row;
+  return readSessionConfig(area);
+}
+
+// Al guardar los permisos de un área se limpia su copia para que el cambio se vea
+// de inmediato, sin esperar a que expire.
+export function clearRoleConfigCache(area) {
+  const code = String(area || '').trim().toLowerCase();
+  if (!code) return;
+  roleConfigCache.delete(code);
+  try { sessionStorage.removeItem(cacheKey(code)); } catch (_) {}
 }
 
 export default function useAreaAccess(user, page) {
@@ -29,20 +50,22 @@ export default function useAreaAccess(user, page) {
   useEffect(() => {
     if (!area) {
       setRoleConfig(null);
-      return;
+      return undefined;
     }
-    const cached = readCachedConfig(area);
-    if (roleConfigCache.has(area)) {
-      setRoleConfig(cached);
-      return;
-    }
+
+    setRoleConfig(readCachedConfig(area));
+
+    const entry = roleConfigCache.get(area);
+    const isFresh = entry && Date.now() - entry.at < CACHE_TTL;
+    if (isFresh) return undefined;
 
     let active = true;
     base44.entities.RoleConfig.filter({ role_code: area, is_active: true }, '-updated_date', 1)
       .then((rows) => {
         const row = rows?.[0] || null;
-        roleConfigCache.set(area, row);
-        try { if (row) sessionStorage.setItem(`roleConfig:${area}`, JSON.stringify(row)); } catch (_) {}
+        writeConfig(area, row);
+        // Sin configuración guardada para el área: aplican los módulos
+        // predeterminados de su preset.
         if (active) setRoleConfig(row);
       })
       .catch(() => {});

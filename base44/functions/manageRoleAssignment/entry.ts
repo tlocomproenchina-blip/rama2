@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.41';
 import { sanitizeUser } from '../../shared/userSanitize.ts';
+import { ROLE_PRESETS } from '../../shared/roleAreas.ts';
 
 // Asigna un área (custom_role) a un administrador desde el backend.
 // - Valida permisos del solicitante (admin)
@@ -8,19 +9,6 @@ import { sanitizeUser } from '../../shared/userSanitize.ts';
 // - Asegura que exista un RoleConfig con los permisos predeterminados del área
 // - Registra auditoría en EmployeeAuditLog
 // - Devuelve el usuario actualizado (sanitizado) y el role_config
-
-const ROLE_PRESETS = {
-  administrador: { role_name: 'Administrador', description: 'Acceso completo a todos los módulos del sistema, sin restricciones.', visible_pages: [] },
-  operaciones: { role_name: 'Operaciones', description: 'Gestión operativa de paquetes, consolidaciones y seguimiento.', visible_pages: ['AdminDashboard', 'AdminOperaciones', 'AdminLogistica', 'ClientAnalytics', 'AdminPackages', 'AdminVehiculos', 'AdminChoferes', 'AdminRutas', 'AdminRutaDetalle', 'AdminCargaRutas', 'AdminSeguimientoRutas', 'AdminActivityAudit', 'AdminConsolidate', 'AdminShipmentApprovals', 'ShipmentTracking', 'AdminInternalMessages'] },
-  almacen: { role_name: 'Almacén', description: 'Recepción, ubicaciones, picking y packing.', visible_pages: ['AdminDashboard', 'WarehouseDashboard', 'WarehouseReceive', 'WarehouseLocations', 'WarehousePickPackShip', 'AdminInternalMessages'] },
-  contabilidad: { role_name: 'Contabilidad', description: 'Facturación, pagos, proveedores y cuentas por pagar.', visible_pages: ['AdminDashboard', 'AccountingDashboard', 'AdminInvoices', 'AdminPayments', 'AdminAssistedPayments', 'AdminAccountsPayable', 'AdminProviderPayments', 'AdminProviders', 'AdminPaymentAlerts'] },
-  soporte: { role_name: 'Soporte', description: 'Atención al cliente, tickets y ayuda.', visible_pages: ['AdminDashboard', 'AdminClients', 'AdminSupportTickets', 'AdminInternalMessages', 'AdminFAQ', 'ClientAnalytics'] },
-  marketing: { role_name: 'Marketing', description: 'Campañas, plantillas, promociones, blog y referidos.', visible_pages: ['AdminDashboard', 'AdminEmailCampaigns', 'AdminEmailTemplates', 'AdminPromotions', 'AdminMarketing', 'AdminBlog', 'AdminReferrals'] },
-  logistica: { role_name: 'Logística', description: 'Vehículos, choferes, rutas, cargas y detalle operativo.', visible_pages: ['AdminDashboard', 'AdminLogistica', 'AdminVehiculos', 'AdminChoferes', 'AdminRutas', 'AdminRutaDetalle', 'AdminCargaRutas', 'AdminInternalMessages'] },
-  comunicaciones: { role_name: 'Comunicaciones', description: 'Campañas, plantillas y alertas de comunicación.', visible_pages: ['AdminDashboard', 'AdminEmailCampaigns', 'AdminEmailTemplates', 'AdminPaymentAlerts'] },
-  seguimiento: { role_name: 'Seguimiento', description: 'Monitoreo de rutas, tracking y avances de entrega.', visible_pages: ['AdminDashboard', 'AdminSeguimiento', 'AdminLogistica', 'AdminRutas', 'AdminRutaDetalle', 'AdminSeguimientoRutas', 'AdminActivityAudit', 'ShipmentTracking', 'AdminInsured', 'AdminInternalMessages'] },
-  equipo_y_acceso: { role_name: 'Equipo y Acceso', description: 'Gestión de empleados, administradores, roles y auditoría.', visible_pages: ['AdminDashboard', 'AdminEmployees', 'AdminAdministrators', 'AdminRoles', 'AdminEmployeeAudit', 'AdminEmployeePerformance'] },
-};
 
 Deno.serve(async (req) => {
   try {

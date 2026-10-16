@@ -14,7 +14,7 @@ import {
   clientGroups,
   clientMenuItems,
 } from '@/components/sidebar/sidebarConfig';
-import { allowedPagesFor, getAreaPreset, isAreaEmployee } from '@/lib/areaAccess';
+import { getAreaPreset, menuPagesFor } from '@/lib/areaAccess';
 import useAreaAccess from '@/hooks/useAreaAccess';
 
 export default function Sidebar({ user, currentPage, isOpen, onClose, initialConfig }) {
@@ -88,16 +88,12 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
   const badgeCount = 0;
 
 
-  const visibleAdminPages = useMemo(() => {
-    if (user?.role !== 'admin') return [];
-    const hidden = new Set(config?.sidebar_hidden_pages || []);
-    const available = adminMenuItems.map((item) => item.page).filter((page) => !hidden.has(page));
-    // El empleado con área solo ve los módulos de su área; el administrador
-    // sin área ve todo el panel.
-    if (!isAreaEmployee(user)) return available;
-    const allowed = new Set(allowedPagesFor(user, roleConfig) || []);
-    return available.filter((page) => allowed.has(page));
-  }, [user, config?.sidebar_hidden_pages, roleConfig]);
+  // Módulos del menú: el empleado de área ve los módulos de su área y el
+  // administrador sin área el panel según la lista general (ver areaAccess).
+  const visibleAdminPages = useMemo(
+    () => (user?.role !== 'admin' ? [] : menuPagesFor(user, config, roleConfig)),
+    [user, config, roleConfig]
+  );
 
   const filteredAdminMenuItems = useMemo(() => adminMenuItems.filter((item) => visibleAdminPages.includes(item.page)), [visibleAdminPages]);
   const filteredAdminGroups = useMemo(() => {
