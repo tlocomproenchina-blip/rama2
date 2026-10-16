@@ -9,6 +9,7 @@ const LIMITS = {
   consolidations: 6,
   tickets: 5,
   notes: 5,
+  indications: 10,
   orders: 5,
   credits: 200,
 };
@@ -65,7 +66,7 @@ export async function buildSupportClientContext(base44: any, clientEmail: string
   const email = String(clientEmail || '').trim();
   if (!email) return null;
 
-  const [usersRes, packagesRes, recibosRes, invoicesRes, consolidationsRes, ticketsRes, notesRes, creditsRes, ordersRes] = await Promise.allSettled([
+  const [usersRes, packagesRes, recibosRes, invoicesRes, consolidationsRes, ticketsRes, notesRes, indicationsRes, creditsRes, ordersRes] = await Promise.allSettled([
     base44.asServiceRole.entities.User.filter({ email }, '-created_date', 1),
     base44.asServiceRole.entities.Package.filter({ client_email: email }, '-created_date', LIMITS.packages),
     base44.asServiceRole.entities.CbmIngreso.filter({ client_email: email }, '-fecha', LIMITS.recibos),
@@ -73,6 +74,11 @@ export async function buildSupportClientContext(base44: any, clientEmail: string
     base44.asServiceRole.entities.Consolidation.filter({ client_email: email }, '-created_date', LIMITS.consolidations),
     base44.asServiceRole.entities.SupportTicket.filter({ client_email: email }, '-created_date', LIMITS.tickets),
     base44.asServiceRole.entities.ClientNote.filter({ client_email: email }, '-created_date', LIMITS.notes),
+    base44.asServiceRole.entities.SupportClientNote.filter(
+      { client_email: email, note_type: 'indicacion' },
+      '-created_date',
+      LIMITS.indications,
+    ),
     base44.asServiceRole.entities.ClientCredit.filter({ client_email: email }, '-created_date', LIMITS.credits),
     base44.asServiceRole.entities.DispatchOrder.filter({ client_email: email }, '-created_date', LIMITS.orders),
   ]);
@@ -84,6 +90,7 @@ export async function buildSupportClientContext(base44: any, clientEmail: string
   const consolidations = settled(consolidationsRes);
   const tickets = settled(ticketsRes);
   const notes = settled(notesRes);
+  const indications = settled(indicationsRes);
   const credits = settled(creditsRes);
   const orders = settled(ordersRes);
 
@@ -165,6 +172,16 @@ export async function buildSupportClientContext(base44: any, clientEmail: string
       nota: short(n.note, 200),
       tipo: n.note_type || null,
       autor: n.created_by || null,
+      fecha: day(n.created_date),
+    })),
+    // Indicaciones que dejó Supervisión para la atención de este cliente: son
+    // parte de su historial y el ATC las consulta aquí, con su autor y su fecha.
+    indicaciones: indications.map((n: any) => ({
+      id: n.id || null,
+      nota: short(n.note, 400),
+      caso: n.ticket_number || null,
+      para: n.addressed_to || null,
+      autor: n.author_name || n.author_email || null,
       fecha: day(n.created_date),
     })),
     ordenes_despacho: orders.map((o: any) => ({

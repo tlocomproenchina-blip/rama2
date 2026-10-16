@@ -170,6 +170,27 @@ export default function AssistantClientPanel({ client, context, loading }) {
           )}
         />
 
+        {context.indicaciones?.length > 0 ? (
+          <AssistantHistoryList
+            title="Indicaciones del supervisor"
+            count={context.indicaciones.length}
+            items={context.indicaciones}
+            empty="Sin indicaciones del supervisor."
+            renderItem={(item) => (
+              <div className="space-y-0.5">
+                <p className="font-semibold text-primary">
+                  {item.caso ? `Caso ${item.caso}` : 'Cliente en general'}
+                  {item.para ? ` · para ${item.para}` : ''}
+                </p>
+                <p>{item.nota}</p>
+                <p className="text-muted-foreground">
+                  {item.fecha}{item.autor ? ` · ${item.autor}` : ''}
+                </p>
+              </div>
+            )}
+          />
+        ) : null}
+
         {context.notas_internas.length > 0 ? (
           <AssistantHistoryList
             title="Notas internas"
