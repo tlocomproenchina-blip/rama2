@@ -11,7 +11,6 @@ import ClientStateRatesCard from '@/components/manual-billing/ClientStateRatesCa
 import BillingInvoiceRow from '@/components/manual-billing/BillingInvoiceRow';
 import BillingSummary from '@/components/manual-billing/BillingSummary';
 import PackagesWithoutReceiptSection from '@/components/manual-billing/PackagesWithoutReceiptSection';
-import DuplicateReceiptsBanner from '@/components/manual-billing/DuplicateReceiptsBanner';
 import DuplicateMergeDialog from '@/components/manual-billing/DuplicateMergeDialog';
 import ReceiptsAutoMergeNotice from '@/components/manual-billing/ReceiptsAutoMergeNotice';
 import PendingBillingPanel from '@/components/manual-billing/PendingBillingPanel';
@@ -1105,14 +1104,6 @@ export default function AdminManualBilling({ user }) {
           <div className="rounded-2xl border border-border bg-card p-4">
             <ClientSearchBox onSelect={loadClientInvoices} />
           </div>
-
-      <DuplicateReceiptsBanner
-        groups={dupGroups}
-        scanning={scanningDups}
-        hasClient={!!client}
-        onOpen={() => setShowMergeDialog(true)}
-        onRescan={() => (client ? autoMergeDuplicates(client, true) : checkPendingDuplicates())}
-      />
 
       <ReceiptsAutoMergeNotice
         merging={autoMerging}
