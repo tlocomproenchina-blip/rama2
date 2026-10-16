@@ -14,6 +14,7 @@ import SupportClientProfileCard from '@/components/support/client-file/SupportCl
 import SupportNotesPanel from '@/components/support/client-file/SupportNotesPanel';
 import SupportGuidancePanel from '@/components/support/client-file/SupportGuidancePanel';
 import SupportFollowUpPanel from '@/components/support/client-file/SupportFollowUpPanel';
+import SupportPackageEditCard from '@/components/support/package-edit/SupportPackageEditCard';
 
 // Panel del área de Soporte: el ATC busca al cliente, revisa su expediente
 // completo y atiende la conversación. Los casos escalados viven en su propio
@@ -137,6 +138,13 @@ export default function AdminSupportAssistant({ user }) {
 
             {client ? (
               <>
+                <SupportPackageEditCard
+                  clientEmail={client.email}
+                  clientName={clientName}
+                  shippingMark={client.shipping_mark || ''}
+                  user={user}
+                />
+
                 <div className="grid gap-5 xl:grid-cols-2">
                   <SupportNotesPanel
                     clientEmail={client.email}
