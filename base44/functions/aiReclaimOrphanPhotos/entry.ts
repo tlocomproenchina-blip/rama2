@@ -13,12 +13,12 @@ import { confirmReceptionToWholesaler, noticeDeliveredWithPhoto, setOrphanFollow
 // Reclama huérfanos usando IA para leer el tracking de la foto.
 // Procesa en lotes pequeños (default 3) para evitar timeout del navegador.
 //
-// Control de créditos de integración:
-// - Ruta principal: Claude Sonnet 4.6 vía InvokeLLM (~4 créditos/call).
-// - Ruta fallback: OpenAI directo (OPENAI_API_KEY) — NO consume créditos de integración.
-// - El contador ai_reclaim_credits_used se rastrea en AppConfig y se resetea mensualmente.
-// - Cuando el gasto estimado supera el 50% del presupuesto (ai_reclaim_monthly_budget),
-//   se conmuta automáticamente a la ruta OpenAI directa.
+// La IA la elige el administrador en el panel y viaja en cada llamada (provider).
+// No hay conmutación automática: el proveedor elegido es el que se usa, y si su
+// configuración falta o falla, el paquete queda como error de ruta para reintentar.
+// - Claude Sonnet 4.6 vía InvokeLLM (~4 créditos de integración por llamada).
+// - OpenAI directo (OPENAI_API_KEY) — no consume créditos de integración.
+// El contador ai_reclaim_credits_used se conserva solo como dato de consumo.
 //
 // - Marca ai_unreadable=true si la IA no puede leer el tracking.
 // - Marca ai_attempted_date si la IA lee el tracking pero no hay cliente coincidente
@@ -33,7 +33,6 @@ import { confirmReceptionToWholesaler, noticeDeliveredWithPhoto, setOrphanFollow
 //   los dos registros se unen en uno en vez de dejar dos copias del mismo paquete.
 
 const CLAUDE_COST_PER_CALL = 4; // créditos estimados por llamada a Claude Sonnet 4.6
-const FALLBACK_THRESHOLD = 0.5;  // 50% del presupuesto
 
 const VISION_PROMPT = `Eres un asistente de logística. Examina la foto de un paquete y extrae el número de tracking (tracking number) que aparece en la etiqueta de envío. El número de tracking suele ser una cadena alfanumérica larga (ej: YT2423123456789012, LP009876543210, 4PX1234567890, 79142337780380, etc.). NO devuelvas el código de barras numérico genérico (EAN/UPC de producto). Devuelve SOLO el número de tracking de la transportadora como una cadena CONTINUA sin espacios, guiones ni separadores de ningún tipo (ej: "YT2423123456789012", no "YT2423 1234 5678 9012"). Si no puedes leer ningún tracking claro, devuelve null.`;
 
@@ -114,14 +113,17 @@ export default async function(req: Request): Promise<Response> {
     const onlyIds: string[] = Array.isArray(body?.only_ids) ? body.only_ids.filter(Boolean) : [];
     const limit = Math.min(Number(body?.limit) || 3, 10);
 
-    // Cargar AppConfig para decidir ruta (Claude vs OpenAI directo)
+    // IA elegida por el administrador en el panel: es la que se usa, sin conmutación.
+    const provider: 'claude' | 'openai' = body?.provider === 'openai' ? 'openai' : 'claude';
+    const activeRoute = provider === 'openai' ? 'openai_direct' : 'claude_invoke';
+
+    // Cargar AppConfig solo para llevar el consumo de créditos (métrica, sin límites)
     const configRows = await base44.asServiceRole.entities.AppConfig.filter({ config_key: 'main' }, '-updated_date', 1);
     const config = configRows?.[0] || {};
-    const budget = typeof config.ai_reclaim_monthly_budget === 'number' ? config.ai_reclaim_monthly_budget : 200;
     const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
     let creditsUsed = typeof config.ai_reclaim_credits_used === 'number' ? config.ai_reclaim_credits_used : 0;
 
-    // Reset mensual automático
+    // Reset mensual del contador de consumo
     if (config.ai_reclaim_counter_month !== currentMonth) {
       creditsUsed = 0;
       try {
@@ -131,9 +133,6 @@ export default async function(req: Request): Promise<Response> {
         });
       } catch (_) {}
     }
-
-    const useFallback = creditsUsed >= budget * FALLBACK_THRESHOLD;
-    const activeRoute = useFallback ? 'openai_direct' : 'claude_invoke';
 
     const tenMinAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
 
@@ -193,12 +192,12 @@ export default async function(req: Request): Promise<Response> {
         : orphan.package_image_url) as string;
 
       try {
-        // 2) Extraer tracking con IA (visión) — ruta decidida por presupuesto
+        // 2) Extraer tracking con IA (visión) usando la IA elegida en el panel
         let tracking = '';
-        let routeUsed = activeRoute;
+        const routeUsed = activeRoute;
         let routeError: string | undefined;
 
-        if (useFallback) {
+        if (provider === 'openai') {
           const r = await extractTrackingOpenAI(photoUrl);
           tracking = r.tracking || '';
           routeError = r.error;
@@ -209,23 +208,14 @@ export default async function(req: Request): Promise<Response> {
           tracking = r.tracking || '';
           routeError = r.error;
           claudeCalls++;
-          // Sumar costo estimado al contador y persistir
+          if (routeError) routeFailures++;
+          // Consumo estimado de créditos de integración (solo métrica)
           creditsUsed += CLAUDE_COST_PER_CALL;
           try {
             await base44.asServiceRole.entities.AppConfig.update(config.id, {
               ai_reclaim_credits_used: creditsUsed,
             });
           } catch (_) {}
-          // Si la ruta Claude falló y aún queda presupuesto, intentar OpenAI como respaldo
-          if (routeError && creditsUsed < budget * FALLBACK_THRESHOLD) {
-            const r2 = await extractTrackingOpenAI(photoUrl);
-            if (r2.tracking) {
-              tracking = r2.tracking;
-              routeUsed = 'openai_direct';
-              routeError = undefined;
-            }
-            openaiCalls++;
-          }
         }
 
         if (!tracking || tracking.length < 5) {
@@ -378,8 +368,8 @@ export default async function(req: Request): Promise<Response> {
       avisos_enviados: avisosEnviados,
       avisos_pendientes: avisosPendientes,
       route: activeRoute,
+      provider,
       credits_used: creditsUsed,
-      credits_budget: budget,
       claude_calls: claudeCalls,
       openai_calls: openaiCalls,
       route_failures: routeFailures,

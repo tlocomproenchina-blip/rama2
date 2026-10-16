@@ -17,6 +17,7 @@ import { useOfflineWriteQueue } from '@/hooks/useOfflineWriteQueue';
 import OfflineSyncBadge from '@/components/warehouse/OfflineSyncBadge';
 import OrphanWholesalerSelect from '@/components/admin/orphans/OrphanWholesalerSelect';
 import OrphanWholesalerBadge from '@/components/admin/orphans/OrphanWholesalerBadge';
+import OrphanAiModelSelect from '@/components/admin/orphans/OrphanAiModelSelect';
 import { getAll } from '@/lib/offlineDb';
 
 const PAGE_SIZE = 50;
@@ -66,9 +67,15 @@ export default function AdminOrphanPackages({ user }) {
   const [aiScanBusy, setAiScanBusy] = useState(false);
   const [aiProgress, setAiProgress] = useState(null); // { processed, total, assigned, unreadable, notFound, errors }
   const [aiFinalSummary, setAiFinalSummary] = useState(null);
-  const [aiBudget, setAiBudget] = useState({ credits_used: 0, monthly_budget: 200, route: 'claude_invoke' });
-  const [budgetInput, setBudgetInput] = useState('200');
-  const [savingBudget, setSavingBudget] = useState(false);
+  // IA elegida para leer las fotos. Se conserva en el navegador para los próximos usos
+  // y viaja en cada llamada al reclamo con IA.
+  const [aiProvider, setAiProviderState] = useState(() => {
+    try { return localStorage.getItem('orphan_ai_provider') === 'openai' ? 'openai' : 'claude'; } catch (_) { return 'claude'; }
+  });
+  const setAiProvider = (value) => {
+    setAiProviderState(value);
+    try { localStorage.setItem('orphan_ai_provider', value); } catch (_) {}
+  };
 
   const { pending: pendingAssigns, isOnline, isSyncing, enqueue: enqueueAssign } = useOfflineWriteQueue({
     queueType: 'orphan_assign',
@@ -116,33 +123,6 @@ export default function AdminOrphanPackages({ user }) {
 
   useEffect(() => { loadOrphans(true); }, []);
 
-  // Cargar configuración de presupuesto IA de AppConfig
-  const loadAiBudget = useCallback(async () => {
-    try {
-      const rows = await base44.entities.AppConfig.filter({ config_key: 'main' }, '-updated_date', 1);
-      const cfg = rows?.[0] || {};
-      const used = typeof cfg.ai_reclaim_credits_used === 'number' ? cfg.ai_reclaim_credits_used : 0;
-      const budget = typeof cfg.ai_reclaim_monthly_budget === 'number' ? cfg.ai_reclaim_monthly_budget : 200;
-      setAiBudget({ credits_used: used, monthly_budget: budget, route: used >= budget * 0.5 ? 'openai_direct' : 'claude_invoke' });
-      setBudgetInput(String(budget));
-    } catch (_) {}
-  }, []);
-  useEffect(() => { loadAiBudget(); }, [loadAiBudget]);
-
-  const saveBudget = async () => {
-    const val = Number(budgetInput);
-    if (!Number.isFinite(val) || val < 0) { toast.error('Presupuesto inválido'); return; }
-    setSavingBudget(true);
-    try {
-      const rows = await base44.entities.AppConfig.filter({ config_key: 'main' }, '-updated_date', 1);
-      const cfg = rows?.[0];
-      if (!cfg) throw new Error('Config no encontrada');
-      await base44.entities.AppConfig.update(cfg.id, { ai_reclaim_monthly_budget: val });
-      setAiBudget((prev) => ({ ...prev, monthly_budget: val, route: prev.credits_used >= val * 0.5 ? 'openai_direct' : 'claude_invoke' }));
-      toast.success('Presupuesto IA guardado');
-    } catch (e) { toast.error('No se pudo guardar el presupuesto'); }
-    setSavingBudget(false);
-  };
 
   // Suscripción en tiempo real: una carga sale de la lista en cuanto se le asigna un
   // cliente (correo o shipping mark), sin esperar al aviso de recepción al mayorista.
@@ -383,8 +363,8 @@ export default function AdminOrphanPackages({ user }) {
       while (hasMore && guard < 200) {
         guard++;
         const payload = selectedIds.length > 0 && guard === 1
-          ? { only_ids: selectedIds, limit: 3 }
-          : { limit: 3 };
+          ? { only_ids: selectedIds, limit: 3, provider: aiProvider }
+          : { limit: 3, provider: aiProvider };
         const { data } = await base44.functions.invoke('aiReclaimOrphanPhotos', payload);
         if (data?.error) throw new Error(data.error);
 
@@ -398,15 +378,6 @@ export default function AdminOrphanPackages({ user }) {
         totalConflicts += data.conflicts || 0;
         totalAvisos += data.avisos_enviados || 0;
         totalAvisosPend += data.avisos_pendientes || 0;
-
-        // Actualizar presupuesto desde la respuesta del backend
-        if (typeof data.credits_used === 'number' || typeof data.credits_budget === 'number' || data.route) {
-          setAiBudget((prev) => ({
-            credits_used: typeof data.credits_used === 'number' ? data.credits_used : prev.credits_used,
-            monthly_budget: typeof data.credits_budget === 'number' ? data.credits_budget : prev.monthly_budget,
-            route: data.route || prev.route,
-          }));
-        }
 
         setAiProgress({
           processed: totalProcessed,
@@ -497,18 +468,7 @@ export default function AdminOrphanPackages({ user }) {
         </div>
         <div className="flex flex-col items-end gap-2 shrink-0">
           <div className="flex items-center gap-2">
-            <Badge
-              variant="outline"
-              className={aiBudget.route === 'claude_invoke'
-                ? 'gap-1 border-green-200 bg-green-50 text-green-700'
-                : 'gap-1 border-amber-300 bg-amber-50 text-amber-700'}
-              title={aiBudget.route === 'claude_invoke'
-                ? 'Usando Claude Sonnet 4.6 (consume créditos de integración)'
-                : 'Presupuesto al 50% — usando OpenAI directo (no consume créditos de integración)'}
-            >
-              <span className={`h-1.5 w-1.5 rounded-full ${aiBudget.route === 'claude_invoke' ? 'bg-green-500' : 'bg-amber-500'}`} />
-              {aiBudget.route === 'claude_invoke' ? 'Claude Sonnet' : 'OpenAI (fallback)'}
-            </Badge>
+            <OrphanAiModelSelect value={aiProvider} onChange={setAiProvider} disabled={aiScanBusy} />
             <Button
               onClick={handleAiReclaim}
               disabled={aiScanBusy || (orphans.length === 0 && selectedIds.length === 0)}
@@ -629,47 +589,6 @@ export default function AdminOrphanPackages({ user }) {
           </CardContent>
         </Card>
       </div>
-
-      {/* Panel de presupuesto IA */}
-      <Card className="shadow-sm border-purple-100">
-        <CardContent className="p-4 space-y-3">
-          <div className="flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-purple-600" />
-            <p className="text-sm font-medium text-slate-700">Presupuesto IA de reclamo (créditos de integración)</p>
-          </div>
-          <div className="flex flex-col md:flex-row md:items-center gap-3">
-            <div className="flex items-center gap-2 shrink-0">
-              <Label className="text-xs text-slate-500 whitespace-nowrap">Presupuesto mensual</Label>
-              <Input
-                type="number"
-                value={budgetInput}
-                onChange={(e) => setBudgetInput(e.target.value)}
-                className="w-24 h-9"
-                min={0}
-              />
-              <Button size="sm" variant="outline" onClick={saveBudget} disabled={savingBudget} className="h-9">
-                {savingBudget ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Guardar'}
-              </Button>
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
-                <span>{aiBudget.credits_used} / {aiBudget.monthly_budget} créditos usados</span>
-                <span className={aiBudget.route === 'openai_direct' ? 'text-amber-600 font-medium' : 'text-slate-400'}>
-                  {aiBudget.route === 'openai_direct' ? 'Fallback OpenAI activo' : `Conmuta a OpenAI al ${(aiBudget.monthly_budget * 0.5).toFixed(0)} (50%)`}
-                </span>
-              </div>
-              <div className="h-2.5 rounded-full bg-slate-100 overflow-hidden relative">
-                <div
-                  className={`h-full rounded-full transition-all ${aiBudget.route === 'openai_direct' ? 'bg-amber-500' : 'bg-purple-500'}`}
-                  style={{ width: `${Math.min(100, (aiBudget.monthly_budget > 0 ? (aiBudget.credits_used / aiBudget.monthly_budget) * 100 : 0))}%` }}
-                />
-                {/* Marcador del 50% */}
-                <div className="absolute top-0 bottom-0 w-px bg-amber-400" style={{ left: '50%' }} title="Umbral de conmutación (50%)" />
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       <Card className="shadow-sm">
         <CardContent className="p-4 flex flex-col md:flex-row md:items-center gap-3">
