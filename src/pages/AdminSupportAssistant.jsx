@@ -143,11 +143,7 @@ export default function AdminSupportAssistant({ user }) {
                   user={user}
                 />
               </>
-            ) : (
-              <div className="rounded-2xl border border-dashed border-border p-4 text-sm text-muted-foreground">
-                Busca y abre un cliente para ver su expediente: datos de contacto, historial, notas internas, indicaciones del supervisor y seguimiento de casos.
-              </div>
-            )}
+            ) : null}
           </div>
         </div>
       </section>
