@@ -43,9 +43,9 @@ export function getNotificationUrl(notif, user) {
       : pageUrl('MyPackages');
   }
 
-  // Caso escalado al supervisor desde el Asistente ATC → abre el expediente en la pestaña Supervisor
+  // Caso escalado al supervisor desde el Asistente ATC → abre el expediente en el módulo del supervisor
   if (/caso escalado/i.test(title) && ref) {
-    return pageUrl('AdminSupportAssistant', `?ticketId=${ref}`);
+    return pageUrl('AdminSupportSupervisor', `?ticketId=${ref}`);
   }
 
   if (isTicket) {

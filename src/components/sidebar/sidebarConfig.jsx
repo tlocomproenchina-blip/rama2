@@ -121,6 +121,7 @@ export const adminMenuItems = [
   { name: 'Calculadora', page: 'ShippingCalculator', icon: Calculator },
   { name: 'Tracking Asegurados', page: 'AdminInsured', icon: ShieldCheck },
   { name: 'Asistente ATC', page: 'AdminSupportAssistant', icon: Headphones },
+  { name: 'Supervisor', page: 'AdminSupportSupervisor', icon: ShieldCheck },
   { name: 'Tickets Soporte', page: 'AdminSupportTickets', icon: MessageCircle },
   { name: 'Mensajes Rápidos', page: 'AdminSupportQuickMessages', icon: MessageCircle },
   { name: 'Mensajería Interna', page: 'AdminInternalMessages', icon: MessageSquareMore },
@@ -149,7 +150,7 @@ export const adminGroups = [
   { label: 'COMUNICACIONES', items: ['AdminEmailCampaigns', 'AdminDeliveryProofCampaign', 'AdminEmailHistory', 'AdminEmailTemplates', 'AdminPaymentAlerts'] },
   { label: 'MARKETING', items: ['AdminPromotions', 'AdminMarketing', 'AdminCityAnalytics', 'AdminBlog', 'AdminReferrals'] },
   { label: 'SEGUIMIENTO', items: ['AdminSeguimiento', 'AdminActivityAudit', 'ShipmentTracking', 'AdminSeguimientoRutas', 'ShippingCalculator', 'AdminInsured'] },
-  { label: 'SOPORTE', items: ['AdminSupportAssistant', 'AdminSupportTickets', 'AdminSupportQuickMessages', 'AdminInternalMessages', 'AdminFAQ'] },
+  { label: 'SOPORTE', items: ['AdminSupportAssistant', 'AdminSupportSupervisor', 'AdminSupportTickets', 'AdminSupportQuickMessages', 'AdminInternalMessages', 'AdminFAQ'] },
   { label: 'EQUIPO Y ACCESOS', items: ['AdminEmployees', 'AdminAdministrators', 'AdminRoles', 'AdminEmployeeAudit', 'AdminEmployeePerformance'] },
   { label: 'GESTIÓN', items: ['AdminClients', 'AdminWholesalerClients', 'AdminSharedPortal', 'AdminDuplicates', 'AdminKnowledgeBase', 'AdminDelete', 'AdminSettings'] },
 ];
