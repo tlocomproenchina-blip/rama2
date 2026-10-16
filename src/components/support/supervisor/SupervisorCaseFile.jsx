@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, ArrowLeft, CheckCircle2, ClipboardList, ExternalLink, MessageSquare, RotateCcw, History } from 'lucide-react';
 import { toast } from 'sonner';
 import TicketChat from '@/components/support/TicketChat';
+import SupportCaseSummary from '@/components/support/SupportCaseSummary';
 import SupportNotesPanel from '@/components/support/client-file/SupportNotesPanel';
 import SupportGuidancePanel from '@/components/support/client-file/SupportGuidancePanel';
 import SupportClientProfileCard from '@/components/support/client-file/SupportClientProfileCard';
@@ -194,7 +195,7 @@ export default function SupervisorCaseFile({ ticket, user, onBack, onChange }) {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="whitespace-pre-wrap text-sm text-foreground">{ticket.escalation_summary}</p>
+            <SupportCaseSummary text={ticket.escalation_summary} />
           </CardContent>
         </Card>
       ) : null}
@@ -216,6 +217,7 @@ export default function SupervisorCaseFile({ ticket, user, onBack, onChange }) {
                 onSendMessage={handleSendMessage}
                 currentUserEmail={user?.email}
                 disabled={ticket.status === 'cerrado' || saving}
+                scrollClassName="max-h-[30rem] xl:max-h-[34rem]"
                 maxFiles={5}
                 attachmentAccept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv"
                 attachmentsLabel="Adjuntar fotos, PDF o documentos"

@@ -7,11 +7,13 @@ import { format } from 'date-fns';
 import { toast } from 'sonner';
 import SupportImageUploader from '@/components/support/SupportImageUploader';
 import SupportAttachmentsPreview from '@/components/support/SupportAttachmentsPreview';
+import SupportCaseSummary from '@/components/support/SupportCaseSummary';
+import { hasCaseSummary } from '@/lib/caseSummary';
 import QuickMessagePicker from '@/components/support/QuickMessagePicker';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { base44 } from '@/api/base44Client';
 
-export default function TicketChat({ messages, onSendMessage, currentUserEmail, disabled, maxFiles = 3, status, onStatusChange, statusOptions = [], ticketId, feedbackReceived, onFeedbackSubmitted, attachmentAccept = 'image/*', attachmentsLabel }) {
+export default function TicketChat({ messages, onSendMessage, currentUserEmail, disabled, maxFiles = 3, status, onStatusChange, statusOptions = [], ticketId, feedbackReceived, onFeedbackSubmitted, attachmentAccept = 'image/*', attachmentsLabel, scrollClassName = 'max-h-96' }) {
   const [newMessage, setNewMessage] = useState('');
   const [attachments, setAttachments] = useState([]);
   const [sending, setSending] = useState(false);
@@ -66,13 +68,30 @@ export default function TicketChat({ messages, onSendMessage, currentUserEmail, 
   return (
     <div className="space-y-4">
       {/* Messages */}
-      <div className="space-y-3 max-h-96 overflow-y-auto">
+      <div className={`space-y-3 overflow-y-auto ${scrollClassName}`}>
         {messages?.length === 0 ? (
           <p className="text-center text-slate-400 py-8">No hay mensajes aún</p>
         ) : (
           messages?.map((msg, idx) => {
             const isEmployeeMessage = msg.is_admin;
             const isAiMessage = msg.is_ai;
+            // El caso escalado llega como un texto largo con varias partes: se
+            // muestra ordenado y en un recuadro propio para poder leerlo.
+            const structured = hasCaseSummary(msg.message);
+            const bubbleTone = structured
+              ? 'w-full border border-border/70 bg-card text-foreground'
+              : isAiMessage
+                ? 'max-w-[80%] border border-violet-200 bg-violet-50 text-slate-800'
+                : isEmployeeMessage
+                  ? 'max-w-[80%] bg-slate-100 text-slate-800'
+                  : 'max-w-[80%] bg-green-500 text-white';
+            const metaTone = structured
+              ? 'justify-between text-muted-foreground'
+              : isAiMessage
+                ? 'justify-between text-violet-600'
+                : isEmployeeMessage
+                  ? 'justify-between text-slate-500'
+                  : 'justify-end text-green-50';
             return (
               <div key={idx} className={`flex gap-3 ${isEmployeeMessage || isAiMessage ? '' : 'flex-row-reverse'}`}>
                 <Avatar className={`h-8 w-8 flex items-center justify-center ${isAiMessage ? 'bg-violet-100' : isEmployeeMessage ? 'bg-slate-100' : 'bg-green-100'}`}>
@@ -85,15 +104,19 @@ export default function TicketChat({ messages, onSendMessage, currentUserEmail, 
                   )}
                 </Avatar>
                 <div className={`flex-1 ${isEmployeeMessage || isAiMessage ? 'text-left' : 'text-right'}`}>
-                    <div className={`inline-block max-w-[80%] ${isAiMessage ? 'bg-violet-50 text-slate-800 border border-violet-200' : isEmployeeMessage ? 'bg-slate-100 text-slate-800' : 'bg-green-500 text-white'} rounded-2xl px-4 py-2`}>
-                      <div className={`mb-1 flex items-center gap-2 text-[11px] ${isAiMessage ? 'justify-between text-violet-600' : isEmployeeMessage ? 'justify-between text-slate-500' : 'justify-end text-green-50'}`}>
+                    <div className={`inline-block break-words rounded-2xl px-4 py-2 ${bubbleTone}`}>
+                      <div className={`mb-1 flex items-center gap-2 text-[11px] ${metaTone}`}>
                         <p className="text-sm font-medium flex items-center gap-1">
                           {msg.sender_name}
                           {isAiMessage && <span className="text-[9px] bg-violet-200 text-violet-700 px-1.5 py-0.5 rounded-full font-semibold">IA</span>}
                         </p>
                         <span>{format(new Date(msg.timestamp), 'dd/MM/yyyy HH:mm')}</span>
                       </div>
-                      {msg.message ? <p className="text-sm whitespace-pre-wrap">{msg.message}</p> : null}
+                      {msg.message ? (
+                        structured
+                          ? <SupportCaseSummary text={msg.message} className="mt-1" />
+                          : <p className="text-sm whitespace-pre-wrap">{msg.message}</p>
+                      ) : null}
                       <SupportAttachmentsPreview attachments={msg.attachments} />
                     </div>
                     {showFeedbackButtons && idx === lastAiMsgIdx && (
