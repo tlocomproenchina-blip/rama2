@@ -13,11 +13,12 @@ import { confirmReceptionToWholesaler, noticeDeliveredWithPhoto, setOrphanFollow
 // Reclama huérfanos usando IA para leer el tracking de la foto.
 // Procesa en lotes pequeños (default 3) para evitar timeout del navegador.
 //
-// La IA la elige el administrador en el panel y viaja en cada llamada (provider).
-// No hay conmutación automática: el proveedor elegido es el que se usa, y si su
+// La IA la elige el administrador en el panel y viaja en cada llamada (model_key).
+// No hay conmutación automática: el modelo elegido es el que se usa, y si su
 // configuración falta o falla, el paquete queda como error de ruta para reintentar.
-// - Claude Sonnet 4.6 vía InvokeLLM (~4 créditos de integración por llamada).
-// - OpenAI directo (OPENAI_API_KEY) — no consume créditos de integración.
+// Cada modelo del registro AI_MODELS indica cómo se ejecuta:
+// - model: se pide por InvokeLLM de Base44 (consume créditos de integración).
+// - openai_direct: API de OpenAI con OPENAI_API_KEY (no consume créditos de integración).
 // El contador ai_reclaim_credits_used se conserva solo como dato de consumo.
 //
 // - Marca ai_unreadable=true si la IA no puede leer el tracking.
@@ -32,17 +33,32 @@ import { confirmReceptionToWholesaler, noticeDeliveredWithPhoto, setOrphanFollow
 //   sin cliente (el mismo paquete dado de alta por otro método de identificación),
 //   los dos registros se unen en uno en vez de dejar dos copias del mismo paquete.
 
-const CLAUDE_COST_PER_CALL = 4; // créditos estimados por llamada a Claude Sonnet 4.6
+// Modelos que el administrador puede elegir en el panel (las claves son las mismas
+// que ofrece el selector) con el consumo estimado de créditos por llamada.
+const AI_MODELS: Record<string, { model: string | null; credits: number }> = {
+  'claude-sonnet-5': { model: 'claude-sonnet-5', credits: 5 },
+  'claude_opus_5': { model: 'claude_opus_5', credits: 8 },
+  'claude_sonnet_4_6': { model: 'claude_sonnet_4_6', credits: 4 },
+  'gpt_5_6_sol': { model: 'gpt_5_6_sol', credits: 6 },
+  'gpt_5_6_luna': { model: 'gpt_5_6_luna', credits: 3 },
+  'gpt_5_4': { model: 'gpt_5_4', credits: 3 },
+  'gemini_3_1_pro': { model: 'gemini_3_1_pro', credits: 3 },
+  'gemini_3_flash': { model: 'gemini_3_flash', credits: 1 },
+  'gpt_5_mini': { model: 'gpt_5_mini', credits: 1 },
+  'automatic': { model: 'automatic', credits: 2 },
+  'openai_direct': { model: null, credits: 0 },
+};
+const DEFAULT_MODEL_KEY = 'claude_sonnet_4_6';
 
 const VISION_PROMPT = `Eres un asistente de logística. Examina la foto de un paquete y extrae el número de tracking (tracking number) que aparece en la etiqueta de envío. El número de tracking suele ser una cadena alfanumérica larga (ej: YT2423123456789012, LP009876543210, 4PX1234567890, 79142337780380, etc.). NO devuelvas el código de barras numérico genérico (EAN/UPC de producto). Devuelve SOLO el número de tracking de la transportadora como una cadena CONTINUA sin espacios, guiones ni separadores de ningún tipo (ej: "YT2423123456789012", no "YT2423 1234 5678 9012"). Si no puedes leer ningún tracking claro, devuelve null.`;
 
-// Extrae el tracking usando Claude Sonnet 4.6 vía InvokeLLM (consume créditos de integración).
-async function extractTrackingClaude(base44: any, photoUrl: string): Promise<{ tracking: string | null; error?: string }> {
+// Extrae el tracking con el modelo elegido vía InvokeLLM (consume créditos de integración).
+async function extractTrackingInvoke(base44: any, photoUrl: string, model: string): Promise<{ tracking: string | null; error?: string }> {
   try {
     const aiRes = await base44.asServiceRole.integrations.Core.InvokeLLM({
       prompt: VISION_PROMPT,
       file_urls: [photoUrl],
-      model: 'claude_sonnet_4_6',
+      model,
       response_json_schema: {
         type: 'object',
         properties: {
@@ -55,7 +71,7 @@ async function extractTrackingClaude(base44: any, photoUrl: string): Promise<{ t
     const tracking = typeof extracted === 'string' ? extracted.replace(/\s+/g, '') : '';
     return { tracking: tracking || null };
   } catch (err: any) {
-    return { tracking: null, error: err?.message || 'Claude InvokeLLM failed' };
+    return { tracking: null, error: err?.message || `InvokeLLM (${model}) failed` };
   }
 }
 
@@ -114,8 +130,17 @@ export default async function(req: Request): Promise<Response> {
     const limit = Math.min(Number(body?.limit) || 3, 10);
 
     // IA elegida por el administrador en el panel: es la que se usa, sin conmutación.
-    const provider: 'claude' | 'openai' = body?.provider === 'openai' ? 'openai' : 'claude';
-    const activeRoute = provider === 'openai' ? 'openai_direct' : 'claude_invoke';
+    const requestedKey = typeof body?.model_key === 'string' ? body.model_key : '';
+    const legacyProvider = body?.provider;
+    const modelKey = AI_MODELS[requestedKey]
+      ? requestedKey
+      : legacyProvider === 'openai'
+        ? 'openai_direct'
+        : legacyProvider === 'claude'
+          ? 'claude_sonnet_4_6'
+          : DEFAULT_MODEL_KEY;
+    const aiModel = AI_MODELS[modelKey];
+    const activeRoute = aiModel.model ? 'invoke_llm' : 'openai_direct';
 
     // Cargar AppConfig solo para llevar el consumo de créditos (métrica, sin límites)
     const configRows = await base44.asServiceRole.entities.AppConfig.filter({ config_key: 'main' }, '-updated_date', 1);
@@ -176,7 +201,7 @@ export default async function(req: Request): Promise<Response> {
     let mergedDuplicates = 0;
     // Huérfanos que se fusionaron dentro de este mismo lote: ya no existen.
     const absorbed = new Set<string>();
-    let claudeCalls = 0;
+    let modelCalls = 0;
     let openaiCalls = 0;
     let routeFailures = 0;
     let avisosEnviados = 0;
@@ -197,20 +222,20 @@ export default async function(req: Request): Promise<Response> {
         const routeUsed = activeRoute;
         let routeError: string | undefined;
 
-        if (provider === 'openai') {
+        if (!aiModel.model) {
           const r = await extractTrackingOpenAI(photoUrl);
           tracking = r.tracking || '';
           routeError = r.error;
           if (routeError) routeFailures++;
           openaiCalls++;
         } else {
-          const r = await extractTrackingClaude(base44, photoUrl);
+          const r = await extractTrackingInvoke(base44, photoUrl, aiModel.model);
           tracking = r.tracking || '';
           routeError = r.error;
-          claudeCalls++;
+          modelCalls++;
           if (routeError) routeFailures++;
           // Consumo estimado de créditos de integración (solo métrica)
-          creditsUsed += CLAUDE_COST_PER_CALL;
+          creditsUsed += aiModel.credits;
           try {
             await base44.asServiceRole.entities.AppConfig.update(config.id, {
               ai_reclaim_credits_used: creditsUsed,
@@ -368,9 +393,9 @@ export default async function(req: Request): Promise<Response> {
       avisos_enviados: avisosEnviados,
       avisos_pendientes: avisosPendientes,
       route: activeRoute,
-      provider,
+      provider: modelKey,
       credits_used: creditsUsed,
-      claude_calls: claudeCalls,
+      model_calls: modelCalls,
       openai_calls: openaiCalls,
       route_failures: routeFailures,
     });

@@ -18,6 +18,7 @@ import OfflineSyncBadge from '@/components/warehouse/OfflineSyncBadge';
 import OrphanWholesalerSelect from '@/components/admin/orphans/OrphanWholesalerSelect';
 import OrphanWholesalerBadge from '@/components/admin/orphans/OrphanWholesalerBadge';
 import OrphanAiModelSelect from '@/components/admin/orphans/OrphanAiModelSelect';
+import { ORPHAN_AI_DEFAULT } from '@/lib/orphanAiModels';
 import { getAll } from '@/lib/offlineDb';
 
 const PAGE_SIZE = 50;
@@ -69,12 +70,18 @@ export default function AdminOrphanPackages({ user }) {
   const [aiFinalSummary, setAiFinalSummary] = useState(null);
   // IA elegida para leer las fotos. Se conserva en el navegador para los próximos usos
   // y viaja en cada llamada al reclamo con IA.
-  const [aiProvider, setAiProviderState] = useState(() => {
-    try { return localStorage.getItem('orphan_ai_provider') === 'openai' ? 'openai' : 'claude'; } catch (_) { return 'claude'; }
+  const [aiModel, setAiModelState] = useState(() => {
+    try {
+      const saved = localStorage.getItem('orphan_ai_model');
+      if (saved) return saved;
+      // Elección guardada por la versión anterior del selector
+      const legacy = localStorage.getItem('orphan_ai_provider');
+      return legacy === 'openai' ? 'openai_direct' : ORPHAN_AI_DEFAULT;
+    } catch (_) { return ORPHAN_AI_DEFAULT; }
   });
-  const setAiProvider = (value) => {
-    setAiProviderState(value);
-    try { localStorage.setItem('orphan_ai_provider', value); } catch (_) {}
+  const setAiModel = (value) => {
+    setAiModelState(value);
+    try { localStorage.setItem('orphan_ai_model', value); } catch (_) {}
   };
 
   const { pending: pendingAssigns, isOnline, isSyncing, enqueue: enqueueAssign } = useOfflineWriteQueue({
@@ -363,8 +370,8 @@ export default function AdminOrphanPackages({ user }) {
       while (hasMore && guard < 200) {
         guard++;
         const payload = selectedIds.length > 0 && guard === 1
-          ? { only_ids: selectedIds, limit: 3, provider: aiProvider }
-          : { limit: 3, provider: aiProvider };
+          ? { only_ids: selectedIds, limit: 3, model_key: aiModel }
+          : { limit: 3, model_key: aiModel };
         const { data } = await base44.functions.invoke('aiReclaimOrphanPhotos', payload);
         if (data?.error) throw new Error(data.error);
 
@@ -468,7 +475,7 @@ export default function AdminOrphanPackages({ user }) {
         </div>
         <div className="flex flex-col items-end gap-2 shrink-0">
           <div className="flex items-center gap-2">
-            <OrphanAiModelSelect value={aiProvider} onChange={setAiProvider} disabled={aiScanBusy} />
+            <OrphanAiModelSelect value={aiModel} onChange={setAiModel} disabled={aiScanBusy} />
             <Button
               onClick={handleAiReclaim}
               disabled={aiScanBusy || (orphans.length === 0 && selectedIds.length === 0)}
