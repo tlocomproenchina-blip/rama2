@@ -14,7 +14,7 @@ export const ROLE_PRESETS: Record<string, { role_name: string; description: stri
   operaciones: {
     role_name: 'Operaciones',
     description: 'Gestión operativa de paquetes, consolidaciones y seguimiento.',
-    visible_pages: ['AdminDashboard', 'AdminOperaciones', 'AdminLogistica', 'ClientAnalytics', 'AdminPackages', 'AdminVehiculos', 'AdminChoferes', 'AdminRutas', 'AdminRutaDetalle', 'AdminCargaRutas', 'AdminSeguimientoRutas', 'AdminActivityAudit', 'AdminConsolidate', 'AdminShipmentApprovals', 'ShipmentTracking', 'AdminInternalMessages'],
+    visible_pages: ['AdminDashboard', 'AdminOperaciones', 'AdminLogistica', 'ClientAnalytics', 'AdminPackages', 'AdminVehiculos', 'AdminChoferes', 'AdminRutas', 'AdminCargaRutas', 'AdminSeguimientoRutas', 'AdminActivityAudit', 'AdminConsolidate', 'AdminShipmentApprovals', 'ShipmentTracking', 'AdminInternalMessages'],
   },
   almacen: {
     role_name: 'Almacén',
@@ -39,7 +39,7 @@ export const ROLE_PRESETS: Record<string, { role_name: string; description: stri
   logistica: {
     role_name: 'Logística',
     description: 'Vehículos, choferes, rutas, cargas y detalle operativo.',
-    visible_pages: ['AdminDashboard', 'AdminLogistica', 'AdminVehiculos', 'AdminChoferes', 'AdminRutas', 'AdminRutaDetalle', 'AdminCargaRutas', 'AdminInternalMessages'],
+    visible_pages: ['AdminDashboard', 'AdminLogistica', 'AdminVehiculos', 'AdminChoferes', 'AdminRutas', 'AdminCargaRutas', 'AdminInternalMessages'],
   },
   comunicaciones: {
     role_name: 'Comunicaciones',
@@ -49,7 +49,7 @@ export const ROLE_PRESETS: Record<string, { role_name: string; description: stri
   seguimiento: {
     role_name: 'Seguimiento',
     description: 'Monitoreo de rutas, tracking y avances de entrega.',
-    visible_pages: ['AdminDashboard', 'AdminSeguimiento', 'AdminLogistica', 'AdminRutas', 'AdminRutaDetalle', 'AdminSeguimientoRutas', 'AdminActivityAudit', 'ShipmentTracking', 'AdminInsured', 'AdminInternalMessages'],
+    visible_pages: ['AdminDashboard', 'AdminSeguimiento', 'AdminLogistica', 'AdminRutas', 'AdminSeguimientoRutas', 'AdminActivityAudit', 'ShipmentTracking', 'AdminInsured', 'AdminInternalMessages'],
   },
   equipo_y_acceso: {
     role_name: 'Equipo y Acceso',

@@ -36,8 +36,14 @@ const AREA_MANAGED_PAGES = new Set([
 const RESTRICTED_PREFIXES = ['Admin', 'Warehouse'];
 const EXTRA_RESTRICTED = ['BultoOrderScan'];
 
+// Páginas de detalle que se abren desde un módulo que el área ya tiene, como el
+// detalle de una ruta (se entra desde Logística, Rutas o Seguimiento). No son
+// módulos del menú y no se asignan al área, así que no se bloquean.
+const SUB_PAGES = new Set(['AdminRutaDetalle']);
+
 export function isRestrictedPage(page) {
   if (!page) return false;
+  if (SUB_PAGES.has(page)) return false;
   if (RESTRICTED_PREFIXES.some((prefix) => page.startsWith(prefix))) return true;
   return AREA_MANAGED_PAGES.has(page) || EXTRA_RESTRICTED.includes(page);
 }

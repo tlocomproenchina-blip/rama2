@@ -29,7 +29,9 @@ export default function RolePermissionsCard({ roleName, description, roleCode, p
                 onClick={() => onTogglePage(page)}
                 className={`flex items-start gap-2 rounded-md border px-2.5 py-1.5 text-left transition-all ${checked ? 'border-blue-200 bg-blue-50 shadow-sm' : 'border-slate-100 bg-white hover:border-slate-200 hover:bg-slate-50'}`}
               >
-                <Checkbox checked={checked} onCheckedChange={() => onTogglePage(page)} className="!h-4 !w-4 !min-h-4 !min-w-4 !rounded-sm !self-start !mt-0.5" />
+                {/* Indicador visual: el clic lo maneja la fila completa, así marcar
+                    un módulo cuenta como un solo cambio y no se desmarca solo. */}
+                <Checkbox checked={checked} tabIndex={-1} className="pointer-events-none !h-4 !w-4 !min-h-4 !min-w-4 !rounded-sm !self-start !mt-0.5" />
                 <div className="min-w-0">
                   <Label className="cursor-pointer text-[12px] font-medium text-slate-800 leading-tight">{pageLabels[page] || page}</Label>
                   <p className="mt-0.5 text-[10px] text-slate-500 leading-tight">{checked ? 'Visible para esta área' : 'Oculto para esta área'}</p>
