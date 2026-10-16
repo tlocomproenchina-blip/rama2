@@ -78,22 +78,6 @@ export default function AdminSupportAssistant({ user }) {
       <section className="space-y-5 rounded-3xl border border-border/70 bg-card/40 p-3 sm:p-5">
         <div className="flex items-start gap-3">
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-            <ShieldCheck className="h-5 w-5" />
-          </span>
-          <div>
-            <h2 className="text-lg font-semibold text-foreground">Casos respondidos por supervisión</h2>
-            <p className="text-xs text-muted-foreground">
-              Los casos escalados que Supervisión ya respondió, primero los que faltan por trabajar. La respuesta del supervisor es interna: ábrela, cárgala en el asistente de respuestas y respóndele tú al cliente.
-            </p>
-          </div>
-        </div>
-
-        <AssistantSupervisorCases user={user} onLoadToAssistant={handleLoadSupervisorContext} />
-      </section>
-
-      <section className="space-y-5 rounded-3xl border border-border/70 bg-card/40 p-3 sm:p-5">
-        <div className="flex items-start gap-3">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
             <Headphones className="h-5 w-5" />
           </span>
           <div>
@@ -182,6 +166,22 @@ export default function AdminSupportAssistant({ user }) {
             ) : null}
           </div>
         </div>
+      </section>
+
+      <section className="space-y-5 rounded-3xl border border-border/70 bg-card/40 p-3 sm:p-5">
+        <div className="flex items-start gap-3">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+            <ShieldCheck className="h-5 w-5" />
+          </span>
+          <div>
+            <h2 className="text-lg font-semibold text-foreground">Casos respondidos por supervisión</h2>
+            <p className="text-xs text-muted-foreground">
+              Los casos escalados que Supervisión ya respondió, primero los que faltan por trabajar. La respuesta del supervisor es interna: ábrela, cárgala en el asistente de respuestas y respóndele tú al cliente.
+            </p>
+          </div>
+        </div>
+
+        <AssistantSupervisorCases user={user} onLoadToAssistant={handleLoadSupervisorContext} />
       </section>
 
       <AssistantEscalateDialog
