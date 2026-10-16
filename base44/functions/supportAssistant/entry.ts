@@ -180,6 +180,22 @@ Devuelve el diagnóstico, el siguiente paso para el ATC, si hay que verificar la
       .map((entry: any) => `• ${entry?.label || 'Nota'}: ${short(entry?.text, 800)}`)
       .join('\n');
 
+    // Fotos y documentos que el ATC adjunta al escalar: se guardan con el caso
+    // para que el supervisor los abra desde su módulo.
+    const attachments = (Array.isArray(body.attachments) ? body.attachments : [])
+      .slice(0, 5)
+      .map((entry: any) => {
+        const url = short(entry?.url, 600);
+        if (!url) return null;
+        return {
+          url,
+          name: short(entry?.name, 120) || 'Adjunto',
+          kind: entry?.kind === 'document' ? 'document' : 'image',
+          private: Boolean(entry?.private),
+        };
+      })
+      .filter(Boolean);
+
     const caseMessage = [
       '📋 Caso escalado desde el Asistente ATC',
       '',
@@ -219,6 +235,7 @@ Devuelve el diagnóstico, el siguiente paso para el ATC, si hay que verificar la
           message: caseMessage,
           timestamp: nowIso,
           is_admin: true,
+          attachments,
         },
         {
           sender_email: user.email,

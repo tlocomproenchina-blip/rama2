@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
+import { uploadSupportCaseFiles } from '@/lib/supportCaseFiles';
 
 const digitsOnly = (value) => String(value || '').replace(/\D/g, '');
 const isNumericQuery = (value) => digitsOnly(value).length >= 5 && !/[a-z]/i.test(String(value || ''));
@@ -116,6 +117,8 @@ export default function useSupportAssistant() {
       if (!client) return null;
       setEscalating(true);
       try {
+        const { files = [], ...rest } = payload || {};
+        const attachments = await uploadSupportCaseFiles(files, 5);
         const transcript = turns.flatMap((turn) => [
           { label: 'Cliente', text: turn.question },
           { label: 'Asistente · paso a seguir', text: turn.answer.paso_a_seguir },
@@ -125,7 +128,8 @@ export default function useSupportAssistant() {
           action: 'escalate',
           client_email: client.email,
           transcript,
-          ...payload,
+          attachments,
+          ...rest,
         });
         if (res?.data?.error) throw new Error(res.data.error);
         toast.success(`Ticket ${res.data.ticket_number} creado y asignado a supervisión`);

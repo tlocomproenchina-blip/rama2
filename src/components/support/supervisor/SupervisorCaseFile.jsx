@@ -8,6 +8,7 @@ import { Loader2, ArrowLeft, CheckCircle2, ClipboardList, ExternalLink, MessageS
 import { toast } from 'sonner';
 import TicketChat from '@/components/support/TicketChat';
 import SupportNotesPanel from '@/components/support/client-file/SupportNotesPanel';
+import SupportGuidancePanel from '@/components/support/client-file/SupportGuidancePanel';
 import SupportClientProfileCard from '@/components/support/client-file/SupportClientProfileCard';
 import ClientSupport360 from '@/components/support/client360/ClientSupport360';
 import SupervisorCaseAttachments from './SupervisorCaseAttachments';
@@ -224,6 +225,17 @@ export default function SupervisorCaseFile({ ticket, user, onBack, onChange }) {
               />
             </CardContent>
           </Card>
+
+          <SupportGuidancePanel
+            clientEmail={ticket.client_email}
+            clientName={clientName}
+            clientCedula={client?.cedula || ''}
+            cases={[{ id: ticket.id, ticket_number: ticket.ticket_number, subject: ticket.subject }]}
+            defaultCaseId={ticket.id}
+            user={user}
+            title="Respuesta al ATC"
+            description="Tu respuesta y sus archivos quedan en el expediente de este caso y solo los ve el ATC: el cliente no los ve."
+          />
 
           <SupervisorCaseAttachments messages={ticket.messages || []} />
         </div>

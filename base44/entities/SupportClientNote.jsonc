@@ -44,6 +44,37 @@
       "maxLength": 4000,
       "description": "Contenido de la nota interna. Nunca se env\u00eda ni se muestra al cliente: es contexto y registro del equipo."
     },
+    "attachments": {
+      "type": "array",
+      "default": [],
+      "description": "Fotos y documentos que acompa\u00f1an la nota o la indicaci\u00f3n. Los documentos y PDF van al almacenamiento privado y se abren con un enlace firmado temporal, para que no queden expuestos en una URL p\u00fablica.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "Enlace de la foto o referencia del archivo privado"
+          },
+          "name": {
+            "type": "string",
+            "description": "Nombre del archivo"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "image",
+              "document"
+            ],
+            "description": "image para las fotos; document para PDF y documentos adjuntos"
+          },
+          "private": {
+            "type": "boolean",
+            "default": false,
+            "description": "Indica que el archivo vive en el almacenamiento privado y requiere enlace firmado para abrirlo"
+          }
+        }
+      }
+    },
     "author_email": {
       "type": "string",
       "description": "Email del agente que escribi\u00f3 la nota"

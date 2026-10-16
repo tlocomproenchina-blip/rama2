@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Loader2, ArrowUpRight } from 'lucide-react';
 import { ROLE_PRESETS } from '@/lib/rolePermissions';
+import SupportImageUploader from '@/components/support/SupportImageUploader';
 
 const CATEGORIES = [
   { value: 'envio', label: 'Envío' },
@@ -41,10 +42,12 @@ export default function AssistantEscalateDialog({ open, onOpenChange, client, la
   const [category, setCategory] = useState('otro');
   const [priority, setPriority] = useState('media');
   const [summary, setSummary] = useState('');
+  const [files, setFiles] = useState([]);
 
   useEffect(() => {
     if (!open) return;
     const answer = lastTurn?.answer;
+    setFiles([]);
     setSubject(answer?.asunto || (client ? `Caso de ${client.full_name || client.email}` : ''));
     setCategory(answer?.categoria || 'otro');
     setPriority(answer?.prioridad || 'media');
@@ -82,6 +85,7 @@ export default function AssistantEscalateDialog({ open, onOpenChange, client, la
 
   const confirm = async () => {
     const result = await onConfirm({
+      files,
       supervisor_email: supervisor,
       subject,
       category,
@@ -151,6 +155,21 @@ export default function AssistantEscalateDialog({ open, onOpenChange, client, la
           <div className="space-y-2">
             <Label>Resumen para el supervisor</Label>
             <Textarea value={summary} onChange={(event) => setSummary(event.target.value)} rows={7} />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Adjuntos para el supervisor (opcional)</Label>
+            <SupportImageUploader
+              files={files}
+              onChange={setFiles}
+              disabled={submitting}
+              maxFiles={5}
+              accept="image/*,application/pdf"
+              label="Adjuntar hasta 5 fotos o PDF"
+            />
+            <p className="text-[11px] text-muted-foreground">
+              Los PDF quedan guardados de forma privada y se abren con un enlace temporal.
+            </p>
           </div>
         </div>
 

@@ -8,6 +8,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, Plus, Compass } from 'lucide-react';
 import { toast } from 'sonner';
+import SupportImageUploader from '@/components/support/SupportImageUploader';
+import SupportAttachmentsPreview from '@/components/support/SupportAttachmentsPreview';
+import { uploadSupportCaseFiles } from '@/lib/supportCaseFiles';
 
 const fdate = (value) => (value
   ? new Date(value).toLocaleString('es-VE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
@@ -15,11 +18,21 @@ const fdate = (value) => (value
 
 // Indicaciones del supervisor para el ATC: qué hacer con este cliente o con un
 // caso concreto. Quedan en el expediente y solo las ve el equipo interno.
-export default function SupportGuidancePanel({ clientEmail, clientName, clientCedula, cases = [], user }) {
+export default function SupportGuidancePanel({
+  clientEmail,
+  clientName,
+  clientCedula,
+  cases = [],
+  user,
+  title = 'Indicaciones al ATC',
+  description = 'Guía interna para orientar la atención de este cliente o de un caso. No se le muestra al cliente.',
+  defaultCaseId = 'general',
+}) {
   const [notes, setNotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [text, setText] = useState('');
-  const [caseId, setCaseId] = useState('general');
+  const [files, setFiles] = useState([]);
+  const [caseId, setCaseId] = useState(defaultCaseId);
   const [addressedTo, setAddressedTo] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -46,6 +59,10 @@ export default function SupportGuidancePanel({ clientEmail, clientName, clientCe
 
   useEffect(() => { load(); }, [load]);
 
+  // Al abrir el panel desde un caso concreto, la respuesta sale ligada a ese
+  // caso; se puede cambiar a "cliente en general" si aplica a todo.
+  useEffect(() => { setCaseId(defaultCaseId); }, [defaultCaseId]);
+
   const handleSave = async () => {
     const note = text.trim();
     if (!note) {
@@ -55,6 +72,7 @@ export default function SupportGuidancePanel({ clientEmail, clientName, clientCe
     const linked = cases.find((item) => item.id === caseId) || null;
     setSaving(true);
     try {
+      const attachments = await uploadSupportCaseFiles(files, 5);
       await base44.entities.SupportClientNote.create({
         client_email: clientEmail,
         client_name: clientName || '',
@@ -65,12 +83,14 @@ export default function SupportGuidancePanel({ clientEmail, clientName, clientCe
         addressed_to: addressedTo.trim(),
         addressed_to_name: addressedTo.trim(),
         note,
+        attachments,
         author_email: user?.email || '',
         author_name: user?.full_name || user?.email || 'Supervisión',
       });
       setText('');
+      setFiles([]);
       setAddressedTo('');
-      setCaseId('general');
+      setCaseId(defaultCaseId);
       toast.success('Indicación guardada para el ATC');
       await load();
     } catch {
@@ -83,12 +103,10 @@ export default function SupportGuidancePanel({ clientEmail, clientName, clientCe
     <Card className="border-border/70 shadow-card">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-base">
-          <Compass className="h-4 w-4 text-primary" /> Indicaciones al ATC
+          <Compass className="h-4 w-4 text-primary" /> {title}
           {notes.length > 0 ? <Badge variant="secondary" className="ml-1">{notes.length}</Badge> : null}
         </CardTitle>
-        <p className="text-xs text-muted-foreground">
-          Guía interna para orientar la atención de este cliente o de un caso. No se le muestra al cliente.
-        </p>
+        <p className="text-xs text-muted-foreground">{description}</p>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
@@ -118,6 +136,14 @@ export default function SupportGuidancePanel({ clientEmail, clientName, clientCe
               disabled={saving}
             />
           </div>
+          <SupportImageUploader
+            files={files}
+            onChange={setFiles}
+            disabled={saving}
+            maxFiles={5}
+            accept="image/*,application/pdf"
+            label="Adjuntar hasta 5 fotos o PDF"
+          />
           <Button size="sm" onClick={handleSave} disabled={saving || !text.trim()} className="w-full sm:w-auto">
             {saving ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Plus className="mr-1 h-4 w-4" />}
             Guardar indicación
@@ -146,6 +172,7 @@ export default function SupportGuidancePanel({ clientEmail, clientName, clientCe
                   <span>{fdate(note.created_date)}</span>
                 </div>
                 <p className="mt-1.5 whitespace-pre-wrap text-sm text-foreground">{note.note}</p>
+                <SupportAttachmentsPreview attachments={note.attachments} />
               </li>
             ))}
           </ul>
