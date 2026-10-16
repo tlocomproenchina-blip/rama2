@@ -4,6 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, ArrowLeft, CheckCircle2, ClipboardList, ExternalLink, MessageSquare, RotateCcw, History } from 'lucide-react';
 import { toast } from 'sonner';
 import TicketChat from '@/components/support/TicketChat';
@@ -13,7 +14,6 @@ import SupportGuidancePanel from '@/components/support/client-file/SupportGuidan
 import SupportClientProfileCard from '@/components/support/client-file/SupportClientProfileCard';
 import ClientSupport360 from '@/components/support/client360/ClientSupport360';
 import SupervisorCaseAttachments from './SupervisorCaseAttachments';
-import { uploadSupportCaseFiles } from '@/lib/supportCaseFiles';
 
 const PRIORITY = {
   baja: 'bg-slate-100 text-slate-600',
@@ -67,35 +67,33 @@ export default function SupervisorCaseFile({ ticket, user, onBack, onChange }) {
     || ticket.client_email;
   const pending = (ticket.escalation_status || 'pendiente') === 'pendiente';
 
-  // El supervisor responde en la misma conversación del caso: el cliente la ve
-  // en su ticket de soporte.
-  const handleSendMessage = async (message, files = []) => {
+  // Toda respuesta de Supervisión es interna: queda en el expediente para el ATC
+  // y es lo que hace que el caso aparezca en su bandeja de casos respondidos.
+  const handleSupervisorReplySaved = async ({ ticketId } = {}) => {
+    if (ticketId !== ticket.id) return;
+    const updates = {
+      supervisor_reply_date: new Date().toISOString(),
+      supervisor_reply_by: user?.email || '',
+      supervisor_reply_by_name: user?.full_name || user?.email || 'Supervisión',
+      atc_review_status: 'pendiente',
+      atc_review_date: null,
+      atc_review_by_name: null,
+    };
     try {
-      const uploaded = await uploadSupportCaseFiles(files, 5);
-      const newMessage = {
-        sender_email: user?.email,
-        sender_name: `${user?.full_name || user?.email || 'Supervisión'} (Supervisor)`,
-        message,
-        timestamp: new Date().toISOString(),
-        is_admin: true,
-        attachments: uploaded,
-      };
-      const updatedMessages = [...(ticket.messages || []), newMessage];
-      await base44.entities.SupportTicket.update(ticket.id, { messages: updatedMessages });
-      base44.entities.Notification.create({
-        user_email: ticket.client_email,
-        title: '💬 Nueva Respuesta',
-        message: `Tienes una nueva respuesta en ${ticket.ticket_number}`,
-        type: 'general',
-        icon: 'alert',
-        reference_id: ticket.id,
-      }).catch(() => {});
-      onChange({ ...ticket, messages: updatedMessages });
-      toast.success('Respuesta enviada en el chat del caso');
-      return true;
-    } catch (error) {
-      toast.error(error?.message || 'No se pudo enviar la respuesta');
-      return false;
+      await base44.entities.SupportTicket.update(ticket.id, updates);
+      onChange({ ...ticket, ...updates });
+      if (ticket.escalated_by) {
+        base44.entities.Notification.create({
+          user_email: ticket.escalated_by,
+          title: '🛡️ Respuesta del supervisor',
+          message: `Supervisión respondió el caso ${ticket.ticket_number}. Revísalo en el Asistente ATC.`,
+          type: 'general',
+          icon: 'alert',
+          reference_id: ticket.id,
+        }).catch(() => {});
+      }
+    } catch {
+      // Si el aviso al ATC no sale, se vuelve a intentar en la próxima respuesta.
     }
   };
 
@@ -202,32 +200,6 @@ export default function SupervisorCaseFile({ ticket, user, onBack, onChange }) {
 
       <div className="grid gap-5 xl:grid-cols-2">
         <div className="space-y-5">
-          <Card className="border-border/70 shadow-card">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <MessageSquare className="h-4 w-4 text-primary" /> Chat del caso
-              </CardTitle>
-              <p className="text-xs text-muted-foreground">
-                Aquí está la conversación previa completa. Todo lo que respondas lo ve el cliente en su ticket; lo interno va en las notas del caso.
-              </p>
-            </CardHeader>
-            <CardContent>
-              <TicketChat
-                messages={ticket.messages || []}
-                onSendMessage={handleSendMessage}
-                currentUserEmail={user?.email}
-                disabled={ticket.status === 'cerrado' || saving}
-                scrollClassName="max-h-[30rem] xl:max-h-[34rem]"
-                maxFiles={5}
-                attachmentAccept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv"
-                attachmentsLabel="Adjuntar fotos, PDF o documentos"
-                status={ticket.status}
-                onStatusChange={handleTicketStatus}
-                statusOptions={STATUS_OPTIONS}
-              />
-            </CardContent>
-          </Card>
-
           <SupportGuidancePanel
             clientEmail={ticket.client_email}
             clientName={clientName}
@@ -235,9 +207,43 @@ export default function SupervisorCaseFile({ ticket, user, onBack, onChange }) {
             cases={[{ id: ticket.id, ticket_number: ticket.ticket_number, subject: ticket.subject }]}
             defaultCaseId={ticket.id}
             user={user}
+            onSaved={handleSupervisorReplySaved}
             title="Respuesta al ATC"
-            description="Tu respuesta y sus archivos quedan en el expediente de este caso y solo los ve el ATC: el cliente no los ve."
+            description="Tu respuesta va al ATC, no al cliente: queda en el expediente de este caso y le aparece en su bandeja del Asistente ATC para que él continúe la atención. El cliente nunca la ve."
           />
+
+          <Card className="border-border/70 shadow-card">
+            <CardHeader className="pb-3">
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div>
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <MessageSquare className="h-4 w-4 text-primary" /> Conversación con el cliente (historial)
+                  </CardTitle>
+                  <p className="text-xs text-muted-foreground">
+                    Aquí solo se lee: es la conversación que el cliente tiene con el ATC. Tu respuesta va arriba, en la respuesta al ATC, y el ATC se encarga de comunicársela al cliente.
+                  </p>
+                </div>
+                <Select value={ticket.status} onValueChange={handleTicketStatus} disabled={saving}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue placeholder="Estado" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {STATUS_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <TicketChat
+                messages={ticket.messages || []}
+                currentUserEmail={user?.email}
+                disabled
+                scrollClassName="max-h-[30rem] xl:max-h-[34rem]"
+              />
+            </CardContent>
+          </Card>
 
           <SupervisorCaseAttachments messages={ticket.messages || []} />
         </div>

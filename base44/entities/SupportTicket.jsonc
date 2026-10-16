@@ -172,6 +172,36 @@
       "type": "string",
       "description": "Nombre del supervisor que atendi\u00f3 la escalaci\u00f3n"
     },
+    "supervisor_reply_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Momento en que Supervisi\u00f3n respondi\u00f3 este caso para el ATC. Es lo que lo hace aparecer en la bandeja de casos respondidos por supervisi\u00f3n del Asistente ATC."
+    },
+    "supervisor_reply_by": {
+      "type": "string",
+      "description": "Email del supervisor que respondi\u00f3 el caso para el ATC"
+    },
+    "supervisor_reply_by_name": {
+      "type": "string",
+      "description": "Nombre del supervisor que respondi\u00f3 el caso para el ATC"
+    },
+    "atc_review_status": {
+      "type": "string",
+      "enum": [
+        "pendiente",
+        "revisado"
+      ],
+      "description": "Revisi\u00f3n del ATC sobre la respuesta del supervisor: pendiente (falta trabajarla) o revisado (el ATC ya continu\u00f3 con el cliente)."
+    },
+    "atc_review_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Momento en que el ATC marc\u00f3 como atendida la respuesta del supervisor"
+    },
+    "atc_review_by_name": {
+      "type": "string",
+      "description": "Nombre del ATC que atendi\u00f3 la respuesta del supervisor"
+    },
     "ai_escalated": {
       "type": "boolean",
       "default": false,

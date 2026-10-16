@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Loader2, SendHorizontal, Headphones, ArrowUpRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -8,8 +8,15 @@ import AssistantQuickPrompts from '@/components/support/assistant/AssistantQuick
 
 // Chat guiado: el ATC pega lo que el cliente escribió por WhatsApp y el
 // asistente responde con el paso a paso y la respuesta lista para enviar.
-export default function AssistantChatPanel({ client, turns, asking, onAsk, onEscalate }) {
+export default function AssistantChatPanel({ client, turns, asking, onAsk, onEscalate, prefill }) {
   const [question, setQuestion] = useState('');
+
+  // Cuando el ATC carga la respuesta del supervisor, el texto queda listo aquí
+  // para que solo tenga que analizarlo.
+  useEffect(() => {
+    if (!prefill?.nonce) return;
+    setQuestion(prefill.text || '');
+  }, [prefill?.nonce, prefill?.text]);
 
   const send = () => {
     if (!question.trim() || asking) return;
@@ -51,7 +58,9 @@ export default function AssistantChatPanel({ client, turns, asking, onAsk, onEsc
             <div key={`${turn.at}-${index}`} className="space-y-2">
               <div className="flex justify-end">
                 <div className="max-w-[90%] rounded-2xl rounded-br-sm bg-primary px-3.5 py-2 text-sm text-primary-foreground">
-                  <p className="text-[11px] uppercase tracking-[0.12em] opacity-80">Pegado por el ATC · {index + 1}</p>
+                  <p className="text-[11px] uppercase tracking-[0.12em] opacity-80">
+                    {turn.origin === 'supervisor' ? 'Respuesta del supervisor cargada por el ATC' : `Pegado por el ATC · ${index + 1}`}
+                  </p>
                   <p className="whitespace-pre-wrap">{turn.question}</p>
                 </div>
               </div>

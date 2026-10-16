@@ -114,6 +114,10 @@ export default async function (req: Request): Promise<Response> {
     const clientEmail = String(body.client_email || '').trim();
     if (!clientEmail) return Response.json({ error: 'Falta el cliente' }, { status: 400 });
 
+    // El ATC puede pegar un mensaje del cliente, la respuesta del almacén o la
+    // respuesta interna que dejó el supervisor en el caso.
+    const origin = String(body.origin || 'atc').trim() === 'supervisor' ? 'supervisor' : 'atc';
+
     const context = await buildSupportClientContext(base44, clientEmail);
     if (!context) return Response.json({ error: 'No se encontró el cliente o su historial' }, { status: 404 });
 
@@ -124,6 +128,17 @@ export default async function (req: Request): Promise<Response> {
     if (action === 'ask') {
       const question = short(body.question, 2000);
       if (!question) return Response.json({ error: 'Falta la pregunta del cliente' }, { status: 400 });
+
+      const originBlock = origin === 'supervisor'
+        ? `
+
+ORIGEN DE LO ÚLTIMO QUE EL ATC PEGÓ: RESPUESTA INTERNA DEL SUPERVISOR.
+Ese texto NO es del cliente: es lo que Supervisión dispuso para el ATC y el cliente nunca lo ve. Trátalo así:
+- "diagnostico": qué dispuso el supervisor y con qué datos del historial del cliente se relaciona.
+- "paso_a_seguir": la indicación de continuidad para el ATC, concreta y en imperativo: qué debe hacer ahora con este caso, qué verificar antes de darlo por cerrado y qué no ofrecerle al cliente.
+- "respuesta_sugerida": el mensaje que el ATC le enviará al cliente por WhatsApp, redactado a partir de lo que dispuso el supervisor, sin mencionar al supervisor, sin hablar de revisiones internas y sin copiar texto interno.
+- Si lo que el supervisor pide es confirmar el paradero de la carga, aplica igual el paso de verificación con el almacén.`
+        : '';
 
       const [faqsRes, kbRes] = await Promise.allSettled([
         base44.asServiceRole.entities.FAQ.filter({ is_active: true }, 'order', 30),
@@ -153,8 +168,9 @@ ${kbText}
 CONVERSACIÓN HASTA AHORA (la última línea del ATC indica en qué punto va el caso):
 ${formatHistory(body.history)}
 
-LO ÚLTIMO QUE EL ATC ACABA DE PEGAR (el mensaje del cliente o la respuesta del almacén):
+LO ÚLTIMO QUE EL ATC ACABA DE PEGAR (el mensaje del cliente, la respuesta del almacén o la respuesta interna del supervisor):
 "${question}"
+${originBlock}
 
 Devuelve el diagnóstico, el siguiente paso para el ATC, si hay que verificar la carga con el almacén (con sus pasos y su mensaje), la respuesta sugerida para copiar, los datos clave, si hay que escalar y los datos del ticket (asunto, categoría y prioridad).`;
 

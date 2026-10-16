@@ -27,6 +27,7 @@ export default function SupportGuidancePanel({
   title = 'Indicaciones al ATC',
   description = 'Guía interna para orientar la atención de este cliente o de un caso. No se le muestra al cliente.',
   defaultCaseId = 'general',
+  onSaved,
 }) {
   const [notes, setNotes] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -91,6 +92,9 @@ export default function SupportGuidancePanel({
       setFiles([]);
       setAddressedTo('');
       setCaseId(defaultCaseId);
+      // Quien la usa decide qué hacer con la indicación guardada: en el módulo
+      // Supervisor deja marcado el caso como respondido para el ATC.
+      if (onSaved) await onSaved({ ticketId: linked?.id || null, note });
       toast.success('Indicación guardada para el ATC');
       await load();
     } catch {

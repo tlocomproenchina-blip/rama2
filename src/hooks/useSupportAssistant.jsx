@@ -76,14 +76,22 @@ export default function useSupportAssistant() {
   }, []);
 
   const ask = useCallback(
-    async (raw) => {
+    async (raw, options = {}) => {
       if (!client) return;
       const question = String(raw || '').trim();
       if (!question) return;
+      // Lo que el ATC pega puede ser la respuesta interna del supervisor: el
+      // asistente lo sabe para orientar la continuidad del caso.
+      const origin = options?.origin === 'supervisor' ? 'supervisor' : 'atc';
       setAsking(true);
       try {
         const history = turns.flatMap((turn) => [
-          { role: 'atc', text: turn.question },
+          {
+            role: 'atc',
+            text: turn.origin === 'supervisor'
+              ? `Respuesta interna del supervisor cargada por el ATC: ${turn.question}`
+              : turn.question,
+          },
           {
             role: 'asistente',
             text: [
@@ -100,9 +108,10 @@ export default function useSupportAssistant() {
           client_email: client.email,
           question,
           history,
+          origin,
         });
         if (res?.data?.error) throw new Error(res.data.error);
-        setTurns((prev) => [...prev, { question, answer: res.data.answer, at: new Date().toISOString() }]);
+        setTurns((prev) => [...prev, { question, answer: res.data.answer, at: new Date().toISOString(), origin }]);
       } catch (error) {
         toast.error(error?.message || 'El asistente no pudo responder');
       } finally {

@@ -6,6 +6,7 @@ import PageHero from '@/components/common/PageHero';
 import useSupportAssistant from '@/hooks/useSupportAssistant';
 import useSupportClientCases from '@/hooks/useSupportClientCases';
 import AssistantSearchPanel from '@/components/support/assistant/AssistantSearchPanel';
+import AssistantSupervisorCases from '@/components/support/assistant/AssistantSupervisorCases';
 import AssistantClientPanel from '@/components/support/assistant/AssistantClientPanel';
 import AssistantChatPanel from '@/components/support/assistant/AssistantChatPanel';
 import AssistantEscalateDialog from '@/components/support/assistant/AssistantEscalateDialog';
@@ -22,6 +23,8 @@ export default function AdminSupportAssistant({ user }) {
   const { cases } = useSupportClientCases(assistant.client?.email);
   const [escalateOpen, setEscalateOpen] = useState(false);
   const [escalated, setEscalated] = useState(null);
+  const [chatPrefill, setChatPrefill] = useState(null);
+  const [askOrigin, setAskOrigin] = useState('atc');
   const focusTicketId = new URLSearchParams(window.location.search).get('ticketId') || '';
 
   const lastTurn = assistant.turns[assistant.turns.length - 1] || null;
@@ -35,6 +38,26 @@ export default function AdminSupportAssistant({ user }) {
     });
     if (result) setEscalated(result);
     return result;
+  };
+
+  // El ATC carga la respuesta interna del supervisor: se abre el cliente de ese
+  // caso y la respuesta queda lista en el asistente para pedir la continuidad.
+  const handleLoadSupervisorContext = async ({ ticket, client: caseClient, text }) => {
+    await assistant.selectClient(caseClient || { email: ticket.client_email, full_name: ticket.client_email });
+    setAskOrigin('supervisor');
+    setChatPrefill({
+      text: `Respuesta del supervisor · caso ${ticket.ticket_number} (comunicación interna, no va al cliente):\n\n${text}\n\nDame la indicación de continuidad del caso y el mensaje para el cliente.`,
+      nonce: Date.now(),
+    });
+    requestAnimationFrame(() => {
+      document.getElementById('asistente-atc-chat')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  };
+
+  const handleAsk = (raw) => {
+    const origin = askOrigin;
+    setAskOrigin('atc');
+    return assistant.ask(raw, { origin });
   };
 
   return (
@@ -52,6 +75,22 @@ export default function AdminSupportAssistant({ user }) {
           </Button>
         }
       />
+
+      <section className="space-y-5 rounded-3xl border border-border/70 bg-card/40 p-3 sm:p-5">
+        <div className="flex items-start gap-3">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+            <ShieldCheck className="h-5 w-5" />
+          </span>
+          <div>
+            <h2 className="text-lg font-semibold text-foreground">Casos respondidos por supervisión</h2>
+            <p className="text-xs text-muted-foreground">
+              Los casos escalados que Supervisión ya respondió, primero los que faltan por trabajar. La respuesta del supervisor es interna: ábrela, cárgala en el asistente de respuestas y respóndele tú al cliente.
+            </p>
+          </div>
+        </div>
+
+        <AssistantSupervisorCases user={user} onLoadToAssistant={handleLoadSupervisorContext} />
+      </section>
 
       <section className="space-y-5 rounded-3xl border border-border/70 bg-card/40 p-3 sm:p-5">
         <div className="flex items-start gap-3">
@@ -107,13 +146,16 @@ export default function AdminSupportAssistant({ user }) {
               </div>
             ) : null}
 
-            <AssistantChatPanel
-              client={client}
-              turns={assistant.turns}
-              asking={assistant.asking}
-              onAsk={assistant.ask}
-              onEscalate={() => setEscalateOpen(true)}
-            />
+            <div id="asistente-atc-chat">
+              <AssistantChatPanel
+                client={client}
+                turns={assistant.turns}
+                asking={assistant.asking}
+                prefill={chatPrefill}
+                onAsk={handleAsk}
+                onEscalate={() => setEscalateOpen(true)}
+              />
+            </div>
 
             {client ? (
               <>
