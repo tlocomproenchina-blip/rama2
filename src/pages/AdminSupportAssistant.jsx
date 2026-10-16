@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Headphones, MessageCircle, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -13,34 +13,20 @@ import SupportClientProfileCard from '@/components/support/client-file/SupportCl
 import SupportNotesPanel from '@/components/support/client-file/SupportNotesPanel';
 import SupportGuidancePanel from '@/components/support/client-file/SupportGuidancePanel';
 import SupportFollowUpPanel from '@/components/support/client-file/SupportFollowUpPanel';
-import SupervisorEscalationsPanel from '@/components/support/supervisor/SupervisorEscalationsPanel';
 
-// Panel único del área de Soporte, con dos módulos independientes apilados:
-//   Asistente ATC -> busca al cliente y atiende con su expediente completo.
-//   Supervisor    -> los casos que el ATC escaló, con todo el expediente para
-//                    responder sin salir a buscar información a otras secciones.
+// Panel del área de Soporte: el ATC busca al cliente, revisa su expediente
+// completo y atiende la conversación. Los casos escalados viven en su propio
+// módulo Supervisor, aparte de esta pantalla.
 export default function AdminSupportAssistant({ user }) {
   const assistant = useSupportAssistant();
   const { cases } = useSupportClientCases(assistant.client?.email);
   const [escalateOpen, setEscalateOpen] = useState(false);
   const [escalated, setEscalated] = useState(null);
-  const supervisorRef = useRef(null);
   const focusTicketId = new URLSearchParams(window.location.search).get('ticketId') || '';
 
   const lastTurn = assistant.turns[assistant.turns.length - 1] || null;
   const client = assistant.client;
   const clientName = client?.full_name || [client?.first_name, client?.last_name].filter(Boolean).join(' ') || client?.email || '';
-
-  const goToSupervisor = () => {
-    supervisorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
-
-  // Llegada desde la notificación: ?ticketId=... baja directo al caso escalado.
-  useEffect(() => {
-    if (!focusTicketId) return undefined;
-    const timer = setTimeout(goToSupervisor, 300);
-    return () => clearTimeout(timer);
-  }, [focusTicketId]);
 
   const handleEscalate = async (payload) => {
     const result = await assistant.escalate({
@@ -56,8 +42,8 @@ export default function AdminSupportAssistant({ user }) {
       <PageHero
         icon={Headphones}
         badge="Área Soporte"
-        title="Asistente ATC y módulo del supervisor"
-        description="El ATC busca al cliente y atiende con su expediente completo; cuando escala un caso, el supervisor lo recibe abajo con el chat previo, los adjuntos y todo el historial del cliente en una sola pantalla."
+        title="Asistente ATC"
+        description="Busca al cliente, revisa su expediente completo y atiende la conversación desde aquí. Cuando un caso necesita a un supervisor, escálalo y quedará en el módulo Supervisor."
         actions={
           <Button asChild variant="outline">
             <Link to="/AdminSupportTickets">
@@ -109,8 +95,10 @@ export default function AdminSupportAssistant({ user }) {
                   <CheckCircle2 className="h-4 w-4" /> Caso escalado: ticket <strong>{escalated.ticket_number}</strong> asignado a {escalated.assigned_to}.
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  <Button size="sm" onClick={goToSupervisor}>
-                    <ShieldCheck className="mr-1.5 h-4 w-4" /> Ver en Supervisor
+                  <Button asChild size="sm">
+                    <Link to={`/AdminSupportSupervisor${focusTicketId ? `?ticketId=${focusTicketId}` : ''}`}>
+                      <ShieldCheck className="mr-1.5 h-4 w-4" /> Ver en Supervisor
+                    </Link>
                   </Button>
                   <Button asChild size="sm" variant="outline">
                     <Link to="/AdminSupportTickets">Abrir tickets</Link>
@@ -162,22 +150,6 @@ export default function AdminSupportAssistant({ user }) {
             )}
           </div>
         </div>
-      </section>
-
-      <section ref={supervisorRef} className="scroll-mt-24 space-y-5 rounded-3xl border border-border/70 bg-card/40 p-3 sm:p-5">
-        <div className="flex items-start gap-3">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-            <ShieldCheck className="h-5 w-5" />
-          </span>
-          <div>
-            <h2 className="text-lg font-semibold text-foreground">Supervisor</h2>
-            <p className="text-xs text-muted-foreground">
-              Casos que el ATC escaló, pendientes primero. Ábrelos para responder en el chat del caso, dejar notas internas y ver todo el historial del cliente.
-            </p>
-          </div>
-        </div>
-
-        <SupervisorEscalationsPanel user={user} initialTicketId={focusTicketId} />
       </section>
 
       <AssistantEscalateDialog
