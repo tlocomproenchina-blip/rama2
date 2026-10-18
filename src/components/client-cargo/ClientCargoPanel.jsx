@@ -24,7 +24,11 @@ export default function ClientCargoPanel({ client }) {
     const list = page.items || [];
     setBultos(list);
 
-    const ids = [...new Set(list.flatMap((b) => b.package_ids || []))].slice(0, 300);
+    // Los ids del escaneo offline ('local_pkg_...') no existen como registro y hacen
+    // fallar la consulta de paquetes, así que se descartan antes de pedirlos.
+    const ids = [...new Set(list.flatMap((b) => b.package_ids || []))]
+      .filter((id) => id && !String(id).startsWith('local_'))
+      .slice(0, 300);
     if (ids.length) {
       const pkgPage = await base44.entities.Package.filter(
         { id: { $in: ids } },

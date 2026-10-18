@@ -19,7 +19,11 @@ export default async function (req: Request): Promise<Response> {
     const guideList = Array.isArray(guideRes) ? guideRes : (guideRes?.items || []);
 
     // Volumen real de los paquetes: se usa cuando el bulto no tiene un CBM oficial registrado.
-    const ids = [...new Set(bultoList.flatMap((b) => (Array.isArray(b.package_ids) ? b.package_ids : [])))].slice(0, 300);
+    // Los ids del escaneo offline ('local_pkg_...') no existen como registro y hacen
+    // fallar la consulta de paquetes, así que se descartan antes de pedirlos.
+    const ids = [...new Set(bultoList.flatMap((b) => (Array.isArray(b.package_ids) ? b.package_ids : [])))]
+      .filter((id) => id && !String(id).startsWith('local_'))
+      .slice(0, 300);
     const cbmByPackage = {};
     if (ids.length) {
       const pkgRes = await base44.asServiceRole.entities.Package.filter({ id: { $in: ids } }, '-created_date', 300);
