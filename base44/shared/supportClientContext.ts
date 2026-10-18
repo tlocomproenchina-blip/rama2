@@ -1,3 +1,5 @@
+import { buildShippingRateTable, findStateRate, loadShippingRateBase } from './shippingRateTable.ts';
+
 // Contexto completo de un cliente para el asistente de soporte (ATC).
 // Reúne el perfil y todo el historial disponible con acceso de servicio,
 // limitado siempre al cliente elegido por el agente.
@@ -66,7 +68,7 @@ export async function buildSupportClientContext(base44: any, clientEmail: string
   const email = String(clientEmail || '').trim();
   if (!email) return null;
 
-  const [usersRes, packagesRes, recibosRes, invoicesRes, consolidationsRes, ticketsRes, notesRes, indicationsRes, creditsRes, ordersRes] = await Promise.allSettled([
+  const [usersRes, packagesRes, recibosRes, invoicesRes, consolidationsRes, ticketsRes, notesRes, indicationsRes, creditsRes, ordersRes, ratesRes] = await Promise.allSettled([
     base44.asServiceRole.entities.User.filter({ email }, '-created_date', 1),
     base44.asServiceRole.entities.Package.filter({ client_email: email }, '-created_date', LIMITS.packages),
     base44.asServiceRole.entities.CbmIngreso.filter({ client_email: email }, '-fecha', LIMITS.recibos),
@@ -81,6 +83,8 @@ export async function buildSupportClientContext(base44: any, clientEmail: string
     ),
     base44.asServiceRole.entities.ClientCredit.filter({ client_email: email }, '-created_date', LIMITS.credits),
     base44.asServiceRole.entities.DispatchOrder.filter({ client_email: email }, '-created_date', LIMITS.orders),
+    // Tarifas vigentes: las mismas fuentes y condiciones que usa la calculadora.
+    loadShippingRateBase(base44),
   ]);
 
   const user = settled(usersRes)[0] || null;
@@ -97,8 +101,16 @@ export async function buildSupportClientContext(base44: any, clientEmail: string
   if (!user && !packages.length && !invoices.length) return null;
 
   const creditBalance = Number(credits.reduce((sum: number, c: any) => sum + (Number(c.amount) || 0), 0).toFixed(2));
+  const rateBase = ratesRes.status === 'fulfilled' ? ratesRes.value : null;
+  const rateTable = buildShippingRateTable(rateBase || {});
 
   const context: any = {
+    // Tarifas vigentes para cotizar: tarifa por CBM del estado de destino y
+    // recargo x2 desde 400 kg, con las mismas fuentes que la calculadora.
+    tarifas: {
+      ...rateTable,
+      estado_del_cliente: findStateRate(rateTable, user?.state) || null,
+    },
     cliente: {
       nombre: user?.full_name || user?.first_name || email,
       email,
