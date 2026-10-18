@@ -1,0 +1,141 @@
+{
+  "name": "AssistantDoc",
+  "type": "object",
+  "properties": {
+    "doc_key": {
+      "type": "string",
+      "description": "Clave \u00fanica del documento dentro de este espacio de revisi\u00f3n: 'propuesta' o 'manual'."
+    },
+    "title": {
+      "type": "string",
+      "description": "T\u00edtulo visible del documento"
+    },
+    "subtitle": {
+      "type": "string",
+      "description": "L\u00ednea corta que explica de qu\u00e9 trata el documento"
+    },
+    "purpose": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Para qu\u00e9 sirve este documento y qu\u00e9 se espera de quien lo revisa"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "borrador",
+        "en_revision",
+        "validado"
+      ],
+      "default": "borrador",
+      "description": "Estado del documento: borrador (reci\u00e9n armado), en_revision (el equipo lo est\u00e1 revisando) o validado (aprobado por administraci\u00f3n)"
+    },
+    "version": {
+      "type": "string",
+      "description": "Versi\u00f3n visible del documento (ej: v0.1)"
+    },
+    "sections": {
+      "type": "array",
+      "default": [],
+      "description": "Secciones del documento, en orden. Cada secci\u00f3n tiene un t\u00edtulo, una introducci\u00f3n, p\u00e1rrafos y una lista de puntos revisables.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "heading": {
+            "type": "string",
+            "description": "T\u00edtulo de la secci\u00f3n"
+          },
+          "intro": {
+            "type": "string",
+            "description": "P\u00e1rrafo corto que abre la secci\u00f3n"
+          },
+          "paragraphs": {
+            "type": "array",
+            "default": [],
+            "description": "P\u00e1rrafos adicionales de la secci\u00f3n",
+            "items": {
+              "type": "string"
+            }
+          },
+          "items": {
+            "type": "array",
+            "default": [],
+            "description": "Puntos revisables de la secci\u00f3n, cada uno con su estado de validaci\u00f3n",
+            "items": {
+              "type": "object",
+              "properties": {
+                "text": {
+                  "type": "string",
+                  "description": "El punto o regla tal como debe quedar"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "confirmado",
+                    "provisional",
+                    "pendiente"
+                  ],
+                  "default": "pendiente",
+                  "description": "confirmado (comprobado en el sistema o en la configuraci\u00f3n vigente), provisional (viene de documentos o de la pr\u00e1ctica y falta confirmarlo) o pendiente (hay discrepancia o falta el dato: no se responde al cliente con esto)"
+                },
+                "note": {
+                  "type": "string",
+                  "description": "Aclaratoria para quien revisa: de d\u00f3nde sale el dato o qu\u00e9 falta definir"
+                }
+              },
+              "required": [
+                "text"
+              ]
+            }
+          }
+        },
+        "required": [
+          "heading"
+        ]
+      }
+    },
+    "review_note": {
+      "type": "string",
+      "maxLength": 2000,
+      "description": "Nota de la \u00faltima revisi\u00f3n: qu\u00e9 se revis\u00f3 y qu\u00e9 queda pendiente de confirmar"
+    },
+    "last_reviewed_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Momento de la \u00faltima revisi\u00f3n guardada del documento"
+    },
+    "last_reviewed_by": {
+      "type": "string",
+      "description": "Nombre de quien hizo la \u00faltima revisi\u00f3n"
+    },
+    "updated_by": {
+      "type": "string",
+      "description": "Email del administrador que guard\u00f3 el \u00faltimo cambio"
+    }
+  },
+  "required": [
+    "doc_key",
+    "title"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

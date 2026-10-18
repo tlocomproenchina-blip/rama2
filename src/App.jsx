@@ -61,6 +61,7 @@ const AdminOrphanPackages = lazy(() => import('./pages/AdminOrphanPackages'));
 const AdminSharedPortal = lazy(() => import('./pages/AdminSharedPortal'));
 const SharedTrackingPortal = lazy(() => import('./pages/SharedTrackingPortal'));
 const AdminSupportQuickMessages = lazy(() => import('./pages/AdminSupportQuickMessages'));
+const AdminAssistantKnowledge = lazy(() => import('./pages/AdminAssistantKnowledge'));
 const AdminSupportAssistant = lazy(() => import('./pages/AdminSupportAssistant'));
 const AdminSupportSupervisor = lazy(() => import('./pages/AdminSupportSupervisor'));
 const AdminSupportClients = lazy(() => import('./pages/AdminSupportClients'));
@@ -191,6 +192,7 @@ const AuthenticatedApp = () => {
       <Route path="/AdminOrphanPackages" element={lazyRoute(AdminOrphanPackages, "AdminOrphanPackages")} />
       <Route path="/AdminSharedPortal" element={lazyRoute(AdminSharedPortal, "AdminSharedPortal")} />
       <Route path="/AdminSupportQuickMessages" element={lazyRoute(AdminSupportQuickMessages, "AdminSupportQuickMessages")} />
+      <Route path="/AdminAssistantKnowledge" element={lazyRoute(AdminAssistantKnowledge, "AdminAssistantKnowledge")} />
       <Route path="/AdminSupportAssistant" element={lazyRoute(AdminSupportAssistant, "AdminSupportAssistant")} />
       <Route path="/AdminSupportSupervisor" element={lazyRoute(AdminSupportSupervisor, "AdminSupportSupervisor")} />
       <Route path="/AdminSupportClients" element={lazyRoute(AdminSupportClients, "AdminSupportClients")} />

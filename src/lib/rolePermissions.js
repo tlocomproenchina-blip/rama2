@@ -105,6 +105,7 @@ export const PAGE_LABELS = {
   AdminSupportAssistant: 'Asistente ATC (Q&A)',
   AdminSupportSupervisor: 'Supervisor (casos escalados)',
   AdminFAQ: 'Gestionar FAQ',
+  AdminAssistantKnowledge: 'Conocimiento Asistente',
   AdminClients: 'Clientes',
   AdminEmployees: 'Empleados',
   AdminEmployeeAudit: 'Auditoría de Acciones',
