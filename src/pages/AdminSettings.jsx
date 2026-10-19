@@ -41,8 +41,7 @@ import ClientMenuVisibilityManager from '@/components/admin/ClientMenuVisibility
 import { cacheManager } from '@/components/CacheManager';
 import { uploadImageNoCredits } from '@/lib/imgbbUpload';
 import { generateClientPriceListPdf } from '@/lib/clientPriceListPdf';
-import PushTestCard from '@/components/admin/PushTestCard';
-import AppPromptsSettings from '@/components/admin/AppPromptsSettings';
+// Instalación de la app y notificaciones push: ocultas hasta que exista una app nativa.
 import DarkModeToggleCard from '@/components/admin/DarkModeToggleCard';
 import ShippingMarkExamplesEditor from '@/components/admin/ShippingMarkExamplesEditor';
 import BatteryBannerSettings from '@/components/admin/BatteryBannerSettings';
@@ -1144,12 +1143,6 @@ export default function AdminSettings({ user }) {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 p-4 md:space-y-6 md:p-6">
-              {/* Prueba de Notificaciones Push */}
-              <PushTestCard user={user} />
-
-              {/* Avisos flotantes de instalación y notificaciones */}
-              <AppPromptsSettings appConfig={appConfig} setAppConfig={setAppConfig} />
-
               {/* Banner de Permisología de Batería */}
               <BatteryBannerSettings
                 appConfig={appConfig}

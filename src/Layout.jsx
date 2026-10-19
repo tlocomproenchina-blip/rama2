@@ -29,8 +29,6 @@ import InternalFloatingChat from '@/components/internal-messaging/InternalFloati
 import DemoModeBanner from '@/components/common/DemoModeBanner';
 import MobileBottomNav from '@/components/navigation/MobileBottomNav';
 import MobilePageTransition from '@/components/navigation/MobilePageTransition';
-import PushNotificationPrompt from '@/components/push/PushNotificationPrompt';
-import { initInstallCapture } from '@/lib/pwaInstall';
 
 // Lazy loaded onboarding tour
 const GuidedTour = lazy(() =>
@@ -43,7 +41,6 @@ const TourTriggerButton = lazy(() =>
 // Lazy loaded non-critical components
 const WhatsAppSupport = lazy(() => import('@/components/WhatsAppSupport'));
 const ChatbotAssistant = lazy(() => import('@/components/ChatbotAssistant'));
-const PWAInstallPrompt = lazy(() => import('@/components/PWAInstallPrompt'));
 const ContractModal = lazy(() => import('@/components/ContractModal.jsx'));
 const ProfileSetupModal = lazy(() => import('@/components/ProfileSetupModal'));
 const ApiStatusIndicator = lazy(() => import('@/components/api/ApiStatusIndicator'));
@@ -71,11 +68,6 @@ export default function Layout({ children, currentPageName }) {
   const isAdminPanel = user?.role === 'admin';
   const hasDesktopSidebar = !!user;
   const showBackButton = ['ShippingCalculator', 'Rates', 'Blog', 'BlogPost', 'TermsOfService', 'FAQ', 'Sitemap'].includes(currentPageName);
-
-  // Captura el evento de instalación de la app desde el arranque, aunque el aviso flotante esté apagado
-  useEffect(() => {
-    initInstallCapture();
-  }, []);
 
   // Tuning sensato: se aplica una sola vez al montar
   useEffect(() => {
@@ -459,10 +451,6 @@ export default function Layout({ children, currentPageName }) {
       <Suspense fallback={null}><ApiStatusIndicator /></Suspense>
       <GlobalErrorListener />
       {user?.role === 'admin' && <AdminNotificationCenter user={user} />}
-      {user && config?.pwa_install_prompt_enabled !== false && (
-        <Suspense fallback={null}><PWAInstallPrompt /></Suspense>
-      )}
-      {user && config?.push_prompt_enabled !== false && <PushNotificationPrompt user={user} />}
       {user?.role === 'user' && (
         <Suspense fallback={null}><WhatsAppSupport /></Suspense>
       )}
