@@ -184,22 +184,16 @@ export async function generatePeriodGuidesPdf({
         y += 6.5;
       });
 
+      // El chofer solo necesita contar bultos: el resumen del cliente muestra ese número
+      // y nada más, en grande, sin paquetes ni órdenes que confundan el conteo.
+      if (y > 262) {
+        doc.addPage();
+        continuationHeader(guide);
+      }
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(10);
-      const clientPackages = bultos.reduce((sum, b) => sum + (Number(b.package_count) || 0), 0);
-      const clientCajas = bultos.filter((b) => b.is_caja).length;
-      const clientCbm = bultos.reduce((sum, b) => sum + (Number(b.cbm) || 0), 0);
-      doc.text(
-        `Total cliente: ${bultos.length} bulto(s)` +
-          (clientCajas ? ` (${clientCajas} caja(s))` : '') +
-          ` · ${clientPackages} paquete(s)` +
-          (clientCbm > 0 ? ` · ${clientCbm.toFixed(3)} CBM` : '') +
-          (entry.orders_count ? ` · ${entry.orders_count} orden(es)` : ''),
-        right,
-        y,
-        { align: 'right' }
-      );
-      y += 5;
+      doc.setFontSize(17);
+      doc.text(`Total cliente: ${bultos.length} bulto(s)`, right, y, { align: 'right' });
+      y += 6.5;
       doc.setDrawColor(203, 213, 225);
       doc.line(left, y, right, y);
       y += 10;

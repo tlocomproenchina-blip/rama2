@@ -69,8 +69,7 @@ export async function generateDispatchGuidePdf({
       doc.setFontSize(9);
       doc.text(`Emitida: ${now.toLocaleString('es-VE')}`, right, 17, { align: 'right' });
       doc.text(
-        `${totals.clients} cliente(s) · ${unitLabel} · ${totals.packages} paquete(s)` +
-          (unregistered ? ` · ${unregistered} sin bulto` : ''),
+        `${totals.clients} cliente(s) · ${unitLabel}` + (unregistered ? ` · ${unregistered} sin bulto` : ''),
         right,
         22,
         { align: 'right' }
@@ -177,25 +176,24 @@ export async function generateDispatchGuidePdf({
       y += 6.5;
     });
 
+    // El chofer solo necesita contar bultos: el resumen del cliente muestra ese número
+    // y nada más, en grande, sin paquetes ni órdenes que confundan el conteo.
+    if (y > 262) startPage(false);
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(10);
+    doc.setFontSize(17);
     const clientBultos = bultos.filter((b) => b.label_code).length;
     const clientUnregistered = bultos.filter(isUnregisteredLine).length;
-    const clientPackages = bultos.reduce((sum, b) => sum + (Number(b.package_count) || 0), 0);
-    const clientCajas = bultos.filter((b) => b.is_caja).length;
-    const clientCbm = bultos.reduce((sum, b) => sum + (Number(b.cbm) || 0), 0);
-    doc.text(
-      `Total cliente: ${clientBultos} bulto(s)` +
-        (clientUnregistered ? ` + ${clientUnregistered} sin bulto` : '') +
-        (clientCajas ? ` (${clientCajas} caja(s))` : '') +
-        ` · ${clientPackages} paquete(s)` +
-        (clientCbm > 0 ? ` · ${clientCbm.toFixed(3)} CBM` : '') +
-        (entry.orders_count ? ` · ${entry.orders_count} despacho(s)` : ''),
-      right,
-      y,
-      { align: 'right' }
-    );
-    y += 5;
+    doc.text(`Total cliente: ${clientBultos} bulto(s)`, right, y, { align: 'right' });
+    y += 5.5;
+    if (clientUnregistered) {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8.5);
+      doc.setTextColor(100, 116, 139);
+      doc.text(`+ ${clientUnregistered} carga(s) sin bulto registrado`, right, y, { align: 'right' });
+      doc.setTextColor(30, 41, 59);
+      y += 4.5;
+    }
+    y += 1;
     doc.setDrawColor(203, 213, 225);
     doc.line(left, y, right, y);
     y += 10;
@@ -209,14 +207,14 @@ export async function generateDispatchGuidePdf({
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(11);
   doc.text('TOTAL GENERAL', 16, y + 1);
-  doc.setFontSize(9);
-  doc.text(
-    `${totals.clients} cliente(s) · ${unitLabel} · ${totals.packages} paquete(s)` +
-      (unregistered ? ` · ${unregistered} sin bulto` : ''),
-    right,
-    y + 1,
-    { align: 'right' }
-  );
+  doc.setFontSize(13);
+  doc.text(`${totals.clients} cliente(s) · ${unitLabel}`, right, y + 1, { align: 'right' });
+  if (unregistered) {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.5);
+    doc.setTextColor(226, 232, 240);
+    doc.text(`+ ${unregistered} carga(s) sin bulto registrado`, right, y + 7, { align: 'right' });
+  }
   doc.setTextColor(30, 41, 59);
   y += 22;
 
