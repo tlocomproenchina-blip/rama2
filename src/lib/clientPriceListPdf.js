@@ -1,7 +1,5 @@
 import jsPDF from 'jspdf';
 
-const MIN_CBM = 0.130;
-
 const rateFor = (state, pricing, type) => {
   const override = type === 'regular' ? state.final_rate_regular : state.final_rate_high;
   if (Number(override) > 0) return Number(override);
@@ -70,9 +68,10 @@ export async function generateClientPriceListPdf({ states = [], pricing = {}, ap
   // Cómo funciona
   title('¿Cómo se calcula tu envío?');
   line('1. Medimos tu carga en CBM (metros cúbicos): largo x ancho x alto en cm, dividido entre 1.000.000.', 3);
-  line(`2. Cargas de ${MIN_CBM.toFixed(3)} CBM o más: se cobra el precio por CBM de tu estado (servicio puerta a puerta incluido).`, 3);
-  line(`3. Cargas menores a ${MIN_CBM.toFixed(3)} CBM: aplica una tarifa fija por rango (ver tabla final). La entrega es puerta a puerta en la dirección del cliente (9 USD por bulto).`, 3);
-  line(`4. Cargo fijo de $1,00 por recepción de cada paquete en almacén.${appConfig.insurance_percentage ? ` Seguro opcional: ${appConfig.insurance_percentage}% del valor FOB.` : ''}`, 3);
+  line('2. Tu carga se cobra por su volumen real: el precio por CBM de tu estado de destino, sin mínimo de envío ni tarifa fija por volumen pequeño.', 3);
+  line('3. Desde 400 kg inclusive, el precio por CBM se cobra al doble (x2), tanto en carga ordinaria como en carga de alto riesgo.', 3);
+  line('4. La entrega es puerta a puerta en la dirección del cliente y va incluida en la tarifa.', 3);
+  line(`5. Cargo fijo de $1,00 por recepción de cada paquete en almacén.${appConfig.insurance_percentage ? ` Seguro opcional: ${appConfig.insurance_percentage}% del valor FOB.` : ''}`, 3);
   y += 3;
 
   // Tabla por estado
@@ -91,7 +90,7 @@ export async function generateClientPriceListPdf({ states = [], pricing = {}, ap
     doc.setFontSize(10);
     doc.text(label, nameX, y + 5.5);
     doc.text('Precio por CBM', cbmX, y + 5.5);
-    doc.text(`Mínimo (${MIN_CBM.toFixed(3)} CBM)`, minX, y + 5.5);
+    doc.text('Sobrepeso x2', minX, y + 5.5);
     doc.setTextColor(0, 0, 0);
     y += 9.5;
   };
@@ -114,7 +113,7 @@ export async function generateClientPriceListPdf({ states = [], pricing = {}, ap
       doc.setFontSize(10);
       doc.text(state.state_name, nameX, y + 3);
       doc.text(money(rate), cbmX, y + 3);
-      doc.text(money(rate * MIN_CBM), minX, y + 3);
+      doc.text(money(rate * 2), minX, y + 3);
       y += rowH;
     });
     y += 5;
@@ -124,40 +123,6 @@ export async function generateClientPriceListPdf({ states = [], pricing = {}, ap
   doc.addPage();
   y = 16;
   drawStates('high', 'Carga de alto riesgo / sensible');
-
-  // Tarifas especiales por rango
-  const special = Array.isArray(appConfig.special_cbm_rates) ? [...appConfig.special_cbm_rates].sort((a, b) => Number(a.min_cbm) - Number(b.min_cbm)) : [];
-  if (special.length) {
-    title(`Cargas pequeñas (menores a ${MIN_CBM.toFixed(3)} CBM) - tarifa fija`);
-    line('La entrega es puerta a puerta en la dirección del cliente (9 USD por bulto). No hay retiro en oficinas de encomiendas.', 3);
-    y += 2;
-    ensure(20);
-    doc.setFillColor(30, 64, 175);
-    doc.roundedRect(14, y, tableWidth, 8, 2, 2, 'F');
-    doc.setTextColor(255, 255, 255);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(10);
-    doc.text('Rango de CBM', nameX, y + 5.5);
-    doc.text('Ordinaria', cbmX, y + 5.5);
-    doc.text('Alto riesgo', minX, y + 5.5);
-    doc.setTextColor(0, 0, 0);
-    y += 9.5;
-
-    special.forEach((r, idx) => {
-      if (y + rowH > 283) { doc.addPage(); y = 16; }
-      if (idx % 2 === 0) {
-        doc.setFillColor(248, 250, 252);
-        doc.roundedRect(14, y - 1.2, tableWidth, rowH, 1.5, 1.5, 'F');
-      }
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(10);
-      doc.text(`${Number(r.min_cbm).toFixed(4)} - ${Number(r.max_cbm).toFixed(4)} CBM`, nameX, y + 3);
-      doc.text(money(r.rate_regular), cbmX, y + 3);
-      doc.text(money(r.rate_high_risk), minX, y + 3);
-      y += rowH;
-    });
-    y += 5;
-  }
 
   // Qué es carga sensible y restricciones
   title('¿Qué se considera carga de alto riesgo / sensible?');

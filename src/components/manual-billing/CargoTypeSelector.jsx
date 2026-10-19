@@ -58,8 +58,8 @@ export default function CargoTypeSelector({ value = 'general', onChange, compact
       </div>
       <p className="text-[11px] text-slate-500">
         {isHighRisk
-          ? 'Se aplica la tarifa de alto riesgo (≥ 0.130 CBM y tabla de mínimos).'
-          : 'Se aplica la tarifa regular (≥ 0.130 CBM y tabla de mínimos).'}
+          ? 'Se aplica la tarifa de alto riesgo por CBM del estado del cliente.'
+          : 'Se aplica la tarifa regular por CBM del estado del cliente.'}
       </p>
     </div>
   );

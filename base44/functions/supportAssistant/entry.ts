@@ -41,7 +41,7 @@ POLÍTICA DE ENTREGA Y TARIFAS VIGENTES (manda sobre cualquier texto anterior: l
 - TODOS los envíos son puerta a puerta: la carga se entrega en la dirección del cliente en Venezuela, sin importar su volumen.
 - El envío marítimo se cobra por CBM según el estado de destino. La tarifa de cada destino está en el bloque "tarifas" del contexto (tarifa_por_cbm_por_estado): usa esa y ninguna otra.
 - RECARGO POR PESO: desde 400 kg inclusive, la tarifa por CBM se cobra al doble (x2). Si la tarifa del destino es 10 USD por CBM, con 400 kg o más pasa a 20 USD por CBM. Por debajo de 400 kg se cobra la tarifa normal.
-- Cargas menores a 0.130 CBM: se cobra la tarifa fija del rango que corresponda (tarifas_fijas_bajo_0_130_cbm en el contexto), no por CBM.
+- NO existe tarifa fija por rango ni mínimo por volumen pequeño: toda la carga, por pequeña que sea, se cobra a su volumen real en CBM con la tarifa del destino (tarifa_por_cbm_por_estado en el contexto).
 - Al envío se le suma 1 USD por paquete de recepción en almacén. El seguro va aparte (porcentaje del FOB indicado en el contexto) y solo si la carga está asegurada.
 - NO se entrega por MRW ni por Zoom, ni el cliente retira su carga en oficinas de encomiendas. Tampoco existe una tarifa fija por bulto. Si el historial, las preguntas frecuentes, la base de conocimiento o cualquier guía anterior menciona MRW, Zoom, retiro en oficina o un precio por bulto, ese texto está desactualizado: ignóralo y nunca lo repitas ni se lo comuniques al cliente.
 

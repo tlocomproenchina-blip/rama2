@@ -7,19 +7,16 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 //   largo?: number, ancho?: number, alto?: number, cantidad?: number,
 //   units?: "cm"|"m", // default: "cm"
 //   cbm?: number, // si viene, se usa directo
-//   add_door_to_door?: boolean, // default true (solo aplica a cargas >= 0.130 CBM)
+//   add_door_to_door?: boolean, // default true
 //   include_insurance?: boolean, // si true y viene fob_value, calcular
 //   fob_value?: number
 // }
 // Reglas de negocio:
-// - SIN mínimo facturable de CBM.
+// - SIN mínimo facturable de CBM: se cobra el volumen real, sin tarifa fija por rango.
 // - Cargo fijo de $1 por recepción de paquete (siempre).
-// - CBM >= 0.130: servicio puerta a puerta (tarifas por CBM de PricingConfig + door_to_door_cost).
-// - CBM <= 0.129: tarifa especial fija por rango (AppConfig.special_cbm_rates).
-//   Aplica tarifa fija por rango; la entrega es puerta a puerta en la dirección del cliente.
+// - Servicio puerta a puerta (tarifas por CBM de PricingConfig + door_to_door_cost).
 // - Seguro: si include_insurance=true y hay fob_value, usar (AppConfig.insurance_percentage || 5)%
 
-const DOOR_TO_DOOR_THRESHOLD = 0.130;
 const PACKAGE_RECEIVED_FEE = 1;
 
 Deno.serve(async (req) => {
@@ -60,7 +57,6 @@ Deno.serve(async (req) => {
     const base_rate_high_risk = Number(pricing.base_rate_high_risk ?? 790);
     const door_to_door_cost = Number(pricing.door_to_door_cost ?? 20);
     const insurance_pct = Number(appCfg.insurance_percentage ?? 5);
-    const special_rates = Array.isArray(appCfg.special_cbm_rates) ? appCfg.special_cbm_rates : [];
 
     // 2) Calcular CBM
     let cbm = 0;
@@ -90,28 +86,12 @@ Deno.serve(async (req) => {
     let service_type;
     let service_notes;
 
-    if (cbm >= DOOR_TO_DOOR_THRESHOLD) {
-      // Servicio puerta a puerta
-      base_rate = base_rate_type === 'regular' ? base_rate_regular : base_rate_high_risk;
-      freight_subtotal = cbm * base_rate;
-      d2d = add_door_to_door ? door_to_door_cost : 0;
-      service_type = 'puerta_a_puerta';
-      service_notes = 'Carga igual o mayor a 0.130 CBM. Incluye servicio puerta a puerta.';
-    } else {
-      // Tarifa especial: tarifa fija por rango con entrega puerta a puerta
-      const sorted = [...special_rates].sort((x, y) => Number(x.min_cbm) - Number(y.min_cbm));
-      const found = sorted.find(r => cbm <= Number(r.max_cbm));
-
-      if (!found) {
-        return Response.json({ error: 'No se encontró tarifa especial para el CBM proporcionado. Verifica special_cbm_rates en la configuración.' }, { status: 400 });
-      }
-
-      base_rate = base_rate_type === 'regular' ? Number(found.rate_regular) : Number(found.rate_high_risk);
-      freight_subtotal = base_rate; // tarifa fija por rango
-      d2d = 0;
-      service_type = 'almacen_valencia_mrw_cobro_destino';
-      service_notes = 'Carga menor a 0.130 CBM. Aplica tarifa fija por rango. La entrega es puerta a puerta en la dirección del cliente.';
-    }
+    // Servicio puerta a puerta: se cobra el volumen real, sin mínimo ni tarifa fija por rango.
+    base_rate = base_rate_type === 'regular' ? base_rate_regular : base_rate_high_risk;
+    freight_subtotal = cbm * base_rate;
+    d2d = add_door_to_door ? door_to_door_cost : 0;
+    service_type = 'puerta_a_puerta';
+    service_notes = 'Incluye servicio puerta a puerta en la dirección del cliente.';
 
     // 5) Cargo fijo por recepción de paquete
     const reception_fee = PACKAGE_RECEIVED_FEE;

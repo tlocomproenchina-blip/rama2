@@ -7,7 +7,7 @@ export default function CityLandingFaq({ city }) {
   const faqs = [
     {
       q: `¿Cuánto cuesta el envío marítimo de China a ${city.city}?`,
-      a: `El costo depende del volumen (CBM) de tu carga, la categoría (general o sensible) y el estado de destino (${city.state_name}). Usa nuestra calculadora en esta página para obtener un estimado instantáneo. Para cargas menores a 0.130 CBM aplicamos tarifas fijas por rango; para cargas mayores, el cálculo es volumen × tarifa por estado.`,
+      a: `El costo depende del volumen (CBM) de tu carga, la categoría (general o sensible) y el estado de destino (${city.state_name}). Usa nuestra calculadora en esta página para obtener un estimado instantáneo. El cálculo es volumen real × tarifa por estado, sin mínimo de envío ni tarifa fija por volumen pequeño; si tu carga pesa 400 kg o más, la tarifa por CBM se cobra al doble.`,
     },
     {
       q: `¿Cuánto tarda un envío marítimo de China a ${city.city}?`,
@@ -27,7 +27,7 @@ export default function CityLandingFaq({ city }) {
     },
     {
       q: `¿Hacen entrega puerta a puerta en ${city.state_name}?`,
-      a: `Sí. Coordinamos la entrega final puerta a puerta en ${city.city} y toda la zona de ${city.state_name}. Aplica para cualquier volumen, también las cargas menores a 0.130 CBM: no tenemos mínimo de envío y la entrega siempre es puerta a puerta en la dirección del cliente.`,
+      a: `Sí. Coordinamos la entrega final puerta a puerta en ${city.city} y toda la zona de ${city.state_name}. Aplica para cualquier volumen: no tenemos mínimo de envío y la entrega siempre es puerta a puerta en la dirección del cliente.`,
     },
   ];
 

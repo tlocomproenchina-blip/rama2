@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
-import { MapPin, TrendingUp, Layers } from 'lucide-react';
+import { MapPin, TrendingUp } from 'lucide-react';
 import { CANONICAL_STATE_NAMES } from '@/components/utils/states';
 import CargoTypeSelector from '@/components/manual-billing/CargoTypeSelector';
 
@@ -26,11 +26,6 @@ export default function ClientStateRatesCard({ client, stateConfigs, appConfig, 
     };
   }, [client, stateConfigs, pricing]);
 
-  const specialRates = useMemo(() => {
-    const list = Array.isArray(appConfig?.special_cbm_rates) ? appConfig.special_cbm_rates : [];
-    return [...list].sort((a, b) => num(a.min_cbm) - num(b.min_cbm));
-  }, [appConfig]);
-
   if (!client?.state) return null;
 
   return (
@@ -53,53 +48,26 @@ export default function ClientStateRatesCard({ client, stateConfigs, appConfig, 
           </div>
           <div className={`rounded-lg bg-blue-50 border p-3 ${cargoType === 'general' ? 'border-blue-400 ring-1 ring-blue-200' : 'border-blue-100'}`}>
             <div className="flex items-start justify-between gap-2">
-              <p className="text-xs text-slate-500 flex items-center gap-1"><TrendingUp className="h-3 w-3" /> Precio final Regular (≥ 0.130)</p>
+              <p className="text-xs text-slate-500 flex items-center gap-1"><TrendingUp className="h-3 w-3" /> Precio final Regular (por CBM)</p>
               {cargoType === 'general' && (
                 <span className="shrink-0 rounded bg-white/80 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700">Aplicada</span>
               )}
             </div>
             <p className="font-semibold text-blue-700">${num(stateInfo?.final_regular).toFixed(2)} / CBM</p>
-            <p className="text-[11px] text-slate-500 mt-1">0.130 CBM: ${(num(stateInfo?.final_regular) * 0.130).toFixed(2)}</p>
+            <p className="text-[11px] text-slate-500 mt-1">Con 400 kg o más: ${(num(stateInfo?.final_regular) * 2).toFixed(2)} / CBM (x2)</p>
           </div>
           <div className={`rounded-lg bg-blue-50 border p-3 ${cargoType === 'alto_riesgo' ? 'border-amber-400 ring-1 ring-amber-200' : 'border-blue-100'}`}>
             <div className="flex items-start justify-between gap-2">
-              <p className="text-xs text-slate-500 flex items-center gap-1"><TrendingUp className="h-3 w-3" /> Precio final Alto riesgo (≥ 0.130)</p>
+              <p className="text-xs text-slate-500 flex items-center gap-1"><TrendingUp className="h-3 w-3" /> Precio final Alto riesgo (por CBM)</p>
               {cargoType === 'alto_riesgo' && (
                 <span className="shrink-0 rounded bg-white/80 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">Aplicada</span>
               )}
             </div>
             <p className="font-semibold text-blue-700">${num(stateInfo?.final_high).toFixed(2)} / CBM</p>
-            <p className="text-[11px] text-slate-500 mt-1">0.130 CBM: ${(num(stateInfo?.final_high) * 0.130).toFixed(2)}</p>
+            <p className="text-[11px] text-slate-500 mt-1">Con 400 kg o más: ${(num(stateInfo?.final_high) * 2).toFixed(2)} / CBM (x2)</p>
           </div>
         </div>
 
-        {specialRates.length > 0 && (
-          <div>
-            <p className="text-sm font-semibold text-slate-700 flex items-center gap-2 mb-2">
-              <Layers className="h-4 w-4 text-slate-500" /> Tarifas mínimas (cargas &lt; 0.130 CBM)
-            </p>
-            <div className="overflow-x-auto rounded-lg border border-slate-200">
-              <table className="w-full min-w-max text-sm">
-                <thead className="bg-slate-50 text-slate-600">
-                  <tr>
-                    <th className="text-left p-2 font-medium">Rango CBM</th>
-                    <th className="text-left p-2 font-medium">Regular ($)</th>
-                    <th className="text-left p-2 font-medium">Alto riesgo ($)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {specialRates.map((r, i) => (
-                    <tr key={i} className="border-t border-slate-100">
-                      <td className="p-2 text-slate-700">{num(r.min_cbm).toFixed(4)} – {num(r.max_cbm).toFixed(4)}</td>
-                      <td className="p-2 font-semibold text-slate-800">${num(r.rate_regular).toFixed(2)}</td>
-                      <td className="p-2 font-semibold text-slate-800">${num(r.rate_high_risk).toFixed(2)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
       </CardContent>
     </Card>
   );

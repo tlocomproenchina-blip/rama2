@@ -114,11 +114,11 @@ export default function CityLandingSeoContent({ city }) {
           <div className="mt-4 space-y-3 text-[15px] leading-relaxed text-slate-600">
             <p>
               El <strong>costo de enviar un contenedor desde China a {city.city}</strong> depende del volumen real
-              (CBM) de tu carga, la categoría (general o sensible/alto riesgo) y el estado de destino. Para cargas
-              menores a 0.130 CBM aplicamos tarifas fijas por rango que incluyen recepción en nuestro almacén de
-              Valencia; la entrega final a {city.city} es puerta a puerta en la dirección del cliente. Para cargas mayores,
-              el cálculo es simple: <em>volumen CBM × tarifa por estado</em>, con un recargo del 100% (x2) si el peso
-              real supera los 499 kg.
+              (CBM) de tu carga, la categoría (general o sensible/alto riesgo) y el estado de destino. No tenemos
+              mínimo de envío: se cobra el volumen real de la carga, por pequeña que sea, e incluye la recepción en
+              nuestro almacén en China; la entrega final a {city.city} es puerta a puerta en la dirección del cliente.
+              El cálculo es simple: <em>volumen CBM × tarifa por estado</em>, con un recargo del 100% (x2) desde 400 kg
+              de peso real (hasta 399 kg se cobra la tarifa normal).
             </p>
             <p>
               ¿Cuánto tarda un envío marítimo de China a {city.state_name}? El tiempo de tránsito estimado es de{' '}

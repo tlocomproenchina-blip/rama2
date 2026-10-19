@@ -68,7 +68,6 @@ export default function AdminShipmentApprovals({ user }) {
   const [revokingId, setRevokingId] = useState(null);
   const [requestMeta, setRequestMeta] = useState({});
   const [clientPreAlertCounts, setClientPreAlertCounts] = useState({});
-  const MIN_CBM = 0.13;
 
   useEffect(() => {
     loadData();
@@ -232,7 +231,7 @@ export default function AdminShipmentApprovals({ user }) {
     }
 
     const billableWeight = Math.max(realWeight, volumetricWeight);
-    const usedCbm = selectedShippingType === 'maritimo' ? Math.max(cbm, MIN_CBM) : cbm;
+    const usedCbm = cbm;
 
     const totalFOB = hasInsurance ? (parseFloat(customFobValue) || 0) : 0;
     const insuranceCost = totalFOB * ((config?.insurance_percentage || 5) / 100);
@@ -281,8 +280,6 @@ export default function AdminShipmentApprovals({ user }) {
       consolidationFee,
       insuranceCost,
       totalCost,
-      minCbmApplied: selectedShippingType === 'maritimo' && cbm < MIN_CBM,
-      minCbm: MIN_CBM,
       usedCbm
     };
   };
@@ -757,12 +754,6 @@ export default function AdminShipmentApprovals({ user }) {
                       <span className="text-slate-600">CBM:</span>
                       <span className="font-medium">{Number(calculateValues().cbm ?? 0).toFixed(4)} m³</span>
                     </div>
-                    {selectedShippingType === 'maritimo' && calculateValues().minCbmApplied && (
-                      <div className="flex justify-between text-amber-700">
-                        <span className="text-slate-700">Mínimo facturable:</span>
-                        <span className="font-medium">{Number(calculateValues().minCbm ?? 0).toFixed(4)} m³</span>
-                      </div>
-                    )}
                     <div className="flex justify-between">
                       <span className="text-slate-600">Peso Volumétrico:</span>
                       <span className="font-medium">{Number(calculateValues().volumetricWeight ?? 0).toFixed(2)} kg</span>

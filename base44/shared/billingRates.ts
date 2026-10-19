@@ -8,8 +8,6 @@
 // recibos duplicados.
 import { num } from "./paginatedFetch.ts";
 
-export const DOOR_TO_DOOR_THRESHOLD = 0.130;
-
 export const round2 = (v: any) => Math.round(num(v) * 100) / 100;
 export const round5 = (v: any) => Math.round(num(v) * 1e5) / 1e5;
 
@@ -94,20 +92,12 @@ export function rateSetForDate(ctx: any, fecha: any) {
   };
 }
 
-// Precio por CBM para cargas >= 0.130 CBM.
+// Precio por CBM del envío.
 export function ratePerCbmFor(ctx: any, rateSet: any, type: string) {
   const baseRate = type === "alto_riesgo" ? rateSet?.base_rate_high_risk : rateSet?.base_rate_regular;
   return num(baseRate) * (1 + num(rateSet?.profit_percentage) / 100)
     + num(ctx?.stateShippingRate)
     + num(rateSet?.door_to_door_cost);
-}
-
-// Tarifa fija de la tabla de mínimos (< 0.130 CBM), o null si el rango no existe.
-export function specialRateFor(rateSet: any, type: string, cbm: number) {
-  const sorted = [...(rateSet?.special_cbm_rates || [])].sort((x: any, y: any) => num(x.min_cbm) - num(y.min_cbm));
-  const found = sorted.find((r: any) => num(cbm) <= num(r.max_cbm));
-  if (!found) return null;
-  return type === "alto_riesgo" ? num(found.rate_high_risk) : num(found.rate_regular);
 }
 
 // Precio por CBM del recibo según su fecha y tipo de carga.
@@ -122,33 +112,22 @@ export function consolidatedShipping(ctx: any, billedCbm: number, receipts: any[
   if (c <= 0) return 0;
   const typeOf = (r: any) => (r?.type || r?.cargo_type || fallbackType);
 
-  if (c >= DOOR_TO_DOOR_THRESHOLD) {
-    const totalReceiptCbm = (receipts || []).reduce((s: number, r: any) => s + num(r.cbm), 0);
-    if (totalReceiptCbm <= 0) return c * ratePerCbmFor(ctx, ctx.currentRateSet, fallbackType);
-    const groups: Record<string, any> = {};
-    for (const r of receipts || []) {
-      if (num(r.cbm) <= 0) continue;
-      const type = typeOf(r);
-      const rs = rateSetForDate(ctx, r.fecha);
-      const key = `${rs.effective_date || "current"}|${type}`;
-      if (!groups[key]) groups[key] = { rateSet: rs, type, cbm: 0 };
-      groups[key].cbm += num(r.cbm);
-    }
-    const scale = c / totalReceiptCbm;
-    return Object.values(groups).reduce(
-      (sum: number, g: any) => sum + g.cbm * scale * ratePerCbmFor(ctx, g.rateSet, g.type),
-      0
-    );
+  const totalReceiptCbm = (receipts || []).reduce((s: number, r: any) => s + num(r.cbm), 0);
+  if (totalReceiptCbm <= 0) return c * ratePerCbmFor(ctx, ctx.currentRateSet, fallbackType);
+  const groups: Record<string, any> = {};
+  for (const r of receipts || []) {
+    if (num(r.cbm) <= 0) continue;
+    const type = typeOf(r);
+    const rs = rateSetForDate(ctx, r.fecha);
+    const key = `${rs.effective_date || "current"}|${type}`;
+    if (!groups[key]) groups[key] = { rateSet: rs, type, cbm: 0 };
+    groups[key].cbm += num(r.cbm);
   }
-
-  const withDates = (receipts || []).filter((r: any) => !!toDate(r.fecha));
-  const ref = withDates.length
-    ? withDates.reduce((max: any, r: any) => (toDate(r.fecha) as Date) > (toDate(max.fecha) as Date) ? r : max)
-    : null;
-  const rateSet = ref ? rateSetForDate(ctx, ref.fecha) : ctx.currentRateSet;
-  const type = ref ? typeOf(ref) : fallbackType;
-  const fixed = specialRateFor(rateSet, type, c);
-  return fixed === null ? 0 : fixed;
+  const scale = c / totalReceiptCbm;
+  return Object.values(groups).reduce(
+    (sum: number, g: any) => sum + g.cbm * scale * ratePerCbmFor(ctx, g.rateSet, g.type),
+    0
+  );
 }
 
 // Etiqueta 'actual' / 'anterior' del set de tarifas aplicado (solo informativo).

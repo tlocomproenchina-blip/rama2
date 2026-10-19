@@ -35,7 +35,6 @@ import { toast } from 'sonner';
 import ResourceInspector from '@/components/admin/ResourceInspector';
 import PaymentMethodsSettings from '@/components/admin/PaymentMethodsSettings';
 import ShippingMarkAutomationSettings from '@/components/admin/ShippingMarkAutomationSettings';
-import SpecialCbmRatesEditor from '@/components/admin/SpecialCbmRatesEditor';
 import ProviderCostsSettings from '@/components/admin/ProviderCostsSettings';
 import SidebarVisibilityManager from '@/components/admin/SidebarVisibilityManager';
 import ClientMenuVisibilityManager from '@/components/admin/ClientMenuVisibilityManager';
@@ -556,7 +555,7 @@ export default function AdminSettings({ user }) {
 
     ensureSpace(30);
     addSectionTitle('Restricciones');
-    addLine('Facturación mínima marítima: 0.130 CBM o el equivalente a una caja de 50 cm × 50 cm × 50 cm.', 4);
+    addLine('No hay mínimo de envío: se factura el volumen real de la carga (CBM) por la tarifa de tu estado de destino. Desde 400 kg inclusive, el precio por CBM se cobra al doble (x2).', 4);
     addLine('Carga sensible incluye: baterías de litio, alimentos, cosméticos, agentes acuosos, réplicas o imitaciones, polvos, marcas chinas y mercancía de alto valor.', 4);
     addLine('No enviamos: medicamentos, armas, pólvora, gas, motos, chalecos, fundas tácticas, botellas presurizadas, entre otros.', 4);
 
@@ -798,13 +797,6 @@ export default function AdminSettings({ user }) {
             </CardContent>
           </Card>
 
-          <SpecialCbmRatesEditor
-            rates={appConfig.special_cbm_rates}
-            onChange={(updated) => setAppConfig({ ...appConfig, special_cbm_rates: updated })}
-            onSave={handleSavePricing}
-            saving={saving}
-          />
-
           <ProviderCostsSettings
             config={appConfig}
             setConfig={setAppConfig}
@@ -1000,7 +992,7 @@ export default function AdminSettings({ user }) {
                           return (
                             <>
                               <p className="mt-1 font-semibold text-slate-800">${finalReg.toFixed(2)}</p>
-                              <p className="text-xs text-blue-700">0.130 CBM: ${(finalReg * 0.130).toFixed(2)}</p>
+                              <p className="text-xs text-blue-700">Con 400 kg o más: ${(finalReg * 2).toFixed(2)} / CBM (x2)</p>
                             </>
                           );
                         })()}
@@ -1012,7 +1004,7 @@ export default function AdminSettings({ user }) {
                           return (
                             <>
                               <p className="mt-1 font-semibold text-slate-800">${finalHigh.toFixed(2)}</p>
-                              <p className="text-xs text-blue-700">0.130 CBM: ${(finalHigh * 0.130).toFixed(2)}</p>
+                              <p className="text-xs text-blue-700">Con 400 kg o más: ${(finalHigh * 2).toFixed(2)} / CBM (x2)</p>
                             </>
                           );
                         })()}
@@ -1097,7 +1089,7 @@ export default function AdminSettings({ user }) {
                             return (
                               <div>
                                 <span className="font-semibold">${finalReg.toFixed(2)}</span>
-                                <span className="block text-xs text-blue-700">0.130 CBM: ${(finalReg * 0.130).toFixed(2)}</span>
+                                <span className="block text-xs text-blue-700">Con 400 kg o más: ${(finalReg * 2).toFixed(2)} / CBM (x2)</span>
                               </div>
                             );
                           })()}
@@ -1108,7 +1100,7 @@ export default function AdminSettings({ user }) {
                             return (
                               <div>
                                 <span className="font-semibold">${finalHigh.toFixed(2)}</span>
-                                <span className="block text-xs text-blue-700">0.130 CBM: ${(finalHigh * 0.130).toFixed(2)}</span>
+                                <span className="block text-xs text-blue-700">Con 400 kg o más: ${(finalHigh * 2).toFixed(2)} / CBM (x2)</span>
                               </div>
                             );
                           })()}

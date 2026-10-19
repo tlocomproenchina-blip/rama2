@@ -4,15 +4,15 @@
 // mismas reglas que la calculadora de envíos:
 //   - PricingConfig: tarifa base, utilidad y costo puerta a puerta.
 //   - StateConfig:   tarifa del estado de destino (y tarifa final cuando está definida).
-//   - AppConfig:     tarifas fijas para cargas menores a 0.130 CBM.
+//   - AppConfig:     porcentaje del seguro de carga.
 //
 // Reglas:
-//   - Cargas desde 0.130 CBM: se cobra por CBM con la tarifa del estado de destino.
-//   - Cargas menores a 0.130 CBM: tarifa fija por rango.
-//   - Desde 400 kg inclusive: la tarifa por CBM se cobra al doble (x2).
+//   - No hay mínimo de envío: toda la carga se cobra por su volumen real en CBM
+//     con la tarifa del estado de destino. No existe tarifa fija por rango.
+//   - Hasta 399 kg la tarifa por CBM se cobra normal; desde 400 kg inclusive se
+//     cobra al doble (x2), en carga regular y en carga de alto riesgo / sensible.
 import { num } from './paginatedFetch.ts';
 
-export const DOOR_TO_DOOR_THRESHOLD = 0.130;
 export const RECEPTION_FEE_USD = 1;
 // Desde este peso (inclusive) la tarifa por CBM se cobra al doble.
 export const WEIGHT_DOUBLE_FROM_KG = 400;
@@ -51,8 +51,7 @@ export function stateRatesFor(state: any, pricing: any) {
   };
 }
 
-// Tabla lista para el asistente: tarifa por CBM de cada destino y las tarifas
-// fijas de las cargas menores a 0.130 CBM.
+// Tabla lista para el asistente: tarifa por CBM de cada destino.
 export function buildShippingRateTable({ pricing, states, appConfig }: any) {
   const porEstado = (states || [])
     .filter((s: any) => s?.is_active !== false)
@@ -67,23 +66,13 @@ export function buildShippingRateTable({ pricing, states, appConfig }: any) {
     })
     .sort((a: any, b: any) => String(a.estado).localeCompare(String(b.estado)));
 
-  const fijas = [...(Array.isArray(appConfig?.special_cbm_rates) ? appConfig.special_cbm_rates : [])]
-    .sort((x: any, y: any) => num(x.min_cbm) - num(y.min_cbm))
-    .map((r: any) => ({
-      desde_cbm: num(r.min_cbm),
-      hasta_cbm: num(r.max_cbm),
-      tarifa_regular: num(r.rate_regular),
-      tarifa_alto_riesgo: num(r.rate_high_risk),
-    }));
-
   return {
     fuente: 'Mismas fuentes que la calculadora: PricingConfig, StateConfig y AppConfig.',
-    regla_peso: `Desde ${WEIGHT_DOUBLE_FROM_KG} kg inclusive la tarifa por CBM se cobra al doble (x2). Ejemplo: tarifa regular 10 USD/CBM con 400 kg o más = 20 USD/CBM.`,
-    regla_tarifa_fija: `Cargas menores a ${DOOR_TO_DOOR_THRESHOLD} CBM: se cobra la tarifa fija del rango que corresponda, no por CBM.`,
+    regla_calculo: 'No hay mínimo de envío: toda la carga se cobra por su volumen real en CBM multiplicado por la tarifa por CBM del estado de destino. No existe tarifa fija por rango ni monto mínimo por volumen pequeño.',
+    regla_peso: `Hasta 399 kg la tarifa por CBM se cobra normal; desde ${WEIGHT_DOUBLE_FROM_KG} kg inclusive se cobra al doble (x2), tanto en carga regular como en carga de alto riesgo. Ejemplo: tarifa regular 10 USD/CBM con 400 kg o más = 20 USD/CBM.`,
     recepcion_usd_por_paquete: RECEPTION_FEE_USD,
     seguro_porcentaje_fob: num(appConfig?.insurance_percentage) || null,
     tarifa_por_cbm_por_estado: porEstado,
-    tarifas_fijas_bajo_0_130_cbm: fijas,
   };
 }
 

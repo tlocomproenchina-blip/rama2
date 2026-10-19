@@ -90,8 +90,6 @@ export default function AdminManualBilling({ user }) {
     checkPendingDuplicates();
   }, []);
 
-  const DOOR_TO_DOOR_THRESHOLD = 0.130;
-
   // Tarifa de envío del estado del cliente (StateConfig)
   const stateShippingRate = useMemo(() => {
     const code = String(client?.state || '').trim().toLowerCase();
@@ -100,20 +98,14 @@ export default function AdminManualBilling({ user }) {
     return num(match?.shipping_rate);
   }, [client, stateConfigs]);
 
-  // Precio final por CBM (>= 0.130) = (tarifa base * (1 + beneficio%)) + tarifa estado + puerta a puerta
+  // Precio final por CBM = (tarifa base * (1 + beneficio%)) + tarifa estado + puerta a puerta
   const finalRatePerCbm = useMemo(() => {
     const factor = 1 + num(pricing?.profit_percentage) / 100;
     return num(pricing?.base_rate_regular) * factor + stateShippingRate + num(pricing?.door_to_door_cost);
   }, [pricing, stateShippingRate]);
 
-  // Usado como base por CBM para cargas >= 0.130 CBM
+  // Usado como base por CBM de todo el envío
   const ratePerCbm = finalRatePerCbm;
-
-  // Tarifas especiales (mínimos) para cargas < 0.130 CBM (vigentes actualmente)
-  const specialRates = useMemo(() => {
-    const list = Array.isArray(appConfig?.special_cbm_rates) ? appConfig.special_cbm_rates : [];
-    return [...list].sort((x, y) => num(x.min_cbm) - num(y.min_cbm));
-  }, [appConfig]);
 
   // Snapshot de tarifas actuales (live config) — usado como fallback y para recibos sin fecha
   const currentRateSet = useMemo(() => ({
@@ -121,9 +113,8 @@ export default function AdminManualBilling({ user }) {
     base_rate_high_risk: num(pricing?.base_rate_high_risk),
     profit_percentage: num(pricing?.profit_percentage),
     door_to_door_cost: num(pricing?.door_to_door_cost),
-    special_cbm_rates: specialRates,
     effective_date: null
-  }), [pricing, specialRates]);
+  }), [pricing]);
 
   // Resuelve el set de tarifas vigente para una fecha dada, usando RateHistory
   const getRateSetForDate = useCallback((fecha) => {
@@ -143,12 +134,11 @@ export default function AdminManualBilling({ user }) {
       base_rate_high_risk: num(chosen.base_rate_high_risk),
       profit_percentage: num(chosen.profit_percentage),
       door_to_door_cost: num(chosen.door_to_door_cost),
-      special_cbm_rates: Array.isArray(chosen.special_cbm_rates) ? chosen.special_cbm_rates : [],
       effective_date: chosen.effective_date
     };
   }, [rateHistory, currentRateSet]);
 
-  // Tarifa por CBM (>= 0.130) para un set de tarifas dado,
+  // Tarifa por CBM para un set de tarifas dado,
   // usando la tarifa base regular o de alto riesgo según el tipo de carga elegido
   const computeRatePerCbm = useCallback((rateSet, type = cargoType) => {
     const factor = 1 + num(rateSet.profit_percentage) / 100;
@@ -156,25 +146,13 @@ export default function AdminManualBilling({ user }) {
     return num(baseRate) * factor + stateShippingRate + num(rateSet.door_to_door_cost);
   }, [stateShippingRate, cargoType]);
 
-  // Tarifa de la tabla de mínimos (< 0.130 CBM) según el tipo de carga elegido
-  const specialRateFor = useCallback((range, type = cargoType) => (
-    type === 'alto_riesgo' ? num(range?.rate_high_risk) : num(range?.rate_regular)
-  ), [cargoType]);
-
   // Calcula el monto de envío de un recibo individual según su fecha de llegada
   // y su tipo de carga (el propio del recibo o el de la factura si no tiene)
   const calcShippingForRow = useCallback((cbm, fecha, type = cargoType) => {
     const c = num(cbm);
     if (c <= 0) return 0;
-    const rateSet = getRateSetForDate(fecha);
-    if (c >= DOOR_TO_DOOR_THRESHOLD) {
-      return c * computeRatePerCbm(rateSet, type);
-    }
-    const specials = Array.isArray(rateSet.special_cbm_rates) ? rateSet.special_cbm_rates : [];
-    const sorted = [...specials].sort((x, y) => num(x.min_cbm) - num(y.min_cbm));
-    const found = sorted.find((r) => c <= num(r.max_cbm));
-    return found ? specialRateFor(found, type) : c * computeRatePerCbm(rateSet, type);
-  }, [getRateSetForDate, computeRatePerCbm, specialRateFor, cargoType]);
+    return c * computeRatePerCbm(getRateSetForDate(fecha), type);
+  }, [getRateSetForDate, computeRatePerCbm, cargoType]);
 
   // Determina si un recibo usa tarifa anterior o actual (para el badge)
   const getRateLabel = useCallback((fecha) => {
@@ -187,45 +165,31 @@ export default function AdminManualBilling({ user }) {
     return 'actual';
   }, [rateHistory, getRateSetForDate]);
 
-  // Cálculo consolidado de envío para la factura:
-  // - CBM total >= 0.130 (lineal): divide el CBM por período de tarifa y suma
-  // - CBM total < 0.130 (tarifa especial fija): usa la tarifa del recibo más reciente
+  // Cálculo consolidado de envío para la factura: el CBM se reparte por período de
+  // tarifa y tipo de carga para que el detalle sume el envío consolidado.
   const calcConsolidatedShipping = useCallback((billedCbm, selected, fallbackType = cargoType) => {
     const c = num(billedCbm);
     if (c <= 0) return 0;
     // Tipo de carga de cada recibo: el suyo propio o el elegido a nivel de factura
     const typeOf = (r) => r.cargo_type || fallbackType;
-    if (c >= DOOR_TO_DOOR_THRESHOLD) {
-      const totalReceiptCbm = selected.reduce((s, r) => s + num(r.cbm), 0);
-      if (totalReceiptCbm <= 0) {
-        return c * computeRatePerCbm(currentRateSet, fallbackType);
-      }
-      // Agrupar CBM por set de tarifa (resuelto por fecha del recibo) y tipo de carga
-      const groups = {};
-      selected.forEach((r) => {
-        if (num(r.cbm) <= 0) return;
-        const type = typeOf(r);
-        const rs = getRateSetForDate(r.fecha);
-        const key = `${rs.effective_date || 'current'}|${type}`;
-        if (!groups[key]) groups[key] = { rateSet: rs, type, cbm: 0 };
-        groups[key].cbm += num(r.cbm);
-      });
-      // Escalar al CBM facturado si difiere del total de recibos
-      const scale = totalReceiptCbm > 0 ? c / totalReceiptCbm : 1;
-      return Object.values(groups).reduce((sum, g) => sum + g.cbm * scale * computeRatePerCbm(g.rateSet, g.type), 0);
+    const totalReceiptCbm = selected.reduce((s, r) => s + num(r.cbm), 0);
+    if (totalReceiptCbm <= 0) {
+      return c * computeRatePerCbm(currentRateSet, fallbackType);
     }
-    // Tarifa especial fija: usar la tarifa del recibo más reciente con fecha
-    const withDates = selected.filter((r) => r.fecha);
-    const ref = withDates.length > 0
-      ? withDates.reduce((max, r) => new Date(r.fecha) > new Date(max.fecha) ? r : max)
-      : null;
-    const rateSet = ref ? getRateSetForDate(ref.fecha) : currentRateSet;
-    const type = ref ? typeOf(ref) : fallbackType;
-    const specials = Array.isArray(rateSet.special_cbm_rates) ? rateSet.special_cbm_rates : [];
-    const sorted = [...specials].sort((x, y) => num(x.min_cbm) - num(y.min_cbm));
-    const found = sorted.find((r) => c <= num(r.max_cbm));
-    return found ? specialRateFor(found, type) : 0;
-  }, [getRateSetForDate, computeRatePerCbm, currentRateSet, specialRateFor, cargoType]);
+    // Agrupar CBM por set de tarifa (resuelto por fecha del recibo) y tipo de carga
+    const groups = {};
+    selected.forEach((r) => {
+      if (num(r.cbm) <= 0) return;
+      const type = typeOf(r);
+      const rs = getRateSetForDate(r.fecha);
+      const key = `${rs.effective_date || 'current'}|${type}`;
+      if (!groups[key]) groups[key] = { rateSet: rs, type, cbm: 0 };
+      groups[key].cbm += num(r.cbm);
+    });
+    // Escalar al CBM facturado si difiere del total de recibos
+    const scale = c / totalReceiptCbm;
+    return Object.values(groups).reduce((sum, g) => sum + g.cbm * scale * computeRatePerCbm(g.rateSet, g.type), 0);
+  }, [getRateSetForDate, computeRatePerCbm, currentRateSet, cargoType]);
 
   // Recalcular envío de las filas cuando cambian las tarifas o el historial
   useEffect(() => {
@@ -235,7 +199,7 @@ export default function AdminManualBilling({ user }) {
       rate_label: getRateLabel(r.fecha)
     })));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [finalRatePerCbm, specialRates, rateHistory, stateShippingRate, cargoType]);
+  }, [finalRatePerCbm, rateHistory, stateShippingRate, cargoType]);
 
   const loadClientInvoices = async (selectedClient, options = {}) => {
     const skipAuto = options?.skipAuto === true;
@@ -573,9 +537,8 @@ export default function AdminManualBilling({ user }) {
       const flatRatePerCbm = billedCbmValue > 0 ? consolidatedShipping / billedCbmValue : 0;
       // Tipo de carga efectivo de cada recibo (el suyo o el de la factura)
       const rowTypeOf = (r) => r.cargo_type || cargoType;
-      const isLinearShipping = billedCbmValue >= DOOR_TO_DOOR_THRESHOLD;
       // Cada recibo (contenedor) se muestra como su propia línea con su CBM y la tarifa de su tipo de carga.
-      // Para >= 0.130 CBM se escalan las tarifas por tipo para que el detalle sume el envío consolidado.
+      // Se escalan las tarifas por tipo para que el detalle sume el envío consolidado.
       const rowLines = selectedRows
         .filter((r) => r.invoice_number && r.invoice_number !== '—')
         .map((r) => ({ row: r, cbm: num(r.cbm), rate: computeRatePerCbm(getRateSetForDate(r.fecha), rowTypeOf(r)) }));
@@ -583,7 +546,7 @@ export default function AdminManualBilling({ user }) {
         ? { cbm: manualReceiptCbm, rate: computeRatePerCbm(currentRateSet, cargoType) }
         : null;
       const baseLinesSum = rowLines.reduce((s, l) => s + l.cbm * l.rate, 0) + (manualLine ? manualLine.cbm * manualLine.rate : 0);
-      const typeScale = isLinearShipping && baseLinesSum > 0 ? consolidatedShipping / baseLinesSum : null;
+      const typeScale = baseLinesSum > 0 ? consolidatedShipping / baseLinesSum : null;
       const lineRate = (rate) => (typeScale !== null ? rate * typeScale : flatRatePerCbm);
 
       rowLines.forEach(({ row: r, cbm, rate }) => {

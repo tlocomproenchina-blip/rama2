@@ -1,8 +1,17 @@
 // Shared shipping quote logic used by chatWithSupportAI and respondSupportTicketAI.
 // Extracted to avoid duplication across backend functions.
+//
+// Reglas (las mismas de la calculadora de envíos):
+//   - No hay mínimo de envío: toda la carga se cobra por su volumen real en CBM
+//     con la tarifa por CBM del estado de destino.
+//   - No existe tarifa fija por rango (el antiguo tratamiento de las cargas
+//     menores a 0.130 CBM).
+//   - Desde 400 kg inclusive la tarifa por CBM se cobra al doble, en carga
+//     regular y en carga de alto riesgo / sensible. Hasta 399 kg se cobra normal.
 
-export const DOOR_TO_DOOR_THRESHOLD = 0.130;
 export const PACKAGE_RECEIVED_FEE = 1;
+// Desde este peso (inclusive) la tarifa por CBM se cobra al doble.
+export const WEIGHT_DOUBLE_FROM_KG = 400;
 
 export function normalize(str: string): string {
   return (str || '').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
@@ -38,25 +47,25 @@ export function calculateShipping(params: any, cfg: any, pricing: any, states: a
   if (!Number.isFinite(l) || !Number.isFinite(a) || !Number.isFinite(h)) {
     return { error: 'Las dimensiones (largo, ancho, alto) son obligatorias en cm.' };
   }
-  let volumetric_cbm = (l * a * h) / 1_000_000;
+  const volumetric_cbm = (l * a * h) / 1_000_000;
   if (volumetric_cbm <= 0) return { error: 'Las dimensiones deben ser mayores a 0.' };
 
-  let billable_cbm = volumetric_cbm;
-  let weight_applied = false;
-  if (volumetric_cbm > 1) {
-    if (typeof peso_kg !== 'number' || !Number.isFinite(peso_kg)) {
-      return {
-        need_weight: true,
-        message: `El volumen de tu carga es ${volumetric_cbm.toFixed(3)} CBM, que supera 1 CBM. Para darte un cálculo preciso necesito el peso estimado en kg.`
-      };
-    }
-    if (peso_kg >= 500) {
-      const weight_cbm = peso_kg / 500;
-      if (weight_cbm > volumetric_cbm) {
-        billable_cbm = weight_cbm;
-        weight_applied = true;
-      }
-    }
+  // El volumen real manda: sin mínimo de envío ni tarifa fija por rango.
+  const billable_cbm = volumetric_cbm;
+
+  // Hasta 399 kg la tarifa es normal; desde 400 kg inclusive el envío va al doble.
+  const weight_multiplier = (typeof peso_kg === 'number' && Number.isFinite(peso_kg) && peso_kg >= WEIGHT_DOUBLE_FROM_KG) ? 2 : 1;
+
+  // En cargas de más de 1 CBM el peso decide si aplica el x2: hay que pedirlo.
+  if (volumetric_cbm > 1 && (typeof peso_kg !== 'number' || !Number.isFinite(peso_kg))) {
+    return {
+      need_weight: true,
+      message: `El volumen de tu carga es ${volumetric_cbm.toFixed(3)} CBM, que supera 1 CBM. Para darte un cálculo preciso necesito el peso estimado en kg.`
+    };
+  }
+
+  if (!estado) {
+    return { error: 'Necesito el estado de destino del cliente para calcular el envío marítimo.' };
   }
 
   const base_rate_regular = Number(pricing.base_rate_regular ?? 690);
@@ -64,18 +73,6 @@ export function calculateShipping(params: any, cfg: any, pricing: any, states: a
   const profit_pct = Number(pricing.profit_percentage ?? 0);
   const door_to_door_cost = Number(pricing.door_to_door_cost ?? 20);
   const insurance_pct = Number(cfg.insurance_percentage ?? 5);
-  const DEFAULT_SPECIAL_RATES = [
-    { min_cbm: 0.0001, max_cbm: 0.0025, rate_regular: 3.6, rate_high_risk: 5.4 },
-    { min_cbm: 0.0026, max_cbm: 0.007, rate_regular: 11.4, rate_high_risk: 17.4 },
-    { min_cbm: 0.0071, max_cbm: 0.015, rate_regular: 24, rate_high_risk: 36 },
-    { min_cbm: 0.016, max_cbm: 0.03, rate_regular: 48, rate_high_risk: 72 },
-    { min_cbm: 0.031, max_cbm: 0.06, rate_regular: 72, rate_high_risk: 120 },
-    { min_cbm: 0.061, max_cbm: 0.08, rate_regular: 96, rate_high_risk: 159.6 },
-    { min_cbm: 0.09, max_cbm: 0.129, rate_regular: 102, rate_high_risk: 204 }
-  ];
-  const special_rates = (Array.isArray(cfg.special_cbm_rates) && cfg.special_cbm_rates.length > 0)
-    ? cfg.special_cbm_rates
-    : DEFAULT_SPECIAL_RATES;
 
   const fob = Number(fob_value);
   if (!Number.isFinite(fob) || fob < 0) {
@@ -83,51 +80,27 @@ export function calculateShipping(params: any, cfg: any, pricing: any, states: a
   }
   const insurance = (insurance_pct / 100) * fob;
 
-  let freight_regular = 0, freight_high = 0;
-  let rate_regular = 0, rate_high = 0;
-  let service_type = '', service_notes = '';
-  let state_name = estado || null;
-
-  if (billable_cbm >= DOOR_TO_DOOR_THRESHOLD) {
-    if (!estado) {
-      return { error: 'Para cargas de 0.13 CBM o más necesito el estado de destino.' };
-    }
-    const stateNorm = normalize(estado);
-    const state = states.find((s: any) =>
-      normalize(s.state_name) === stateNorm ||
-      normalize(s.state_code) === stateNorm ||
-      normalize(s.state_name).includes(stateNorm) ||
-      stateNorm.includes(normalize(s.state_name))
-    );
-    if (!state) {
-      return { error: `No encontré el estado "${estado}" en nuestra lista de destinos disponibles.` };
-    }
-    state_name = state.state_name;
-
-    rate_regular = state.final_rate_regular && state.final_rate_regular > 0
-      ? Number(state.final_rate_regular)
-      : (base_rate_regular * (1 + profit_pct / 100) + Number(state.shipping_rate || 0) + door_to_door_cost);
-    rate_high = state.final_rate_high && state.final_rate_high > 0
-      ? Number(state.final_rate_high)
-      : (base_rate_high_risk * (1 + profit_pct / 100) + Number(state.shipping_rate || 0) + door_to_door_cost);
-
-    freight_regular = billable_cbm * rate_regular;
-    freight_high = billable_cbm * rate_high;
-    service_type = 'puerta_a_puerta';
-    service_notes = 'Incluye servicio puerta a puerta (entrega hasta tu dirección).';
-  } else {
-    const sorted = [...special_rates].sort((x, y) => Number(x.min_cbm) - Number(y.min_cbm));
-    const found = sorted.find((r) => billable_cbm >= Number(r.min_cbm) && billable_cbm <= Number(r.max_cbm));
-    if (!found) {
-      return { error: 'No se encontró una tarifa especial para este volumen. Verifica las dimensiones.' };
-    }
-    rate_regular = Number(found.rate_regular);
-    rate_high = Number(found.rate_high_risk);
-    freight_regular = rate_regular;
-    freight_high = rate_high;
-    service_type = 'almacen_valencia_mrw';
-    service_notes = 'Carga menor a 0.13 CBM. Aplica tarifa fija por rango. La entrega es puerta a puerta en la dirección del cliente.';
+  const stateNorm = normalize(estado);
+  const state = states.find((s: any) =>
+    normalize(s.state_name) === stateNorm ||
+    normalize(s.state_code) === stateNorm ||
+    normalize(s.state_name).includes(stateNorm) ||
+    stateNorm.includes(normalize(s.state_name))
+  );
+  if (!state) {
+    return { error: `No encontré el estado "${estado}" en nuestra lista de destinos disponibles.` };
   }
+  const state_name = state.state_name;
+
+  const rate_regular = state.final_rate_regular && state.final_rate_regular > 0
+    ? Number(state.final_rate_regular)
+    : (base_rate_regular * (1 + profit_pct / 100) + Number(state.shipping_rate || 0) + door_to_door_cost);
+  const rate_high = state.final_rate_high && state.final_rate_high > 0
+    ? Number(state.final_rate_high)
+    : (base_rate_high_risk * (1 + profit_pct / 100) + Number(state.shipping_rate || 0) + door_to_door_cost);
+
+  const freight_regular = billable_cbm * rate_regular * weight_multiplier;
+  const freight_high = billable_cbm * rate_high * weight_multiplier;
 
   const reception_fee = PACKAGE_RECEIVED_FEE;
   const subtotal_regular = freight_regular + reception_fee;
@@ -139,12 +112,14 @@ export function calculateShipping(params: any, cfg: any, pricing: any, states: a
     dimensions: { largo: l, ancho: a, alto: h },
     volumetric_cbm: Number(volumetric_cbm.toFixed(6)),
     billable_cbm: Number(billable_cbm.toFixed(6)),
-    weight_applied,
+    weight_multiplier,
     peso_kg: typeof peso_kg === 'number' ? peso_kg : null,
     estado: state_name,
     fob_value: fob,
-    service_type,
-    service_notes,
+    service_type: 'puerta_a_puerta',
+    service_notes: weight_multiplier === 2
+      ? 'Incluye servicio puerta a puerta (entrega hasta tu dirección). La carga pesa 400 kg o más: la tarifa por CBM se cobró al doble.'
+      : 'Incluye servicio puerta a puerta (entrega hasta tu dirección).',
     pricing: {
       rate_regular: Number(rate_regular.toFixed(2)),
       rate_high: Number(rate_high.toFixed(2)),
@@ -172,7 +147,7 @@ export const SHIPPING_TOOL = {
   type: 'function' as const,
   function: {
     name: 'calculate_shipping_quote',
-    description: 'Calcula el costo de envío marítimo basado en dimensiones (cm), estado de destino y valor FOB. Devuelve precios para carga general y alto riesgo con desglose de flete, seguro y recepción.',
+    description: 'Calcula el costo de envío marítimo con las dimensiones (cm), el estado de destino y el valor FOB; para cargas de más de 1 CBM también necesita el peso estimado. Devuelve precios para carga general y alto riesgo con desglose de flete, seguro y recepción. Toda la carga se cobra por su volumen real en CBM: no hay mínimo ni tarifa fija por rango. Desde 400 kg la tarifa por CBM se cobra al doble en ambos tipos de carga.',
     parameters: {
       type: 'object',
       properties: {
@@ -180,10 +155,10 @@ export const SHIPPING_TOOL = {
         ancho: { type: 'number', description: 'Ancho del paquete en centímetros' },
         alto: { type: 'number', description: 'Alto del paquete en centímetros' },
         estado: { type: 'string', description: 'Nombre del estado de Venezuela de destino (ej: Carabobo, Zulia, Miranda, Aragua)' },
-        peso_kg: { type: 'number', description: 'Peso estimado en kilogramos (solo necesario si el volumen supera 1 CBM)' },
+        peso_kg: { type: 'number', description: 'Peso estimado en kilogramos (necesario cuando el volumen supera 1 CBM; desde 400 kg la tarifa por CBM se cobra al doble)' },
         fob_value: { type: 'number', description: 'Valor FOB de la mercancía en USD (para calcular el seguro)' }
       },
-      required: ['largo', 'ancho', 'alto', 'fob_value']
+      required: ['largo', 'ancho', 'alto', 'estado', 'fob_value']
     }
   }
 };

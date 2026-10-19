@@ -9,7 +9,7 @@
 // total) apuntando al recibo superviviente, sin cobrar dos veces la misma carga.
 import { num, normTracking, fetchAllFilter } from "./paginatedFetch.ts";
 import {
-  consolidatedShipping, rateForReceipt, DOOR_TO_DOOR_THRESHOLD, round2, round5,
+  consolidatedShipping, rateForReceipt, round2, round5,
 } from "./billingRates.ts";
 
 // Los CBM se comparan con tolerancia: 0.05964 y 0.06 son el mismo volumen mal redondeado.
@@ -326,7 +326,7 @@ export function recalcInvoice({ invoice, plan, receiptsOfClient, ctx }: any) {
 
     const rowLines = finalLines.map((l: any) => ({ line: l, rate: rateForReceipt(ctx, l.fecha, l.type) }));
     const baseSum = rowLines.reduce((s: number, r: any) => s + num(r.line.cbm) * num(r.rate), 0);
-    const typeScale = (newBilled >= DOOR_TO_DOOR_THRESHOLD && baseSum > 0) ? shipping / baseSum : null;
+    const typeScale = baseSum > 0 ? shipping / baseSum : null;
     const flatRate = newBilled > 0 ? shipping / newBilled : 0;
 
     const shippingItems = rowLines.map(({ line, rate }: any) => {
@@ -712,5 +712,3 @@ export async function applyMerge(base44: any, plan: any, ctx: any, actor: any) {
     invoices: affected,
   };
 }
-
-export { DOOR_TO_DOOR_THRESHOLD };

@@ -25,8 +25,8 @@ export default function ShippingCalculator({ user, defaultStateCode, defaultShip
   const [dimensions, setDimensions] = useState({ length: '', width: '', height: '' });
   const [cbm, setCbm] = useState('');
   const [result, setResult] = useState(null);
-  const MIN_CBM = 0.13;
-  const DENSITY_LIMIT_KG_PER_CBM = 499;
+  // Desde este peso (inclusive) el costo del envío marítimo se multiplica por 2.
+  const WEIGHT_DOUBLE_FROM_KG = 400;
 
   useEffect(() => {
     loadConfig();
@@ -123,7 +123,7 @@ export default function ShippingCalculator({ user, defaultStateCode, defaultShip
       rateType = isSensitive ? 'Marítimo Sensible' : 'Marítimo General';
       const usedCbm = calculatedCbm;
       densityKgPerCbm = usedCbm > 0 ? realWeight / usedCbm : 0;
-      maritimeMultiplier = realWeight > DENSITY_LIMIT_KG_PER_CBM ? 2 : 1;
+      maritimeMultiplier = realWeight >= WEIGHT_DOUBLE_FROM_KG ? 2 : 1;
       billableWeight = usedCbm;
       chargedBy = `${usedCbm.toFixed(4)} CBM`;
     }
@@ -133,21 +133,8 @@ export default function ShippingCalculator({ user, defaultStateCode, defaultShip
     const { regular: finalRegular, high: finalHigh } = getFinalRatesForState(stateShipping);
     const baseRate = isSensitive ? finalHigh : finalRegular;
 
-    let finalRate = shippingType === 'maritimo' ? baseRate * maritimeMultiplier : baseRate;
-    let shippingCost = finalRate * billableWeight;
-    let specialRateApplied = false;
-
-    // Tarifa especial: cargas marítimas menores a 0.130 CBM (tarifa fija por rango + entrega puerta a puerta)
-    if (shippingType === 'maritimo' && calculatedCbm > 0 && calculatedCbm < MIN_CBM) {
-      const ranges = [...(config?.special_cbm_rates || [])].sort((a, b) => (a.min_cbm || 0) - (b.min_cbm || 0));
-      const found = ranges.find(r => calculatedCbm <= (r.max_cbm || 0));
-      if (found) {
-        specialRateApplied = true;
-        finalRate = isSensitive ? found.rate_high_risk : found.rate_regular;
-        shippingCost = finalRate;
-        chargedBy = `${calculatedCbm.toFixed(4)} CBM (tarifa fija por rango)`;
-      }
-    }
+    const finalRate = shippingType === 'maritimo' ? baseRate * maritimeMultiplier : baseRate;
+    const shippingCost = finalRate * billableWeight;
 
     const RECEPTION_FEE = 1;
     const fob = parseFloat(fobValue) || 0;
@@ -166,7 +153,6 @@ export default function ShippingCalculator({ user, defaultStateCode, defaultShip
     insuranceCost,
     totalCost,
     stateName: selectedStateConfig?.state_name || null,
-    specialRateApplied,
     densityKgPerCbm,
     maritimeMultiplier
     });
@@ -321,7 +307,7 @@ export default function ShippingCalculator({ user, defaultStateCode, defaultShip
                 <p className="text-sm text-indigo-700">Se calcula por volumen en CBM y también puedes validar el peso de la carga.</p>
                 <p className="text-xs text-indigo-600">Fórmula: (L × A × H) / 1,000,000</p>
                 <div className="rounded-lg bg-white/70 border border-indigo-200 px-3 py-2 text-sm text-indigo-800">
-                  La carga cubre hasta 499 kg. Desde 500 kg en adelante, se factura x2 el costo del envío.
+                  La tarifa por CBM es normal hasta 399 kg. Desde 400 kg inclusive, el costo del envío se multiplica por 2, en carga general y en carga de alto riesgo.
                 </div>
               </div>
             )}
@@ -371,7 +357,7 @@ export default function ShippingCalculator({ user, defaultStateCode, defaultShip
           {shippingType === 'maritimo' && result.maritimeMultiplier === 2 && (
             <div className="rounded-xl border-2 border-red-300 bg-red-50 p-4">
               <p className="font-semibold text-red-700">⚠️ SOBREPESO DETECTADO</p>
-              <p className="mt-1 text-sm text-red-700">El peso real de tu carga ({parseFloat(weight).toFixed(2)} kg) supera los 499 kg permitidos. Por este motivo, el costo del envío se multiplica por 2.</p>
+              <p className="mt-1 text-sm text-red-700">El peso real de tu carga ({parseFloat(weight).toFixed(2)} kg) llega a los 400 kg. Por este motivo, el costo del envío se multiplica por 2.</p>
             </div>
           )}
           <Card className="border-border/70 bg-gradient-to-br from-slate-50 to-white shadow-card">
@@ -383,7 +369,7 @@ export default function ShippingCalculator({ user, defaultStateCode, defaultShip
                 <div className="rounded-xl border border-border/70 bg-white p-4">
                   <p className="text-sm font-medium text-slate-700">Tarifa aplicada</p>
                   <p className="mt-1 text-2xl font-bold text-slate-900">${result.finalRate.toFixed(2)}</p>
-                  <p className="text-xs text-slate-500">{result.specialRateApplied ? `${result.rateType} — Tarifa fija por rango` : `${result.rateType} / ${shippingType === 'aereo' ? 'kg' : 'CBM'}`}</p>
+                  <p className="text-xs text-slate-500">{`${result.rateType} / ${shippingType === 'aereo' ? 'kg' : 'CBM'}`}</p>
                 </div>
                 <div className="rounded-xl border border-border/70 bg-white p-4">
                   <p className="text-sm font-medium text-slate-700">Unidad facturable</p>
@@ -393,7 +379,7 @@ export default function ShippingCalculator({ user, defaultStateCode, defaultShip
                 <div className="rounded-xl border border-border/70 bg-white p-4">
                   <p className="text-sm font-medium text-slate-700">Costo de envío</p>
                   <p className="mt-1 text-2xl font-bold text-slate-900">${result.shippingCost.toFixed(2)}</p>
-                  <p className="text-xs text-slate-500">{result.specialRateApplied ? 'Tarifa fija según rango de CBM' : `${result.finalRate.toFixed(2)} × ${result.billableWeight.toFixed(shippingType === 'aereo' ? 2 : 4)}`}</p>
+                  <p className="text-xs text-slate-500">{`${result.finalRate.toFixed(2)} × ${result.billableWeight.toFixed(shippingType === 'aereo' ? 2 : 4)}`}</p>
                 </div>
                 {includeInsurance && (parseFloat(fobValue) || 0) > 0 && (
                   <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
@@ -416,14 +402,9 @@ export default function ShippingCalculator({ user, defaultStateCode, defaultShip
                 <div className="rounded-lg bg-slate-100/80 px-3 py-2">Peso volumétrico: {result.volumetricWeight.toFixed(2)} kg</div>
                 <div className="rounded-lg bg-slate-100/80 px-3 py-2">CBM calculado: {result.cbm.toFixed(4)}</div>
                 <div className="rounded-lg bg-slate-100/80 px-3 py-2 md:col-span-2">Cargo por recepción de paquete: ${result.receptionFee.toFixed(2)}</div>
-                {shippingType === 'maritimo' && result.specialRateApplied && (
-                  <div className="rounded-lg bg-sky-50 px-3 py-2 text-sky-700 md:col-span-2">
-                    Carga menor a 0.130 CBM: aplica tarifa fija por rango. La entrega se realiza puerta a puerta en la dirección del cliente (9 USD por bulto), sin retiro en oficinas de encomiendas.
-                  </div>
-                )}
                 {shippingType === 'maritimo' && result.densityKgPerCbm > 0 && (
                   <div className="rounded-lg bg-indigo-50 px-3 py-2 text-indigo-700 md:col-span-2">
-                    {result.maritimeMultiplier === 2 ? 'Sobrepeso: el peso real supera los 499 kg, se aplica x2 al costo del envío.' : 'El cobro x2 se aplica cuando el peso real supera los 499 kg.'}
+                    {result.maritimeMultiplier === 2 ? 'Sobrepeso: el peso real llega a los 400 kg, se aplica x2 al costo del envío.' : 'El cobro x2 se aplica desde 400 kg de peso real (inclusive), en carga general y de alto riesgo.'}
                   </div>
                 )}
                 {result.stateName && (

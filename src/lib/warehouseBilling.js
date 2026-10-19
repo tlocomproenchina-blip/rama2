@@ -6,7 +6,6 @@ import { base44 } from '@/components/api/ApiQueueManager';
 // Reutiliza EXACTAMENTE las reglas de Facturación Manual:
 //  - envío por CBM con las tarifas vigentes a la fecha del recibo
 //    (RateHistory + tarifa del estado del cliente + puerta a puerta)
-//  - tarifas especiales para cargas menores a 0.130 CBM
 //  - seguro sobre el FOB asegurado aún no pagado
 //  - consolidación ($1 por paquete)
 //
@@ -15,16 +14,12 @@ import { base44 } from '@/components/api/ApiQueueManager';
 // (getInvoiceDispatchOrders + DispatchOrderSelector) siga funcionando.
 // =====================================================================
 
-export const DOOR_TO_DOOR_THRESHOLD = 0.130;
 export const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 const round2 = (v) => Math.round(num(v) * 100) / 100;
 const round4 = (v) => Math.round(num(v) * 10000) / 10000;
 export const normTracking = (raw) => String(raw || '').split(/[:：]/).pop().trim().toUpperCase();
 
 export function buildBillingContext({ pricing, appConfig, stateConfigs, rateHistory, clientState }) {
-  const specialRates = [...(Array.isArray(appConfig?.special_cbm_rates) ? appConfig.special_cbm_rates : [])]
-    .sort((x, y) => num(x.min_cbm) - num(y.min_cbm));
-
   const stateCode = String(clientState || '').trim().toLowerCase();
   const stateConfig = (stateConfigs || []).find((s) => String(s.state_code).toLowerCase() === stateCode);
   const stateShippingRate = num(stateConfig?.shipping_rate);
@@ -34,7 +29,6 @@ export function buildBillingContext({ pricing, appConfig, stateConfigs, rateHist
     base_rate_high_risk: num(pricing?.base_rate_high_risk),
     profit_percentage: num(pricing?.profit_percentage),
     door_to_door_cost: num(pricing?.door_to_door_cost),
-    special_cbm_rates: specialRates,
     effective_date: null,
   };
 
@@ -55,7 +49,6 @@ export function buildBillingContext({ pricing, appConfig, stateConfigs, rateHist
       base_rate_high_risk: num(chosen.base_rate_high_risk),
       profit_percentage: num(chosen.profit_percentage),
       door_to_door_cost: num(chosen.door_to_door_cost),
-      special_cbm_rates: Array.isArray(chosen.special_cbm_rates) ? chosen.special_cbm_rates : [],
       effective_date: chosen.effective_date,
     };
   };
@@ -69,22 +62,11 @@ export function buildBillingContext({ pricing, appConfig, stateConfigs, rateHist
       + stateShippingRate + num(rateSet.door_to_door_cost);
   };
 
-  const specialRateForCbm = (cbm, rateSet) => {
-    const specials = Array.isArray(rateSet.special_cbm_rates) ? rateSet.special_cbm_rates : [];
-    const sorted = [...specials].sort((x, y) => num(x.min_cbm) - num(y.min_cbm));
-    return sorted.find((r) => num(cbm) <= num(r.max_cbm)) || null;
-  };
-
-  // Envío de un bulto/recibo: monto fijo de la tabla especial si es menor a
-  // 0.130 CBM, o CBM × tarifa por CBM del tipo de carga.
+  // Envío de un bulto/recibo: su volumen real en CBM × la tarifa por CBM del tipo de carga.
   const shippingFor = (cbm, fecha, riskCategory) => {
     const c = num(cbm);
     if (c <= 0) return 0;
-    const rateSet = getRateSetForDate(fecha);
-    if (c >= DOOR_TO_DOOR_THRESHOLD) return c * computeRatePerCbm(rateSet, riskCategory);
-    const found = specialRateForCbm(c, rateSet);
-    if (!found) return c * computeRatePerCbm(rateSet, riskCategory);
-    return String(riskCategory) === 'alto_riesgo' ? num(found.rate_high_risk) : num(found.rate_regular);
+    return c * computeRatePerCbm(getRateSetForDate(fecha), riskCategory);
   };
 
   const calcShippingForRow = (cbm, fecha, riskCategory) => shippingFor(cbm, fecha, riskCategory);
@@ -93,12 +75,7 @@ export function buildBillingContext({ pricing, appConfig, stateConfigs, rateHist
   const calcTariff = (cbm, fecha, riskCategory) => {
     const c = num(cbm);
     if (c <= 0) return { amount: 0, rate_per_cbm: 0, kind: 'estandar' };
-    const rateSet = getRateSetForDate(fecha);
-    const special = c < DOOR_TO_DOOR_THRESHOLD ? specialRateForCbm(c, rateSet) : null;
-    if (special) {
-      return { amount: round2(shippingFor(c, fecha, riskCategory)), rate_per_cbm: 0, kind: 'especial' };
-    }
-    const rate = computeRatePerCbm(rateSet, riskCategory);
+    const rate = computeRatePerCbm(getRateSetForDate(fecha), riskCategory);
     return { amount: round2(c * rate), rate_per_cbm: round4(rate), kind: 'estandar' };
   };
 
@@ -112,33 +89,24 @@ export function buildBillingContext({ pricing, appConfig, stateConfigs, rateHist
     return 'actual';
   };
 
-  // Envío consolidado: un solo cálculo sobre el CBM total facturado
+  // Envío consolidado: un solo cálculo sobre el CBM total facturado. El CBM se
+  // reparte por período de tarifa y tipo de carga para que el detalle sume el envío.
   const calcConsolidatedShipping = (billedCbm, items) => {
     const c = num(billedCbm);
     if (c <= 0) return 0;
-    if (c >= DOOR_TO_DOOR_THRESHOLD) {
-      const totalReceiptCbm = (items || []).reduce((s, r) => s + num(r.cbm), 0);
-      if (totalReceiptCbm <= 0) return c * computeRatePerCbm(currentRateSet);
-      const groups = {};
-      (items || []).forEach((r) => {
-        if (num(r.cbm) <= 0) return;
-        const rs = getRateSetForDate(r.fecha);
-        const risk = r.risk_category || 'general';
-        const key = `${rs.effective_date || 'current'}|${risk}`;
-        if (!groups[key]) groups[key] = { rateSet: rs, risk, cbm: 0 };
-        groups[key].cbm += num(r.cbm);
-      });
-      const scale = c / totalReceiptCbm;
-      return Object.values(groups).reduce((sum, g) => sum + g.cbm * scale * computeRatePerCbm(g.rateSet, g.risk), 0);
-    }
-    const withDates = (items || []).filter((r) => r.fecha);
-    const rateSet = withDates.length > 0
-      ? getRateSetForDate(withDates.reduce((max, r) => (new Date(r.fecha) > new Date(max.fecha) ? r : max)).fecha)
-      : currentRateSet;
-    const specials = Array.isArray(rateSet.special_cbm_rates) ? rateSet.special_cbm_rates : [];
-    const sorted = [...specials].sort((x, y) => num(x.min_cbm) - num(y.min_cbm));
-    const found = sorted.find((r) => c <= num(r.max_cbm));
-    return found ? num(found.rate_regular) : 0;
+    const totalReceiptCbm = (items || []).reduce((s, r) => s + num(r.cbm), 0);
+    if (totalReceiptCbm <= 0) return c * computeRatePerCbm(currentRateSet);
+    const groups = {};
+    (items || []).forEach((r) => {
+      if (num(r.cbm) <= 0) return;
+      const rs = getRateSetForDate(r.fecha);
+      const risk = r.risk_category || 'general';
+      const key = `${rs.effective_date || 'current'}|${risk}`;
+      if (!groups[key]) groups[key] = { rateSet: rs, risk, cbm: 0 };
+      groups[key].cbm += num(r.cbm);
+    });
+    const scale = c / totalReceiptCbm;
+    return Object.values(groups).reduce((sum, g) => sum + g.cbm * scale * computeRatePerCbm(g.rateSet, g.risk), 0);
   };
 
   const insuranceRate = (num(appConfig?.insurance_percentage) || 5) / 100;

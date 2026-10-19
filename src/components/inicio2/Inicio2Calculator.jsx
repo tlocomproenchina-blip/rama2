@@ -3,12 +3,11 @@ import { base44 } from '@/api/base44Client';
 import { Ship, ChevronRight, Info, Loader2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-const MIN_CBM = 0.13;
 const RECEPTION_FEE = 1;
-const DENSITY_LIMIT_KG = 499;
+// Desde este peso (inclusive) el costo del envío marítimo se multiplica por 2.
+const WEIGHT_DOUBLE_FROM_KG = 400;
 
 export default function Inicio2Calculator({ defaultStateCode }) {
-  const [config, setConfig] = useState(null);
   const [pricing, setPricing] = useState(null);
   const [states, setStates] = useState([]);
   const [selectedState, setSelectedState] = useState('');
@@ -20,12 +19,10 @@ export default function Inicio2Calculator({ defaultStateCode }) {
 
   useEffect(() => {
     (async () => {
-      const [cfgs, prc, sts] = await Promise.all([
-        base44.entities.AppConfig.filter({ config_key: 'main' }),
+      const [prc, sts] = await Promise.all([
         base44.entities.PricingConfig.filter({ config_key: 'main' }),
         base44.entities.StateConfig.filter({ is_active: true }),
       ]);
-      setConfig(cfgs[0] || null);
       setPricing(prc[0] || null);
       const sorted = sts.sort((a, b) => (a.state_name || '').localeCompare(b.state_name || ''));
       setStates(sorted);
@@ -46,23 +43,13 @@ export default function Inicio2Calculator({ defaultStateCode }) {
     const profit = (pricing?.profit_percentage || 0) / 100;
     const door = pricing?.door_to_door_cost || 0;
     const base = isSensitive ? (pricing?.base_rate_high_risk || 0) : (pricing?.base_rate_regular || 0);
-    let rate = base * (1 + profit) + (stateCfg.shipping_rate || 0) + door;
+    const rate = base * (1 + profit) + (stateCfg.shipping_rate || 0) + door;
 
-    const multiplier = Number(peso) > DENSITY_LIMIT_KG ? 2 : 1;
-    let freight = cbm * rate * multiplier;
-    let specialRate = false;
+    // Hasta 399 kg tarifa normal; desde 400 kg inclusive el envío se cobra al doble.
+    const multiplier = Number(peso) >= WEIGHT_DOUBLE_FROM_KG ? 2 : 1;
+    const freight = cbm * rate * multiplier;
 
-    if (cbm < MIN_CBM) {
-      const ranges = [...(config?.special_cbm_rates || [])].sort((a, b) => (a.min_cbm || 0) - (b.min_cbm || 0));
-      const found = ranges.find((r) => cbm <= (r.max_cbm || 0));
-      if (found) {
-        specialRate = true;
-        rate = isSensitive ? found.rate_high_risk : found.rate_regular;
-        freight = rate;
-      }
-    }
-
-    setResult({ cbm, rate, total: freight + RECEPTION_FEE, specialRate, multiplier });
+    setResult({ cbm, rate: rate * multiplier, total: freight + RECEPTION_FEE, multiplier });
   };
 
   const setDim = (key) => (e) => setDims((d) => ({ ...d, [key]: e.target.value }));
@@ -147,19 +134,13 @@ export default function Inicio2Calculator({ defaultStateCode }) {
             <div className="mt-4 space-y-3 text-sm">
               <div className="flex justify-between"><span className="text-slate-500">Volumen:</span><span className="font-bold text-slate-900">{result ? result.cbm.toFixed(4) : '—'} CBM (m³)</span></div>
               <div className="flex justify-between"><span className="text-slate-500">Ruta de Envío:</span><span className="font-bold text-slate-900">🇨🇳 Guangdong → 🇻🇪 {stateCfg?.state_name || 'Venezuela'}</span></div>
-              <div className="flex justify-between"><span className="text-slate-500">Tarifa Unitaria:</span><span className="font-bold text-slate-900">{result ? `$${result.rate.toFixed(2)}${result.specialRate ? ' fija' : ' / CBM'}` : '—'}</span></div>
+              <div className="flex justify-between"><span className="text-slate-500">Tarifa Unitaria:</span><span className="font-bold text-slate-900">{result ? `$${result.rate.toFixed(2)} / CBM` : '—'}</span></div>
               <div className="flex justify-between"><span className="text-slate-500">Tiempo de Tránsito:</span><span className="font-bold text-sky-700">🚢 75 a 90 días</span></div>
             </div>
-            {result?.specialRate && (
-              <div className="mt-4 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-700">
-                <Info className="mt-0.5 h-4 w-4 shrink-0" />
-                Carga menor a 0.130 CBM: aplica tarifa fija por rango. La entrega se realiza puerta a puerta en tu dirección (9 USD por bulto), sin retiro en oficinas de encomiendas.
-              </div>
-            )}
             {result?.multiplier === 2 && (
               <div className="mt-4 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700">
                 <Info className="mt-0.5 h-4 w-4 shrink-0" />
-                Sobrepeso: el peso real supera los 499 kg, se aplica x2 al costo del envío.
+                Sobrepeso: el peso real llega a los 400 kg, se aplica x2 al costo del envío.
               </div>
             )}
             <div className="mt-6 flex-1 rounded-2xl bg-white p-6 text-center shadow-sm">
