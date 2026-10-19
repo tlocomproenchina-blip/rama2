@@ -8,6 +8,7 @@ const TXT = {
   received: { zh: '已收货', es: 'Recibido' },
   orphan: { zh: '已创建孤儿', es: 'Huérfano creado' },
   duplicate: { zh: '已存在', es: 'Ya registrado' },
+  pending: { zh: '待识别', es: 'Sin identificar' },
   manualBtn: { zh: '拍照', es: 'Tomar foto' },
   autoOn: { zh: '自动扫描开启', es: 'Escaneo automático activado' },
   autoOff: { zh: '自动扫描关闭', es: 'Escaneo automático desactivado' },
@@ -18,6 +19,12 @@ const TXT = {
   serverRead: { zh: '代码在服务器读取', es: 'El código se lee en el servidor' },
   confirming: { zh: '保存中...', es: 'Guardando captura...' },
 };
+
+// Marca del aviso en pantalla: lo que quedó registrado se confirma con un visto; lo
+// que quedó pendiente de identificar se avisa con un signo de atención.
+function toastMark(type) {
+  return type === 'pending' ? '!' : '✓';
+}
 
 // Cooldown corto para modo automático: evita releer el mismo código.
 const COOLDOWN_MS = 1500;
@@ -119,6 +126,7 @@ export default function BodegaScan() {
     resultType === 'recibido' ? 'received'
       : resultType === 'huerfano' ? 'orphan'
       : resultType === 'duplicado' ? 'duplicate'
+      : resultType === 'pendiente' ? 'pending'
       : 'error'
   ), []);
 
@@ -339,6 +347,7 @@ export default function BodegaScan() {
         result_type: row.result_type,
         tracking_number: row.tracking_number || job.tracking_number,
         shipping_mark: row.shipping_mark || '',
+        photo_url: row.photo_url || job.photo_url,
         error: row.error_message || null,
       };
     }));
@@ -412,6 +421,7 @@ export default function BodegaScan() {
   const toastBg = toast?.type === 'received' ? 'bg-green-500/90'
     : toast?.type === 'orphan' ? 'bg-blue-500/90'
     : toast?.type === 'duplicate' ? 'bg-yellow-500/90'
+    : toast?.type === 'pending' ? 'bg-amber-500/90'
     : 'bg-red-500/90';
 
   return (
@@ -462,10 +472,10 @@ export default function BodegaScan() {
         <div key={toast.id} className="absolute top-16 left-1/2 -translate-x-1/2 z-50 transition-all duration-200">
           <div className={`px-6 py-4 rounded-2xl shadow-2xl backdrop-blur-md text-center min-w-[220px] ${toastBg}`}>
             <div className="text-white text-lg font-bold">
-              {TXT[toast.type]?.zh || TXT.error.zh} ✓
+              {TXT[toast.type]?.zh || TXT.error.zh} {toastMark(toast.type)}
             </div>
             <div className="text-white/80 text-sm">
-              {TXT[toast.type]?.es || TXT.error.es} ✓
+              {TXT[toast.type]?.es || TXT.error.es} {toastMark(toast.type)}
             </div>
             {toast.shippingMark && (
               <div className="mt-2 pt-2 border-t border-white/20">

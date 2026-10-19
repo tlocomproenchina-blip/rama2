@@ -12,7 +12,7 @@
     },
     "hint_tracking": {
       "type": "string",
-      "description": "C\u00f3digo que el tel\u00e9fono alcanz\u00f3 a leer en pantalla antes de la captura (modo autom\u00e1tico). El backend solo lo usa si su propia lectura de la imagen no obtiene un c\u00f3digo."
+      "description": "C\u00f3digo que el tel\u00e9fono alcanz\u00f3 a leer en pantalla antes de la captura. El backend lo usa como pista para encontrar el env\u00edo cuando su propia lectura de la imagen no obtiene un c\u00f3digo."
     },
     "status": {
       "type": "string",
@@ -20,10 +20,11 @@
         "pendiente",
         "procesando",
         "procesado",
+        "sin_identificar",
         "error"
       ],
       "default": "pendiente",
-      "description": "Etapa del trabajo: pendiente (en cola), procesando (tomado por un worker), procesado (carga registrada en el sistema) o error (se agotaron los intentos y requiere revisi\u00f3n)."
+      "description": "Etapa del trabajo: pendiente (en cola), procesando (tomado por un worker), procesado (carga registrada en el sistema), sin_identificar (no se pudo leer ning\u00fan tracking y la captura espera revisi\u00f3n: no se registr\u00f3 nada) o error (se agotaron los intentos y requiere revisi\u00f3n)."
     },
     "attempts": {
       "type": "number",
@@ -46,7 +47,7 @@
         "huerfano",
         "duplicado"
       ],
-      "description": "Resultado del procesamiento: recibido (pre-alerta marcada como recibida), huerfano (carga sin titular registrada) o duplicado (el paquete ya estaba registrado)."
+      "description": "Resultado del procesamiento: recibido (pre-alerta marcada como recibida), huerfano (carga sin titular registrada con un tracking le\u00eddo) o duplicado (el paquete ya estaba registrado). Queda vac\u00edo cuando la captura qued\u00f3 sin identificar."
     },
     "detection_source": {
       "type": "string",
@@ -56,11 +57,11 @@
         "ia",
         "manual"
       ],
-      "description": "De d\u00f3nde sali\u00f3 el tracking: escaner (lectura de la imagen en el backend), telefono (lectura del tel\u00e9fono), ia (extra\u00eddo de la foto con visi\u00f3n) o manual (sin tracking: carga registrada sin c\u00f3digo)."
+      "description": "De d\u00f3nde sali\u00f3 el tracking: escaner (lectura de la imagen en el backend), telefono (lectura del tel\u00e9fono), ia (extra\u00eddo de la foto con visi\u00f3n) o manual (sin tracking: carga registrada sin c\u00f3digo). Queda vac\u00edo cuando la captura qued\u00f3 sin identificar."
     },
     "tracking_number": {
       "type": "string",
-      "description": "Tracking con el que qued\u00f3 registrada la carga"
+      "description": "Tracking con el que qued\u00f3 registrada la carga; en una captura pendiente de identificar es el tracking sugerido por la lectura dudosa."
     },
     "shipping_mark": {
       "type": "string",
@@ -73,7 +74,7 @@
     "error_message": {
       "type": "string",
       "maxLength": 500,
-      "description": "Motivo cuando la captura no se pudo procesar"
+      "description": "Motivo cuando la captura no se pudo procesar o qued\u00f3 pendiente de identificar"
     },
     "queued_date": {
       "type": "string",
@@ -88,7 +89,7 @@
     "finished_date": {
       "type": "string",
       "format": "date-time",
-      "description": "Momento en que el trabajo termin\u00f3 (procesado o con error definitivo)"
+      "description": "Momento en que el trabajo termin\u00f3 (procesado o con error definitivo). Queda vac\u00edo en una captura pendiente de identificar."
     },
     "upload_ms": {
       "type": "number",

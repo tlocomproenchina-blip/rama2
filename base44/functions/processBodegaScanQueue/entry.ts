@@ -113,39 +113,48 @@ async function processJob(base44: any, job: any) {
   try {
     // 1) Lectura del código en el servidor, sobre la foto capturada.
     const barcode = job.photo_url ? await decodeBarcodeFromUrl(job.photo_url) : null;
-    let tracking = barcode?.code || '';
-    let detectionSource = tracking ? 'escaner' : '';
 
-    // 2) Respaldo: el código que el teléfono alcanzó a leer al encuadrar.
-    if (!tracking && job.hint_tracking) {
-      tracking = String(job.hint_tracking).trim();
-      detectionSource = tracking ? 'telefono' : '';
-    }
-
-    // 3) Registro de la carga (con IA de respaldo y huérfano cuando no hay código).
+    // 2) Registro de la carga: coincidencia con el envío, lectura confiable que no
+    //    encuentra titular (huérfano) o, cuando no hay ningún tracking legible,
+    //    captura pendiente de identificar sin registrar nada.
     const outcome = await applyScanCapture(base44, {
-      tracking,
+      scanner: barcode ? { code: barcode.code, reliable: barcode.reliable } : null,
+      hint: job.hint_tracking || '',
       photoUrl: job.photo_url || null,
       receivedBy,
+      // Captura registrada a propósito sin foto: el operador decidió dar la carga de
+      // alta igual, aunque no haya código que leer.
+      allowUntrackedOrphan: !job.photo_url,
     });
 
-    await base44.asServiceRole.entities.BodegaScanJob.update(job.id, {
-      status: 'procesado',
+    const pending = outcome.result_type === 'pendiente';
+
+    const patch: Record<string, any> = {
+      status: pending ? 'sin_identificar' : 'procesado',
       lease_id: null,
       lease_until: null,
-      result_type: outcome.result_type,
-      detection_source: outcome.detection || detectionSource || 'manual',
       tracking_number: outcome.tracking_number || '',
       shipping_mark: outcome.shipping_mark || '',
       package_id: outcome.package_id || null,
-      error_message: null,
-      finished_date: new Date().toISOString(),
       process_ms: Date.now() - startedAt,
-    });
+    };
+    if (pending) {
+      // La captura no registró nada: espera a que alguien la revise o la vuelva a
+      // escanear, así que no se le pone fecha de cierre.
+      patch.error_message = 'No se pudo leer el código: pendiente de identificar';
+      if (outcome.reason) patch.description = `Lectura con visión sin resultado: ${String(outcome.reason).slice(0, 300)}`;
+    } else {
+      patch.result_type = outcome.result_type;
+      patch.detection_source = outcome.detection || 'manual';
+      patch.error_message = null;
+      patch.finished_date = new Date().toISOString();
+    }
+    await base44.asServiceRole.entities.BodegaScanJob.update(job.id, patch);
 
     // Tareas posteriores: la carga ya quedó registrada, así que no pueden dejar el
-    // trabajo a medias ni bloquear las siguientes capturas.
-    await logScan(base44, job, outcome);
+    // trabajo a medias ni bloquear las siguientes capturas. Una captura pendiente de
+    // identificar no registró nada: no se anota en el historial del almacén.
+    if (!pending) await logScan(base44, job, outcome);
     if (outcome.wholesaler_pkg) {
       await notifyWholesalerReception(
         base44,
@@ -213,6 +222,7 @@ function jobSummary(job: any) {
     detection_source: job.detection_source || null,
     tracking_number: job.tracking_number || '',
     shipping_mark: job.shipping_mark || '',
+    photo_url: job.photo_url || null,
     package_id: job.package_id || null,
     error_message: job.error_message || null,
     attempts: Number(job.attempts) || 0,

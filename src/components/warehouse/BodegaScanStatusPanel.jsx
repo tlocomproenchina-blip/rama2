@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertCircle, CheckCircle2, Clock, Copy, ImageOff, Loader2, PackagePlus, RefreshCw } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Clock, Copy, HelpCircle, ImageOff, Loader2, PackagePlus, RefreshCw } from 'lucide-react';
 
 // Estado de las capturas recientes del escáner, sobre la cámara: la toma quedó
 // guardada y el backend sigue trabajando, así que aquí se ve qué pasó con cada una
@@ -13,6 +13,8 @@ const STATUS = {
   procesado_duplicado: { icon: Copy, tone: 'text-yellow-300', zh: '已存在', es: 'Ya registrado' },
   procesado_huerfano: { icon: PackagePlus, tone: 'text-blue-300', zh: '已创建孤儿', es: 'Huérfano' },
   procesado: { icon: CheckCircle2, tone: 'text-green-400', zh: '已完成', es: 'Procesado' },
+  // Captura sin código legible: no registró nada y espera revisión o un reintento.
+  sin_identificar: { icon: HelpCircle, tone: 'text-amber-300', zh: '待识别', es: 'Sin identificar' },
   error: { icon: AlertCircle, tone: 'text-red-400', zh: '需重试', es: 'Reintentar' },
 };
 
@@ -74,15 +76,28 @@ export default function BodegaScanStatusPanel({ jobs = [], pendingPhotos = [], o
                   {job.shipping_mark || job.tracking_number}
                 </p>
               )}
-              {job.status === 'error' && (
+              {(job.status === 'error' || job.status === 'sin_identificar') && (
                 <>
                   {job.error && <p className="text-white/50 text-[10px] break-words leading-tight">{job.error}</p>}
-                  <button
-                    onClick={() => onRetryJob?.(job)}
-                    className="mt-1 flex items-center gap-1 px-2 py-1 rounded-lg bg-rose-500/80 text-white text-[10px] font-semibold touch-manipulation"
-                  >
-                    <RefreshCw className="w-3 h-3" /> 重试 / Reintentar
-                  </button>
+                  <div className="mt-1 flex items-start gap-2">
+                    {job.photo_url && (
+                      <a href={job.photo_url} target="_blank" rel="noreferrer" className="shrink-0">
+                        <img
+                          src={job.photo_url}
+                          alt="Foto de la captura"
+                          className="w-11 h-11 rounded-md object-cover border border-white/25"
+                        />
+                      </a>
+                    )}
+                    <button
+                      onClick={() => onRetryJob?.(job)}
+                      className={`flex items-center gap-1 px-2 py-1 rounded-lg text-white text-[10px] font-semibold touch-manipulation ${
+                        job.status === 'error' ? 'bg-rose-500/80' : 'bg-amber-500/80'
+                      }`}
+                    >
+                      <RefreshCw className="w-3 h-3" /> 重试 / Reintentar
+                    </button>
+                  </div>
                 </>
               )}
             </div>
