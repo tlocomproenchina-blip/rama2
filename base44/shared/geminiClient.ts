@@ -73,8 +73,10 @@ async function fetchImage(url: string): Promise<{ mime_type: string; data: strin
  * @param prompt - Texto del prompt
  * @param jsonSchema - Esquema JSON esperado (formato Google Gemini responseSchema)
  * @param imageUrls - Fotos que acompañan al prompt (visión), opcional
+ * @param timeoutMs - Tiempo máximo de la llamada, opcional: sin él la petición espera
+ *                    lo que tarde la API
  */
-export async function callGeminiJSON(prompt: string, jsonSchema: any, imageUrls?: string[]): Promise<any> {
+export async function callGeminiJSON(prompt: string, jsonSchema: any, imageUrls?: string[], timeoutMs?: number): Promise<any> {
   const apiKey = secrets.get("Gemini-API-Key");
   if (!apiKey) throw new Error("Falta el secret Gemini-API-Key");
 
@@ -104,7 +106,8 @@ export async function callGeminiJSON(prompt: string, jsonSchema: any, imageUrls?
     res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body)
+      body: JSON.stringify(body),
+      ...(timeoutMs ? { signal: AbortSignal.timeout(timeoutMs) } : {})
     });
     if (res.ok) {
       activeGeminiModel = model;

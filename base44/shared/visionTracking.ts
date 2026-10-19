@@ -2,18 +2,28 @@
 //
 // La captura del almacén puede llegar con el código tapado, borroso, pequeño o fuera
 // del encuadre: cuando el lector de códigos no entrega una lectura confiable, aquí se
-// le pide a un modelo de visión que lea la etiqueta.
+// le pide a un modelo de visión que lea la etiqueta. La foto se prepara antes de
+// enviarla (escala de grises, contraste estirado y tamaño parejo), que es lo que hace
+// más preciso el reconocimiento del texto de la etiqueta.
 //
 // El proveedor se elige solo: primero OpenAI (OPENAI_API_KEY) y, si no responde o no
 // devuelve un tracking válido, Gemini (Gemini-API-Key). Son llamadas directas a la
 // API de cada proveedor: no gastan créditos de integración de la plataforma.
 import { callGeminiJSON, toGeminiSchema } from './geminiClient.ts';
+import { prepareImageForAI } from './imagePrep.ts';
 
-const VISION_PROMPT = `Eres un asistente de logística. Examina la foto de un paquete y extrae el número de tracking (tracking number) que aparece en la etiqueta de envío. El número de tracking suele ser una cadena alfanumérica larga (ej: YT2423123456789012, LP009876543210, 4PX1234567890, 79142337780380, etc.). NO devuelvas el código de barras numérico genérico (EAN/UPC de producto). Devuelve SOLO el número de tracking de la transportadora como una cadena CONTINUA sin espacios, guiones ni separadores de ningún tipo (ej: "YT2423123456789012", no "YT2423 1234 5678 9012"). El tracking puede ser una cadena larga de solo números (hasta 22 dígitos) impresa debajo o al lado del código de barras: transcríbela COMPLETA, dígito por dígito, sin cortarla ni completarla a ojo. Si el número no se ve completo o está borroso, devuelve null en vez de devolver un número parcial. Si no puedes leer ningún tracking claro, devuelve null.`;
+const VISION_PROMPT = `Eres un asistente de logística. Examina la foto de un paquete y extrae el número de tracking (tracking number) que aparece en la etiqueta de envío. El número de tracking suele ser una cadena alfanumérica larga (ej: YT2423123456789012, LP009876543210, 4PX1234567890, 79142337780380, etc.). NO devuelvas el código de barras numérico genérico (EAN/UPC de producto). Devuelve SOLO el número de tracking de la transportadora como una cadena CONTINUA sin espacios, guiones ni separadores de ningún tipo (ej: "YT2423123456789012", no "YT2423 1234 5678 9012"). El tracking puede ser una cadena larga de solo números (hasta 22 dígitos) impresa debajo o al lado del código de barras: transcríbela COMPLETA, dígito por dígito, sin cortarla ni completarla a ojo. Si el número no se ve completo o está borroso, devuelve null en vez de devolver un número parcial. Si no puedes leer ningún tracking claro, devuelve null. La imagen llega en escala de grises y con el contraste aumentado para que el texto se lea con más detalle.`;
 
-// Tiempo máximo por proveedor: detrás de esta captura hay más capturas en la cola, así
-// que ninguna API puede dejar el trabajo esperando.
-const PROVIDER_TIMEOUT_MS = 20000;
+// Toda la lectura con visión tiene un presupuesto: detrás de esta captura hay más
+// capturas en la cola, así que ninguna API puede dejar el trabajo esperando. El segundo
+// proveedor solo recibe el tiempo que quede del presupuesto.
+const AI_BUDGET_MS = 25000;
+const PROVIDER_TIMEOUT_MS = 15000;
+
+function remainingMs(startedAt: number): number {
+  const left = AI_BUDGET_MS - (Date.now() - startedAt);
+  return Math.max(2000, Math.min(PROVIDER_TIMEOUT_MS, left));
+}
 
 export type AiTrackingRead = {
   code: string;
@@ -36,7 +46,7 @@ function isPlausible(code: string): boolean {
   return (code.match(/[0-9A-Za-z]/g) || []).length >= 6;
 }
 
-async function openaiRead(photoUrl: string): Promise<{ code: string; error: string }> {
+async function openaiRead(photoUrl: string, timeoutMs: number): Promise<{ code: string; error: string }> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) return { code: '', error: 'sin OPENAI_API_KEY' };
 
@@ -44,7 +54,7 @@ async function openaiRead(photoUrl: string): Promise<{ code: string; error: stri
     const res = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-      signal: AbortSignal.timeout(PROVIDER_TIMEOUT_MS),
+      signal: AbortSignal.timeout(timeoutMs),
       body: JSON.stringify({
         model: 'gpt-4o-mini',
         response_format: { type: 'json_object' },
@@ -74,7 +84,7 @@ async function openaiRead(photoUrl: string): Promise<{ code: string; error: stri
   }
 }
 
-async function geminiRead(photoUrl: string): Promise<{ code: string; error: string }> {
+async function geminiRead(photoUrl: string, timeoutMs: number): Promise<{ code: string; error: string }> {
   try {
     const data = await callGeminiJSON(
       `${VISION_PROMPT}\n\nResponde en JSON: {"tracking_number": "..."} (vacío si no se puede leer)`,
@@ -86,6 +96,7 @@ async function geminiRead(photoUrl: string): Promise<{ code: string; error: stri
         required: ['tracking_number'],
       }),
       [photoUrl],
+      timeoutMs,
     );
     const code = cleanTracking(data?.tracking_number);
     return { code: isPlausible(code) ? code : '', error: '' };
@@ -107,10 +118,16 @@ function isLongNumeric(code: string): boolean {
 export async function extractTrackingWithAI(photoUrl: string): Promise<AiTrackingRead> {
   if (!photoUrl) return { code: '', provider: '', error: '' };
 
-  const openai = await openaiRead(photoUrl);
+  // La foto se prepara una sola vez —grises y contraste estirado— y esa misma imagen se
+  // le pasa a los dos proveedores. Si la preparación no sale, se manda la original.
+  const startedAt = Date.now();
+  const prepared = await prepareImageForAI(photoUrl);
+  const image = prepared || photoUrl;
+
+  const openai = await openaiRead(image, remainingMs(startedAt));
   if (openai.code && !isLongNumeric(openai.code)) return { code: openai.code, provider: 'openai', error: '' };
 
-  const gemini = await geminiRead(photoUrl);
+  const gemini = await geminiRead(image, remainingMs(startedAt));
 
   if (openai.code && gemini.code) {
     if (openai.code === gemini.code) return { code: openai.code, provider: 'openai', error: '' };
