@@ -26,9 +26,17 @@ export default function SupportGuidancePanel({
   user,
   title = 'Indicaciones al ATC',
   description = 'Guía interna para orientar la atención de este cliente o de un caso. No se le muestra al cliente.',
+  submitLabel = 'Guardar indicación',
+  submitIcon = null,
+  placeholder = 'Qué debe hacer el ATC con este cliente, qué revisar y qué no ofrecer…',
+  loadingText = 'Cargando indicaciones…',
+  emptyText = 'Todavía no hay indicaciones para este cliente.',
+  savedToast = 'Indicación guardada para el ATC',
+  emptyError = 'Escribe la indicación antes de guardarla',
   defaultCaseId = 'general',
   onSaved,
 }) {
+  const SubmitIcon = submitIcon || Plus;
   const [notes, setNotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [text, setText] = useState('');
@@ -67,7 +75,7 @@ export default function SupportGuidancePanel({
   const handleSave = async () => {
     const note = text.trim();
     if (!note) {
-      toast.error('Escribe la indicación antes de guardarla');
+      toast.error(emptyError);
       return;
     }
     const linked = cases.find((item) => item.id === caseId) || null;
@@ -95,7 +103,7 @@ export default function SupportGuidancePanel({
       // Quien la usa decide qué hacer con la indicación guardada: en el módulo
       // Supervisor deja marcado el caso como respondido para el ATC.
       if (onSaved) await onSaved({ ticketId: linked?.id || null, note });
-      toast.success('Indicación guardada para el ATC');
+      toast.success(savedToast);
       await load();
     } catch {
       toast.error('No se pudo guardar la indicación');
@@ -118,7 +126,7 @@ export default function SupportGuidancePanel({
             value={text}
             onChange={(event) => setText(event.target.value)}
             rows={3}
-            placeholder="Qué debe hacer el ATC con este cliente, qué revisar y qué no ofrecer…"
+            placeholder={placeholder}
             disabled={saving}
           />
           <div className="grid gap-2 sm:grid-cols-2">
@@ -149,18 +157,18 @@ export default function SupportGuidancePanel({
             label="Adjuntar hasta 5 fotos o PDF"
           />
           <Button size="sm" onClick={handleSave} disabled={saving || !text.trim()} className="w-full sm:w-auto">
-            {saving ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Plus className="mr-1 h-4 w-4" />}
-            Guardar indicación
+            {saving ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <SubmitIcon className="mr-1 h-4 w-4" />}
+            {submitLabel}
           </Button>
         </div>
 
         {loading ? (
           <p className="flex items-center gap-2 py-4 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" /> Cargando indicaciones…
+            <Loader2 className="h-4 w-4 animate-spin" /> {loadingText}
           </p>
         ) : notes.length === 0 ? (
           <p className="rounded-2xl border border-dashed border-border p-3 text-xs text-muted-foreground">
-            Todavía no hay indicaciones para este cliente.
+            {emptyText}
           </p>
         ) : (
           <ul className="space-y-2">

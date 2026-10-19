@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, ArrowLeft, CheckCircle2, ClipboardList, ExternalLink, MessageSquare, RotateCcw, History } from 'lucide-react';
+import { Loader2, ArrowLeft, CheckCircle2, ClipboardList, ExternalLink, MessageSquare, RotateCcw, History, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import TicketChat from '@/components/support/TicketChat';
 import SupportCaseSummary from '@/components/support/SupportCaseSummary';
@@ -213,6 +213,13 @@ export default function SupervisorCaseFile({ ticket, user, onBack, onChange }) {
             onSaved={handleSupervisorReplySaved}
             title="Respuesta al ATC"
             description="Tu respuesta va al ATC, no al cliente: queda en el expediente de este caso y le aparece en su bandeja del Asistente ATC para que él continúe la atención. El cliente nunca la ve."
+            submitLabel="Enviar respuesta"
+            submitIcon={Send}
+            placeholder="Escribe tu respuesta para el ATC: qué debe hacer con este cliente, qué revisar y qué no ofrecer…"
+            loadingText="Cargando respuestas…"
+            emptyText="Todavía no hay respuestas para este cliente."
+            savedToast="Respuesta enviada al ATC"
+            emptyError="Escribe la respuesta antes de enviarla"
           />
 
           <Card className="border-border/70 shadow-card">
