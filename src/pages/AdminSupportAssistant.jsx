@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Headphones, MessageCircle, CheckCircle2, ShieldCheck } from 'lucide-react';
+import { Headphones, MessageCircle, CheckCircle2, PackageX, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import PageHero from '@/components/common/PageHero';
 import useSupportAssistant from '@/hooks/useSupportAssistant';
 import useSupportClientCases from '@/hooks/useSupportClientCases';
@@ -10,6 +11,7 @@ import AssistantSupervisorCases from '@/components/support/assistant/AssistantSu
 import AssistantClientPanel from '@/components/support/assistant/AssistantClientPanel';
 import AssistantChatPanel from '@/components/support/assistant/AssistantChatPanel';
 import AssistantEscalateDialog from '@/components/support/assistant/AssistantEscalateDialog';
+import AssistantOrphanPanel from '@/components/support/orphans/AssistantOrphanPanel';
 import SupportClientProfileCard from '@/components/support/client-file/SupportClientProfileCard';
 import SupportNotesPanel from '@/components/support/client-file/SupportNotesPanel';
 import SupportGuidancePanel from '@/components/support/client-file/SupportGuidancePanel';
@@ -18,10 +20,14 @@ import SupportPackageEditCard from '@/components/support/package-edit/SupportPac
 
 // Panel del área de Soporte: el ATC busca al cliente, revisa su expediente
 // completo y atiende la conversación. Los casos escalados viven en su propio
-// módulo Supervisor, aparte de esta pantalla.
+// módulo Supervisor, aparte de esta pantalla. Las cargas que llegaron sin titular
+// se consultan y se asignan en su propia pestaña.
 export default function AdminSupportAssistant({ user }) {
   const assistant = useSupportAssistant();
   const { cases } = useSupportClientCases(assistant.client?.email);
+  const [tab, setTab] = useState(() => (
+    new URLSearchParams(window.location.search).get('tab') === 'huerfanos' ? 'huerfanos' : 'atc'
+  ));
   const [escalateOpen, setEscalateOpen] = useState(false);
   const [escalated, setEscalated] = useState(null);
   const [chatPrefill, setChatPrefill] = useState(null);
@@ -61,7 +67,7 @@ export default function AdminSupportAssistant({ user }) {
   };
 
   return (
-    <div className="mx-auto w-full max-w-[1500px] space-y-8 px-3 pb-16 pt-4 sm:px-5">
+    <div className="mx-auto w-full max-w-[1500px] space-y-6 px-3 pb-16 pt-4 sm:px-5">
       <PageHero
         icon={Headphones}
         badge="Área Soporte"
@@ -76,121 +82,138 @@ export default function AdminSupportAssistant({ user }) {
         }
       />
 
-      <section className="space-y-5 rounded-3xl border border-border/70 bg-card/40 p-3 sm:p-5">
-        <div className="flex items-start gap-3">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-            <Headphones className="h-5 w-5" />
-          </span>
-          <div>
-            <h2 className="text-lg font-semibold text-foreground">Asistente ATC</h2>
-            <p className="text-xs text-muted-foreground">
-              Busca al cliente, revisa su expediente y atiende la conversación. Si el caso necesita a un supervisor, escálalo desde aquí.
-            </p>
-          </div>
-        </div>
+      <Tabs value={tab} onValueChange={setTab} className="space-y-6">
+        <TabsList className="flex-wrap gap-1 sm:justify-start">
+          <TabsTrigger value="atc">
+            <Headphones className="mr-1.5 h-4 w-4" /> Asistente ATC
+          </TabsTrigger>
+          <TabsTrigger value="huerfanos">
+            <PackageX className="mr-1.5 h-4 w-4" /> Paquetes huérfanos
+          </TabsTrigger>
+        </TabsList>
 
-        <div className="grid gap-5 lg:grid-cols-[minmax(0,380px)_minmax(0,1fr)]">
-          <div className="space-y-5">
-            <AssistantSearchPanel
-              query={assistant.query}
-              onQueryChange={assistant.setQuery}
-              onSearch={assistant.search}
-              searching={assistant.searching}
-              results={assistant.results}
-              client={client}
-              onSelect={assistant.selectClient}
-              onClear={assistant.clearClient}
-            />
-
-            {client ? <SupportClientProfileCard client={client} /> : null}
-
-            <AssistantClientPanel
-              client={client}
-              context={assistant.context}
-              loading={assistant.loadingContext}
-            />
-          </div>
-
-          <div className="space-y-5">
-            {escalated ? (
-              <div className="flex flex-col gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900 sm:flex-row sm:items-center sm:justify-between">
-                <p className="flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4" /> Caso escalado: ticket <strong>{escalated.ticket_number}</strong> asignado a {escalated.assigned_to}.
+        <TabsContent value="atc" className="space-y-8">
+          <section className="space-y-5 rounded-3xl border border-border/70 bg-card/40 p-3 sm:p-5">
+            <div className="flex items-start gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                <Headphones className="h-5 w-5" />
+              </span>
+              <div>
+                <h2 className="text-lg font-semibold text-foreground">Asistente ATC</h2>
+                <p className="text-xs text-muted-foreground">
+                  Busca al cliente, revisa su expediente y atiende la conversación. Si el caso necesita a un supervisor, escálalo desde aquí.
                 </p>
-                <div className="flex flex-wrap gap-2">
-                  <Button asChild size="sm" variant="outline">
-                    <Link to="/AdminSupportTickets">Abrir tickets</Link>
-                  </Button>
-                </div>
               </div>
-            ) : null}
-
-            <div id="asistente-atc-chat">
-              <AssistantChatPanel
-                client={client}
-                turns={assistant.turns}
-                asking={assistant.asking}
-                prefill={chatPrefill}
-                onAsk={handleAsk}
-                onEscalate={() => setEscalateOpen(true)}
-              />
             </div>
 
-            {client ? (
-              <>
-                <SupportPackageEditCard
-                  clientEmail={client.email}
-                  clientName={clientName}
-                  shippingMark={client.shipping_mark || ''}
-                  user={user}
+            <div className="grid gap-5 lg:grid-cols-[minmax(0,380px)_minmax(0,1fr)]">
+              <div className="space-y-5">
+                <AssistantSearchPanel
+                  query={assistant.query}
+                  onQueryChange={assistant.setQuery}
+                  onSearch={assistant.search}
+                  searching={assistant.searching}
+                  results={assistant.results}
+                  client={client}
+                  onSelect={assistant.selectClient}
+                  onClear={assistant.clearClient}
                 />
 
-                <div className="grid gap-5 xl:grid-cols-2">
-                  <SupportNotesPanel
-                    clientEmail={client.email}
-                    clientName={clientName}
-                    clientCedula={client.cedula}
-                    user={user}
-                    title="Notas internas del cliente"
-                  />
-                  <SupportGuidancePanel
-                    clientEmail={client.email}
-                    clientName={clientName}
-                    clientCedula={client.cedula}
-                    cases={cases}
-                    user={user}
+                {client ? <SupportClientProfileCard client={client} /> : null}
+
+                <AssistantClientPanel
+                  client={client}
+                  context={assistant.context}
+                  loading={assistant.loadingContext}
+                />
+              </div>
+
+              <div className="space-y-5">
+                {escalated ? (
+                  <div className="flex flex-col gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900 sm:flex-row sm:items-center sm:justify-between">
+                    <p className="flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4" /> Caso escalado: ticket <strong>{escalated.ticket_number}</strong> asignado a {escalated.assigned_to}.
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      <Button asChild size="sm" variant="outline">
+                        <Link to="/AdminSupportTickets">Abrir tickets</Link>
+                      </Button>
+                    </div>
+                  </div>
+                ) : null}
+
+                <div id="asistente-atc-chat">
+                  <AssistantChatPanel
+                    client={client}
+                    turns={assistant.turns}
+                    asking={assistant.asking}
+                    prefill={chatPrefill}
+                    onAsk={handleAsk}
+                    onEscalate={() => setEscalateOpen(true)}
                   />
                 </div>
 
-                <SupportFollowUpPanel
-                  clientEmail={client.email}
-                  clientName={clientName}
-                  clientCedula={client.cedula}
-                  shippingMark={client.shipping_mark}
-                  cases={cases}
-                  user={user}
-                />
-              </>
-            ) : null}
-          </div>
-        </div>
-      </section>
+                {client ? (
+                  <>
+                    <SupportPackageEditCard
+                      clientEmail={client.email}
+                      clientName={clientName}
+                      shippingMark={client.shipping_mark || ''}
+                      user={user}
+                    />
 
-      <section className="space-y-5 rounded-3xl border border-border/70 bg-card/40 p-3 sm:p-5">
-        <div className="flex items-start gap-3">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-            <ShieldCheck className="h-5 w-5" />
-          </span>
-          <div>
-            <h2 className="text-lg font-semibold text-foreground">Casos respondidos por supervisión</h2>
-            <p className="text-xs text-muted-foreground">
-              Los casos escalados que Supervisión ya respondió, primero los que faltan por trabajar. La respuesta del supervisor es interna: ábrela, cárgala en el asistente de respuestas y respóndele tú al cliente.
-            </p>
-          </div>
-        </div>
+                    <div className="grid gap-5 xl:grid-cols-2">
+                      <SupportNotesPanel
+                        clientEmail={client.email}
+                        clientName={clientName}
+                        clientCedula={client.cedula}
+                        user={user}
+                        title="Notas internas del cliente"
+                      />
+                      <SupportGuidancePanel
+                        clientEmail={client.email}
+                        clientName={clientName}
+                        clientCedula={client.cedula}
+                        cases={cases}
+                        user={user}
+                      />
+                    </div>
 
-        <AssistantSupervisorCases user={user} onLoadToAssistant={handleLoadSupervisorContext} />
-      </section>
+                    <SupportFollowUpPanel
+                      clientEmail={client.email}
+                      clientName={clientName}
+                      clientCedula={client.cedula}
+                      shippingMark={client.shipping_mark}
+                      cases={cases}
+                      user={user}
+                    />
+                  </>
+                ) : null}
+              </div>
+            </div>
+          </section>
+
+          <section className="space-y-5 rounded-3xl border border-border/70 bg-card/40 p-3 sm:p-5">
+            <div className="flex items-start gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                <ShieldCheck className="h-5 w-5" />
+              </span>
+              <div>
+                <h2 className="text-lg font-semibold text-foreground">Casos respondidos por supervisión</h2>
+                <p className="text-xs text-muted-foreground">
+                  Los casos escalados que Supervisión ya respondió, primero los que faltan por trabajar. La respuesta del supervisor es interna: ábrela, cárgala en el asistente de respuestas y respóndele tú al cliente.
+                </p>
+              </div>
+            </div>
+
+            <AssistantSupervisorCases user={user} onLoadToAssistant={handleLoadSupervisorContext} />
+          </section>
+        </TabsContent>
+
+        <TabsContent value="huerfanos">
+          <AssistantOrphanPanel />
+        </TabsContent>
+      </Tabs>
 
       <AssistantEscalateDialog
         open={escalateOpen}
