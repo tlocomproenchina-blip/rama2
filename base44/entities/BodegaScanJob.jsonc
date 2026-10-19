@@ -1,0 +1,133 @@
+{
+  "name": "BodegaScanJob",
+  "type": "object",
+  "properties": {
+    "device_id": {
+      "type": "string",
+      "description": "ID del dispositivo del almac\u00e9n que tom\u00f3 la captura"
+    },
+    "photo_url": {
+      "type": "string",
+      "description": "Enlace p\u00fablico de la foto en Bunny CDN. Vac\u00edo cuando la captura se registr\u00f3 sin foto."
+    },
+    "hint_tracking": {
+      "type": "string",
+      "description": "C\u00f3digo que el tel\u00e9fono alcanz\u00f3 a leer en pantalla antes de la captura (modo autom\u00e1tico). El backend solo lo usa si su propia lectura de la imagen no obtiene un c\u00f3digo."
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pendiente",
+        "procesando",
+        "procesado",
+        "error"
+      ],
+      "default": "pendiente",
+      "description": "Etapa del trabajo: pendiente (en cola), procesando (tomado por un worker), procesado (carga registrada en el sistema) o error (se agotaron los intentos y requiere revisi\u00f3n)."
+    },
+    "attempts": {
+      "type": "number",
+      "default": 0,
+      "description": "Intentos de procesamiento realizados"
+    },
+    "lease_id": {
+      "type": "string",
+      "description": "Identificador del worker que tom\u00f3 el trabajo. Evita que dos workers procesen la misma captura."
+    },
+    "lease_until": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Momento hasta el que el trabajo est\u00e1 tomado por un worker. Si vence sin procesarse, vuelve a la cola autom\u00e1ticamente."
+    },
+    "result_type": {
+      "type": "string",
+      "enum": [
+        "recibido",
+        "huerfano",
+        "duplicado"
+      ],
+      "description": "Resultado del procesamiento: recibido (pre-alerta marcada como recibida), huerfano (carga sin titular registrada) o duplicado (el paquete ya estaba registrado)."
+    },
+    "detection_source": {
+      "type": "string",
+      "enum": [
+        "escaner",
+        "telefono",
+        "ia",
+        "manual"
+      ],
+      "description": "De d\u00f3nde sali\u00f3 el tracking: escaner (lectura de la imagen en el backend), telefono (lectura del tel\u00e9fono), ia (extra\u00eddo de la foto con visi\u00f3n) o manual (sin tracking: carga registrada sin c\u00f3digo)."
+    },
+    "tracking_number": {
+      "type": "string",
+      "description": "Tracking con el que qued\u00f3 registrada la carga"
+    },
+    "shipping_mark": {
+      "type": "string",
+      "description": "Shipping Mark del cliente al que qued\u00f3 asignada la carga"
+    },
+    "package_id": {
+      "type": "string",
+      "description": "ID del paquete que se marc\u00f3 recibido o del hu\u00e9rfano creado"
+    },
+    "error_message": {
+      "type": "string",
+      "maxLength": 500,
+      "description": "Motivo cuando la captura no se pudo procesar"
+    },
+    "queued_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Momento en que la captura qued\u00f3 guardada en la cola"
+    },
+    "started_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Momento en que un worker tom\u00f3 la captura"
+    },
+    "finished_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Momento en que el trabajo termin\u00f3 (procesado o con error definitivo)"
+    },
+    "upload_ms": {
+      "type": "number",
+      "description": "Milisegundos que tard\u00f3 la subida de la foto a Bunny antes de encolar"
+    },
+    "process_ms": {
+      "type": "number",
+      "description": "Milisegundos que tard\u00f3 el procesamiento en el backend"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Descripci\u00f3n opcional"
+    }
+  },
+  "required": [
+    "device_id",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
