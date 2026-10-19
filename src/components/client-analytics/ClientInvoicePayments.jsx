@@ -1,26 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { CheckCircle2, Clock, Eye, Wallet, XCircle } from 'lucide-react';
+import { CheckCircle2, Clock, Eye, Plus, Wallet, XCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import useFileViewer from '@/hooks/useFileViewer';
+import { METHOD_LABELS } from '@/lib/abonoMethods';
+import AdminAbonoModal from '@/components/client-analytics/AdminAbonoModal';
 
 const num = (value) => (Number.isFinite(Number(value)) ? Number(value) : 0);
 const money = (value) => `$${num(value).toFixed(2)}`;
-
-export const METHOD_LABELS = {
-  transferencia: 'Transferencia',
-  usdt_trc20: 'USDT TRC20',
-  binance: 'Binance',
-  paypal: 'PayPal',
-  wally: 'Wally',
-  zinli: 'Zinli',
-  wise: 'Wise',
-  skrill: 'Skrill',
-  pago_movil_usdt: 'Pago Móvil → USDT',
-  stripe: 'Tarjeta',
-  otro: 'Otro',
-};
 
 const STATUS = {
   pendiente: { label: 'Pendiente', icon: Clock, cls: 'bg-amber-100 text-amber-700 border-amber-200' },
@@ -40,9 +28,11 @@ const formatDate = (value) => {
 };
 
 // Abonos y pagos que el cliente registró en una factura, con lo ya abonado y el
-// saldo que queda. Solo lectura: la validación de abonos vive en el módulo de pagos.
-export default function ClientInvoicePayments({ invoice, payments }) {
+// saldo que queda. Desde aquí el administrador registra un abono sobre esa factura;
+// la revisión de los abonos que reporta el cliente sigue en el módulo de pagos.
+export default function ClientInvoicePayments({ invoice, payments, onSaved }) {
   const fileViewer = useFileViewer();
+  const [abonoOpen, setAbonoOpen] = useState(false);
   const list = [...(payments || [])].sort(
     (a, b) => new Date(paymentDate(b) || 0).getTime() - new Date(paymentDate(a) || 0).getTime()
   );
@@ -52,6 +42,8 @@ export default function ClientInvoicePayments({ invoice, payments }) {
   const pending = sumBy('pendiente');
   const rejected = sumBy('rechazado');
   const balance = Math.max(num(invoice?.total) - approved, 0);
+  // Solo se puede abonar mientras la factura tenga saldo y siga activa.
+  const canAbonar = balance > 0.01 && !['cancelada', 'pagada'].includes(invoice?.status);
 
   const chips = [
     { label: `Abonado ${money(approved)}`, cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
@@ -66,12 +58,21 @@ export default function ClientInvoicePayments({ invoice, payments }) {
         <p className="flex items-center gap-1 text-xs font-semibold text-slate-600">
           <Wallet className="h-3.5 w-3.5" /> Abonos / pagos del cliente ({list.length})
         </p>
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap items-center gap-1.5">
           {chips.map((chip) => (
             <span key={chip.label} className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${chip.cls}`}>
               {chip.label}
             </span>
           ))}
+          {canAbonar ? (
+            <Button
+              size="sm"
+              className="h-7 gap-1.5 bg-emerald-600 px-2.5 text-xs text-white hover:bg-emerald-700"
+              onClick={() => setAbonoOpen(true)}
+            >
+              <Plus className="h-3.5 w-3.5" /> Registrar abono
+            </Button>
+          ) : null}
         </div>
       </div>
 
@@ -123,6 +124,17 @@ export default function ClientInvoicePayments({ invoice, payments }) {
           })}
         </div>
       )}
+
+      {invoice ? (
+        <AdminAbonoModal
+          open={abonoOpen}
+          onClose={() => setAbonoOpen(false)}
+          invoice={invoice}
+          paidAmount={approved}
+          balance={balance}
+          onSaved={onSaved}
+        />
+      ) : null}
 
       {fileViewer.modal}
     </div>

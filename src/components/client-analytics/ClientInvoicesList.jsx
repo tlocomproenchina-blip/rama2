@@ -26,7 +26,7 @@ function formatDate(value) {
   }
 }
 
-export default function ClientInvoicesList({ invoices, payments = [], client }) {
+export default function ClientInvoicesList({ invoices, payments = [], client, onPaymentSaved }) {
   const [expanded, setExpanded] = useState(null);
 
   const list = Array.isArray(invoices) ? invoices : [];
@@ -174,7 +174,7 @@ export default function ClientInvoicesList({ invoices, payments = [], client }) 
                       <p className="text-xs text-slate-500 break-words">{invoice.notes}</p>
                     )}
 
-                    <ClientInvoicePayments invoice={invoice} payments={invoicePayments} />
+                    <ClientInvoicePayments invoice={invoice} payments={invoicePayments} onSaved={onPaymentSaved} />
 
                     <div className="flex flex-wrap items-center gap-2" onClick={(e) => e.stopPropagation()}>
                       <InvoicePDFGenerator invoice={invoice} />

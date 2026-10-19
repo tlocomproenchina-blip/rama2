@@ -109,6 +109,27 @@ export default function ClientAnalytics() {
     setLoading(false);
   };
 
+  // Refresca solo lo financiero después de registrar un abono: las facturas (saldo
+  // y estado) y los abonos del cliente, sin volver a traer toda la analítica.
+  const refreshFinancials = async () => {
+    const email = selectedClient?.email;
+    if (!email) return;
+    // El abono se guarda y se aprueba fuera de la caché de consultas: se invalida
+    // para que la lectura traiga el saldo y los abonos recién actualizados.
+    base44.invalidateEntityCache('Invoice');
+    base44.invalidateEntityCache('InvoicePayment');
+    try {
+      const [invoiceList, paymentList] = await Promise.all([
+        base44.entities.Invoice.filter({ client_email: email }, '-created_date', 500),
+        base44.entities.InvoicePayment.filter({ client_email: email }, '-created_date', 500).catch(() => [])
+      ]);
+      setInvoices(invoiceList || []);
+      setInvoicePayments(paymentList || []);
+    } catch {
+      toast.error('No se pudieron actualizar las facturas y abonos');
+    }
+  };
+
   useEffect(() => {
     loadClientFromUrl(urlEmail);
   }, [urlEmail]);
@@ -267,7 +288,14 @@ export default function ClientAnalytics() {
         />
       )}
 
-      {selectedClient && <ClientInvoicesList invoices={invoices} payments={invoicePayments} client={selectedClient} />}
+      {selectedClient && (
+        <ClientInvoicesList
+          invoices={invoices}
+          payments={invoicePayments}
+          client={selectedClient}
+          onPaymentSaved={refreshFinancials}
+        />
+      )}
 
       {selectedClient && <ClientCargoPanel client={selectedClient} />}
 
