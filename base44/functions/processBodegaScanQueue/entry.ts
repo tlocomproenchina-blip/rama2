@@ -23,17 +23,6 @@ export default async function (req: Request): Promise<Response> {
       ? body.job_ids.map((id: any) => String(id || '').trim()).filter(Boolean)
       : [];
 
-    if (action === 'test_decode') {
-      const urls = Array.isArray(body.urls) ? body.urls : [];
-      const out: any[] = [];
-      for (const url of urls) {
-        const t0 = Date.now();
-        const read = await decodeBarcodeFromUrl(String(url));
-        out.push({ url, read, ms: Date.now() - t0 });
-      }
-      return Response.json({ results: out });
-    }
-
     if (action === 'status') {
       return Response.json({ jobs: await readJobs(base44, body, jobIds) });
     }

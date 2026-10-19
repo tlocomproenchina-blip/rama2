@@ -4,17 +4,20 @@
 // se leen los códigos con ZXing (misma familia de códigos que el escáner de la
 // pantalla: Code128, Code39, EAN/UPC, ITF, QR y DataMatrix).
 //
-// Se prueban la imagen completa y dos recortes centrados: el operador encuadra el
-// paquete en el centro de la pantalla, así que el código suele estar ahí y el
-// recorte evita que el fondo del almacén ensucie la lectura.
-//
-// Si no se obtiene ningún código se devuelve null: quien llama decide el respaldo
-// (el código que leyó el teléfono o la lectura con visión de la IA).
+// Una etiqueta de envío llega de muchas formas: encuadrada o al borde de la foto,
+// vertical sobre la caja, con poco contraste o con el fondo del almacén de por
+// medio. Por eso se insiste en varias pasadas sobre la misma foto:
+//   1. búsqueda por regiones (imagen completa, centro y cuadrantes con solape),
+//   2. la etiqueta girada (90°, 180° y 270°),
+//   3. un binarizador de histograma global para fotos de bajo contraste.
+// Si con todo eso no se obtiene un código se devuelve null: quien llama decide el
+// respaldo (el código que leyó el teléfono o la lectura con visión de la IA).
 import jpeg from 'npm:jpeg-js@0.4.4';
 import {
   BarcodeFormat,
   BinaryBitmap,
   DecodeHintType,
+  GlobalHistogramBinarizer,
   HybridBinarizer,
   MultiFormatReader,
   RGBLuminanceSource,
@@ -34,21 +37,33 @@ const FORMATS = [
 ];
 
 type Area = { x: number; y: number; w: number; h: number };
+type Luminance = { lum: Uint8ClampedArray; w: number; h: number };
 
-// Zonas que se intentan, en orden: la foto completa y dos recortes centrados.
+// Zonas que se recorren en cada pasada: la foto completa, dos recortes centrados
+// (donde el operador encuadra el paquete) y los cuadrantes con solape, por si la
+// etiqueta quedó hacia un borde.
 function scanAreas(width: number, height: number): Area[] {
   const areas: Area[] = [{ x: 0, y: 0, w: width, h: height }];
+
   for (const margin of [0.12, 0.26]) {
     const w = Math.round(width * (1 - 2 * margin));
     const h = Math.round(height * (1 - 2 * margin));
-    if (w < 80 || h < 80) continue;
-    areas.push({ x: Math.round(width * margin), y: Math.round(height * margin), w, h });
+    if (w >= 120 && h >= 120) areas.push({ x: Math.round(width * margin), y: Math.round(height * margin), w, h });
   }
+
+  const qw = Math.round(width * 0.6);
+  const qh = Math.round(height * 0.6);
+  if (qw >= 120 && qh >= 120) {
+    for (const x of [0, width - qw]) {
+      for (const y of [0, height - qh]) areas.push({ x, y, w: qw, h: qh });
+    }
+  }
+
   return areas;
 }
 
 // Luminancia (escala de grises) del área pedida, que es lo que espera ZXing.
-function luminanceArea(rgba: Uint8Array, width: number, area: Area): Uint8ClampedArray {
+function luminanceArea(rgba: Uint8Array, width: number, area: Area): Luminance {
   const lum = new Uint8ClampedArray(area.w * area.h);
   for (let row = 0; row < area.h; row++) {
     const src = ((area.y + row) * width + area.x) * 4;
@@ -58,7 +73,29 @@ function luminanceArea(rgba: Uint8Array, width: number, area: Area): Uint8Clampe
       lum[dst + col] = (rgba[i] * 299 + rgba[i + 1] * 587 + rgba[i + 2] * 114) / 1000;
     }
   }
-  return lum;
+  return { lum, w: area.w, h: area.h };
+}
+
+// La etiqueta suele venir girada sobre la caja: se prueba la imagen tal cual y
+// girada, porque el lector de códigos lineales no gira solo.
+function rotate({ lum, w, h }: Luminance, degrees: number): Luminance {
+  if (degrees === 0) return { lum, w, h };
+
+  const out = new Uint8ClampedArray(lum.length);
+  if (degrees === 90) {
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) out[x * h + (h - 1 - y)] = lum[y * w + x];
+    }
+    return { lum: out, w: h, h: w };
+  }
+  if (degrees === 180) {
+    for (let i = 0; i < lum.length; i++) out[i] = lum[lum.length - 1 - i];
+    return { lum: out, w, h };
+  }
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) out[(w - 1 - x) * h + y] = lum[y * w + x];
+  }
+  return { lum: out, w: h, h: w };
 }
 
 export type BarcodeRead = { code: string; format: string };
@@ -86,17 +123,36 @@ export async function decodeBarcodeFromUrl(url: string): Promise<BarcodeRead | n
   const reader = new MultiFormatReader();
   reader.setHints(hints);
 
-  for (const area of scanAreas(pixels.width, pixels.height)) {
+  const regions = scanAreas(pixels.width, pixels.height).map((area) => luminanceArea(pixels.data, pixels.width, area));
+
+  const tryDecode = (source: Luminance, binarizer: 'hybrid' | 'global'): BarcodeRead | null => {
     try {
-      const source = new RGBLuminanceSource(luminanceArea(pixels.data, pixels.width, area), area.w, area.h);
-      const result = reader.decode(new BinaryBitmap(new HybridBinarizer(source)));
+      const bin = binarizer === 'global' ? new GlobalHistogramBinarizer(new RGBLuminanceSource(source.lum, source.w, source.h))
+        : new HybridBinarizer(new RGBLuminanceSource(source.lum, source.w, source.h));
+      const result = reader.decode(new BinaryBitmap(bin));
       const code = String(result?.getText?.() || '').trim();
-      if (code) {
-        const format = BarcodeFormat[result.getBarcodeFormat()] || 'desconocido';
-        return { code, format };
-      }
+      if (!code) return null;
+      return { code, format: BarcodeFormat[result.getBarcodeFormat()] || 'desconocido' };
     } catch (_) {
-      // Área sin código legible: se prueba la siguiente.
+      // Zona sin código legible: se prueba la siguiente.
+      return null;
+    }
+  };
+
+  // 1) Pasada normal, con la foto tal cual y con la etiqueta girada.
+  for (const region of regions) {
+    for (const degrees of [0, 90, 270, 180]) {
+      const read = tryDecode(rotate(region, degrees), 'hybrid');
+      if (read) return read;
+    }
+  }
+
+  // 2) Segunda pasada, con binarizador de histograma global: rescata fotos de bajo
+  //    contraste o con la luz del almacén muy despareja.
+  for (const region of regions.slice(1)) {
+    for (const degrees of [0, 90, 270]) {
+      const read = tryDecode(rotate(region, degrees), 'global');
+      if (read) return read;
     }
   }
 

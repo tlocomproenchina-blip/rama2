@@ -1,0 +1,47 @@
+{
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "procesar_capturas_bodegascan",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "procesar_capturas_pendientes": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "processBodegaScanQueue",
+            "args": {
+              "limit": 8
+            }
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Procesar capturas pendientes",
+            "description": "Cola del almac\u00e9n de China"
+          }
+        }
+      }
+    ]
+  },
+  "name": "Procesar capturas de BodegaScan",
+  "description": "Toma las capturas que quedaron en la cola del almac\u00e9n de China y las procesa en segundo plano: lee el c\u00f3digo de la foto, marca la pre-alerta como recibida o registra la carga como hu\u00e9rfana. Es la red de seguridad de las capturas que no alcanz\u00f3 a procesar el disparo inmediato de la pantalla.",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "*/5 * * * *",
+      "one_time_date": null,
+      "timezone": "America/Caracas",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  }
+}

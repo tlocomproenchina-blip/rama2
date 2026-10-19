@@ -28,7 +28,7 @@ export default async function(req: Request): Promise<Response> {
     const now = new Date().toISOString();
 
     // 1) Buscar pre-alerta del cliente usando candidatos de sub-tracking
-    //    (misma lógica que processBodegaScan: quitar 0,3,2,4,1,5,6 dígitos).
+    //    (misma lógica que buildTrackingCandidates: quitar 0,3,2,4,1,5,6 dígitos).
     const removalOrder = [0, 3, 2, 4, 1, 5, 6];
     const seenCandidates = new Set<string>();
     const candidates: string[] = [];

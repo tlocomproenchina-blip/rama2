@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Camera, AlertCircle, Zap, ZapOff } from 'lucide-react';
+import { captureScanJob, fetchScanStatus, kickScanQueue, retryScanJob } from '@/lib/bodegaScanQueue';
+import BodegaScanStatusPanel from '@/components/warehouse/BodegaScanStatusPanel';
 
 const TXT = {
   received: { zh: '已收货', es: 'Recibido' },
@@ -11,19 +13,21 @@ const TXT = {
   autoOff: { zh: '自动扫描关闭', es: 'Escaneo automático desactivado' },
   initializing: { zh: '初始化中...', es: 'Inicializando...' },
   cameraError: { zh: '无法访问摄像头', es: 'No se pudo acceder a la cámara' },
-  noDetector: { zh: '此浏览器不支持条码检测', es: 'Este navegador no soporta detección de códigos' },
   error: { zh: '错误', es: 'Error' },
   ready: { zh: '准备扫描', es: 'Listo para escanear' },
-  processing: { zh: '处理中...', es: 'Procesando...' },
-  photoFailed: { zh: '照片上传失败', es: 'No se pudo subir la foto' },
-  photoFailedHint: { zh: '请检查网络后重试', es: 'Revisa la conexión e intenta de nuevo' },
-  retry: { zh: '重试', es: 'Reintentar' },
-  uploading: { zh: '上传中...', es: 'Subiendo...' },
-  skipPhoto: { zh: '不拍照登记', es: 'Registrar sin foto' },
+  serverRead: { zh: '代码在服务器读取', es: 'El código se lee en el servidor' },
+  confirming: { zh: '保存中...', es: 'Guardando captura...' },
 };
 
 // Cooldown corto para modo automático: evita releer el mismo código.
 const COOLDOWN_MS = 1500;
+// Reintento automático de las fotos que no subieron (la captura no se pierde).
+const UPLOAD_RETRY_MS = 8000;
+const MAX_PENDING_PHOTOS = 10;
+const MAX_JOBS_SHOWN = 5;
+// Lecturas del código en el teléfono: solo como respaldo del servidor.
+const HINT_ATTEMPTS = 2;
+const HINT_RETRY_MS = 120;
 
 export default function BodegaScan() {
   const videoRef = useRef(null);
@@ -37,15 +41,19 @@ export default function BodegaScan() {
   const audioCtxRef = useRef(null);
   const deviceIdRef = useRef('');
   const manualBusyRef = useRef(false);
+  const jobsRef = useRef([]);
+  const pendingPhotosRef = useRef([]);
+  const toastedRef = useRef(new Set());
 
   const [status, setStatus] = useState('initializing');
   const [toast, setToast] = useState(null);
-  const [manualBusy, setManualBusy] = useState(false);
+  const [busy, setBusy] = useState(false);
   const [autoMode, setAutoMode] = useState(false);
-  // Escaneo cuya foto no subió: no se registra en silencio, queda pendiente con
-  // aviso para reintentar la subida o continuar de forma consciente sin foto.
-  const [pendingScan, setPendingScan] = useState(null);
-  const [retryingPhoto, setRetryingPhoto] = useState(false);
+  const [detectorReady, setDetectorReady] = useState(false);
+  // Capturas recientes: lo que el backend ya procesó y lo que sigue en camino.
+  const [jobs, setJobs] = useState([]);
+  // Capturas cuya foto no subió: quedan aquí para reintentar, sin frenar la cámara.
+  const [pendingPhotos, setPendingPhotos] = useState([]);
 
   // Get/create device ID and register
   useEffect(() => {
@@ -59,6 +67,9 @@ export default function BodegaScan() {
       base44.functions.invoke('registerBodegaDevice', { device_id: id }).catch(() => {});
     } catch (_) {}
   }, []);
+
+  useEffect(() => { jobsRef.current = jobs; }, [jobs]);
+  useEffect(() => { pendingPhotosRef.current = pendingPhotos; }, [pendingPhotos]);
 
   const playBeep = useCallback(() => {
     try {
@@ -101,60 +112,72 @@ export default function BodegaScan() {
 
   const showToast = useCallback((type, shippingMark, tracking) => {
     setToast({ type, shippingMark, tracking, id: Date.now() });
-    setTimeout(() => setToast(null), 1500);
+    setTimeout(() => setToast(null), 1800);
   }, []);
 
-  // Sube la foto a Bunny con 1 reintento automático. Devuelve la URL o null.
-  const uploadPhoto = useCallback(async (photoBase64) => {
-    for (let attempt = 1; attempt <= 2; attempt++) {
+  const toastTypeOf = useCallback((resultType) => (
+    resultType === 'recibido' ? 'received'
+      : resultType === 'huerfano' ? 'orphan'
+      : resultType === 'duplicado' ? 'duplicate'
+      : 'error'
+  ), []);
+
+  // Código que el teléfono alcance a leer al encuadrar: viaja como respaldo junto a
+  // la captura. La lectura definitiva la hace el servidor sobre la foto.
+  const readHint = useCallback(async () => {
+    let code = '';
+    for (let attempt = 0; attempt < HINT_ATTEMPTS && !code; attempt++) {
       try {
-        const uploadRes = await base44.functions.invoke('uploadImageToBunny', { image_base64: photoBase64 });
-        const url = uploadRes?.data?.url || null;
-        if (url) return url;
+        if (detectorRef.current && videoRef.current && videoRef.current.readyState >= 2) {
+          const detected = await detectorRef.current.detect(videoRef.current).catch(() => []);
+          code = detected?.[0]?.rawValue?.trim() || '';
+        }
       } catch (_) {}
-      if (attempt < 2) await new Promise((resolve) => setTimeout(resolve, 900));
+      if (!code && attempt < HINT_ATTEMPTS - 1) {
+        await new Promise((resolve) => setTimeout(resolve, HINT_RETRY_MS));
+      }
     }
-    return null;
+    return code;
   }, []);
 
-  // Registra el escaneo en el backend con la foto ya subida (o sin foto si el
-  // operador confirmó continuar sin ella).
-  const submitScan = useCallback(async (tracking, photoUrl) => {
+  const addJobRow = useCallback((jobId, hint) => {
+    setJobs((prev) => [{ key: `job-${jobId}`, job_id: jobId, status: 'pendiente', tracking_number: hint || '' }, ...prev].slice(0, MAX_JOBS_SHOWN));
+  }, []);
+
+  // Toma la foto y la encola. La confirmación es la foto guardada y el trabajo en
+  // la cola: el proceso completo sigue en el backend sin frenar la cámara.
+  const handleCapture = useCallback(async (knownHint) => {
+    const base64 = captureFrame();
+    if (!base64) return;
+
+    playBeep();
+    vibrate();
+
+    const key = `local-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+    setJobs((prev) => [{ key, status: 'subiendo' }, ...prev].slice(0, MAX_JOBS_SHOWN));
+
+    const hint = knownHint || (await readHint());
+
     try {
-      const res = await base44.functions.invoke('processBodegaScan', {
-        tracking_number: tracking || '',
-        photo_url: photoUrl,
-        device_id: deviceIdRef.current,
-        manual: !tracking,
+      const res = await captureScanJob({
+        imageBase64: base64,
+        deviceId: deviceIdRef.current,
+        hintTracking: hint,
       });
-
-      const data = res?.data || {};
-      const resultType = data.result_type || 'huerfano';
-      const shippingMark = data.shipping_mark || '';
-
-      const toastType = resultType === 'recibido' ? 'received'
-        : resultType === 'duplicado' ? 'duplicate'
-        : 'orphan';
-      showToast(toastType, shippingMark, tracking);
-    } catch (err) {
-      showToast('error', '', tracking);
+      setJobs((prev) => prev.map((job) => (
+        job.key === key
+          ? { ...job, job_id: res.job_id, status: 'pendiente', tracking_number: hint || '' }
+          : job
+      )));
+      kickScanQueue([res.job_id]);
+    } catch (_) {
+      // La captura no se pierde ni se registra a medias: queda lista para reintentar
+      // la subida, y la cámara sigue disponible.
+      setJobs((prev) => prev.filter((job) => job.key !== key));
+      setPendingPhotos((prev) => [{ key, base64, hint }, ...prev].slice(0, MAX_PENDING_PHOTOS));
+      showToast('error', '', '');
     }
-  }, [showToast]);
-
-  // Procesa el escaneo: primero la foto, después el registro. Si la foto no sube,
-  // el escaneo queda pendiente y se avisa en pantalla (no se pierde en silencio).
-  const processScan = useCallback(async (tracking, photoBase64) => {
-    if (!photoBase64) {
-      await submitScan(tracking, null);
-      return;
-    }
-    const photoUrl = await uploadPhoto(photoBase64);
-    if (!photoUrl) {
-      setPendingScan({ tracking, base64: photoBase64 });
-      return;
-    }
-    await submitScan(tracking, photoUrl);
-  }, [uploadPhoto, submitScan]);
+  }, [captureFrame, playBeep, vibrate, readHint, showToast]);
 
   // Loop de escaneo automático: solo corre cuando autoMode está activo.
   const scanFrame = useCallback(() => {
@@ -183,10 +206,7 @@ export default function BodegaScan() {
 
           if (!recent.has(code)) {
             recent.set(code, now);
-            const photoBase64 = captureFrame();
-            playBeep();
-            vibrate();
-            processScan(code, photoBase64);
+            handleCapture(code);
           }
         }
       } catch (_) {}
@@ -195,7 +215,7 @@ export default function BodegaScan() {
         frameRef.current = requestAnimationFrame(scanFrame);
       }
     })();
-  }, [captureFrame, processScan, playBeep, vibrate]);
+  }, [handleCapture]);
 
   const startCamera = useCallback(async () => {
     try {
@@ -225,23 +245,23 @@ export default function BodegaScan() {
         if (advanced.length) await track.applyConstraints({ advanced }).catch(() => null);
       } catch (_) {}
 
-      if (!('BarcodeDetector' in window)) {
-        setStatus('noDetector');
-        return;
-      }
-
-      detectorRef.current = new window.BarcodeDetector({
-        formats: ['code_128', 'ean_13', 'code_39', 'qr_code', 'ean_8', 'upc_a', 'upc_e', 'itf', 'data_matrix'],
-      });
-
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         await videoRef.current.play().catch(() => null);
       }
 
-      // activeRef solo se enciende si autoMode está activo
-      activeRef.current = autoMode;
-      if (autoMode) scanFrame();
+      // La lectura del código la hace el servidor: si el teléfono no sabe leer
+      // códigos, la pantalla funciona igual con el botón de captura.
+      const canDetect = 'BarcodeDetector' in window;
+      if (canDetect) {
+        detectorRef.current = new window.BarcodeDetector({
+          formats: ['code_128', 'ean_13', 'code_39', 'qr_code', 'ean_8', 'upc_a', 'upc_e', 'itf', 'data_matrix'],
+        });
+      }
+      setDetectorReady(canDetect);
+
+      activeRef.current = canDetect && autoMode;
+      if (activeRef.current) scanFrame();
       setStatus('ready');
     } catch (err) {
       setStatus('cameraError');
@@ -277,60 +297,117 @@ export default function BodegaScan() {
     });
   }, [scanFrame]);
 
-  // Botón manual: captura foto, intenta leer código de barras del frame.
-  // Si detecta un código → procesa con tracking (recibido/duplicado).
-  // Si no detecta ninguno → procesa como huérfano.
+  // Botón manual: toma la foto y la encola. El código lo lee el servidor.
   const handleManualPhoto = useCallback(async () => {
     if (manualBusyRef.current) return;
     manualBusyRef.current = true;
-    setManualBusy(true);
-    const photoBase64 = captureFrame();
-    if (!photoBase64) {
+    setBusy(true);
+    try {
+      await handleCapture();
+    } finally {
       manualBusyRef.current = false;
-      setManualBusy(false);
+      setBusy(false);
+    }
+  }, [handleCapture]);
+
+  // Sigue las capturas en curso sin bloquear la cámara.
+  const pollJobs = useCallback(async () => {
+    const ids = jobsRef.current
+      .filter((job) => job.job_id && (job.status === 'pendiente' || job.status === 'procesando'))
+      .map((job) => job.job_id);
+    if (!ids.length) return;
+
+    let rows;
+    try {
+      rows = await fetchScanStatus(ids);
+    } catch (_) {
       return;
     }
-    playBeep();
-    vibrate();
+    if (!rows?.length) return;
 
-    // Reintentar la detección varias veces: el autofocus puede tardar un instante
-    // en estabilizarse y un solo intento sobre un frame ligeramente borroso
-    // manda un paquete legible directo a huérfano. Hasta 8 intentos con ~150ms.
-    let detectedCode = '';
-    for (let attempt = 0; attempt < 8 && !detectedCode; attempt++) {
-      try {
-        if (detectorRef.current && videoRef.current && videoRef.current.readyState >= 2) {
-          const detected = await detectorRef.current.detect(videoRef.current).catch(() => []);
-          detectedCode = detected?.[0]?.rawValue?.trim() || '';
-        }
-      } catch (_) {}
-      if (!detectedCode && attempt < 7) {
-        await new Promise((resolve) => setTimeout(resolve, 150));
+    const settled = [];
+    setJobs((prev) => prev.map((job) => {
+      const row = rows.find((r) => r.id === job.job_id);
+      if (!row || row.status === job.status) return job;
+      if (row.status === 'procesado' && !toastedRef.current.has(row.id)) {
+        toastedRef.current.add(row.id);
+        settled.push(row);
       }
+      return {
+        ...job,
+        status: row.status,
+        result_type: row.result_type,
+        tracking_number: row.tracking_number || job.tracking_number,
+        shipping_mark: row.shipping_mark || '',
+        error: row.error_message || null,
+      };
+    }));
+
+    for (const row of settled) {
+      showToast(toastTypeOf(row.result_type), row.shipping_mark, row.tracking_number);
     }
+  }, [fetchScanStatus, showToast, toastTypeOf]);
 
-    await processScan(detectedCode, photoBase64);
-    manualBusyRef.current = false;
-    setManualBusy(false);
-  }, [captureFrame, processScan, playBeep, vibrate]);
+  const hasPendingJobs = jobs.some((job) => job.job_id && (job.status === 'pendiente' || job.status === 'procesando'));
 
-  const handleRetryPendingPhoto = useCallback(async () => {
-    if (!pendingScan) return;
-    setRetryingPhoto(true);
-    const photoUrl = await uploadPhoto(pendingScan.base64);
-    setRetryingPhoto(false);
-    if (!photoUrl) return;
-    const pending = pendingScan;
-    setPendingScan(null);
-    await submitScan(pending.tracking, photoUrl);
-  }, [pendingScan, uploadPhoto, submitScan]);
+  useEffect(() => {
+    if (!hasPendingJobs) return;
+    pollJobs();
+    const id = setInterval(pollJobs, 3000);
+    return () => clearInterval(id);
+  }, [hasPendingJobs, pollJobs]);
 
-  const handleSkipPendingPhoto = useCallback(async () => {
-    if (!pendingScan) return;
-    const pending = pendingScan;
-    setPendingScan(null);
-    await submitScan(pending.tracking, null);
-  }, [pendingScan, submitScan]);
+  const handleRetryJob = useCallback(async (job) => {
+    if (!job?.job_id) return;
+    setJobs((prev) => prev.map((j) => (j.key === job.key ? { ...j, status: 'pendiente', error: null } : j)));
+    try {
+      await retryScanJob(job.job_id);
+    } catch (_) {}
+    kickScanQueue([job.job_id]);
+  }, []);
+
+  // Reintenta la subida de una foto que no llegó: la captura se registra igual.
+  const handleRetryUpload = useCallback(async (photo) => {
+    if (!photo) return;
+    setPendingPhotos((prev) => prev.filter((p) => p.key !== photo.key));
+    try {
+      const res = await captureScanJob({
+        imageBase64: photo.base64,
+        deviceId: deviceIdRef.current,
+        hintTracking: photo.hint,
+      });
+      addJobRow(res.job_id, photo.hint);
+      kickScanQueue([res.job_id]);
+    } catch (_) {
+      setPendingPhotos((prev) => [photo, ...prev.filter((p) => p.key !== photo.key)]);
+    }
+  }, [addJobRow]);
+
+  // Registrar la carga sin foto, cuando la foto no hay forma de subirla.
+  const handleSkipPhoto = useCallback(async (photo) => {
+    if (!photo) return;
+    setPendingPhotos((prev) => prev.filter((p) => p.key !== photo.key));
+    try {
+      const res = await captureScanJob({
+        skipPhoto: true,
+        deviceId: deviceIdRef.current,
+        hintTracking: photo.hint,
+      });
+      addJobRow(res.job_id, photo.hint);
+      kickScanQueue([res.job_id]);
+    } catch (_) {
+      setPendingPhotos((prev) => [photo, ...prev.filter((p) => p.key !== photo.key)]);
+    }
+  }, [addJobRow]);
+
+  // Las fotos que no subieron se reintentan solas, una por vuelta.
+  useEffect(() => {
+    const id = setInterval(() => {
+      const first = pendingPhotosRef.current[0];
+      if (first) handleRetryUpload(first);
+    }, UPLOAD_RETRY_MS);
+    return () => clearInterval(id);
+  }, [handleRetryUpload]);
 
   const toastBg = toast?.type === 'received' ? 'bg-green-500/90'
     : toast?.type === 'orphan' ? 'bg-blue-500/90'
@@ -354,7 +431,7 @@ export default function BodegaScan() {
       )}
 
       {/* Toggle de modo automático - esquina superior derecha */}
-      {status === 'ready' && (
+      {status === 'ready' && detectorReady && (
         <button
           onClick={toggleAutoMode}
           className={`absolute top-4 right-4 z-30 flex items-center gap-2 px-4 py-2.5 rounded-full backdrop-blur-md border-2 shadow-lg touch-manipulation transition-colors ${
@@ -374,6 +451,12 @@ export default function BodegaScan() {
         <div className={`w-2 h-2 rounded-full ${status === 'ready' ? 'bg-green-400 animate-pulse' : 'bg-yellow-400'}`} />
         <span>{status === 'ready' ? TXT.ready.zh : TXT.initializing.zh}</span>
       </div>
+
+      {!detectorReady && status === 'ready' && (
+        <div className="absolute top-9 left-4 text-white/50 text-[10px]">
+          {TXT.serverRead.zh} · {TXT.serverRead.es}
+        </div>
+      )}
 
       {toast && (
         <div key={toast.id} className="absolute top-16 left-1/2 -translate-x-1/2 z-50 transition-all duration-200">
@@ -404,66 +487,31 @@ export default function BodegaScan() {
         </div>
       )}
 
-      {status === 'noDetector' && (
-        <div className="absolute inset-0 flex items-center justify-center p-6">
-          <div className="text-center text-white">
-            <AlertCircle className="w-12 h-12 mx-auto mb-3 text-yellow-400" />
-            <p className="text-lg font-bold">{TXT.noDetector.zh}</p>
-            <p className="text-sm text-white/60 mt-1">{TXT.noDetector.es}</p>
-          </div>
-        </div>
-      )}
-
-      {/* Foto que no subió: el escaneo todavía no se registró */}
-      {pendingScan && (
-        <div className="absolute inset-0 z-40 bg-black/85 flex items-center justify-center p-6">
-          <div className="w-full max-w-sm rounded-2xl border-2 border-red-400/70 bg-black/70 p-5 space-y-4 text-center">
-            <AlertCircle className="w-10 h-10 mx-auto text-red-400" />
-            <div>
-              <p className="text-red-300 text-lg font-bold">{TXT.photoFailed.zh}</p>
-              <p className="text-white/80 text-sm">{TXT.photoFailed.es}</p>
-            </div>
-            {pendingScan.tracking && (
-              <p className="font-mono text-white/90 text-sm break-all">{pendingScan.tracking}</p>
-            )}
-            <p className="text-white/60 text-xs">{TXT.photoFailedHint.zh} · {TXT.photoFailedHint.es}</p>
-            <div className="flex flex-col gap-2">
-              <button
-                onClick={handleRetryPendingPhoto}
-                disabled={retryingPhoto}
-                className="w-full py-3 rounded-xl bg-red-500/90 text-white font-semibold disabled:opacity-60 touch-manipulation"
-              >
-                {retryingPhoto ? `${TXT.uploading.zh} · ${TXT.uploading.es}` : `${TXT.retry.zh} · ${TXT.retry.es}`}
-              </button>
-              <button
-                onClick={handleSkipPendingPhoto}
-                disabled={retryingPhoto}
-                className="w-full py-3 rounded-xl bg-white/15 border border-white/40 text-white/90 font-semibold disabled:opacity-60 touch-manipulation"
-              >
-                {TXT.skipPhoto.zh} · {TXT.skipPhoto.es}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <BodegaScanStatusPanel
+        jobs={jobs}
+        pendingPhotos={pendingPhotos}
+        onRetryJob={handleRetryJob}
+        onRetryUpload={handleRetryUpload}
+        onSkipPhoto={handleSkipPhoto}
+      />
 
       {/* Botón manual grande y central - método principal */}
       {status === 'ready' && (
         <div className="absolute bottom-0 left-0 right-0 pb-10 flex flex-col items-center gap-3">
           <button
             onClick={handleManualPhoto}
-            disabled={manualBusy}
-            className="w-28 h-28 rounded-full bg-white/25 backdrop-blur-md border-4 border-white/90 flex items-center justify-center active:scale-95 transition-transform shadow-2xl disabled:opacity-50 touch-manipulation"
+            disabled={busy}
+            className="w-28 h-28 rounded-full bg-white/25 backdrop-blur-md border-4 border-white/90 flex items-center justify-center active:scale-95 transition-transform shadow-2xl disabled:opacity-60 touch-manipulation"
           >
-            {manualBusy ? (
+            {busy ? (
               <div className="w-8 h-8 border-4 border-white/40 border-t-white rounded-full animate-spin" />
             ) : (
               <Camera className="w-12 h-12 text-white" />
             )}
           </button>
           <div className="text-center">
-            <p className="text-white text-base font-bold">{TXT.manualBtn.zh}</p>
-            <p className="text-white/70 text-sm">{TXT.manualBtn.es}</p>
+            <p className="text-white text-base font-bold">{busy ? TXT.confirming.zh : TXT.manualBtn.zh}</p>
+            <p className="text-white/70 text-sm">{busy ? TXT.confirming.es : TXT.manualBtn.es}</p>
           </div>
         </div>
       )}
