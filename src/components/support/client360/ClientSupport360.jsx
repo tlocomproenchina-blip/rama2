@@ -13,6 +13,7 @@ export default function ClientSupport360({ clientEmail, currentTicketId, hideTic
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState({ packages: [], bultos: [], invoices: [], recibos: [], tickets: [], dispatchOrders: [] });
   const [q, setQ] = useState('');
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     if (!clientEmail) return;
@@ -38,7 +39,7 @@ export default function ClientSupport360({ clientEmail, currentTicketId, hideTic
       setLoading(false);
     });
     return () => {active = false;};
-  }, [clientEmail, currentTicketId]);
+  }, [clientEmail, currentTicketId, reloadKey]);
 
   const filtered = useMemo(() => {
     const raw = q.trim().toLowerCase();
@@ -76,7 +77,7 @@ export default function ClientSupport360({ clientEmail, currentTicketId, hideTic
           placeholder="Buscar en todo: tracking, pre alerta, bulto, factura, recibo, estado..." className="min-h-[48px]" />
         
       </div>
-      <Client360Packages packages={filtered.packages} />
+      <Client360Packages packages={filtered.packages} onChanged={() => setReloadKey((k) => k + 1)} />
       <Client360Bultos bultos={filtered.bultos} />
       <Client360Recibos recibos={filtered.recibos} />
       <Client360Invoices invoices={filtered.invoices} recibos={data.recibos} />
