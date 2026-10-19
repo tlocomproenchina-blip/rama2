@@ -46,10 +46,16 @@ export default function AdminAbonoModal({ open, onClose, invoice, paidAmount = 0
       setError('Ingresa un monto válido');
       return;
     }
-    if (amt > num(balance) + 0.01) {
-      setError(`El monto no puede superar el saldo pendiente (${money(balance)})`);
+    const saldoPendiente = num(balance);
+    if (saldoPendiente <= 0.01) {
+      setError('Esta factura no tiene saldo pendiente');
       return;
     }
+    // Un abono mayor al saldo pendiente se reparte: lo que cubre la factura entra
+    // como abono y el excedente queda como saldo a favor del cliente, que se aplica
+    // a su próxima factura.
+    const invoiceAmount = Math.min(amt, saldoPendiente);
+    const excess = num((amt - invoiceAmount).toFixed(2));
 
     setSaving(true);
     setError('');
@@ -60,7 +66,7 @@ export default function AdminAbonoModal({ open, onClose, invoice, paidAmount = 0
         invoice_id: invoice.id,
         invoice_number: invoice.invoice_number || '',
         client_email: invoice.client_email,
-        amount: amt,
+        amount: invoiceAmount,
         method,
         proof_url: proofUrl,
         reference: reference.trim(),
@@ -71,9 +77,28 @@ export default function AdminAbonoModal({ open, onClose, invoice, paidAmount = 0
       const res = await base44.functions.invoke('approveInvoicePayment', { payment_id: payment.id });
       if (res?.data?.error) throw new Error(res.data.error);
 
-      toast.success(res?.data?.fully_paid
-        ? `Abono de ${money(amt)} registrado. La factura quedó pagada.`
-        : `Abono de ${money(amt)} registrado. Saldo restante: ${money(Math.max(num(balance) - amt, 0))}`);
+      // El excedente queda como saldo a favor del cliente y se aplica de una vez a
+      // su próxima factura pendiente.
+      let creditNotice = '';
+      if (excess > 0) {
+        const creditRes = await base44.functions.invoke('addClientCredit', {
+          client_email: invoice.client_email,
+          amount: excess,
+          type: 'credito',
+          description: `Saldo a favor del abono de ${money(amt)} sobre la factura ${invoice.invoice_number || invoice.id}`,
+          reference: reference.trim(),
+        });
+        if (creditRes?.data?.error) throw new Error(creditRes.data.error);
+        const applied = creditRes?.data?.applied || [];
+        creditNotice = applied.length > 0
+          ? ` ${money(excess)} quedaron a favor del cliente y se aplicaron a la factura ${applied.map((item) => item.invoice_number || item.invoice_id).join(', ')}.`
+          : ` ${money(excess)} quedaron a favor del cliente para su próxima factura.`;
+      }
+
+      const statusNotice = invoiceAmount < num(balance) - 0.01
+        ? `Saldo restante: ${money(Math.max(num(balance) - invoiceAmount, 0))}.`
+        : 'La factura quedó pagada.';
+      toast.success(`Abono de ${money(amt)} registrado. ${statusNotice}${creditNotice}`);
       onSaved?.();
       onClose();
     } catch (e) {
@@ -123,12 +148,11 @@ export default function AdminAbonoModal({ open, onClose, invoice, paidAmount = 0
               type="number"
               step="0.01"
               min="0.01"
-              max={balance}
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               placeholder="0.00"
             />
-            <p className="text-xs text-slate-500">Puedes abonar cualquier monto hasta el saldo pendiente.</p>
+            <p className="text-xs text-slate-500">Puedes abonar cualquier monto: lo que exceda el saldo pendiente queda a favor del cliente y se aplica a su próxima factura.</p>
           </div>
 
           <div className="space-y-2">
