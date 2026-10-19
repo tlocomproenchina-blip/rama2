@@ -9,8 +9,8 @@ const facts = [
   },
   {
     icon: Truck,
-    title: 'Puerta a puerta siempre: $9 por bulto',
-    desc: 'Todos los envíos se entregan puerta a puerta en tu dirección en Venezuela, con un costo de 9 USD por bulto. No hay retiro en oficinas de encomiendas.',
+    title: 'Puerta a puerta incluido en la tarifa',
+    desc: 'Todos los envíos se entregan puerta a puerta en tu dirección en Venezuela, sin importar el volumen, y la entrega va incluida en la tarifa por CBM de tu estado. No hay retiro en oficinas de encomiendas.',
   },
 ];
 

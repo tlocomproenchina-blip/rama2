@@ -119,7 +119,7 @@ TARIFAS Y PRECIOS:
 - Tarifa base marítimo regular: $${pricing.base_rate_regular || 690} por CBM
 - Tarifa base marítimo alto riesgo: $${pricing.base_rate_high_risk || 790} por CBM
 - Beneficio: ${pricing.profit_percentage || 10}%
-- Puerta a puerta: $${pricing.door_to_door_cost || 20}
+- Puerta a puerta: $${pricing.door_to_door_cost || 20} por CBM (va incluido dentro de la tarifa del estado, NO es un cobro por bulto)
 - Tarifas por estado: ${states}
 
 CÓMO CALCULAR ENVÍOS MARÍTIMOS:
