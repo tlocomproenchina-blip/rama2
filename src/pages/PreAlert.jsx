@@ -379,7 +379,7 @@ export default function PreAlert({ user }) {
             <p className="text-indigo-800 text-sm leading-relaxed">
                Contamos con salidas cada <span className="font-bold">10 o 15 días</span>. La consolidación se realizará en Venezuela y, una vez esté disponible la misma, se emitirá la factura.
                El pago de esta se debe realizar en un período de <span className="font-bold">7 días continuos</span>.
-               No tenemos mínimo de envío: puedes importar desde un paquete pequeño hasta un contenedor completo. La entrega es <span className="font-bold">puerta a puerta</span> en la dirección del cliente y va incluida en la tarifa.
+               No tenemos volumen mínimo ni máximo: puedes importar desde un paquete pequeño hasta varios contenedores completos. La entrega es <span className="font-bold">puerta a puerta</span> en la dirección del cliente y va incluida en la tarifa.
             </p>
             <p className="mt-2 text-sm font-semibold text-red-600 leading-relaxed flex items-start gap-1.5">
               <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />

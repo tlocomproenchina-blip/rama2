@@ -7,7 +7,7 @@
 //   - AppConfig:     porcentaje del seguro de carga.
 //
 // Reglas:
-//   - No hay mínimo de envío: toda la carga se cobra por su volumen real en CBM
+//   - No hay volumen mínimo ni máximo: toda la carga se cobra por su volumen real en CBM
 //     con la tarifa del estado de destino. No existe tarifa fija por rango.
 //   - Hasta 399 kg la tarifa por CBM se cobra normal; desde 400 kg inclusive se
 //     cobra al doble (x2), en carga regular y en carga de alto riesgo / sensible.
@@ -68,7 +68,7 @@ export function buildShippingRateTable({ pricing, states, appConfig }: any) {
 
   return {
     fuente: 'Mismas fuentes que la calculadora: PricingConfig, StateConfig y AppConfig.',
-    regla_calculo: 'No hay mínimo de envío: toda la carga se cobra por su volumen real en CBM multiplicado por la tarifa por CBM del estado de destino. No existe tarifa fija por rango ni monto mínimo por volumen pequeño.',
+    regla_calculo: 'No hay volumen mínimo ni máximo: toda la carga se cobra por su volumen real en CBM multiplicado por la tarifa por CBM del estado de destino. No existe tarifa fija por rango ni monto mínimo por volumen pequeño.',
     regla_peso: `Hasta 399 kg la tarifa por CBM se cobra normal; desde ${WEIGHT_DOUBLE_FROM_KG} kg inclusive se cobra al doble (x2), tanto en carga regular como en carga de alto riesgo. Ejemplo: tarifa regular 10 USD/CBM con 400 kg o más = 20 USD/CBM.`,
     recepcion_usd_por_paquete: RECEPTION_FEE_USD,
     seguro_porcentaje_fob: num(appConfig?.insurance_percentage) || null,

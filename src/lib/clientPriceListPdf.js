@@ -68,7 +68,7 @@ export async function generateClientPriceListPdf({ states = [], pricing = {}, ap
   // Cómo funciona
   title('¿Cómo se calcula tu envío?');
   line('1. Medimos tu carga en CBM (metros cúbicos): largo x ancho x alto en cm, dividido entre 1.000.000.', 3);
-  line('2. Tu carga se cobra por su volumen real: el precio por CBM de tu estado de destino, sin mínimo de envío ni tarifa fija por volumen pequeño.', 3);
+  line('2. Tu carga se cobra por su volumen real: el precio por CBM de tu estado de destino, sin mínimo ni máximo de envío ni tarifa fija por volumen pequeño.', 3);
   line('3. Desde 400 kg inclusive, el precio por CBM se cobra al doble (x2), tanto en carga ordinaria como en carga de alto riesgo.', 3);
   line('4. La entrega es puerta a puerta en la dirección del cliente y va incluida en la tarifa.', 3);
   line(`5. Cargo fijo de $1,00 por recepción de cada paquete en almacén.${appConfig.insurance_percentage ? ` Seguro opcional: ${appConfig.insurance_percentage}% del valor FOB.` : ''}`, 3);

@@ -354,9 +354,9 @@ export default function Rates({ user }) {
               <Package className="h-6 w-6 text-amber-600" />
             </div>
             <div>
-              <h3 className="font-semibold text-slate-800 text-lg">Sin mínimo de envío</h3>
+              <h3 className="font-semibold text-slate-800 text-lg">Sin mínimo ni máximo de envío</h3>
               <p className="text-sm text-slate-600 mt-1">
-                No tenemos mínimo de envío: puedes mandar desde un lápiz hasta un contenedor completo. Se factura el volumen real de tu carga, sin tarifas fijas ni montos mínimos por volumen pequeño, y la entrega es puerta a puerta en tu dirección. Si tu carga pesa 400 kg o más, la tarifa por CBM se cobra al doble.
+                No tenemos volumen mínimo ni máximo: puedes mandar desde un lápiz hasta varios contenedores completos. Se factura el volumen real de tu carga por la tarifa por CBM de tu estado de destino, y la entrega es puerta a puerta en tu dirección. Si tu carga pesa 400 kg o más, la tarifa por CBM se cobra al doble.
               </p>
             </div>
           </div>

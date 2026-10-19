@@ -303,7 +303,7 @@ export default function RequestConsolidation({ user }) {
             <AlertCircle className="h-4 w-4 md:h-5 text-blue-600 mt-0.5 flex-shrink-0" />
             <div className="text-xs md:text-sm text-blue-800 min-w-0">
               <p className="font-medium mb-1">¿Qué sucede después?</p>
-              <p>Un administrador revisará tu solicitud, procesará la consolidación y generará tu factura. No tenemos envío mínimo: puedes consolidar desde un paquete pequeño hasta un contenedor completo.</p>
+              <p>Un administrador revisará tu solicitud, procesará la consolidación y generará tu factura. No tenemos volumen mínimo ni máximo: puedes consolidar desde un paquete pequeño hasta varios contenedores completos.</p>
             </div>
           </div>
         </CardContent>

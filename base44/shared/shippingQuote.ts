@@ -2,7 +2,7 @@
 // Extracted to avoid duplication across backend functions.
 //
 // Reglas (las mismas de la calculadora de envíos):
-//   - No hay mínimo de envío: toda la carga se cobra por su volumen real en CBM
+//   - No hay volumen mínimo ni máximo: toda la carga se cobra por su volumen real en CBM
 //     con la tarifa por CBM del estado de destino.
 //   - No existe tarifa fija por rango (el antiguo tratamiento de las cargas
 //     menores a 0.130 CBM).
@@ -50,7 +50,7 @@ export function calculateShipping(params: any, cfg: any, pricing: any, states: a
   const volumetric_cbm = (l * a * h) / 1_000_000;
   if (volumetric_cbm <= 0) return { error: 'Las dimensiones deben ser mayores a 0.' };
 
-  // El volumen real manda: sin mínimo de envío ni tarifa fija por rango.
+  // El volumen real manda: sin volumen mínimo ni máximo ni tarifa fija por rango.
   const billable_cbm = volumetric_cbm;
 
   // Hasta 399 kg la tarifa es normal; desde 400 kg inclusive el envío va al doble.
@@ -147,7 +147,7 @@ export const SHIPPING_TOOL = {
   type: 'function' as const,
   function: {
     name: 'calculate_shipping_quote',
-    description: 'Calcula el costo de envío marítimo con las dimensiones (cm), el estado de destino y el valor FOB; para cargas de más de 1 CBM también necesita el peso estimado. Devuelve precios para carga general y alto riesgo con desglose de flete, seguro y recepción. Toda la carga se cobra por su volumen real en CBM: no hay mínimo ni tarifa fija por rango. Desde 400 kg la tarifa por CBM se cobra al doble en ambos tipos de carga.',
+    description: 'Calcula el costo de envío marítimo con las dimensiones (cm), el estado de destino y el valor FOB; para cargas de más de 1 CBM también necesita el peso estimado. Devuelve precios para carga general y alto riesgo con desglose de flete, seguro y recepción. Toda la carga se cobra por su volumen real en CBM: no hay volumen mínimo ni máximo ni tarifa fija por rango. Desde 400 kg la tarifa por CBM se cobra al doble en ambos tipos de carga.',
     parameters: {
       type: 'object',
       properties: {

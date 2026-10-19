@@ -555,7 +555,7 @@ export default function AdminSettings({ user }) {
 
     ensureSpace(30);
     addSectionTitle('Restricciones');
-    addLine('No hay mínimo de envío: se factura el volumen real de la carga (CBM) por la tarifa de tu estado de destino. Desde 400 kg inclusive, el precio por CBM se cobra al doble (x2).', 4);
+    addLine('No hay volumen mínimo ni máximo: se factura el volumen real de la carga (CBM) por la tarifa de tu estado de destino. Desde 400 kg inclusive, el precio por CBM se cobra al doble (x2).', 4);
     addLine('Carga sensible incluye: baterías de litio, alimentos, cosméticos, agentes acuosos, réplicas o imitaciones, polvos, marcas chinas y mercancía de alto valor.', 4);
     addLine('No enviamos: medicamentos, armas, pólvora, gas, motos, chalecos, fundas tácticas, botellas presurizadas, entre otros.', 4);
 

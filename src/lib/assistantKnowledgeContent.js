@@ -237,7 +237,7 @@ const MANUAL = {
       items: [
         { text: 'Toda la carga se cobra por su volumen real en CBM, con la tarifa del estado de destino.', status: 'confirmado', note: '' },
         { text: 'La tarifa de cada estado se administra en Configuración: es la que rige y la que el asistente debe leer.', status: 'confirmado', note: '' },
-        { text: 'No hay mínimo de envío ni tarifa fija por rango: la carga se cobra por su volumen real, por pequeña que sea.', status: 'confirmado', note: 'La tabla de tarifas fijas para cargas menores a 0.130 CBM quedó fuera de uso.' },
+        { text: 'No hay volumen mínimo ni máximo ni tarifa fija por rango: la carga se cobra por su volumen real, por pequeña o grande que sea.', status: 'confirmado', note: 'La tabla de tarifas fijas para cargas menores a 0.130 CBM quedó fuera de uso.' },
         { text: 'La recepción de cada paquete suma 1 USD.', status: 'confirmado', note: '' },
         { text: 'El seguro de carga se cobra como un porcentaje del valor FOB declarado.', status: 'confirmado', note: '' },
         { text: 'La entrega es puerta a puerta en la dirección del cliente y va incluida en la tarifa por CBM: no se cobra un precio fijo por bulto.', status: 'confirmado', note: '' },

@@ -151,7 +151,7 @@ PERSONALIDAD:
 CÓMO CALCULAR ENVÍOS MARÍTIMOS (IMPORTANTE):
 Fórmula exacta (paso a paso):
 1. CBM = (largo × ancho × alto en cm) ÷ 1,000,000
-2. No hay mínimo de envío: se cobra el CBM real de la carga, sin monto fijo por volumen pequeño
+2. No hay volumen mínimo ni máximo: se cobra el CBM real de la carga, sin monto fijo por volumen pequeño
 3. Tarifa ajustada = $${pricing.base_rate_regular} × ${1 + (pricing.profit_percentage || 10) / 100} = $${(pricing.base_rate_regular * (1 + (pricing.profit_percentage || 10) / 100)).toFixed(2)}
 4. Tarifa final = Tarifa ajustada + $${userStateRate} + $${pricing.door_to_door_cost} = $${(pricing.base_rate_regular * (1 + (pricing.profit_percentage || 10) / 100) + userStateRate + pricing.door_to_door_cost).toFixed(2)}
 5. TOTAL = Tarifa final × CBM. Si la carga pesa 400 kg o más, el total se multiplica por 2 (hasta 399 kg se cobra normal)

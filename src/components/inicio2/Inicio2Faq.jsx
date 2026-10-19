@@ -8,8 +8,8 @@ const faqs = [
     a: 'El Casillero Virtual de TLEC Cargo para importar desde China es 100% gratuito. No cobramos mensualidad, afiliación ni registro. Al registrarte obtienes un código exclusivo de cliente (ej: TLEC-5540) y la dirección de nuestro almacén físico en Guangdong, China. Al comprar a tus proveedores de Alibaba, 1688, Pinduoduo, Weidian, etc, ingresas esa dirección. Nosotros recibimos tu mercancía, la registramos en sistema, la consolidamos y la llevamos mediante flete marítimo seguro hasta la puerta de tu casa u oficina en Venezuela.',
   },
   {
-    q: '¿Tienen un mínimo de envío? ¿El servicio puerta a puerta tiene costo adicional?',
-    a: 'No tenemos mínimo de envío: puedes mandar desde un lápiz hasta un contenedor completo, sin peso, volumen ni cantidad mínima de bultos. Todas nuestras cargas se entregan puerta a puerta en la dirección del cliente, incluido en la tarifa por volumen. No hay retiro en oficinas de encomiendas.',
+    q: '¿Tienen un mínimo o un máximo de envío? ¿El servicio puerta a puerta tiene costo adicional?',
+    a: 'No tenemos volumen mínimo ni máximo: puedes mandar desde un lápiz hasta varios contenedores completos, sin peso ni cantidad mínima de bultos. Todas nuestras cargas se entregan puerta a puerta en la dirección del cliente, incluido en la tarifa por volumen. No hay retiro en oficinas de encomiendas.',
   },
   {
     q: '¿Qué es la consolidacion y cómo me ayuda a ahorrar?',
@@ -17,7 +17,7 @@ const faqs = [
   },
   {
     q: '¿Cómo se calcula el costo del Envío Marítimo Consolidado?',
-    a: 'El flete marítimo desde China se calcula por el volumen real de tu carga (CBM = largo × ancho × alto en metros cúbicos) y la tarifa varía según tu estado de destino en Venezuela. No hay mínimo de envío: se cobra el volumen real, sin importar lo pequeña que sea la carga, y la entrega final es puerta a puerta en tu dirección. Si tu carga pesa 400 kg o más, la tarifa por CBM se cobra al doble. Usa nuestra calculadora en esta misma página para estimar tu costo exacto al instante.',
+    a: 'El flete marítimo desde China se calcula por el volumen real de tu carga (CBM = largo × ancho × alto en metros cúbicos) y la tarifa varía según tu estado de destino en Venezuela. No hay volumen mínimo ni máximo: se cobra el volumen real, sin importar lo pequeña o grande que sea la carga, y la entrega final es puerta a puerta en tu dirección. Si tu carga pesa 400 kg o más, la tarifa por CBM se cobra al doble. Usa nuestra calculadora en esta misma página para estimar tu costo exacto al instante.',
   },
   {
     q: '¿Cuáles son las formas de pago aceptadas?',

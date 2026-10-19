@@ -4,8 +4,8 @@ import { Package, Truck } from 'lucide-react';
 const facts = [
   {
     icon: Package,
-    title: 'Sin mínimo de envío',
-    desc: 'Puedes enviar desde un lápiz hasta un contenedor completo. No exigimos peso, volumen ni cantidad mínima de bultos.',
+    title: 'Sin mínimo ni máximo de envío',
+    desc: 'Puedes enviar desde un lápiz hasta varios contenedores completos. No exigimos peso, volumen ni cantidad mínima de bultos.',
   },
   {
     icon: Truck,

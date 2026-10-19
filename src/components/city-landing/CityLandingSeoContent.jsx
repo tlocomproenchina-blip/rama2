@@ -115,7 +115,7 @@ export default function CityLandingSeoContent({ city }) {
             <p>
               El <strong>costo de enviar un contenedor desde China a {city.city}</strong> depende del volumen real
               (CBM) de tu carga, la categoría (general o sensible/alto riesgo) y el estado de destino. No tenemos
-              mínimo de envío: se cobra el volumen real de la carga, por pequeña que sea, e incluye la recepción en
+              mínimo ni máximo de envío: se cobra el volumen real de la carga, por pequeña o grande que sea, e incluye la recepción en
               nuestro almacén en China; la entrega final a {city.city} es puerta a puerta en la dirección del cliente.
               El cálculo es simple: <em>volumen CBM × tarifa por estado</em>, con un recargo del 100% (x2) desde 400 kg
               de peso real (hasta 399 kg se cobra la tarifa normal).
