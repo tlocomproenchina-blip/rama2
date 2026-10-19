@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { FileText, ChevronDown, ChevronRight, Receipt, MessageCircle } from 'lucide-react';
 import { buildWhatsAppUrl } from '@/lib/whatsappContact';
 import InvoicePDFGenerator from '@/components/invoice/InvoicePDFGenerator';
+import ClientInvoicePayments from '@/components/client-analytics/ClientInvoicePayments';
+import ClientPaymentsSummary from '@/components/client-analytics/ClientPaymentsSummary';
 
 const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 
@@ -24,10 +26,44 @@ function formatDate(value) {
   }
 }
 
-export default function ClientInvoicesList({ invoices, client }) {
+export default function ClientInvoicesList({ invoices, payments = [], client }) {
   const [expanded, setExpanded] = useState(null);
 
   const list = Array.isArray(invoices) ? invoices : [];
+
+  // Abonos del cliente agrupados por factura, tal como los reportó (pendientes,
+  // aprobados y rechazados).
+  const paymentsByInvoice = useMemo(() => {
+    const map = new Map();
+    (Array.isArray(payments) ? payments : []).forEach((payment) => {
+      if (!payment?.invoice_id) return;
+      map.set(payment.invoice_id, [...(map.get(payment.invoice_id) || []), payment]);
+    });
+    return map;
+  }, [payments]);
+
+  const totals = useMemo(() => {
+    const active = (Array.isArray(invoices) ? invoices : []).filter((invoice) => invoice.status !== 'cancelada');
+    const all = Array.isArray(payments) ? payments : [];
+    const byStatus = (status) => all.filter((payment) => payment.status === status);
+    const sum = (rows) => rows.reduce((acc, payment) => acc + num(payment.amount), 0);
+    const billed = active.reduce((acc, invoice) => acc + num(invoice.total), 0);
+    const paid = sum(byStatus('aprobado'));
+    return {
+      billed,
+      paid,
+      pending: sum(byStatus('pendiente')),
+      balance: Math.max(billed - paid, 0),
+      invoices: active.length,
+      approvedCount: byStatus('aprobado').length,
+      pendingCount: byStatus('pendiente').length,
+    };
+  }, [invoices, payments]);
+
+  const paidFor = (invoiceId) =>
+    (paymentsByInvoice.get(invoiceId) || [])
+      .filter((payment) => payment.status === 'aprobado')
+      .reduce((sum, payment) => sum + num(payment.amount), 0);
 
   const handleWhatsApp = (invoice, e) => {
     e.stopPropagation();
@@ -41,11 +77,12 @@ export default function ClientInvoicesList({ invoices, client }) {
 
   return (
     <Card className="border-0 shadow-md">
-      <CardHeader>
+      <CardHeader className="space-y-4">
         <CardTitle className="flex items-center gap-2 text-slate-800">
-          <FileText className="h-5 w-5 text-blue-600" /> Facturas del cliente
+          <FileText className="h-5 w-5 text-blue-600" /> Facturas y pagos del cliente
           <span className="text-sm font-normal text-slate-400">({list.length})</span>
         </CardTitle>
+        {list.length > 0 ? <ClientPaymentsSummary totals={totals} /> : null}
       </CardHeader>
       <CardContent className="space-y-3">
         {list.length === 0 ? (
@@ -54,6 +91,10 @@ export default function ClientInvoicesList({ invoices, client }) {
           list.map((invoice) => {
             const isOpen = expanded === invoice.id;
             const items = Array.isArray(invoice.items) ? invoice.items : [];
+            const invoicePayments = paymentsByInvoice.get(invoice.id) || [];
+            const paid = paidFor(invoice.id);
+            const balance = Math.max(num(invoice.total) - paid, 0);
+            const pendingCount = invoicePayments.filter((payment) => payment.status === 'pendiente').length;
             return (
               <div key={invoice.id} className="rounded-xl border border-slate-200 overflow-hidden">
                 <button
@@ -67,11 +108,21 @@ export default function ClientInvoicesList({ invoices, client }) {
                       <p className="text-xs text-slate-500">{formatDate(invoice.invoice_date || invoice.created_date)}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3 shrink-0">
-                    <Badge variant="outline" className={STATUS_STYLES[invoice.status] || STATUS_STYLES.pendiente}>
-                      {invoice.status || 'pendiente'}
-                    </Badge>
-                    <span className="font-bold text-slate-800">${num(invoice.total).toFixed(2)}</span>
+                  <div className="flex shrink-0 flex-col items-end gap-1">
+                    <div className="flex items-center gap-3">
+                      <Badge variant="outline" className={STATUS_STYLES[invoice.status] || STATUS_STYLES.pendiente}>
+                        {invoice.status || 'pendiente'}
+                      </Badge>
+                      <span className="font-bold text-slate-800">${num(invoice.total).toFixed(2)}</span>
+                    </div>
+                    <p className="text-[11px] text-slate-500">
+                      <span className="font-medium text-emerald-600">Abonado ${paid.toFixed(2)}</span>
+                      {' · '}
+                      <span className={balance > 0 ? 'font-medium text-rose-600' : 'font-medium text-slate-500'}>
+                        Saldo ${balance.toFixed(2)}
+                      </span>
+                      {pendingCount > 0 ? ` · ${pendingCount} en validación` : ''}
+                    </p>
                   </div>
                 </button>
 
@@ -122,6 +173,8 @@ export default function ClientInvoicesList({ invoices, client }) {
                     {invoice.notes && (
                       <p className="text-xs text-slate-500 break-words">{invoice.notes}</p>
                     )}
+
+                    <ClientInvoicePayments invoice={invoice} payments={invoicePayments} />
 
                     <div className="flex flex-wrap items-center gap-2" onClick={(e) => e.stopPropagation()}>
                       <InvoicePDFGenerator invoice={invoice} />

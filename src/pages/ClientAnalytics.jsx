@@ -41,6 +41,7 @@ export default function ClientAnalytics() {
   const [searchTerm, setSearchTerm] = useState('');
   const [consolidations, setConsolidations] = useState([]);
   const [invoices, setInvoices] = useState([]);
+  const [invoicePayments, setInvoicePayments] = useState([]);
   const [packages, setPackages] = useState([]);
   const [cbmIngresos, setCbmIngresos] = useState([]);
   const [dispatchOrders, setDispatchOrders] = useState([]);
@@ -79,6 +80,7 @@ export default function ClientAnalytics() {
     if (!clientEmail) {
       setConsolidations([]);
       setInvoices([]);
+      setInvoicePayments([]);
       setPackages([]);
       setCbmIngresos([]);
       setDispatchOrders([]);
@@ -87,15 +89,17 @@ export default function ClientAnalytics() {
 
     try {
       setLoading(true);
-      const [consolidationList, invoiceList, packageList, cbmList, dispatchList] = await Promise.all([
+      const [consolidationList, invoiceList, paymentList, packageList, cbmList, dispatchList] = await Promise.all([
         base44.entities.Consolidation.filter({ client_email: clientEmail }, '-created_date', 500),
         base44.entities.Invoice.filter({ client_email: clientEmail }, '-created_date', 500),
+        base44.entities.InvoicePayment.filter({ client_email: clientEmail }, '-created_date', 500).catch(() => []),
         base44.entities.Package.filter({ client_email: clientEmail }, '-created_date', 1000),
         base44.entities.CbmIngreso.filter({ client_email: clientEmail }, '-fecha', 500),
         base44.entities.DispatchOrder.filter({ client_email: clientEmail }, '-created_date', 500).catch(() => [])
       ]);
       setConsolidations(consolidationList || []);
       setInvoices(invoiceList || []);
+      setInvoicePayments(paymentList || []);
       setPackages(packageList || []);
       setCbmIngresos(cbmList || []);
       setDispatchOrders(dispatchList || []);
@@ -263,7 +267,7 @@ export default function ClientAnalytics() {
         />
       )}
 
-      {selectedClient && <ClientInvoicesList invoices={invoices} client={selectedClient} />}
+      {selectedClient && <ClientInvoicesList invoices={invoices} payments={invoicePayments} client={selectedClient} />}
 
       {selectedClient && <ClientCargoPanel client={selectedClient} />}
 
