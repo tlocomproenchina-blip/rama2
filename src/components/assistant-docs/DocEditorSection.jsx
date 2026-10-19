@@ -21,9 +21,11 @@ export default function DocEditorSection({ section, index, onChange, onRemove })
         <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
           Sección {index + 1}
         </span>
-        <Button type="button" variant="ghost" size="sm" className="h-8 text-rose-600" onClick={onRemove}>
-          <Trash2 className="h-4 w-4" />
-        </Button>
+        {onRemove ? (
+          <Button type="button" variant="ghost" size="sm" className="h-8 text-rose-600" onClick={onRemove}>
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        ) : null}
       </div>
 
       <Input

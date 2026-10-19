@@ -1,20 +1,18 @@
 import React, { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Loader2, Pencil } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import DocHeader from "@/components/assistant-docs/DocHeader";
 import DocReader from "@/components/assistant-docs/DocReader";
-import DocEditor from "@/components/assistant-docs/DocEditor";
-import DocEditToolbar from "@/components/assistant-docs/DocEditToolbar";
+import DocReviewPanel from "@/components/assistant-docs/DocReviewPanel";
 import { DEFAULT_DOCS, DOC_TABS } from "@/lib/assistantKnowledgeContent";
 
 export default function AdminAssistantKnowledge({ user }) {
   const [docs, setDocs] = useState(null);
   const [active, setActive] = useState("propuesta");
-  const [draft, setDraft] = useState(null);
+  const [review, setReview] = useState(null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -52,34 +50,93 @@ export default function AdminAssistantKnowledge({ user }) {
   }
 
   const current = docs?.[active] || null;
-  const editing = !!draft && !!current && draft.doc_key === active;
 
-  const startEdit = () => setDraft(JSON.parse(JSON.stringify(current)));
-  const cancelEdit = () => setDraft(null);
-  const patchDraft = (data) => setDraft((prev) => ({ ...prev, ...data }));
-  const restoreDefaults = () => {
-    setDraft((prev) => ({ ...prev, sections: JSON.parse(JSON.stringify(DEFAULT_DOCS[active].sections)) }));
-    toast.info("Se cargó el borrador inicial. Guarda para aplicarlo.");
-  };
+  // Estado y nota son del documento completo: se editan aparte de las secciones.
+  const metaDraft =
+    review?.doc_key === active
+      ? review
+      : { doc_key: active, status: current?.status || "borrador", review_note: current?.review_note || "" };
 
-  const save = async () => {
-    if (!draft) return;
+  const patchMeta = (data) => setReview({ ...metaDraft, ...data });
+
+  const reviewStamp = () => ({
+    last_reviewed_date: new Date().toISOString(),
+    last_reviewed_by: user?.full_name || user?.email || "",
+    updated_by: user?.email || "",
+  });
+
+  // Guarda SOLO la sección que se editó: el resto del documento queda intacto.
+  const saveSection = async (index, section) => {
+    if (!current || !section) return false;
     setSaving(true);
     try {
-      await base44.entities.AssistantDoc.update(draft.id, {
-        sections: draft.sections,
-        status: draft.status,
-        review_note: draft.review_note || "",
-        last_reviewed_date: new Date().toISOString(),
-        last_reviewed_by: user?.full_name || user?.email || "",
-        updated_by: user?.email || "",
+      const base = Array.isArray(current.sections) ? current.sections : [];
+      const sections =
+        index < base.length ? base.map((s, i) => (i === index ? section : s)) : [...base, section];
+      await base44.entities.AssistantDoc.update(current.id, { sections, ...reviewStamp() });
+      toast.success(index < base.length ? "Sección guardada" : "Sección agregada");
+      await load();
+      return true;
+    } catch (error) {
+      console.error(error);
+      toast.error("No se pudo guardar la sección");
+      return false;
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const removeSection = async (index) => {
+    if (!current) return false;
+    setSaving(true);
+    try {
+      const sections = (Array.isArray(current.sections) ? current.sections : []).filter((_, i) => i !== index);
+      await base44.entities.AssistantDoc.update(current.id, { sections, ...reviewStamp() });
+      toast.success("Sección quitada del documento");
+      await load();
+      return true;
+    } catch (error) {
+      console.error(error);
+      toast.error("No se pudo quitar la sección");
+      return false;
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const saveReview = async () => {
+    if (!current) return;
+    setSaving(true);
+    try {
+      await base44.entities.AssistantDoc.update(current.id, {
+        status: metaDraft.status,
+        review_note: metaDraft.review_note || "",
+        ...reviewStamp(),
       });
-      setDraft(null);
-      toast.success("Documento guardado y revisión registrada");
+      setReview(null);
+      toast.success("Estado y nota de revisión guardados");
       await load();
     } catch (error) {
       console.error(error);
-      toast.error("No se pudo guardar el documento");
+      toast.error("No se pudo guardar la revisión del documento");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const restoreDefaults = async () => {
+    if (!current) return;
+    setSaving(true);
+    try {
+      await base44.entities.AssistantDoc.update(current.id, {
+        sections: JSON.parse(JSON.stringify(DEFAULT_DOCS[active].sections)),
+        ...reviewStamp(),
+      });
+      toast.success("Se restauró el borrador inicial del documento");
+      await load();
+    } catch (error) {
+      console.error(error);
+      toast.error("No se pudo restaurar el borrador inicial");
     } finally {
       setSaving(false);
     }
@@ -91,7 +148,7 @@ export default function AdminAssistantKnowledge({ user }) {
         <h1 className="text-2xl font-bold text-slate-900 md:text-3xl">Conocimiento del Asistente</h1>
         <p className="text-sm text-slate-500">
           Dos documentos para revisar: cómo se propone usar el conocimiento del sistema y qué reglas aplica hoy
-          TLEC CARGO.
+          TLEC CARGO. Cada sección se edita por separado.
         </p>
       </div>
 
@@ -104,7 +161,7 @@ export default function AdminAssistantKnowledge({ user }) {
           value={active}
           onValueChange={(value) => {
             setActive(value);
-            setDraft(null);
+            setReview(null);
           }}
         >
           <TabsList className="grid w-full grid-cols-2">
@@ -129,35 +186,28 @@ export default function AdminAssistantKnowledge({ user }) {
               );
             }
 
-            const isThisDraft = editing && draft.doc_key === tab.key;
-
             return (
               <TabsContent key={tab.key} value={tab.key} className="space-y-4 pt-4">
                 <Card>
                   <CardContent className="space-y-4 p-4 md:p-5">
-                    <DocHeader doc={isThisDraft ? draft : doc} />
-                    {isThisDraft ? (
-                      <DocEditToolbar
-                        doc={draft}
-                        saving={saving}
-                        onPatch={patchDraft}
-                        onSave={save}
-                        onCancel={cancelEdit}
-                        onRestore={restoreDefaults}
-                      />
-                    ) : (
-                      <Button onClick={startEdit} className="w-full bg-blue-600 hover:bg-blue-700 md:w-auto">
-                        <Pencil className="mr-2 h-4 w-4" /> Editar documento
-                      </Button>
-                    )}
+                    <DocHeader doc={doc} />
+                    <DocReviewPanel
+                      meta={metaDraft}
+                      saving={saving}
+                      onPatch={patchMeta}
+                      onSave={saveReview}
+                      onCancel={() => setReview(null)}
+                      onRestore={restoreDefaults}
+                    />
                   </CardContent>
                 </Card>
 
-                {isThisDraft ? (
-                  <DocEditor sections={draft.sections} onChange={(sections) => patchDraft({ sections })} />
-                ) : (
-                  <DocReader sections={doc.sections} />
-                )}
+                <DocReader
+                  sections={doc.sections}
+                  saving={saving}
+                  onSaveSection={saveSection}
+                  onRemoveSection={removeSection}
+                />
               </TabsContent>
             );
           })}
