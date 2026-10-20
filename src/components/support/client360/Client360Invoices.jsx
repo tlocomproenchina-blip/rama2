@@ -3,6 +3,7 @@ import { FileText, ChevronDown, ChevronRight, Receipt } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import Client360Section from './Client360Section';
 import Client360InvoicePdfButton from './Client360InvoicePdfButton';
+import { billableTotal } from '@/lib/storageLines';
 
 const STATUS = {
   pendiente: 'bg-amber-100 text-amber-700',
@@ -50,7 +51,7 @@ export default function Client360Invoices({ invoices, recibos = [] }) {
                 </p>
               </div>
               <span className="text-xs font-semibold text-slate-700 whitespace-nowrap">
-                ${Number(inv.total || 0).toFixed(2)}
+                ${billableTotal(inv).toFixed(2)}
               </span>
               <Badge className={`text-[10px] ${STATUS[inv.status] || 'bg-slate-100 text-slate-600'}`}>
                 {inv.status}

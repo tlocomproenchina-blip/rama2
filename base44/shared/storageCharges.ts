@@ -30,6 +30,11 @@ export const CATEGORY_LARGE = "grande";
 export const STORAGE_LINE_KIND = "storage_charge";
 export const FORKLIFT_LINE_KIND = "forklift_charge";
 
+// Almacenamiento y resguardo en pausa: no se generan ni se aplican cargos nuevos
+// a las facturas. Los registros históricos de StorageCharge y las líneas ya
+// guardadas se conservan intactos para auditoría.
+export const STORAGE_CHARGES_ENABLED = false;
+
 export const DEFAULT_STORAGE_CONFIG: Record<string, any> = {
   config_key: "main",
   is_active: true,
@@ -318,6 +323,46 @@ export function planInvoiceCharges({ invoice, units, charges, config, now = new 
   const forkliftAccumulatedAfter = round2(forkliftAccumulatedBefore + forkliftAmount);
   const daysChargedAfter = Math.max(lastChargedDay, to >= from ? to : lastChargedDay);
   const totalBefore = num(invoice?.total);
+
+  // Con los cargos en pausa el plan no mueve dinero: cero días nuevos, cero
+  // monto y sin aviso de fin de contrato, así no se escribe nada en la factura.
+  if (!STORAGE_CHARGES_ENABLED) {
+    return {
+      invoice_id: invoice?.id || null,
+      invoice_number: text(invoice?.invoice_number),
+      client_email: text(invoice?.client_email),
+      status: text(invoice?.status),
+      invoice_date: invoice?.invoice_date || null,
+      day_number: dayNumber,
+      start_day: startDay,
+      max_day: maxDay,
+      days: [],
+      days_charged_after: lastChargedDay,
+      units_standard: unitsStandard,
+      units_large: unitsLarge,
+      units_total: list.length,
+      units_source: text(invoice?.units_source) || null,
+      daily_rate_standard: rateStandard,
+      daily_rate_large: rateLarge,
+      daily_amount: 0,
+      storage_amount: 0,
+      forklift_pallets: 0,
+      forklift_pallets_marked: palletsMarked,
+      forklift_pallets_charged: palletsCharged,
+      forklift_amount: 0,
+      amount: 0,
+      accumulated_before: accumulatedBefore,
+      accumulated_after: accumulatedBefore,
+      storage_accumulated_after: storageAccumulatedBefore,
+      forklift_accumulated_after: forkliftAccumulatedBefore,
+      pallets_charged_after: palletsCharged,
+      total_before: totalBefore,
+      total_after: totalBefore,
+      stopped: false,
+      stop_notice_created: true,
+      changed: false,
+    };
+  }
 
   return {
     invoice_id: invoice?.id || null,

@@ -1878,8 +1878,6 @@ export default function AdminSettings({ user }) {
               </Button>
             </CardContent>
           </Card>
-
-          <StorageChargeSettings />
         </TabsContent>
 
 
