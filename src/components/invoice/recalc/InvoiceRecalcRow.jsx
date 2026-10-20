@@ -112,7 +112,7 @@ export default function InvoiceRecalcRow({ invoice, excluded, onToggleExclude, o
                     <th className="py-1 pr-3 font-medium">CBM</th>
                     <th className="py-1 pr-3 font-medium">Fecha del recibo</th>
                     <th className="py-1 pr-3 font-medium">Tipo de carga</th>
-                    <th className="py-1 pr-3 font-medium">Tarifa por CBM</th>
+                    <th className="py-1 pr-3 font-medium">Tarifa aplicada</th>
                     <th className="py-1 font-medium">Monto del envío</th>
                   </tr>
                 </thead>
@@ -140,7 +140,17 @@ export default function InvoiceRecalcRow({ invoice, excluded, onToggleExclude, o
                         </span>
                       </td>
                       <td className="py-2 pr-3">
-                        {money(line.unit_before)} → <span className="font-semibold">{money(line.rate)}</span>
+                        {line.mode === 'cbm' ? (
+                          <>
+                            {money(line.unit_before)} → <span className="font-semibold">{money(line.unit_after)}</span>
+                            <span className="text-[10px] text-muted-foreground"> / CBM</span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="font-semibold">{money(line.unit_after)}</span>
+                            <span className="text-[10px] text-muted-foreground"> precio fijo por tramo</span>
+                          </>
+                        )}
                       </td>
                       <td className="py-2">
                         {money(line.total_before)} → <span className="font-semibold">{money(line.total_after)}</span>

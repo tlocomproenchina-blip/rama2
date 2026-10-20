@@ -1,15 +1,24 @@
-// Recálculo de las líneas de envío de una factura.
+// Recálculo de las tarifas de envío de una factura.
 //
-// Hoy una factura guarda un solo precio por CBM prorrateado: el total de envío
-// se reparte entre todo el CBM, así que un recibo de alto riesgo (sensible) y
-// uno general terminan mostrando la misma tarifa unitaria. Aquí cada recibo se
-// cobra con SU tarifa: la del tipo de carga que le corresponde, la vigente a la
-// fecha de ESE recibo y la del estado del cliente.
+// Hoy una factura guarda un solo precio por CBM: el envío se reparte entre todo
+// el CBM, así que un recibo de alto riesgo (sensible) y uno general terminan
+// mostrando la misma tarifa unitaria. Aquí cada recibo se cobra con SU tarifa,
+// según el tipo de carga que le corresponde.
 //
-// Reutiliza las reglas de Facturación Manual (billingRates.ts) y la lectura de
-// líneas de las facturas (duplicateReceipts.ts) para no duplicar lógica.
+// Reglas:
+//   - El CBM de cada recibo NO se toca: se conserva el CBM facturado de la línea
+//     (incluidos mínimos y ajustes) y se reparte entre los recibos de esa línea,
+//     cada uno con su propio peso.
+//   - El precio guardado de la factura es el punto de partida: una factura que
+//     ya está bien cobrada en general no cambia. El ajuste es el recargo del
+//     tipo de carga (el de las tarifas vigentes a la fecha de ESE recibo).
+//   - Cuando la línea se cobró con PRECIO FIJO POR TRAMO de carga chica
+//     (AppConfig.special_cbm_rates), se usa ese tramo, con su precio por tipo.
+//
+// Reutiliza las reglas de tarifas de Facturación Manual (billingRates.ts) y la
+// lectura de líneas de las facturas (duplicateReceipts.ts).
 import { num, normTracking } from "./paginatedFetch.ts";
-import { rateForReceipt, round2 } from "./billingRates.ts";
+import { rateSetForDate, ratePerCbmFor, round2, round5 } from "./billingRates.ts";
 import { invoiceLines, normOrder } from "./duplicateReceipts.ts";
 
 export const CARGO_TYPE_GENERAL = "general";
@@ -20,167 +29,307 @@ export function normalizeCargoType(value: any) {
   return v === CARGO_TYPE_HIGH_RISK || v === "sensible" ? CARGO_TYPE_HIGH_RISK : CARGO_TYPE_GENERAL;
 }
 
-// Clave estable de una línea de envío: el panel la usa para fijar el tipo de
-// carga de ese recibo y la vuelve a enviar al aplicar el recálculo.
-export function lineKey(invoice: any, line: any) {
-  const base = line?.id || line?.number || `idx${num(line?.index)}`;
-  return `${invoice?.id || ""}::${base}`;
+// Clave estable de un recibo dentro de la factura: el panel la usa para fijar su
+// tipo de carga y la vuelve a enviar al aplicar el recálculo.
+export function unitKey(invoiceId: any, lineIndex: any, number: any, i: any) {
+  return `${invoiceId || ""}::${num(lineIndex)}::${number || `u${i}`}`;
 }
 
-function indexReceipts(receipts: any[]) {
+const PAIR_RE = /(\d[\d\-]*)\s*\(\s*([\d.]+)\s*CBM\s*\)/gi;
+
+// Recibos y CBM que el detalle de una línea vieja trae entre paréntesis:
+// "Envío - 125 (0.0520 CBM) + 103-1 (0.2500 CBM) = 0.4730 CBM facturado".
+function parenPairs(desc: string) {
+  const out: any[] = [];
+  for (const m of String(desc || "").matchAll(PAIR_RE)) {
+    out.push({ number: m[1], cbm: num(m[2]) });
+  }
+  return out;
+}
+
+// Precio fijo por tramo de CBM para cargas menores (AppConfig.special_cbm_rates).
+function specialRateFor(rateSet: any, cbm: any, type: string) {
+  const rates = Array.isArray(rateSet?.special_cbm_rates) ? rateSet.special_cbm_rates : [];
+  const c = num(cbm);
+  if (c <= 0 || !rates.length) return null;
+  const sorted = [...rates].sort((a: any, b: any) => num(a.min_cbm) - num(b.min_cbm));
+  const hit = sorted.find((r: any) => c >= num(r.min_cbm) && c <= num(r.max_cbm));
+  if (!hit) return null;
+  const amount = type === CARGO_TYPE_HIGH_RISK ? num(hit.rate_high_risk) : num(hit.rate_regular);
+  return amount > 0 ? amount : null;
+}
+
+const isDoorToDoor = (desc: string) => /puerta\s*a\s*puerta/i.test(String(desc || ""));
+const shortDesc = (desc: string) => {
+  const d = String(desc || "").trim();
+  return d.length > 70 ? `${d.slice(0, 67)}...` : d;
+};
+
+function buildReceiptIndex(receipts: any[]) {
   const byId: Record<string, any> = {};
-  const byTracking: Record<string, any> = {};
   const byNumber: Record<string, any> = {};
+  const byTracking: Record<string, any> = {};
   for (const r of receipts || []) {
     if (!r) continue;
     if (r.id) byId[r.id] = r;
+    const n = normOrder(r.invoice_number);
+    if (n && !byNumber[n]) byNumber[n] = r;
     for (const t of r.tracking_numbers || []) {
       const k = normTracking(t);
       if (k && !byTracking[k]) byTracking[k] = r;
     }
-    const n = normOrder(r.invoice_number);
-    if (n && !byNumber[n]) byNumber[n] = r;
   }
-  return { byId, byTracking, byNumber };
+  return { byId, byNumber, byTracking };
 }
 
-// Ubica el recibo (CbmIngreso) de una línea: por vínculo, por trackings o por
-// N° de contenedor. De ahí salen la fecha de tarifa y el tipo de carga.
-function findReceipt(line: any, index: any) {
-  if (line?.id && index.byId[line.id]) return index.byId[line.id];
-  for (const k of line?.tracking_keys || []) {
-    if (index.byTracking[k]) return index.byTracking[k];
-  }
-  const n = normOrder(line?.number);
-  if (n && index.byNumber[n]) return index.byNumber[n];
-  return null;
+// CBM facturado de una línea: el que quedó guardado en la propia factura. Nunca
+// se toma el CBM del recibo aquí, para no alterar mínimos ni ajustes.
+function cbmBasis(line: any) {
+  const details = line?.item?.details || {};
+  const qty = num(line?.item?.quantity);
+  const pairs = parenPairs(line?.desc).reduce((s: number, p: any) => s + p.cbm, 0);
+  const values = [
+    line?.has_link ? qty : 0,
+    num(details.billed_cbm),
+    num(details.cbm),
+    num(details.total_cbm),
+    pairs,
+    qty > 1 ? qty : 0,
+  ];
+  return Math.max(0, ...values);
 }
 
-// Cómo queda la factura al recalcular cada envío con la tarifa de su recibo.
+// ¿La línea se cobró con precio fijo por tramo de carga chica? Solo cuando el
+// precio guardado NO cuadra como precio por CBM: si cuadra, se respeta como
+// precio por CBM para no reinterpretar una factura ya cobrada.
+function isTramoLine(lineTotal: number, basis: number, rateSet: any, ctx: any) {
+  const eff = num(lineTotal) / num(basis);
+  const gen = ratePerCbmFor(ctx, rateSet, CARGO_TYPE_GENERAL);
+  const high = ratePerCbmFor(ctx, rateSet, CARGO_TYPE_HIGH_RISK);
+  const tol = 0.05;
+  if (eff >= gen * (1 - tol) && eff <= high * (1 + tol)) return false;
+  const near = (v: any) => v !== null && Math.abs(num(lineTotal) - num(v)) <= Math.max(0.5, num(v) * 0.005);
+  return near(specialRateFor(rateSet, basis, CARGO_TYPE_GENERAL))
+    || near(specialRateFor(rateSet, basis, CARGO_TYPE_HIGH_RISK));
+}
+
+// Cómo queda la factura al recalcular cada recibo con la tarifa de su tipo de
+// carga. Devuelve el detalle por recibo, el antes y el después, y el objeto con
+// el que se actualiza la factura (solo si hay cambio real).
 export function buildInvoiceRecalc({ invoice, receiptsOfClient, ctx, overrides }: any) {
   const items = Array.isArray(invoice?.items) ? invoice.items : [];
-  const breakdown = invoice?.cost_breakdown || {};
-  const fallbackType = normalizeCargoType(breakdown.cargo_type || CARGO_TYPE_GENERAL);
   const lines = invoiceLines(invoice);
-  const index = indexReceipts(receiptsOfClient);
+  const index = buildReceiptIndex(receiptsOfClient);
+  const fallbackType = normalizeCargoType(invoice?.cost_breakdown?.cargo_type || CARGO_TYPE_GENERAL);
 
   const warnings: string[] = [];
-  const resolved: any[] = [];
+  const units: any[] = [];
+  const linePlans: any[] = [];
   let shippingBefore = 0;
+  let shippingAfter = 0;
 
   for (const l of lines) {
-    const receipt = findReceipt(l, index);
-    const cbm = num(l.cbm);
-    const key = lineKey(invoice, l);
-    const override = overrides?.[key];
-    const type = normalizeCargoType(override || l.type || receipt?.cargo_type || fallbackType);
-    const fecha = receipt?.fecha || invoice?.invoice_date || null;
-    const rate = rateForReceipt(ctx, fecha, type);
-    const totalBefore = num(l.item?.total);
-    shippingBefore += totalBefore;
+    const details = l.item?.details || {};
+    const basis = isDoorToDoor(l.desc) ? 0 : cbmBasis(l);
+    const lineTotal = num(l.item?.total);
+    const lineQty = num(l.item?.quantity);
 
-    if (!receipt) {
-      warnings.push(`La línea ${l.number || `${cbm.toFixed(4)} CBM`} no tiene recibo ubicado: se usó la fecha de la factura y el tipo indicado.`);
-    }
-    if (cbm <= 0) {
-      warnings.push(`La línea ${l.number || "sin número"} no tiene CBM registrado: no se puede recalcular su tarifa.`);
+    if (basis <= 0) {
+      if (!isDoorToDoor(l.desc)) {
+        warnings.push(`La línea "${shortDesc(l.desc)}" no tiene CBM facturado: se dejó sin cambios.`);
+      }
+      continue;
     }
 
-    resolved.push({
-      key,
-      index: l.index,
-      item: l.item,
-      number: l.number || (receipt?.invoice_number ? String(receipt.invoice_number) : ""),
-      cbm_ingreso_id: l.id || receipt?.id || null,
-      cbm,
-      fecha,
-      type,
-      type_from: override ? "manual" : (l.type ? "factura" : (receipt?.cargo_type ? "recibo" : "predeterminado")),
-      rate: round2(rate),
-      unit_before: num(l.item?.unit_price),
-      total_before: totalBefore,
-      total_after: round2(cbm * rate),
+    // Recibos de la línea: los del detalle guardado y los del propio texto.
+    const numbers: string[] = [];
+    const push = (v: any) => { const s = String(v ?? "").trim(); if (s && !numbers.includes(s)) numbers.push(s); };
+    (l.source_numbers || []).forEach(push);
+    parenPairs(l.desc).forEach((p: any) => push(p.number));
+    if (l.number) push(l.number);
+
+    const hintCbm: Record<string, number> = {};
+    parenPairs(l.desc).forEach((p: any) => { if (!hintCbm[p.number]) hintCbm[p.number] = p.cbm; });
+
+    let lineUnits = numbers.map((n) => ({ number: n, receipt: index.byNumber[normOrder(n)] || null }));
+    if (!lineUnits.length) {
+      lineUnits = [{ number: "", receipt: l.id ? (index.byId[l.id] || null) : null }];
+    }
+
+    // Peso de cada recibo dentro del CBM facturado de la línea.
+    const weights = lineUnits.map((u: any) => {
+      const hint = num(hintCbm[u.number]);
+      return hint > 0 ? hint : num(u.receipt?.cbm);
     });
-  }
-
-  const shippingAfter = round2(resolved.reduce((s: number, r: any) => s + num(r.total_after), 0));
-  const delta = round2(shippingAfter - round2(shippingBefore));
-  const totalBefore = num(invoice?.total);
-  // El total se mueve solo por el envío: el resto de conceptos (seguro,
-  // consolidación, puerta a puerta, extras) queda intacto.
-  const totalAfter = round2(totalBefore + delta);
-  const blocked = resolved.length === 0
-    ? "La factura no tiene líneas de envío que recalcular."
-    : (resolved.some((r: any) => num(r.cbm) <= 0) ? "Hay líneas de envío sin CBM registrado: revísalas a mano." : null);
-  const changed = !blocked && Math.abs(delta) >= 0.01;
-
-  const newItems = items.map((it: any, i: number) => {
-    const r = resolved.find((x: any) => x.index === i);
-    if (!r) return it;
-    const details: any = { ...(it?.details || {}), cbm: r.cbm, cargo_type: r.type };
-    if (r.number) {
-      details.invoice_number = r.number;
-      details.source_invoices = [r.number];
+    const allKnown = weights.length > 0 && weights.every((w: number) => w > 0);
+    const finalWeights = allKnown ? weights : lineUnits.map(() => 1);
+    if (!allKnown && lineUnits.length > 1) {
+      warnings.push(`La línea "${shortDesc(l.desc)}" trae varios recibos sin CBM: se repartió en partes iguales.`);
     }
-    return { ...it, quantity: r.cbm, unit_price: r.rate, total: r.total_after, details };
-  });
+    const weightSum = finalWeights.reduce((s: number, w: number) => s + w, 0) || lineUnits.length;
 
-  const typeByNumber: Record<string, string> = {};
-  for (const r of resolved) {
-    if (r.number) typeByNumber[String(r.number)] = r.type;
-  }
-  const typesUsed = [...new Set(resolved.map((r: any) => r.type))];
-  const flagged = num(breakdown.billed_cbm) > 0 && num(breakdown.total_cbm) > 0
-    && Math.abs(num(breakdown.billed_cbm) - num(breakdown.total_cbm)) > 1e-6;
-  if (flagged) {
-    warnings.push("Esta factura guardaba un CBM facturado distinto al de sus recibos: el recálculo usa el CBM real de cada recibo.");
+    if (lineUnits.length > 1 && lineUnits.every((u: any) => num(hintCbm[u.number]) > 0)) {
+      const parenSum = lineUnits.reduce((s: number, u: any) => s + num(hintCbm[u.number]), 0);
+      if (Math.abs(parenSum - basis) > Math.max(0.002, basis * 0.02)) {
+        warnings.push(`En "${shortDesc(l.desc)}" los CBM del detalle no cuadran con el CBM facturado: se repartió a escala para conservar el CBM facturado.`);
+      }
+    }
+
+    // Precio por CBM que ya tenía la línea y modelo con el que se cobró.
+    const effStored = lineTotal / basis;
+    const refFecha = lineUnits[0]?.receipt?.fecha || invoice?.invoice_date || null;
+    const tramoLine = isTramoLine(lineTotal, basis, rateSetForDate(ctx, refFecha), ctx);
+
+    const unitPlan: any[] = [];
+    const lineTypes: Record<string, string> = {};
+    lineUnits.forEach((u: any, i: number) => {
+      const key = unitKey(invoice?.id, l.index, u.number, i);
+      const saved = u.number ? (details.cargo_types?.[u.number] || null) : null;
+      const override = overrides?.[key];
+      const type = normalizeCargoType(
+        override || saved || l.type || u.receipt?.cargo_type || fallbackType
+      );
+      if (u.number) lineTypes[u.number] = type;
+      unitPlan.push({
+        u,
+        i,
+        key,
+        type,
+        share: round5(basis * finalWeights[i] / weightSum),
+        fecha: u.receipt?.fecha || invoice?.invoice_date || null,
+        beforeShare: lineTotal * (finalWeights[i] / weightSum),
+      });
+    });
+
+    // Precio fijo por tramo: si todos los recibos comparten tipo, la línea
+    // conserva su precio de tramo; si están mezclados, cada recibo paga el
+    // tramo de su propio CBM y su tipo.
+    const plannedTypes = [...new Set(unitPlan.map((p: any) => p.type))];
+    const flatTramo = tramoLine && plannedTypes.length === 1
+      ? specialRateFor(rateSetForDate(ctx, refFecha), basis, plannedTypes[0])
+      : null;
+    if (tramoLine && plannedTypes.length > 1) {
+      warnings.push(`La línea "${shortDesc(l.desc)}" se cobró con precio fijo por tramo y ahora sus recibos tienen tipos distintos: cada uno paga el tramo de su CBM.`);
+    }
+
+    unitPlan.forEach((p: any) => {
+      const rateSet = rateSetForDate(ctx, p.fecha);
+      const genRate = ratePerCbmFor(ctx, rateSet, CARGO_TYPE_GENERAL);
+      const highRate = ratePerCbmFor(ctx, rateSet, CARGO_TYPE_HIGH_RISK);
+      // Tipo con el que la factura YA venía cobrando la línea (el que le dio su
+      // precio guardado): el ajuste es relativo a ESE tipo, no a general, para
+      // no cobrar dos veces el recargo de alto riesgo. Si la línea no guarda el
+      // tipo, solo se da por alto riesgo cuando el precio coincide con esa
+      // tarifa; un precio intermedio (tramo) se respeta tal cual.
+      const explicitType = String(details.cargo_type || l.type || "").trim()
+        ? normalizeCargoType(details.cargo_type || l.type)
+        : null;
+      // Sin tipo guardado se parte de "general": así una factura ya bien cobrada
+      // no cambia por sí sola, solo cuando se marca el tipo de un recibo.
+      const impliedType = explicitType || CARGO_TYPE_GENERAL;
+      const baseRate = impliedType === CARGO_TYPE_HIGH_RISK ? highRate : genRate;
+      const typeRate = p.type === CARGO_TYPE_HIGH_RISK ? highRate : genRate;
+      // Recargo del tipo de carga vigente a la fecha del recibo.
+      const ratio = baseRate > 0 ? typeRate / baseRate : 1;
+      const tramo = specialRateFor(rateSet, p.share, p.type);
+
+      let mode = "cbm";
+      let unitAfter = round2(effStored * ratio);
+      if (tramoLine) {
+        if (flatTramo !== null) {
+          mode = "tramo";
+          unitAfter = round2(flatTramo / basis);
+        } else if (tramo !== null) {
+          mode = "tramo";
+          unitAfter = p.share > 0 ? round2(tramo / p.share) : round2(tramo);
+        }
+      }
+      const after = round2(p.share * unitAfter);
+
+      if (!p.u.receipt) {
+        warnings.push(`El recibo ${p.u.number || "(sin número)"} no se ubicó en el sistema: se usó la fecha de la factura y el tipo indicado.`);
+      }
+
+      units.push({
+        key: p.key,
+        line_index: l.index,
+        desc: shortDesc(l.desc),
+        number: p.u.number,
+        cbm_ingreso_id: p.u.receipt?.id || null,
+        cbm: p.share,
+        fecha: p.fecha,
+        type: p.type,
+        type_from: overrides?.[p.key] ? "manual" : (saved_of(details, p.u.number) || l.type ? "guardado" : (p.u.receipt?.cargo_type ? "recibo" : "predeterminado")),
+        mode,
+        unit_before: round2(effStored),
+        unit_after: unitAfter,
+        total_before: round2(p.beforeShare),
+        total_after: after,
+      });
+      shippingAfter += after;
+    });
+
+    const typesUsed = [...new Set(Object.values(lineTypes))];
+    linePlans.push({
+      index: l.index,
+      quantity: lineQty,
+      types: lineTypes,
+      uniformType: typesUsed.length === 1 ? typesUsed[0] : null,
+      total_after: round2(units.filter((u: any) => u.line_index === l.index).reduce((s: number, u: any) => s + u.total_after, 0)),
+    });
+    shippingBefore += lineTotal;
   }
 
-  const manualRecibos = Array.isArray(invoice?.manual_recibos) && invoice.manual_recibos.length
-    ? invoice.manual_recibos.map((m: any) => ({
-      ...m,
-      cargo_type: typeByNumber[String(m.invoice_number)] || normalizeCargoType(m.cargo_type || fallbackType),
-    }))
+  const shippingBeforeR = round2(shippingBefore);
+  const shippingAfterR = round2(shippingAfter);
+  const delta = round2(shippingAfterR - shippingBeforeR);
+  const totalBefore = num(invoice?.total);
+  // El total se mueve solo por el envío: seguro, consolidación, puerta a puerta
+  // y extras quedan intactos.
+  const totalAfter = round2(totalBefore + delta);
+  const blocked = !linePlans.length
+    ? "Esta factura no tiene líneas de envío con CBM facturado que recalcular."
     : null;
+  const changed = !blocked && Math.abs(delta) >= 0.05;
 
-  const billedCbm = num(invoice?.billed_cbm) || num(breakdown.billed_cbm);
-  const updates = changed ? {
-    items: newItems,
-    subtotal: totalAfter,
-    total: totalAfter,
-    ...(manualRecibos ? { manual_recibos: manualRecibos } : {}),
-    cost_breakdown: {
-      ...breakdown,
-      shipping_total: shippingAfter,
-      rate_per_cbm: billedCbm > 0 ? Number((shippingAfter / billedCbm).toFixed(4)) : num(breakdown.rate_per_cbm),
-      cargo_type_per_receipt: typeByNumber,
-      mixed_cargo_types: typesUsed.length > 1,
-    },
-  } : null;
+  const newItems = changed ? items.map((it: any, i: number) => {
+    const plan = linePlans.find((p: any) => p.index === i);
+    if (!plan) return it;
+    const details: any = {
+      ...(it?.details || {}),
+      cargo_types: { ...(it?.details?.cargo_types || {}), ...plan.types },
+    };
+    if (plan.uniformType) details.cargo_type = plan.uniformType;
+    else delete details.cargo_type;
+    return {
+      ...it,
+      unit_price: round2(plan.quantity > 0 ? plan.total_after / plan.quantity : plan.total_after),
+      total: plan.total_after,
+      details,
+    };
+  }) : null;
 
   return {
     invoice_id: invoice?.id || null,
-    before: { total: totalBefore, shipping: round2(shippingBefore) },
-    after: { total: totalAfter, shipping: shippingAfter },
+    before: { total: totalBefore, shipping: shippingBeforeR },
+    after: { total: totalAfter, shipping: shippingAfterR },
     delta,
     changed,
     blocked,
-    flagged,
-    warnings,
-    lines: resolved.map((r: any) => ({
-      key: r.key,
-      cbm_ingreso_id: r.cbm_ingreso_id,
-      number: r.number,
-      cbm: r.cbm,
-      fecha: r.fecha,
-      type: r.type,
-      type_from: r.type_from,
-      rate: r.rate,
-      unit_before: r.unit_before,
-      total_before: r.total_before,
-      total_after: r.total_after,
-    })),
-    types: typeByNumber,
-    updates,
+    warnings: [...new Set(warnings)],
+    lines: units,
+    updates: changed ? {
+      items: newItems,
+      subtotal: totalAfter,
+      total: totalAfter,
+      cost_breakdown: {
+        ...(invoice?.cost_breakdown || {}),
+        shipping_total: shippingAfterR,
+      },
+    } : null,
   };
+}
+
+function saved_of(details: any, number: any) {
+  return number ? (details?.cargo_types?.[number] || null) : null;
 }
