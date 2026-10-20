@@ -1,11 +1,9 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
-import { sendBrevoEmail } from '../../shared/brevoEmail.ts';
+import { loadDueQueueItems, processQueueItems, queueFromName, QUEUE_BATCH_SIZE } from '../../shared/emailQueueProcess.ts';
 
 // Procesa la cola EmailQueue en lotes. Se ejecuta por automatización programada.
-// Usa el helper compartido sendBrevoEmail (Brevo con fallback a Core.SendEmail).
-const BATCH_SIZE = 25;
-const MAX_ATTEMPTS = 3;
-
+// El envío, el registro en EmailLog y los reintentos viven en
+// shared/emailQueueProcess.ts, que también usa el envío masivo inmediato.
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -24,64 +22,8 @@ Deno.serve(async (req) => {
       return Response.json({ success: true, skipped: true, reason: 'emails_enabled=false' });
     }
 
-    const fromNameDefault = cfg.invoice_company_name || cfg.app_name || 'TLEC CARGO';
-    const now = new Date().toISOString();
-
-    // Pendientes cuyo scheduled_at ya pasó (o sin scheduled_at)
-    const pending = await base44.asServiceRole.entities.EmailQueue.filter(
-      { status: 'pending' },
-      '-priority',
-      BATCH_SIZE
-    );
-    const due = (pending || []).filter((e) => !e.scheduled_at || e.scheduled_at <= now);
-
-    let sent = 0;
-    let failed = 0;
-
-    for (const item of due) {
-      let ok = false;
-      let errorMessage = null;
-      try {
-        const result = await sendBrevoEmail(base44, {
-          to: item.recipient_email,
-          subject: item.subject,
-          body: item.body || '',
-          from_name: item.from_name || fromNameDefault
-        });
-        if (!result.sent) {
-          throw new Error(result.error || 'Envío fallido');
-        }
-        ok = true;
-        sent++;
-      } catch (err) {
-        errorMessage = err?.message || String(err);
-        failed++;
-      }
-
-      const attempts = (item.attempts || 0) + 1;
-      await base44.asServiceRole.entities.EmailQueue.update(item.id, {
-        status: ok ? 'sent' : (attempts >= MAX_ATTEMPTS ? 'failed' : 'pending'),
-        attempts,
-        error_message: errorMessage,
-        sent_date: ok ? new Date().toISOString() : null
-      });
-
-      // Log en EmailLog
-      try {
-        await base44.asServiceRole.entities.EmailLog.create({
-          recipient_email: item.recipient_email,
-          from_name: item.from_name || fromNameDefault,
-          subject: item.subject,
-          body_preview: String(item.body || '').slice(0, 200),
-          campaign_id: item.campaign_id || null,
-          campaign_name: item.campaign_name || null,
-          source: item.source || 'queue',
-          status: ok ? 'sent' : 'failed',
-          bounce_reason: ok ? null : errorMessage,
-          sent_date: new Date().toISOString()
-        });
-      } catch (_) {}
-    }
+    const due = await loadDueQueueItems(base44, { limit: QUEUE_BATCH_SIZE });
+    const { sent, failed } = await processQueueItems(base44, due, queueFromName(cfg));
 
     return Response.json({ success: true, processed: due.length, sent, failed });
   } catch (error) {

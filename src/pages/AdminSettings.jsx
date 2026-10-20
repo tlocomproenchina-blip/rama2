@@ -50,6 +50,7 @@ import WholesalerConnectionCard from '@/components/admin/WholesalerConnectionCar
 import AiTicketSettingsCard from '@/components/admin/AiTicketSettingsCard';
 import StorageChargeSettings from '@/components/admin/StorageChargeSettings';
 import DispatchOrderWhatsappSettingsCard from '@/components/admin/DispatchOrderWhatsappSettingsCard';
+import TermsNoticeCard from '@/components/admin/TermsNoticeCard';
 
 const VENEZUELAN_STATES = [
   { code: 'zulia', name: 'Zulia' },
@@ -1156,6 +1157,9 @@ export default function AdminSettings({ user }) {
                 onSave={handleSaveGeneral}
                 saving={saving}
               />
+
+              {/* Aviso a clientes: actualización de términos de servicio */}
+              <TermsNoticeCard />
 
               {/* Teléfono del almacén para la orden de despacho por WhatsApp */}
               <DispatchOrderWhatsappSettingsCard />
