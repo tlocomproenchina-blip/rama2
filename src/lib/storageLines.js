@@ -21,6 +21,16 @@ export function isStorageInvoiceLine(item) {
   return String(item?.description || '').trim().toLowerCase().startsWith('almacenamiento y custodia');
 }
 
+// Monto cobrado en la factura que corresponde a las líneas ocultas de
+// almacenamiento y custodia. Sirve para mostrar el saldo de lo que sí se
+// está facturando, sin alterar el total guardado de la factura.
+export function hiddenStorageTotal(invoice) {
+  const items = Array.isArray(invoice?.items) ? invoice.items : [];
+  return items
+    .filter(isStorageInvoiceLine)
+    .reduce((sum, item) => sum + (Number(item?.total) || 0), 0);
+}
+
 const dayRange = (details) => {
   const from = num(details?.from_day);
   const to = num(details?.to_day);

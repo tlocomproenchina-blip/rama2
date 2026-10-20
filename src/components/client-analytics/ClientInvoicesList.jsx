@@ -6,9 +6,13 @@ import { buildWhatsAppUrl } from '@/lib/whatsappContact';
 import InvoicePDFGenerator from '@/components/invoice/InvoicePDFGenerator';
 import ClientInvoicePayments from '@/components/client-analytics/ClientInvoicePayments';
 import ClientPaymentsSummary from '@/components/client-analytics/ClientPaymentsSummary';
-import { displayInvoiceItems } from '@/lib/storageLines';
+import { displayInvoiceItems, hiddenStorageTotal } from '@/lib/storageLines';
 
 const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
+
+// Monto realmente facturado: el total de la factura sin las líneas ocultas de
+// almacenamiento y custodia (que están en pausa).
+const invoicedAmount = (invoice) => Math.max(num(invoice?.total) - hiddenStorageTotal(invoice), 0);
 
 const STATUS_STYLES = {
   pendiente: 'bg-amber-100 text-amber-700 border-amber-200',
@@ -48,7 +52,7 @@ export default function ClientInvoicesList({ invoices, payments = [], client, on
     const all = Array.isArray(payments) ? payments : [];
     const byStatus = (status) => all.filter((payment) => payment.status === status);
     const sum = (rows) => rows.reduce((acc, payment) => acc + num(payment.amount), 0);
-    const billed = active.reduce((acc, invoice) => acc + num(invoice.total), 0);
+    const billed = active.reduce((acc, invoice) => acc + invoicedAmount(invoice), 0);
     const paid = sum(byStatus('aprobado'));
     return {
       billed,
@@ -70,7 +74,7 @@ export default function ClientInvoicesList({ invoices, payments = [], client, on
     e.stopPropagation();
     const phone = client?.whatsapp || client?.phone;
     const name = (client?.first_name || client?.full_name || '').split(' ')[0] || 'estimado cliente';
-    const message = `Hola ${name}, le contactamos de TLEC CARGO. Tiene una factura pendiente de pago (${invoice.invoice_number || ''}) por un monto de $${num(invoice.total).toFixed(2)}. Agradecemos su pago a la brevedad para poder realizar el despacho de su carga. ¡Gracias!`;
+    const message = `Hola ${name}, le contactamos de TLEC CARGO. Tiene una factura pendiente de pago (${invoice.invoice_number || ''}) por un monto de $${invoicedAmount(invoice).toFixed(2)}. Agradecemos su pago a la brevedad para poder realizar el despacho de su carga. ¡Gracias!`;
     const url = buildWhatsAppUrl(phone, message);
     if (!url) return;
     window.open(url, '_blank');
@@ -94,7 +98,8 @@ export default function ClientInvoicesList({ invoices, payments = [], client, on
             const items = displayInvoiceItems(invoice);
             const invoicePayments = paymentsByInvoice.get(invoice.id) || [];
             const paid = paidFor(invoice.id);
-            const balance = Math.max(num(invoice.total) - paid, 0);
+            const invoiced = invoicedAmount(invoice);
+            const balance = Math.max(invoiced - paid, 0);
             const pendingCount = invoicePayments.filter((payment) => payment.status === 'pendiente').length;
             return (
               <div key={invoice.id} className="rounded-xl border border-slate-200 overflow-hidden">
@@ -114,7 +119,7 @@ export default function ClientInvoicesList({ invoices, payments = [], client, on
                       <Badge variant="outline" className={STATUS_STYLES[invoice.status] || STATUS_STYLES.pendiente}>
                         {invoice.status || 'pendiente'}
                       </Badge>
-                      <span className="font-bold text-slate-800">${num(invoice.total).toFixed(2)}</span>
+                      <span className="font-bold text-slate-800">${invoiced.toFixed(2)}</span>
                     </div>
                     <p className="text-[11px] text-slate-500">
                       <span className="font-medium text-emerald-600">Abonado ${paid.toFixed(2)}</span>
