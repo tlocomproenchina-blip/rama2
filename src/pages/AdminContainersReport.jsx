@@ -6,11 +6,16 @@ import { Card } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Download, Loader2, RefreshCw, Search, Boxes } from 'lucide-react';
 import { toast } from 'sonner';
-import { groupContainersByClient, downloadContainersByClientReport } from '@/lib/containersByClientReport';
+import {
+  groupContainersByClient,
+  downloadContainersByClientReport,
+  containerKey,
+  buildSelectionGroups,
+} from '@/lib/containersByClientReport';
 import ClientContainersCard from '@/components/containers-by-client/ClientContainersCard';
 
 // Pantalla administrativa: contenedores agrupados por cliente. Permite buscar,
-// seleccionar clientes y exportar solo la selección (resumen + detalle).
+// seleccionar clientes completos o contenedores sueltos y exportar solo eso.
 export default function AdminContainersReport() {
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState([]);
@@ -41,19 +46,41 @@ export default function AdminContainersReport() {
     );
   }, [groups, search]);
 
-  const selectedGroups = useMemo(
-    () => groups.filter((group) => selectedKeys.includes(group.key)),
-    [groups, selectedKeys]
-  );
+  const selectedSet = useMemo(() => new Set(selectedKeys), [selectedKeys]);
 
-  const toggleClient = (key) => {
+  // Solo los contenedores marcados, con totales recalculados para el informe.
+  const selectedGroups = useMemo(() => buildSelectionGroups(groups, selectedKeys), [groups, selectedKeys]);
+
+  const selectedContainersOf = (group) =>
+    group.containers
+      .filter((row) => selectedSet.has(containerKey(group.key, row.container)))
+      .map((row) => row.container);
+
+  const toggleContainer = (groupKey, container) => {
+    const key = containerKey(groupKey, container);
     setSelectedKeys((current) => (current.includes(key) ? current.filter((item) => item !== key) : [...current, key]));
   };
 
-  const allFilteredSelected = filtered.length > 0 && filtered.every((group) => selectedKeys.includes(group.key));
+  const toggleClient = (groupKey) => {
+    const group = groups.find((item) => item.key === groupKey);
+    if (!group) return;
+    const keys = group.containers.map((row) => containerKey(group.key, row.container));
+    const allIn = keys.every((key) => selectedSet.has(key));
+    setSelectedKeys((current) =>
+      allIn ? current.filter((key) => !keys.includes(key)) : [...new Set([...current, ...keys])]
+    );
+  };
+
+  const allFilteredSelected =
+    filtered.length > 0 &&
+    filtered.every((group) =>
+      group.containers.every((row) => selectedSet.has(containerKey(group.key, row.container)))
+    );
 
   const toggleAllFiltered = () => {
-    const filteredKeys = filtered.map((group) => group.key);
+    const filteredKeys = filtered.flatMap((group) =>
+      group.containers.map((row) => containerKey(group.key, row.container))
+    );
     setSelectedKeys((current) =>
       allFilteredSelected
         ? current.filter((key) => !filteredKeys.includes(key))
@@ -63,13 +90,14 @@ export default function AdminContainersReport() {
 
   const exportSelection = async () => {
     if (!selectedGroups.length) {
-      toast.error('Selecciona al menos un cliente');
+      toast.error('Selecciona al menos un contenedor');
       return;
     }
     setExporting(true);
     await downloadContainersByClientReport(selectedGroups);
     setExporting(false);
-    toast.success(`Archivo generado con ${selectedGroups.length} cliente(s)`);
+    const containersCount = selectedGroups.reduce((sum, group) => sum + group.totalContainers, 0);
+    toast.success(`Archivo generado con ${containersCount} contenedor(es) de ${selectedGroups.length} cliente(s)`);
   };
 
   const totalContainers = groups.reduce((sum, group) => sum + group.totalContainers, 0);
@@ -81,7 +109,7 @@ export default function AdminContainersReport() {
     { label: 'Clientes', value: groups.length },
     { label: 'Contenedores', value: totalContainers },
     { label: 'Bultos en guías de despacho', value: totalBultos },
-    { label: 'Seleccionados', value: `${selectedGroups.length} · ${selectedBultos} bultos` },
+    { label: 'Seleccionados', value: `${selectedGroups.length} clientes · ${selectedContainers} cont.` },
   ];
 
   return (
@@ -91,7 +119,7 @@ export default function AdminContainersReport() {
           <h1 className="font-display text-xl font-bold text-foreground sm:text-2xl">Contenedores por cliente</h1>
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
             Los números de contenedor se agrupan por cliente y los bultos son los que quedaron registrados en las guías de
-            despacho. Busca, selecciona los clientes que quieras y exporta solo esos.
+            despacho. Busca, abre el cliente y marca los contenedores que quieras (o el cliente completo) y exporta solo eso.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -101,7 +129,7 @@ export default function AdminContainersReport() {
           </Button>
           <Button onClick={exportSelection} disabled={!selectedGroups.length || exporting}>
             {exporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-            Exportar seleccionados ({selectedGroups.length})
+            Exportar selección ({selectedContainers} cont.)
           </Button>
         </div>
       </div>
@@ -155,8 +183,9 @@ export default function AdminContainersReport() {
             <ClientContainersCard
               key={group.key}
               group={group}
-              selected={selectedKeys.includes(group.key)}
-              onToggle={toggleClient}
+              selectedContainers={selectedContainersOf(group)}
+              onToggleClient={toggleClient}
+              onToggleContainer={toggleContainer}
             />
           ))}
         </div>

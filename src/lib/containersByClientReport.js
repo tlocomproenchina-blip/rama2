@@ -38,6 +38,30 @@ export function groupContainersByClient(rows = []) {
     .sort((a, b) => a.name.localeCompare(b.name, 'es'));
 }
 
+// Clave única de un contenedor dentro de un cliente (para la selección fina).
+export function containerKey(groupKey, container) {
+  return `${groupKey}||${String(container ?? '').trim()}`;
+}
+
+// Devuelve solo los contenedores marcados, con los totales recalculados.
+export function buildSelectionGroups(groups = [], keys = []) {
+  if (!keys.length) return [];
+  const set = new Set(keys);
+
+  return groups
+    .map((group) => {
+      const containers = group.containers.filter((row) => set.has(containerKey(group.key, row.container)));
+      if (!containers.length) return null;
+      return {
+        ...group,
+        containers,
+        totalContainers: containers.length,
+        totalBultos: containers.reduce((sum, row) => sum + Number(row.bultos || 0), 0),
+      };
+    })
+    .filter(Boolean);
+}
+
 export async function downloadContainersByClientReport(groups = []) {
   const XLSX = await import('xlsx');
 

@@ -5,15 +5,28 @@ import { Badge } from '@/components/ui/badge';
 import { ChevronDown, Package } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-// Una tarjeta por cliente: selección, totales y detalle de sus contenedores
-// con los bultos que salieron en las guías de despacho.
-export default function ClientContainersCard({ group, selected, onToggle }) {
+// Una tarjeta por cliente: selección del cliente completo o de contenedores
+// sueltos, totales y detalle con los bultos de las guías de despacho.
+export default function ClientContainersCard({ group, selectedContainers = [], onToggleClient, onToggleContainer }) {
   const [expanded, setExpanded] = useState(false);
 
+  const selected = new Set(selectedContainers.map((value) => String(value)));
+  const allSelected = group.containers.length > 0 && group.containers.every((row) => selected.has(String(row.container)));
+  const someSelected = !allSelected && group.containers.some((row) => selected.has(String(row.container)));
+
   return (
-    <Card className={cn('overflow-hidden border transition', selected ? 'border-primary/60 bg-primary/5' : 'border-border')}>
+    <Card
+      className={cn(
+        'overflow-hidden border transition',
+        allSelected ? 'border-primary/60 bg-primary/5' : someSelected ? 'border-primary/40 bg-primary/[0.03]' : 'border-border'
+      )}
+    >
       <div className="flex items-start gap-3 p-4">
-        <Checkbox checked={selected} onCheckedChange={() => onToggle(group.key)} className="mt-1" />
+        <Checkbox
+          checked={allSelected ? true : someSelected ? 'indeterminate' : false}
+          onCheckedChange={() => onToggleClient(group.key)}
+          className="mt-1"
+        />
 
         <button type="button" onClick={() => setExpanded((value) => !value)} className="flex-1 text-left">
           <div className="flex flex-wrap items-center gap-2">
@@ -28,6 +41,11 @@ export default function ClientContainersCard({ group, selected, onToggle }) {
               <Package className="h-3.5 w-3.5" /> {group.totalContainers} contenedor{group.totalContainers === 1 ? '' : 'es'}
             </span>
             <span>{group.totalBultos} bulto{group.totalBultos === 1 ? '' : 's'} en guías de despacho</span>
+            {selected.size > 0 && (
+              <span className="font-semibold text-primary">
+                {selected.size} de {group.totalContainers} seleccionado{selected.size === 1 ? '' : 's'}
+              </span>
+            )}
           </div>
         </button>
 
@@ -46,19 +64,39 @@ export default function ClientContainersCard({ group, selected, onToggle }) {
           <table className="w-full text-left text-xs">
             <thead className="bg-muted/60 text-[10px] uppercase tracking-wide text-muted-foreground">
               <tr>
-                <th className="px-4 py-2">Contenedor</th>
+                <th className="w-10 px-3 py-2">
+                  <Checkbox
+                    checked={allSelected ? true : someSelected ? 'indeterminate' : false}
+                    onCheckedChange={() => onToggleClient(group.key)}
+                    aria-label="Seleccionar todos los contenedores del cliente"
+                  />
+                </th>
+                <th className="px-2 py-2">Contenedor</th>
                 <th className="px-4 py-2 text-center">Bultos</th>
                 <th className="px-4 py-2">Descripción</th>
               </tr>
             </thead>
             <tbody>
-              {group.containers.map((row) => (
-                <tr key={row.container} className="border-t border-border/50 align-top">
-                  <td className="px-4 py-2 font-semibold text-foreground">{row.container}</td>
-                  <td className="px-4 py-2 text-center font-semibold text-foreground">{Number(row.bultos || 0)}</td>
-                  <td className="px-4 py-2 text-muted-foreground">{row.description || '—'}</td>
-                </tr>
-              ))}
+              {group.containers.map((row) => {
+                const isSelected = selected.has(String(row.container));
+                return (
+                  <tr
+                    key={row.container}
+                    className={cn('border-t border-border/50 align-top transition', isSelected && 'bg-primary/5')}
+                  >
+                    <td className="px-3 py-2">
+                      <Checkbox
+                        checked={isSelected}
+                        onCheckedChange={() => onToggleContainer(group.key, row.container)}
+                        aria-label={`Seleccionar contenedor ${row.container}`}
+                      />
+                    </td>
+                    <td className="px-2 py-2 font-semibold text-foreground">{row.container}</td>
+                    <td className="px-4 py-2 text-center font-semibold text-foreground">{Number(row.bultos || 0)}</td>
+                    <td className="px-4 py-2 text-muted-foreground">{row.description || '—'}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
