@@ -116,9 +116,12 @@ export default function AdminManualBilling({ user }) {
     effective_date: null
   }), [pricing]);
 
+  // Desactivado: se ignora el historial y todos los recibos usan la tarifa actual
+  const useRateHistory = pricing?.use_rate_effective_date !== false;
+
   // Resuelve el set de tarifas vigente para una fecha dada, usando RateHistory
   const getRateSetForDate = useCallback((fecha) => {
-    if (!fecha || !rateHistory.length) return currentRateSet;
+    if (!useRateHistory || !fecha || !rateHistory.length) return currentRateSet;
     const d = new Date(String(fecha).includes('T') ? fecha : `${fecha}T12:00:00`);
     if (isNaN(d)) return currentRateSet;
     const sorted = [...rateHistory].sort((a, b) => new Date(a.effective_date) - new Date(b.effective_date));
@@ -136,7 +139,7 @@ export default function AdminManualBilling({ user }) {
       door_to_door_cost: num(chosen.door_to_door_cost),
       effective_date: chosen.effective_date
     };
-  }, [rateHistory, currentRateSet]);
+  }, [rateHistory, currentRateSet, useRateHistory]);
 
   // Tarifa por CBM para un set de tarifas dado,
   // usando la tarifa base regular o de alto riesgo según el tipo de carga elegido

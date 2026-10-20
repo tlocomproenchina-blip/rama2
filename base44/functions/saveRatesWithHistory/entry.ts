@@ -24,7 +24,9 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
-    const { pricing = {}, special_cbm_rates, effective_date } = body || {};
+    const { pricing = {}, special_cbm_rates, effective_date, use_rate_effective_date } = body || {};
+    // Si la fecha de vigencia está desactivada, todos los recibos usan la tarifa actual
+    const useEffectiveDate = use_rate_effective_date !== false;
 
     const effDate = effective_date || new Date().toISOString().slice(0, 10);
     if (!pricing || typeof pricing !== 'object') {
@@ -78,6 +80,7 @@ Deno.serve(async (req) => {
       door_to_door_cost: Number(pricing.door_to_door_cost ?? 0),
       is_door_to_door_optional: pricing.is_door_to_door_optional !== false,
       rate_effective_date: effDate,
+      use_rate_effective_date: useEffectiveDate,
       config_key: 'main'
     };
     if (pricingList.length > 0) {

@@ -64,7 +64,9 @@ export function buildRateContext({ appConfig, pricing, rateHistory, stateShippin
     special_cbm_rates: [...specials].sort((x: any, y: any) => num(x.min_cbm) - num(y.min_cbm)),
     effective_date: null,
   };
-  const history = [...(rateHistory || [])].sort(
+  // Con la fecha de vigencia desactivada, el historial se ignora: manda la tarifa actual
+  const useHistory = pricing?.use_rate_effective_date !== false;
+  const history = (useHistory ? [...(rateHistory || [])] : []).sort(
     (a: any, b: any) => (toDate(a.effective_date)?.getTime() || 0) - (toDate(b.effective_date)?.getTime() || 0)
   );
   return { currentRateSet, history, stateShippingRate: num(stateShippingRate) };

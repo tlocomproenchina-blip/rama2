@@ -32,8 +32,11 @@ export function buildBillingContext({ pricing, appConfig, stateConfigs, rateHist
     effective_date: null,
   };
 
+  // Desactivado en Ajustes: se ignora el historial y todo se factura con la tarifa actual
+  const useRateHistory = pricing?.use_rate_effective_date !== false;
+
   const getRateSetForDate = (fecha) => {
-    if (!fecha || !rateHistory || rateHistory.length === 0) return currentRateSet;
+    if (!useRateHistory || !fecha || !rateHistory || rateHistory.length === 0) return currentRateSet;
     const d = new Date(String(fecha).includes('T') ? fecha : `${fecha}T12:00:00`);
     if (isNaN(d)) return currentRateSet;
     const sorted = [...rateHistory].sort((a, b) => new Date(a.effective_date) - new Date(b.effective_date));

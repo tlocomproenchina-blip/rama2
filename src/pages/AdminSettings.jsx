@@ -188,6 +188,7 @@ export default function AdminSettings({ user }) {
       const pricingConfigs = await base44.entities.PricingConfig.filter({ config_key: 'main' });
       if (pricingConfigs.length > 0) {
         setPricingConfig(pricingConfigs[0]);
+        setUseRateEffectiveDate(pricingConfigs[0].use_rate_effective_date !== false);
         if (pricingConfigs[0].rate_effective_date) {
           setRateEffectiveDate(pricingConfigs[0].rate_effective_date);
         }
@@ -235,12 +236,13 @@ export default function AdminSettings({ user }) {
       const res = await base44.functions.invoke('saveRatesWithHistory', {
         pricing: pricingConfig,
         special_cbm_rates: appConfig.special_cbm_rates || [],
-        effective_date: useRateEffectiveDate ? rateEffectiveDate : new Date().toISOString().slice(0, 10)
+        effective_date: useRateEffectiveDate ? rateEffectiveDate : new Date().toISOString().slice(0, 10),
+        use_rate_effective_date: useRateEffectiveDate
       });
       if (res?.data?.status === 'ok') {
         toast.success(useRateEffectiveDate
           ? `Tarifas guardadas. Vigentes desde ${res.data.effective_date}. Las anteriores se archivaron automáticamente.`
-          : 'Tarifas guardadas. Quedan vigentes de inmediato.');
+          : 'Tarifas guardadas. Todos los recibos usan la tarifa actual.');
       } else {
         throw new Error(res?.data?.error || 'Respuesta inesperada');
       }
@@ -776,7 +778,7 @@ export default function AdminSettings({ user }) {
                   </>
                 ) : (
                   <p className="text-xs text-slate-500">
-                    Desactivado: al guardar, las tarifas quedan vigentes de inmediato y no se usa un día de corte.
+                    Desactivado: todos los recibos se facturan con la tarifa actual y ninguno se marca como "Tarifa anterior".
                   </p>
                 )}
               </div>

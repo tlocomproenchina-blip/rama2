@@ -37,6 +37,11 @@
       "format": "date",
       "description": "Fecha de vigencia del \u00faltimo cambio de tarifas guardado"
     },
+    "use_rate_effective_date": {
+      "type": "boolean",
+      "default": true,
+      "description": "Cuando est\u00e1 activo, cada recibo se factura con la tarifa vigente a su fecha (historial de tarifas). Cuando est\u00e1 desactivado, todos los recibos se facturan con la tarifa actual y no se marca ninguno como 'Tarifa anterior'."
+    },
     "description": {
       "type": "string",
       "maxLength": 1000,
