@@ -21,6 +21,7 @@ import {
   XCircle,
   Search,
   Building2,
+  Handshake,
   FileText,
   Clock,
   Calendar,
@@ -618,7 +619,7 @@ export default function AdminSettings({ user }) {
 
       <Tabs defaultValue="tarifas" className="space-y-6">
         <div className="flex items-center justify-between">
-          <TabsList className="grid grid-cols-9 w-full rounded-2xl p-1">
+          <TabsList className="grid grid-cols-10 w-full rounded-2xl p-1">
             <TabsTrigger value="tarifas" className="flex items-center gap-2 text-xs">
               <DollarSign className="h-4 w-4" />
               <span className="hidden md:inline">Tarifas</span>
@@ -638,6 +639,10 @@ export default function AdminSettings({ user }) {
             <TabsTrigger value="general" className="flex items-center gap-2 text-xs">
               <Settings className="h-4 w-4" />
               <span className="hidden md:inline">General</span>
+            </TabsTrigger>
+            <TabsTrigger value="mayorista" className="flex items-center gap-2 text-xs">
+              <Handshake className="h-4 w-4" />
+              <span className="hidden md:inline">Mayorista</span>
             </TabsTrigger>
             <TabsTrigger value="facturas" className="flex items-center gap-2 text-xs">
               <FileText className="h-4 w-4" />
@@ -1151,9 +1156,6 @@ export default function AdminSettings({ user }) {
                 saving={saving}
               />
 
-              {/* Conexión con la app del cliente mayorista */}
-              <WholesalerConnectionCard />
-
               {/* Teléfono del almacén para la orden de despacho por WhatsApp */}
               <DispatchOrderWhatsappSettingsCard />
 
@@ -1628,6 +1630,11 @@ export default function AdminSettings({ user }) {
                  </CardContent>
                  </Card>
                  </TabsContent>
+
+        {/* Tab Mayorista */}
+        <TabsContent value="mayorista" className="space-y-6">
+          <WholesalerConnectionCard />
+        </TabsContent>
 
         {/* Tab Privacidad */}
         <TabsContent value="privacidad">
