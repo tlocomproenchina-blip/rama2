@@ -23,6 +23,7 @@ import InvoiceTariffRecalcDialog from '@/components/invoice/recalc/InvoiceTariff
 import StorageChargeDialog from '@/components/invoice/storage/StorageChargeDialog';
 import StorageChargeInvoiceSummary from '@/components/invoice/storage/StorageChargeInvoiceSummary';
 import StorageChargesAuditDialog from '@/components/invoice/storage/StorageChargesAuditDialog';
+import OverdueInvoicesReportButton from '@/components/invoice/overdue/OverdueInvoicesReportButton';
 import { fetchStorageTotals } from '@/lib/storageAudit';
 import WarehouseOrderModal from '@/components/invoice/WarehouseOrderModal';
 import { generateWarehouseOrder } from '@/lib/warehouseOrder';
@@ -917,6 +918,19 @@ export default function AdminInvoices({ user }) {
         />
       ) : (
       <>
+      {/* Informe imprimible de las facturas vencidas */}
+      {statusFilter === 'vencida' && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-red-100 bg-red-50/60 px-3 py-2">
+          <p className="text-xs text-red-800">
+            Informe para impresión con shipping mark, contenedor, tracking, cliente y total de las facturas vencidas que ves aquí.
+          </p>
+          <OverdueInvoicesReportButton
+            invoices={filteredInvoices}
+            appName={appConfig?.app_name || 'TLEC CARGO'}
+          />
+        </div>
+      )}
+
       {/* Invoice List */}
       {filteredInvoices.length === 0 ? (
         <Card className="border-0 shadow-lg">
