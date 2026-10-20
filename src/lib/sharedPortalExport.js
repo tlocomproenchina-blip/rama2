@@ -12,33 +12,25 @@ export const PORTAL_COLUMNS = [
   { key: 'photo_url', label: 'Foto de entrega', label_zh: '交货照片' },
 ];
 
-// Texto visible de la foto en el Excel: un rótulo corto con el enlace detrás, para
-// abrirlo con un toque desde el teléfono. En CSV y al copiar va el enlace completo,
-// que es lo único que esos formatos pueden llevar.
-export const PORTAL_PHOTO_LINK_TEXT = 'Ver foto';
-
+// La columna de la foto lleva el enlace completo a la vista y, además, el enlace
+// activo en la celda: visores sencillos (como el de WeChat) no siguen el enlace del
+// archivo, pero sí reconocen y dejan copiar una dirección escrita en la celda.
 // La tabla exportada arranca con dos filas de encabezado: el texto en español y,
 // debajo, el mismo encabezado en chino mandarín.
 const PORTAL_HEADER_ROWS = 2;
 
-function cellText(row, key, photoText) {
+function cellText(row, key) {
   if (key === 'estado') return portalEstadoLabel(row?.estado);
   if (key === 'recepcion') return row?.recepcion || 'Pendiente';
-  if (key === 'photo_url') {
-    const url = String(row?.photo_url || '');
-    if (!url) return '';
-    return photoText || url;
-  }
+  if (key === 'photo_url') return String(row?.photo_url || '');
   return String(row?.[key] ?? '');
 }
 
-// photoText: texto visible de la foto. El Excel usa el rótulo corto enlazado; CSV
-// y copiar llevan el enlace completo.
-export function portalRowsToAoa(rows, { photoText } = {}) {
+export function portalRowsToAoa(rows) {
   return [
     PORTAL_COLUMNS.map((column) => column.label),
     PORTAL_COLUMNS.map((column) => column.label_zh),
-    ...rows.map((row) => PORTAL_COLUMNS.map((column) => cellText(row, column.key, photoText))),
+    ...rows.map((row) => PORTAL_COLUMNS.map((column) => cellText(row, column.key))),
   ];
 }
 
@@ -69,10 +61,10 @@ export function downloadPortalCsv(rows) {
 
 export async function downloadPortalXlsx(rows) {
   const XLSX = await import('xlsx');
-  const sheet = XLSX.utils.aoa_to_sheet(portalRowsToAoa(rows, { photoText: PORTAL_PHOTO_LINK_TEXT }));
-  // Foto de la entrega del cliente: la celda muestra un rótulo corto y el enlace
-  // queda detrás, así se abre con un toque desde el teléfono sin pelear con una
-  // URL larga.
+  const sheet = XLSX.utils.aoa_to_sheet(portalRowsToAoa(rows));
+  // Foto de la entrega del cliente: la dirección va escrita en la celda y, además,
+  // como enlace de la celda. Excel y Hojas de cálculo la abren con un toque; el
+  // visor de WeChat deja verla y copiarla tal cual.
   const photoColumn = PORTAL_COLUMNS.findIndex((column) => column.key === 'photo_url');
   rows.forEach((row, index) => {
     const target = String(row?.photo_url || '');
@@ -80,7 +72,7 @@ export async function downloadPortalXlsx(rows) {
     const ref = XLSX.utils.encode_cell({ r: index + PORTAL_HEADER_ROWS, c: photoColumn });
     if (sheet[ref]) sheet[ref].l = { Target: target, Tooltip: 'Abrir la foto de la entrega' };
   });
-  sheet['!cols'] = [{ wch: 20 }, { wch: 18 }, { wch: 16 }, { wch: 26 }, { wch: 30 }, { wch: 16 }];
+  sheet['!cols'] = [{ wch: 20 }, { wch: 18 }, { wch: 16 }, { wch: 26 }, { wch: 30 }, { wch: 46 }];
   const book = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(book, sheet, 'Trackings');
   XLSX.writeFile(book, `${portalExportName()}.xlsx`);
