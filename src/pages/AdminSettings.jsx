@@ -105,6 +105,8 @@ export default function AdminSettings({ user }) {
 
   // Fecha de vigencia para cambios de tarifa (default: hoy)
   const [rateEffectiveDate, setRateEffectiveDate] = useState(new Date().toISOString().slice(0, 10));
+  // Permite desactivar la fecha de vigencia: al guardar, las tarifas rigen de inmediato
+  const [useRateEffectiveDate, setUseRateEffectiveDate] = useState(true);
 
   // States Config
   const [statesConfig, setStatesConfig] = useState([]);
@@ -233,10 +235,12 @@ export default function AdminSettings({ user }) {
       const res = await base44.functions.invoke('saveRatesWithHistory', {
         pricing: pricingConfig,
         special_cbm_rates: appConfig.special_cbm_rates || [],
-        effective_date: rateEffectiveDate
+        effective_date: useRateEffectiveDate ? rateEffectiveDate : new Date().toISOString().slice(0, 10)
       });
       if (res?.data?.status === 'ok') {
-        toast.success(`Tarifas guardadas. Vigentes desde ${res.data.effective_date}. Las anteriores se archivaron automáticamente.`);
+        toast.success(useRateEffectiveDate
+          ? `Tarifas guardadas. Vigentes desde ${res.data.effective_date}. Las anteriores se archivaron automáticamente.`
+          : 'Tarifas guardadas. Quedan vigentes de inmediato.');
       } else {
         throw new Error(res?.data?.error || 'Respuesta inesperada');
       }
@@ -743,21 +747,38 @@ export default function AdminSettings({ user }) {
                 />
               </div>
 
-              {/* Fecha de vigencia para el corte de tarifa */}
+              {/* Fecha de vigencia para el corte de tarifa (se puede desactivar) */}
               <div className="p-4 bg-amber-50 rounded-lg border border-amber-200 space-y-2">
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-amber-600" />
-                  <Label className="font-medium text-slate-800">Fecha de vigencia del cambio</Label>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-amber-600" />
+                    <Label className="font-medium text-slate-800">Fecha de vigencia del cambio</Label>
+                  </div>
+                  <Switch
+                    checked={useRateEffectiveDate}
+                    onCheckedChange={(checked) => {
+                      setUseRateEffectiveDate(checked);
+                      if (checked) setRateEffectiveDate(new Date().toISOString().slice(0, 10));
+                    }}
+                  />
                 </div>
-                <Input
-                  type="date"
-                  value={rateEffectiveDate}
-                  onChange={(e) => setRateEffectiveDate(e.target.value)}
-                  className="max-w-xs"
-                />
-                <p className="text-xs text-amber-800">
-                  Los recibos con fecha de llegada anterior a este día se facturarán automáticamente con la tarifa anterior. Las tarifas vigentes antes de este cambio se archivan en el historial.
-                </p>
+                {useRateEffectiveDate ? (
+                  <>
+                    <Input
+                      type="date"
+                      value={rateEffectiveDate}
+                      onChange={(e) => setRateEffectiveDate(e.target.value)}
+                      className="max-w-xs"
+                    />
+                    <p className="text-xs text-amber-800">
+                      Los recibos con fecha de llegada anterior a este día se facturarán automáticamente con la tarifa anterior. Las tarifas vigentes antes de este cambio se archivan en el historial.
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-xs text-slate-500">
+                    Desactivado: al guardar, las tarifas quedan vigentes de inmediato y no se usa un día de corte.
+                  </p>
+                )}
               </div>
 
               <div className="flex flex-col gap-3 sm:flex-row">
