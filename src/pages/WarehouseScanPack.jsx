@@ -336,6 +336,7 @@ export default function WarehouseScanPack({ user }) {
           caja={activeUnit}
           contents={pack.contents}
           onClose={pack.closeUnit}
+          onUndoLast={pack.removeLast}
           onRemoveUnregistered={pack.removeUnregistered}
           busy={pack.busy}
         />

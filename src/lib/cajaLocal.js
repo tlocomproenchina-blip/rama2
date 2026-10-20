@@ -153,6 +153,28 @@ export async function addPackageToLocalCaja(caja, { pkg = null, code = '' }) {
   return updated;
 }
 
+// Deshace el último paquete o código que entró a la caja en armado: lo saca del
+// contenido sin tocar los bultos absorbidos ni los N° de contenedor de la caja.
+export async function removeLastFromLocalCaja(caja) {
+  if (!caja) return { updated: null, removed: '' };
+  const trackings = [...(caja.package_trackings || [])];
+  if (!trackings.length) return { updated: caja, removed: '' };
+  const removed = trackings[trackings.length - 1];
+  const key = text(removed).toUpperCase();
+  const packages = await getAll('packages').catch(() => []);
+  const dropIds = new Set(
+    packages.filter((p) => text(p.tracking_number).toUpperCase() === key).map((p) => p.id)
+  );
+  const updated = {
+    ...caja,
+    package_trackings: trackings.slice(0, -1),
+    package_ids: (caja.package_ids || []).filter((id) => !dropIds.has(id)),
+    unregistered_codes: (caja.unregistered_codes || []).filter((c) => text(c).toUpperCase() !== key),
+  };
+  await put('bultos', updated);
+  return { updated, removed };
+}
+
 export async function saveLocalCaja(caja) {
   if (!caja?.id) return caja;
   await put('bultos', caja);

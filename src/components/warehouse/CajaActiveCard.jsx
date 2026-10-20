@@ -2,15 +2,16 @@ import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowRightLeft, Boxes, CheckCircle2, Loader2, Package, Trash2 } from 'lucide-react';
+import { ArrowRightLeft, Boxes, CheckCircle2, Loader2, Package, Trash2, Undo2 } from 'lucide-react';
 
 // Caja consolidada abierta en el almacén: su código, lo que lleva dentro (paquetes,
 // CBM y N° de contenedor), los bultos pequeños que absorbió y el cierre del bloque.
 export default function CajaActiveCard({
-  caja, contents, onClose, onRemoveUnregistered, onRemoveAbsorbed, busy,
+  caja, contents, onClose, onUndoLast, onRemoveUnregistered, onRemoveAbsorbed, busy,
 }) {
   const absorbed = Array.isArray(caja?.absorbed_bultos) ? caja.absorbed_bultos : [];
   const unregistered = Array.isArray(caja?.unregistered_codes) ? caja.unregistered_codes : [];
+  const trackings = Array.isArray(caja?.package_trackings) ? caja.package_trackings : [];
   const packageCount = contents?.package_count || 0;
   const cbm = Number(contents?.cbm) || 0;
 
@@ -96,10 +97,20 @@ export default function CajaActiveCard({
           </div>
         )}
 
-        <Button className="w-full gap-2" onClick={onClose} disabled={busy || packageCount === 0}>
-          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-          Cerrar caja y sincronizar
-        </Button>
+        <div className="flex flex-col gap-2">
+          <Button className="w-full gap-2" onClick={onClose} disabled={busy || packageCount === 0}>
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+            Cerrar caja y sincronizar
+          </Button>
+          <Button
+            variant="outline"
+            className="w-full gap-2"
+            onClick={onUndoLast}
+            disabled={busy || trackings.length === 0}
+          >
+            <Undo2 className="h-4 w-4" /> Deshacer último
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );

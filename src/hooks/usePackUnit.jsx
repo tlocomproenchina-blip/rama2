@@ -4,7 +4,7 @@ import { del, getAll, put } from '@/lib/offlineDb';
 import { blockNumberFromCode, isBultoCode, isCajaCode, markOfBlockCode } from '@/lib/cajaCodes';
 import {
   absorbBultoIntoLocalCaja, cajaContents, createLocalCaja, dropLocalBultoFromQueue,
-  findLocalBultoByCode, findLocalClientByMark, findLocalPackage, saveLocalCaja,
+  findLocalBultoByCode, findLocalClientByMark, findLocalPackage, removeLastFromLocalCaja, saveLocalCaja,
 } from '@/lib/cajaLocal';
 import { addPackageToUnit, createLocalBulto, findOpenUnit, loadOpenUnits, sameClient, saveUnit } from '@/lib/packUnits';
 
@@ -353,7 +353,31 @@ export default function usePackUnit({
 
   const removeLast = useCallback(async () => {
     const unit = activeUnitRef.current;
-    if (!unit || unit.is_caja) return;
+    if (!unit) return;
+
+    // Caja consolidada: deshace el último paquete o código que entró al armado.
+    if (unit.is_caja) {
+      if (!(unit.package_trackings || []).length) return;
+      try {
+        const { updated, removed } = await removeLastFromLocalCaja(unit);
+        const empty = !(updated?.package_trackings || []).length && !(updated?.absorbed_bultos || []).length;
+        if (empty) {
+          await del('bultos', updated.id);
+          applyUnits((prev) => prev.filter((u) => u.id !== updated.id));
+          selectUnit(null);
+          setContents({ package_count: 0, cbm: 0 });
+          toast.success('Caja vacía eliminada');
+        } else {
+          await activateUnit(updated);
+          toast.success(`${removed} fuera de la caja`);
+        }
+        onHistoryChange?.();
+      } catch (e) {
+        toast.error('No se pudo deshacer el último paquete');
+      }
+      return;
+    }
+
     const ids = unit.package_ids || [];
     if (!ids.length) return;
     const removedId = ids[ids.length - 1];
@@ -381,7 +405,7 @@ export default function usePackUnit({
     } catch (e) {
       toast.error('Error al quitar el paquete');
     }
-  }, [activateUnit, applyUnits, selectUnit]);
+  }, [activateUnit, applyUnits, onHistoryChange, selectUnit]);
 
   // --- Cerrar la unidad: bulto (etiqueta individual) o caja (etiquetas continuas) ---
   const closeUnit = useCallback(async (ordersOverride) => {
