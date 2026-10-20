@@ -13,9 +13,10 @@ export const PORTAL_COLUMNS = [
   { key: 'photo_url', label: 'Foto de entrega', label_zh: '交货照片' },
 ];
 
-// Texto que se muestra en la celda del Excel en lugar de la dirección completa:
-// así el enlace se toca y abre desde el móvil sin pelear con una URL larga.
-export const PORTAL_PHOTO_LABEL = 'Ver foto';
+// Texto de la celda de la foto, en los dos idiomas del archivo. Se usa dentro de
+// la fórmula HYPERLINK: en pantalla sale este texto (Excel lo pinta como enlace,
+// en azul) y al tocarlo abre la foto, sin exponer la dirección completa.
+export const PORTAL_PHOTO_LABEL = 'VER FOTO / 查看照片';
 
 // La tabla exportada arranca con dos filas de encabezado: el texto en español y,
 // debajo, el mismo encabezado en chino mandarín.
@@ -64,20 +65,22 @@ export function downloadPortalCsv(rows) {
 export async function downloadPortalXlsx(rows) {
   const XLSX = await import('xlsx');
   const sheet = XLSX.utils.aoa_to_sheet(portalRowsToAoa(rows));
-  // Foto de la entrega: la celda queda como enlace de verdad, con un texto corto
-  // que se puede tocar desde el móvil. En CSV y en "Copiar" viaja la dirección
-  // completa, para quien la necesite pegar en otra parte.
+  // Foto de la entrega: la celda lleva la fórmula ENLACE/HYPERLINK, así se ve como
+  // botón con el texto "VER FOTO / 查看照片" y abre la foto al tocarla desde el
+  // móvil o desde cualquier app que abra el archivo. En CSV y en "Copiar" viaja la
+  // dirección completa, para quien la necesite pegar en otra parte.
   const photoColumn = PORTAL_COLUMNS.findIndex((column) => column.key === 'photo_url');
   rows.forEach((row, index) => {
-    const target = String(row?.photo_url || '');
-    if (!target) return;
+    const target = String(row?.photo_url || '').replace(/"/g, '""');
     const ref = XLSX.utils.encode_cell({ r: index + PORTAL_HEADER_ROWS, c: photoColumn });
-    if (!sheet[ref]) return;
-    sheet[ref].v = PORTAL_PHOTO_LABEL;
-    sheet[ref].t = 's';
-    sheet[ref].l = { Target: target, Tooltip: 'Tocar para abrir la foto de la entrega' };
+    const cell = sheet[ref];
+    if (!cell || !target) return;
+    delete cell.l;
+    cell.t = 'str';
+    cell.v = PORTAL_PHOTO_LABEL;
+    cell.f = `HYPERLINK("${target}","${PORTAL_PHOTO_LABEL}")`;
   });
-  sheet['!cols'] = [{ wch: 20 }, { wch: 18 }, { wch: 16 }, { wch: 26 }, { wch: 30 }, { wch: 14 }];
+  sheet['!cols'] = [{ wch: 20 }, { wch: 18 }, { wch: 16 }, { wch: 26 }, { wch: 30 }, { wch: 26 }];
   const book = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(book, sheet, 'Trackings');
   XLSX.writeFile(book, `${portalExportName()}.xlsx`);
