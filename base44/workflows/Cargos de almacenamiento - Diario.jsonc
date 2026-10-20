@@ -1,0 +1,47 @@
+{
+  "name": "Cargos de almacenamiento - Diario",
+  "description": "Calcula y registra a diario los cargos de almacenamiento y custodia (d\u00eda 8 al 45) de las facturas impagas, actualiza su saldo y avisa al cliente.",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "0 12 * * *",
+      "one_time_date": null,
+      "timezone": "America/Caracas",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "cargos_de_almacenamiento_diario",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "cargos_almacenamiento": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "processStorageCharges",
+            "args": {
+              "mode": "apply"
+            }
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Cargos de almacenamiento del d\u00eda",
+            "description": "D\u00eda 8 al 45 de cada factura impaga"
+          }
+        }
+      }
+    ]
+  }
+}

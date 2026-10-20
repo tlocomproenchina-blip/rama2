@@ -290,6 +290,24 @@
       "format": "date-time",
       "description": "Fecha y hora de la marca manual de facturaci\u00f3n"
     },
+    "storage_category": {
+      "type": "string",
+      "enum": [
+        "estandar",
+        "grande"
+      ],
+      "description": "Categor\u00eda de almacenamiento marcada a mano para el cargo diario de almacenamiento y custodia: estandar (USD 10 diarios) o grande (USD 20 diarios). Si est\u00e1 vac\u00eda se deduce de las medidas de sus paquetes y de las reglas configuradas."
+    },
+    "pallet_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Palets de carga consolidada que representa este bulto. Se usa para el recargo \u00fanico de montacargas (USD 150 por palet)."
+    },
+    "requiere_montacargas": {
+      "type": "boolean",
+      "default": false,
+      "description": "Marca que este bulto necesita montacargas: sus palets pagan el recargo \u00fanico de USD 150 por cada palet, una sola vez."
+    },
     "warehouse_id": {
       "type": "string",
       "description": "ID del almac\u00e9n donde se empac\u00f3 el bulto"

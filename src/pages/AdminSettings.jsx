@@ -48,6 +48,7 @@ import ShippingMarkExamplesEditor from '@/components/admin/ShippingMarkExamplesE
 import BatteryBannerSettings from '@/components/admin/BatteryBannerSettings';
 import WholesalerConnectionCard from '@/components/admin/WholesalerConnectionCard';
 import AiTicketSettingsCard from '@/components/admin/AiTicketSettingsCard';
+import StorageChargeSettings from '@/components/admin/StorageChargeSettings';
 import DispatchOrderWhatsappSettingsCard from '@/components/admin/DispatchOrderWhatsappSettingsCard';
 
 const VENEZUELAN_STATES = [
@@ -1873,6 +1874,8 @@ export default function AdminSettings({ user }) {
               </Button>
             </CardContent>
           </Card>
+
+          <StorageChargeSettings />
         </TabsContent>
 
 

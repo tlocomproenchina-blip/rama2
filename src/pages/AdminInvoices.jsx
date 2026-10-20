@@ -20,6 +20,7 @@ import DispatchReceiptModal from '@/components/invoice/DispatchReceiptModal';
 import { FileText, Search, Loader2, Download, Edit, Trash2, PackageX, Package, MessageCircle, Truck, ClipboardList, Calculator } from 'lucide-react';
 import InvoiceStatsCards from '@/components/invoice/InvoiceStatsCards';
 import InvoiceTariffRecalcDialog from '@/components/invoice/recalc/InvoiceTariffRecalcDialog';
+import StorageChargeDialog from '@/components/invoice/storage/StorageChargeDialog';
 import WarehouseOrderModal from '@/components/invoice/WarehouseOrderModal';
 import { generateWarehouseOrder } from '@/lib/warehouseOrder';
 import WarehousePaidTable from '@/components/invoice/WarehousePaidTable';
@@ -66,6 +67,7 @@ export default function AdminInvoices({ user }) {
   const [loadingMore, setLoadingMore] = useState(false);
   const [showPaymentsSettings, setShowPaymentsSettings] = useState(false);
   const [showTariffRecalc, setShowTariffRecalc] = useState(false);
+  const [showStorageCharges, setShowStorageCharges] = useState(false);
   const [appConfig, setAppConfig] = useState(null);
   const [dispatchReceipt, setDispatchReceipt] = useState(null);
   const [warehouseOrderInvoice, setWarehouseOrderInvoice] = useState(null);
@@ -733,6 +735,10 @@ export default function AdminInvoices({ user }) {
             <Calculator className="h-4 w-4 mr-2" />
             Recalcular tarifas
           </Button>
+          <Button variant="outline" onClick={() => setShowStorageCharges(true)}>
+            <Package className="h-4 w-4 mr-2" />
+            Cargos de almacenamiento
+          </Button>
           <Button onClick={handleExportAll} variant="outline">
             <Download className="h-4 w-4 mr-2" />
             Exportar CSV
@@ -1281,6 +1287,12 @@ export default function AdminInvoices({ user }) {
       </AlertDialog>
 
       {/* Recálculo de tarifas por tipo de carga de cada recibo */}
+      <StorageChargeDialog
+        open={showStorageCharges}
+        onOpenChange={setShowStorageCharges}
+        onApplied={() => loadInvoices()}
+      />
+
       <InvoiceTariffRecalcDialog
         open={showTariffRecalc}
         onOpenChange={setShowTariffRecalc}

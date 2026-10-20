@@ -1,0 +1,109 @@
+{
+  "name": "StorageChargeConfig",
+  "type": "object",
+  "properties": {
+    "config_key": {
+      "type": "string",
+      "default": "main",
+      "description": "Clave \u00fanica de configuraci\u00f3n"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Activa o desactiva el c\u00e1lculo autom\u00e1tico de cargos de almacenamiento"
+    },
+    "free_days": {
+      "type": "number",
+      "default": 7,
+      "description": "D\u00edas de almacenamiento gratuito desde la emisi\u00f3n de la factura (el cargo empieza el d\u00eda siguiente)"
+    },
+    "max_days": {
+      "type": "number",
+      "default": 45,
+      "description": "\u00daltimo d\u00eda del contrato en que se acumulan cargos de almacenamiento"
+    },
+    "standard_daily_rate": {
+      "type": "number",
+      "default": 10,
+      "description": "Tarifa diaria (USD) por bulto est\u00e1ndar"
+    },
+    "large_daily_rate": {
+      "type": "number",
+      "default": 20,
+      "description": "Tarifa diaria (USD) por bulto grande"
+    },
+    "forklift_fee": {
+      "type": "number",
+      "default": 150,
+      "description": "Recargo \u00fanico (USD) por cada palet de carga consolidada que requiera montacargas"
+    },
+    "standard_max_cm": {
+      "type": "number",
+      "default": 30,
+      "description": "Dimensi\u00f3n m\u00e1xima (cm) para considerar un bulto como est\u00e1ndar: si alguno de sus lados la supera es grande"
+    },
+    "large_if_multiple_packages": {
+      "type": "boolean",
+      "default": true,
+      "description": "Considerar bulto grande a toda caja consolidada o bulto que agrupe m\u00e1s de un paquete"
+    },
+    "default_category": {
+      "type": "string",
+      "enum": [
+        "estandar",
+        "grande"
+      ],
+      "default": "estandar",
+      "description": "Categor\u00eda que se aplica cuando el bulto no tiene medidas registradas ni marca manual"
+    },
+    "fallback_unit_per_order": {
+      "type": "boolean",
+      "default": true,
+      "description": "Cuando la factura no tiene bultos registrados, cobrar un bulto est\u00e1ndar por cada env\u00edo (N\u00b0 de orden) facturado"
+    },
+    "notify_client": {
+      "type": "boolean",
+      "default": true,
+      "description": "Avisar al cliente por notificaci\u00f3n in-app y email cada vez que se agregan cargos"
+    },
+    "skip_threshold_days": {
+      "type": "boolean",
+      "default": true,
+      "description": "No enviar el aviso diario los d\u00edas 20, 30 y 45 porque ya los cubren las plantillas de almacenamiento existentes"
+    },
+    "updated_by": {
+      "type": "string",
+      "description": "Email del administrador que guard\u00f3 la configuraci\u00f3n"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Descripci\u00f3n opcional"
+    }
+  },
+  "required": [
+    "config_key"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
