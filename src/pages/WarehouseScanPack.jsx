@@ -335,8 +335,6 @@ export default function WarehouseScanPack({ user }) {
         <CajaActiveCard
           caja={activeUnit}
           contents={pack.contents}
-          ordersText={pack.ordersText}
-          onOrdersChange={pack.setOrdersText}
           onClose={pack.closeUnit}
           onRemoveUnregistered={pack.removeUnregistered}
           busy={pack.busy}

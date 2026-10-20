@@ -389,11 +389,10 @@ export default function usePackUnit({
     if (!unit) return;
 
     if (unit.is_caja) {
+      // El N° de contenedor ya no se pide al cerrar: se toman los que la caja
+      // traiga de sus bultos absorbidos y, si no hay, se cierra sin orden y se
+      // asigna después.
       const orders = ordersText.split(',').map((s) => s.trim()).filter(Boolean);
-      if (!orders.length) {
-        setError('Ingresa al menos un N° de contenedor para cerrar la caja.');
-        return;
-      }
       setBusy(true);
       busyRef.current = true;
       setError('');

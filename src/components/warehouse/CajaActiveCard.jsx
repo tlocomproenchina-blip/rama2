@@ -1,15 +1,13 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { ArrowRightLeft, Boxes, CheckCircle2, Loader2, Package, Trash2 } from 'lucide-react';
 
 // Caja consolidada abierta en el almacén: su código, lo que lleva dentro (paquetes,
 // CBM y N° de contenedor), los bultos pequeños que absorbió y el cierre del bloque.
 export default function CajaActiveCard({
-  caja, contents, ordersText, onOrdersChange, onClose, onRemoveUnregistered, onRemoveAbsorbed, busy,
+  caja, contents, onClose, onRemoveUnregistered, onRemoveAbsorbed, busy,
 }) {
   const absorbed = Array.isArray(caja?.absorbed_bultos) ? caja.absorbed_bultos : [];
   const unregistered = Array.isArray(caja?.unregistered_codes) ? caja.unregistered_codes : [];
@@ -97,19 +95,6 @@ export default function CajaActiveCard({
             ))}
           </div>
         )}
-
-        <div className="space-y-1.5">
-          <Label className="text-xs text-muted-foreground">N° de contenedor del lote</Label>
-          <Input
-            value={ordersText}
-            onChange={(e) => onOrdersChange(e.target.value)}
-            placeholder="Ej: 12345, 12346"
-            inputMode="numeric"
-          />
-          <p className="text-[11px] text-muted-foreground">
-            Se suman los N° de contenedor de los bultos absorbidos. La caja no se cierra sin al menos uno.
-          </p>
-        </div>
 
         <Button className="w-full gap-2" onClick={onClose} disabled={busy || packageCount === 0}>
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
