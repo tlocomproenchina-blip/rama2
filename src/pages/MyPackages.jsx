@@ -457,9 +457,9 @@ export default function MyPackages({ user }) {
                         })()}
                       </div>
                     )}
-                    {proofState.expired ? (
+                    {proofState.showAlert ? (
                       <DeliveryProofDeadlineAlert deadline={proofState.deadline} className="mt-2" />
-                    ) : (
+                    ) : !proofState.expired ? (
                       <>
                         {proofState.exception && proofState.pastDeadline && (
                           <p className="mt-1 text-[11px] md:text-xs text-emerald-700">
@@ -475,7 +475,7 @@ export default function MyPackages({ user }) {
                           {pkg.seller_delivery_date ? 'Editar fecha entrega' : 'Agregar fecha entrega'}
                         </Button>
                       </>
-                    )}
+                    ) : null}
                   </div>
                 </div>
               </CardContent>

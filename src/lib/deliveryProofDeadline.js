@@ -38,17 +38,24 @@ export function getDeliveryProofDeadline(pkg) {
 // pastDeadline: el plazo venció, con o sin excepción (el admin necesita verlo igual).
 export function getDeliveryProofState(pkg) {
   const deadline = getDeliveryProofDeadline(pkg);
-  if (!deadline) return { hasDeadline: false, expired: false, pastDeadline: false, exception: false, deadline: null, daysLeft: null };
+  if (!deadline) return { hasDeadline: false, expired: false, pastDeadline: false, exception: false, deadline: null, daysLeft: null, showAlert: false, hasDeliveryInfo: false };
   const exception = !!pkg?.delivery_proof_exception;
   const msLeft = deadline.getTime() - Date.now();
   const pastDeadline = msLeft <= 0;
+  const expired = pastDeadline && !exception;
+  const hasDeliveryInfo = !!(pkg?.seller_delivery_date || pkg?.seller_delivery_photo_uri);
   return {
     hasDeadline: true,
     deadline,
     exception,
     pastDeadline,
-    expired: pastDeadline && !exception,
+    expired,
     daysLeft: Math.ceil(msLeft / DAY_MS),
+    hasDeliveryInfo,
+    // El aviso al cliente solo aplica a paquetes que siguen en pre-alerta y que
+    // todavía no tienen fecha ni foto de entrega del vendedor: si la carga ya fue
+    // recibida en el almacén, el aviso deja de tener sentido.
+    showAlert: expired && pkg?.status === 'pre_alerta' && !hasDeliveryInfo,
   };
 }
 
