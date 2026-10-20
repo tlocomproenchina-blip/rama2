@@ -5,29 +5,23 @@ import { Badge } from '@/components/ui/badge';
 import { ChevronDown, Package } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-// Una tarjeta por cliente: selección del cliente completo o de contenedores
-// sueltos, totales y detalle con los bultos de las guías de despacho.
-export default function ClientContainersCard({ group, selectedContainers = [], onToggleClient, onToggleContainer }) {
+// Una tarjeta por cliente: solo se marcan contenedores sueltos (la selección
+// del cliente no arrastra sus contenedores), totales y detalle con los bultos
+// de las guías de despacho.
+export default function ClientContainersCard({ group, selectedContainers = [], onToggleContainer }) {
   const [expanded, setExpanded] = useState(false);
 
   const selected = new Set(selectedContainers.map((value) => String(value)));
-  const allSelected = group.containers.length > 0 && group.containers.every((row) => selected.has(String(row.container)));
-  const someSelected = !allSelected && group.containers.some((row) => selected.has(String(row.container)));
+  const someSelected = selected.size > 0;
 
   return (
     <Card
       className={cn(
         'overflow-hidden border transition',
-        allSelected ? 'border-primary/60 bg-primary/5' : someSelected ? 'border-primary/40 bg-primary/[0.03]' : 'border-border'
+        someSelected ? 'border-primary/40 bg-primary/[0.03]' : 'border-border'
       )}
     >
       <div className="flex items-start gap-3 p-4">
-        <Checkbox
-          checked={allSelected ? true : someSelected ? 'indeterminate' : false}
-          onCheckedChange={() => onToggleClient(group.key)}
-          className="mt-1"
-        />
-
         <button type="button" onClick={() => setExpanded((value) => !value)} className="flex-1 text-left">
           <div className="flex flex-wrap items-center gap-2">
             <p className="text-sm font-semibold text-foreground">{group.name}</p>
@@ -64,13 +58,7 @@ export default function ClientContainersCard({ group, selectedContainers = [], o
           <table className="w-full text-left text-xs">
             <thead className="bg-muted/60 text-[10px] uppercase tracking-wide text-muted-foreground">
               <tr>
-                <th className="w-10 px-3 py-2">
-                  <Checkbox
-                    checked={allSelected ? true : someSelected ? 'indeterminate' : false}
-                    onCheckedChange={() => onToggleClient(group.key)}
-                    aria-label="Seleccionar todos los contenedores del cliente"
-                  />
-                </th>
+                <th className="w-10 px-3 py-2" />
                 <th className="px-2 py-2">Contenedor</th>
                 <th className="px-4 py-2 text-center">Bultos</th>
                 <th className="px-4 py-2">Descripción</th>

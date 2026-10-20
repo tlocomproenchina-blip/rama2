@@ -3,7 +3,6 @@ import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Download, Loader2, RefreshCw, Search, Boxes } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -61,33 +60,6 @@ export default function AdminContainersReport() {
     setSelectedKeys((current) => (current.includes(key) ? current.filter((item) => item !== key) : [...current, key]));
   };
 
-  const toggleClient = (groupKey) => {
-    const group = groups.find((item) => item.key === groupKey);
-    if (!group) return;
-    const keys = group.containers.map((row) => containerKey(group.key, row.container));
-    const allIn = keys.every((key) => selectedSet.has(key));
-    setSelectedKeys((current) =>
-      allIn ? current.filter((key) => !keys.includes(key)) : [...new Set([...current, ...keys])]
-    );
-  };
-
-  const allFilteredSelected =
-    filtered.length > 0 &&
-    filtered.every((group) =>
-      group.containers.every((row) => selectedSet.has(containerKey(group.key, row.container)))
-    );
-
-  const toggleAllFiltered = () => {
-    const filteredKeys = filtered.flatMap((group) =>
-      group.containers.map((row) => containerKey(group.key, row.container))
-    );
-    setSelectedKeys((current) =>
-      allFilteredSelected
-        ? current.filter((key) => !filteredKeys.includes(key))
-        : [...new Set([...current, ...filteredKeys])]
-    );
-  };
-
   const exportSelection = async () => {
     if (!selectedGroups.length) {
       toast.error('Selecciona al menos un contenedor');
@@ -119,7 +91,7 @@ export default function AdminContainersReport() {
           <h1 className="font-display text-xl font-bold text-foreground sm:text-2xl">Contenedores por cliente</h1>
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
             Los números de contenedor se agrupan por cliente y los bultos son los que quedaron registrados en las guías de
-            despacho. Busca, abre el cliente y marca los contenedores que quieras (o el cliente completo) y exporta solo eso.
+            despacho. Busca, abre el cliente y marca a mano los contenedores que quieras y exporta solo eso.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -154,10 +126,6 @@ export default function AdminContainersReport() {
               className="pl-9"
             />
           </div>
-          <label className="flex cursor-pointer items-center gap-2 text-xs font-medium text-foreground">
-            <Checkbox checked={allFilteredSelected} onCheckedChange={toggleAllFiltered} disabled={!filtered.length} />
-            Seleccionar los {filtered.length} filtrados
-          </label>
           {selectedKeys.length > 0 && (
             <Button variant="ghost" size="sm" onClick={() => setSelectedKeys([])}>
               Limpiar selección
@@ -184,7 +152,6 @@ export default function AdminContainersReport() {
               key={group.key}
               group={group}
               selectedContainers={selectedContainersOf(group)}
-              onToggleClient={toggleClient}
               onToggleContainer={toggleContainer}
             />
           ))}

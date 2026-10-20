@@ -3,6 +3,12 @@
 // detalle de cada contenedor. Los bultos son los que el backend cuenta desde
 // las guías de despacho.
 
+// Descripción visible del contenedor: "Paquete manual" se muestra como
+// "Artículos varios", conservando el resto del texto.
+export function normalizeContainerDescription(description) {
+  return String(description || '').replace(/paquete\s+manual/gi, 'Artículos varios');
+}
+
 export function groupContainersByClient(rows = []) {
   const map = new Map();
 
@@ -22,7 +28,7 @@ export function groupContainersByClient(rows = []) {
 
     const group = map.get(clientKey);
     if (!group.shipping_mark && row.shipping_mark) group.shipping_mark = String(row.shipping_mark).trim();
-    group.containers.push(row);
+    group.containers.push({ ...row, description: normalizeContainerDescription(row.description) });
   }
 
   return [...map.values()]
