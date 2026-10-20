@@ -24,6 +24,7 @@ import StorageChargeDialog from '@/components/invoice/storage/StorageChargeDialo
 import StorageChargeInvoiceSummary from '@/components/invoice/storage/StorageChargeInvoiceSummary';
 import StorageChargesAuditDialog from '@/components/invoice/storage/StorageChargesAuditDialog';
 import OverdueInvoicesReportButton from '@/components/invoice/overdue/OverdueInvoicesReportButton';
+import ContainersReportButton from '@/components/invoice/containers/ContainersReportButton';
 import { fetchStorageTotals } from '@/lib/storageAudit';
 import WarehouseOrderModal from '@/components/invoice/WarehouseOrderModal';
 import { generateWarehouseOrder } from '@/lib/warehouseOrder';
@@ -760,6 +761,7 @@ export default function AdminInvoices({ user }) {
             <ClipboardList className="h-4 w-4 mr-2" />
             Cargos y avisos por factura
           </Button>
+          <ContainersReportButton />
           <Button onClick={handleExportAll} variant="outline">
             <Download className="h-4 w-4 mr-2" />
             Exportar CSV
