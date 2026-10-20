@@ -117,7 +117,7 @@ function tokensFromDesc(desc: any) {
 // Líneas de envío de la factura. En las facturas nuevas cada línea lleva el
 // número de contenedor en `details` y viene listada en `manual_recibos`; las
 // facturas antiguas sólo describen los trackings ("Envío - <trackings> (X CBM)").
-export function invoiceLines(invoice: any) {
+function invoiceLines(invoice: any) {
   const items = Array.isArray(invoice.items) ? invoice.items : [];
   const manual = Array.isArray(invoice.manual_recibos) ? invoice.manual_recibos : [];
   const lines: any[] = [];

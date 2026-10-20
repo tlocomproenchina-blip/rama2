@@ -8,7 +8,6 @@ import { AlertTriangle, RefreshCcw, Copy, Send, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { notifyAdmins } from '@/components/NotificationUtils';
-import { isStaleChunkError, reloadForStaleChunk, resetStaleChunkAttempts } from '@/lib/staleChunkReload';
 
 export default function GlobalErrorListener() {
   const [errorInfo, setErrorInfo] = useState(null);
@@ -18,9 +17,21 @@ export default function GlobalErrorListener() {
   const [viewerRole, setViewerRole] = useState(null);
   const dismissedErrorIdsRef = useRef(new Set());
 
-  // Los errores de "no se pudo descargar el código de la página" (versión nueva
-  // publicada o vista previa reiniciándose) se resuelven recargando: ver
-  // @/lib/staleChunkReload, que limita los intentos para no entrar en bucle.
+  // Error típico tras un nuevo deploy: el navegador tiene la versión vieja y pide un chunk que ya no existe.
+  // Se resuelve recargando la app (una vez, con guardia anti-bucle) en vez de mostrar el banner de error.
+  const isStaleChunkError = (message = '') =>
+    /failed to fetch dynamically imported module|error loading dynamically imported module|importing a module script failed|failed to load module script/i.test(String(message));
+
+  const reloadForStaleChunk = () => {
+    try {
+      const last = Number(sessionStorage.getItem('staleChunkReloadAt') || '0');
+      if (Date.now() - last < 60000) return false; // ya recargamos hace poco, no entrar en bucle
+      sessionStorage.setItem('staleChunkReloadAt', String(Date.now()));
+    } catch (_) {}
+    window.location.reload();
+    return true;
+  };
+
   const isIntegrationQuotaError = (message = '', stack = '') => /credit|cr[eé]dito|quota|cuota|insufficient credits|integration credits|rate limit|too many requests|429|limit exceeded|usage limit|billing|invoke llm|sendemail|uploadfile|extractdatafromuploadedfile|generateimage|core\./i.test(`${String(message)} ${String(stack)}`);
 
   useEffect(() => {
@@ -118,14 +129,10 @@ export default function GlobalErrorListener() {
       persist(details);
     };
 
-    // Si la app lleva un rato funcionando, se liberan los intentos de recarga.
-    const resetAttemptsTimer = resetStaleChunkAttempts();
-
     window.addEventListener('error', handleWindowError);
     window.addEventListener('unhandledrejection', handleUnhandledRejection);
     window.addEventListener('app:soft-error', handleSoftError);
     return () => {
-      clearTimeout(resetAttemptsTimer);
       window.removeEventListener('error', handleWindowError);
       window.removeEventListener('unhandledrejection', handleUnhandledRejection);
       window.removeEventListener('app:soft-error', handleSoftError);

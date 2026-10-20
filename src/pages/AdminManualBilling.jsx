@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { base44 } from '@/components/api/ApiQueueManager';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, ReceiptText, RotateCcw, AlertTriangle, Package, ChevronDown, Boxes, Calculator } from 'lucide-react';
+import { Loader2, ReceiptText, RotateCcw, AlertTriangle, Package, ChevronDown, Boxes } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import ClientSearchBox from '@/components/manual-billing/ClientSearchBox';
@@ -12,7 +12,6 @@ import BillingInvoiceRow from '@/components/manual-billing/BillingInvoiceRow';
 import BillingSummary from '@/components/manual-billing/BillingSummary';
 import PackagesWithoutReceiptSection from '@/components/manual-billing/PackagesWithoutReceiptSection';
 import DuplicateMergeDialog from '@/components/manual-billing/DuplicateMergeDialog';
-import InvoiceRateAuditDialog from '@/components/manual-billing/InvoiceRateAuditDialog';
 import ReceiptsAutoMergeNotice from '@/components/manual-billing/ReceiptsAutoMergeNotice';
 import PendingBillingPanel from '@/components/manual-billing/PendingBillingPanel';
 import BilledReceiptsSection from '@/components/manual-billing/BilledReceiptsSection';
@@ -55,8 +54,6 @@ export default function AdminManualBilling({ user }) {
   const [dupGlobal, setDupGlobal] = useState(false);
   const [scanningDups, setScanningDups] = useState(false);
   const [showMergeDialog, setShowMergeDialog] = useState(false);
-  // Revisión de tarifas de todas las facturas manuales
-  const [showRateAudit, setShowRateAudit] = useState(false);
   const [autoMerging, setAutoMerging] = useState(false);
   const [autoSummary, setAutoSummary] = useState(null);
   // Cliente ya revisado automáticamente (evita repetir la fusión en cada recarga)
@@ -1029,14 +1026,6 @@ export default function AdminManualBilling({ user }) {
             {recovering ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RotateCcw className="h-4 w-4 mr-2" />}
             Recuperar registros huérfanos
           </Button>
-          <Button
-            variant="outline"
-            onClick={() => setShowRateAudit(true)}
-            className="transition-colors"
-          >
-            <Calculator className="h-4 w-4 mr-2" />
-            Revisar tarifas de facturas
-          </Button>
         </div>
       </motion.div>
 
@@ -1190,8 +1179,6 @@ export default function AdminManualBilling({ user }) {
           else checkPendingDuplicates();
         }}
       />
-
-      <InvoiceRateAuditDialog open={showRateAudit} onOpenChange={setShowRateAudit} />
     </div>
   );
 }
