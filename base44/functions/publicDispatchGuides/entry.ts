@@ -59,9 +59,12 @@ export default async function (req: Request): Promise<Response> {
     // Agrupación por cliente y, dentro de cada cliente, por contenedor.
     const clientes = new Map<string, any>();
     const etiquetas = new Set<string>();
+    const fechasGuia = new Map<string, string>();
 
     for (const guide of guides) {
       const guideNumber = text((guide as any).guide_number);
+      const emittedDate = text((guide as any).emitted_date);
+      if (guideNumber && emittedDate) fechasGuia.set(guideNumber, emittedDate);
       for (const client of ((guide as any).clients || [])) {
         const shippingMark = text(client?.shipping_mark) || text(client?.client?.shipping_mark);
         const clientName =
@@ -184,11 +187,29 @@ export default async function (req: Request): Promise<Response> {
         )
       : clientList;
 
-    filtered.sort((a, b) => a.name.localeCompare(b.name, 'es'));
+    // La guía más reciente va siempre primero: los clientes se ordenan por la
+    // fecha de su última guía y cada guía se ofrece con su fecha.
+    const ultimaFecha = (cliente: any) =>
+      (cliente.guides || []).reduce((max: string, numero: string) => {
+        const fecha = fechasGuia.get(numero) || '';
+        return fecha > max ? fecha : max;
+      }, '');
+
+    filtered.sort((a, b) => ultimaFecha(b).localeCompare(ultimaFecha(a)) || a.name.localeCompare(b.name, 'es'));
+
+    const guideOptions = [...new Set(filtered.flatMap((cliente: any) => cliente.guides || []))]
+      .map((numero: string) => ({ number: numero, emitted_date: fechasGuia.get(numero) || '' }))
+      .sort(
+        (a: any, b: any) =>
+          b.emitted_date.localeCompare(a.emitted_date) ||
+          b.number.localeCompare(a.number, 'es', { numeric: true })
+      );
+
     const page = filtered.slice(skip, skip + limit);
 
     return Response.json({
       clients: page,
+      guide_options: guideOptions,
       matched: filtered.length,
       has_more: skip + page.length < filtered.length,
       next_skip: skip + page.length,

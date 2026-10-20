@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Boxes, Download, Loader2, Printer, Search, X } from 'lucide-react';
 import PublicGuidesHeader from '@/components/public-guides/PublicGuidesHeader';
 import PublicClientContainersCard from '@/components/public-guides/PublicClientContainersCard';
+import GuideSelectionPanel from '@/components/public-guides/GuideSelectionPanel';
 import { generateContainersReportPdf } from '@/lib/containersReportPdf';
 import { normalizeContainerDescription } from '@/lib/containersByClientReport';
 
@@ -46,6 +47,8 @@ export default function PublicDispatchGuides() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [hasMore, setHasMore] = useState(false);
+  const [guideOptions, setGuideOptions] = useState([]);
+  const [selectedGuides, setSelectedGuides] = useState([]);
   const [error, setError] = useState('');
   const nextSkip = useRef(0);
 
@@ -65,6 +68,7 @@ export default function PublicDispatchGuides() {
       setClients((prev) => (append
         ? [...prev, ...incoming.filter((client) => !prev.some((seen) => seen.key === client.key))]
         : incoming));
+      if (!append) setGuideOptions(Array.isArray(data.guide_options) ? data.guide_options : []);
       setMatched(Number(data.matched) || 0);
       setHasMore(!!data.has_more);
       nextSkip.current = Number(data.next_skip) || 0;
@@ -87,13 +91,31 @@ export default function PublicDispatchGuides() {
   const search = () => {
     const term = draft.trim();
     setApplied(term);
+    setSelectedGuides([]);
     runQuery({ query: term });
   };
 
   const clear = () => {
     setDraft('');
     setApplied('');
+    setSelectedGuides([]);
     runQuery({ query: '' });
+  };
+
+  const toggleGuide = (number) => {
+    setSelectedGuides((prev) => (prev.includes(number) ? prev.filter((item) => item !== number) : [...prev, number]));
+  };
+
+  // Cuando hay guías marcadas, el informe sale solo con los contenedores de esas guías.
+  const onlySelectedGuides = (list) => {
+    if (selectedGuides.length === 0) return list;
+    const chosen = new Set(selectedGuides);
+    return list
+      .map((client) => ({
+        ...client,
+        containers: (client.containers || []).filter((row) => (row.guides || []).some((guide) => chosen.has(guide))),
+      }))
+      .filter((client) => client.containers.length > 0);
   };
 
   const loadMore = () => {
@@ -118,7 +140,7 @@ export default function PublicDispatchGuides() {
         more = !!data.has_more && page.length > 0;
         skip = Number(data.next_skip) || skip + page.length;
       }
-      await generateContainersReportPdf(toReportGroups(all), 'TLEC CARGO', mode);
+      await generateContainersReportPdf(toReportGroups(onlySelectedGuides(all)), 'TLEC CARGO', mode);
     } catch (err) {
       setError(err?.message || 'No se pudo generar el informe');
     } finally {
@@ -193,6 +215,13 @@ export default function PublicDispatchGuides() {
             </div>
           </form>
         </Card>
+
+        <GuideSelectionPanel
+          guides={guideOptions}
+          selected={selectedGuides}
+          onToggle={toggleGuide}
+          onClear={() => setSelectedGuides([])}
+        />
 
         {error && (
           <p className="rounded-xl border border-amber-200 bg-amber-50/70 p-3 text-xs text-amber-800">{error}</p>
