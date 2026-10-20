@@ -45,9 +45,10 @@ function guessFilename(url, title) {
  * - Otros: mensaje con botón de descarga.
  * Siempre incluye un botón de descarga en el header.
  */
-export default function FileViewerModal({ open, fileUrl, onClose, title = 'Archivo' }) {
-  const kind = getFileKind(fileUrl);
-  const filename = fileUrl ? guessFilename(fileUrl, title) : title;
+export default function FileViewerModal({ open, fileUrl, onClose, title = 'Archivo', kind: kindProp = null, filename: filenameProp = null }) {
+  // kind/filename permiten previsualizar y descargar archivos generados en memoria (PDF de factura)
+  const kind = kindProp || getFileKind(fileUrl);
+  const filename = filenameProp || (fileUrl ? guessFilename(fileUrl, title) : title);
 
   const [scale, setScale] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });

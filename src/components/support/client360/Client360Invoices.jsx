@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { FileText, ChevronDown, ChevronRight, Receipt } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import Client360Section from './Client360Section';
+import Client360InvoicePdfButton from './Client360InvoicePdfButton';
 
 const STATUS = {
   pendiente: 'bg-amber-100 text-amber-700',
@@ -54,6 +55,7 @@ export default function Client360Invoices({ invoices, recibos = [] }) {
               <Badge className={`text-[10px] ${STATUS[inv.status] || 'bg-slate-100 text-slate-600'}`}>
                 {inv.status}
               </Badge>
+              <Client360InvoicePdfButton invoice={inv} />
             </div>
 
             {isOpen && linked.length > 0 && (
