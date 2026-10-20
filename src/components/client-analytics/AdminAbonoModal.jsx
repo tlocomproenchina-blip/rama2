@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { uploadImageNoCredits } from '@/lib/imgbbUpload';
 import { ABONO_METHODS } from '@/lib/abonoMethods';
+import { billableTotal } from '@/lib/storageLines';
 
 const num = (value) => (Number.isFinite(Number(value)) ? Number(value) : 0);
 const money = (value) => `$${num(value).toFixed(2)}`;
@@ -127,7 +128,7 @@ export default function AdminAbonoModal({ open, onClose, invoice, paidAmount = 0
         <div className="grid grid-cols-3 gap-2 py-2">
           <div className="rounded-lg bg-slate-50 p-2 text-center">
             <p className="text-xs text-slate-500">Total</p>
-            <p className="font-bold text-slate-800">{money(invoice?.total)}</p>
+            <p className="font-bold text-slate-800">{money(billableTotal(invoice))}</p>
           </div>
           <div className="rounded-lg bg-emerald-50 p-2 text-center">
             <p className="text-xs text-emerald-600">Abonado</p>

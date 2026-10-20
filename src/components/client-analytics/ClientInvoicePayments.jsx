@@ -6,6 +6,7 @@ import { format } from 'date-fns';
 import useFileViewer from '@/hooks/useFileViewer';
 import { METHOD_LABELS } from '@/lib/abonoMethods';
 import AdminAbonoModal from '@/components/client-analytics/AdminAbonoModal';
+import { billableTotal } from '@/lib/storageLines';
 
 const num = (value) => (Number.isFinite(Number(value)) ? Number(value) : 0);
 const money = (value) => `$${num(value).toFixed(2)}`;
@@ -41,7 +42,7 @@ export default function ClientInvoicePayments({ invoice, payments, onSaved }) {
   const approved = sumBy('aprobado');
   const pending = sumBy('pendiente');
   const rejected = sumBy('rechazado');
-  const balance = Math.max(num(invoice?.total) - approved, 0);
+  const balance = Math.max(billableTotal(invoice) - approved, 0);
   // Solo se puede abonar mientras la factura tenga saldo y siga activa.
   const canAbonar = balance > 0.01 && !['cancelada', 'pagada'].includes(invoice?.status);
 

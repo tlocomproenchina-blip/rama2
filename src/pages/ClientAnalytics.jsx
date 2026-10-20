@@ -17,6 +17,7 @@ import ClientCbmHistory from '@/components/client-analytics/ClientCbmHistory';
 import ClientInvoicesList from '@/components/client-analytics/ClientInvoicesList';
 import ClientCargoPanel from '@/components/client-cargo/ClientCargoPanel';
 import ClientGuidesPanel from '@/components/client-cargo/ClientGuidesPanel';
+import { billableTotal } from '@/lib/storageLines';
 
 function getLastMonths(count) {
   const now = new Date();
@@ -157,7 +158,7 @@ export default function ClientAnalytics() {
     invoices.filter((invoice) => invoice.status !== 'cancelada').forEach((invoice) => {
       const date = new Date(invoice.invoice_date || invoice.created_date);
       const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-      if (monthlySpendMap.has(key)) monthlySpendMap.get(key).amount += Number(invoice.total || 0);
+      if (monthlySpendMap.has(key)) monthlySpendMap.get(key).amount += billableTotal(invoice);
     });
 
     const shipmentCostHistory = consolidations.slice(0, 8).reverse().map((item, index) => ({
@@ -172,7 +173,7 @@ export default function ClientAnalytics() {
     const payableConsolidations = consolidations.filter((item) => Number(item.total_cost || 0) > 0);
     const insuredConsolidations = consolidations.filter((item) => Number(item.insurance_cost || 0) > 0).length;
 
-    const totalSpend = invoices.filter((invoice) => invoice.status !== 'cancelada').reduce((sum, invoice) => sum + Number(invoice.total || 0), 0);
+    const totalSpend = invoices.filter((invoice) => invoice.status !== 'cancelada').reduce((sum, invoice) => sum + billableTotal(invoice), 0);
     const monthlyAverage = totalConsolidations ? totalSpend / Math.max(months.length, 1) : 0;
     const averageShipmentCost = payableConsolidations.length ? payableConsolidations.reduce((sum, item) => sum + Number(item.total_cost || 0), 0) / payableConsolidations.length : 0;
     const billableWeights = consolidations.filter((item) => Number(item.billable_weight || 0) > 0);
