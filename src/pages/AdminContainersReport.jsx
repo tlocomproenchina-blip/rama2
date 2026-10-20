@@ -3,14 +3,10 @@ import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
-import { Download, Loader2, RefreshCw, Search, Boxes } from 'lucide-react';
+import { Download, Loader2, Printer, RefreshCw, Search, Boxes } from 'lucide-react';
 import { toast } from 'sonner';
-import {
-  groupContainersByClient,
-  downloadContainersByClientReport,
-  containerKey,
-  buildSelectionGroups,
-} from '@/lib/containersByClientReport';
+import { groupContainersByClient, containerKey, buildSelectionGroups } from '@/lib/containersByClientReport';
+import { generateContainersReportPdf } from '@/lib/containersReportPdf';
 import ClientContainersCard from '@/components/containers-by-client/ClientContainersCard';
 
 // Pantalla administrativa: contenedores agrupados por cliente. Permite buscar,
@@ -60,16 +56,18 @@ export default function AdminContainersReport() {
     setSelectedKeys((current) => (current.includes(key) ? current.filter((item) => item !== key) : [...current, key]));
   };
 
-  const exportSelection = async () => {
+  const exportSelection = async (mode = 'save') => {
     if (!selectedGroups.length) {
       toast.error('Selecciona al menos un contenedor');
       return;
     }
     setExporting(true);
-    await downloadContainersByClientReport(selectedGroups);
+    await generateContainersReportPdf(selectedGroups, 'TLEC CARGO', mode);
     setExporting(false);
-    const containersCount = selectedGroups.reduce((sum, group) => sum + group.totalContainers, 0);
-    toast.success(`Archivo generado con ${containersCount} contenedor(es) de ${selectedGroups.length} cliente(s)`);
+    if (mode === 'save') {
+      const containersCount = selectedGroups.reduce((sum, group) => sum + group.totalContainers, 0);
+      toast.success(`PDF generado con ${containersCount} contenedor(es) de ${selectedGroups.length} cliente(s)`);
+    }
   };
 
   const totalContainers = groups.reduce((sum, group) => sum + group.totalContainers, 0);
@@ -99,9 +97,13 @@ export default function AdminContainersReport() {
             {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
             Recargar
           </Button>
-          <Button onClick={exportSelection} disabled={!selectedGroups.length || exporting}>
+          <Button variant="outline" onClick={() => exportSelection('print')} disabled={!selectedGroups.length || exporting}>
+            <Printer className="mr-2 h-4 w-4" />
+            Imprimir
+          </Button>
+          <Button onClick={() => exportSelection('save')} disabled={!selectedGroups.length || exporting}>
             {exporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-            Exportar selección ({selectedContainers} cont.)
+            Generar PDF ({selectedContainers} cont.)
           </Button>
         </div>
       </div>
@@ -160,7 +162,7 @@ export default function AdminContainersReport() {
 
       <p className="text-xs text-muted-foreground">
         Selección actual: {selectedGroups.length} cliente(s) · {selectedContainers} contenedor(es) · {selectedBultos} bulto(s).
-        El archivo trae una hoja de resumen por cliente y otra con el detalle de cada contenedor.
+        El PDF lista en secuencia continua cada contenedor con su cliente, shipping mark, número, bultos y descripción.
       </p>
     </div>
   );
