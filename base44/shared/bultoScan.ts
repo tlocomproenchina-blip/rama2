@@ -232,6 +232,8 @@ export function bultoScanProjection(bulto: any) {
     // Los códigos sin registrar cuentan como un paquete más del bulto.
     package_count: ((bulto.package_ids || []).length + (bulto.unregistered_codes || []).length)
       || (bulto.package_trackings || []).length,
+    // IDs de los paquetes que van dentro: los usa el armado de cajas al absorberlo.
+    package_ids: bulto.package_ids || [],
     package_trackings: bulto.package_trackings || [],
     unregistered_codes: bulto.unregistered_codes || [],
     cbm_order_numbers: bulto.cbm_order_numbers || [],

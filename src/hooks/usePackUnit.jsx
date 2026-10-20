@@ -4,7 +4,8 @@ import { del, getAll, put } from '@/lib/offlineDb';
 import { blockNumberFromCode, isBultoCode, isCajaCode, markOfBlockCode } from '@/lib/cajaCodes';
 import {
   absorbBultoIntoLocalCaja, cajaContents, createLocalCaja, dropLocalBultoFromQueue,
-  findLocalBultoByCode, findLocalClientByMark, findLocalPackage, removeLastFromLocalCaja, saveLocalCaja,
+  findLocalBultoByCode, findLocalClientByMark, findLocalPackage, findServerBultoByCode,
+  removeLastFromLocalCaja, saveLocalCaja,
 } from '@/lib/cajaLocal';
 import { addPackageToUnit, createLocalBulto, findOpenUnit, loadOpenUnits, sameClient, saveUnit } from '@/lib/packUnits';
 
@@ -173,15 +174,27 @@ export default function usePackUnit({
       }
 
       if (isBultoCode(value)) {
-        const target = await findLocalBultoByCode(value);
+        // Primero el caché del dispositivo; si el bulto se creó en otro equipo o en una
+        // sesión anterior, se busca en el servidor para poder absorberlo igual.
+        const target = (await findLocalBultoByCode(value)) || (await findServerBultoByCode(value));
         const active = activeUnitRef.current;
         if (active?.is_caja) {
           if (!target) {
-            setPendingCode({ code: value, reason: 'no está registrado en este dispositivo' });
+            setPendingCode({ code: value, reason: 'no está registrado en el sistema' });
             return;
           }
           if (target.is_caja) {
             setError('Ese código es de otra caja consolidada.');
+            return;
+          }
+          if (String(target.status || '') === 'despachado') {
+            setError('Ese bulto ya fue despachado: no se puede consolidar.');
+            return;
+          }
+          const already = (active.absorbed_codes || [])
+            .some((c) => String(c).toUpperCase() === String(target.label_code || value).toUpperCase());
+          if (already) {
+            setError('Ese bulto ya está dentro de esta caja.');
             return;
           }
           if (!sameClient(target.client_email, active.client_email)) {

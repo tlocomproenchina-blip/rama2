@@ -5,6 +5,7 @@
 // bultos (los elimina y deja constancia) y la caja queda como la unidad que se despacha.
 // Mientras se arma, todo se resuelve contra el caché del dispositivo para que el trabajo
 // no se detenga si la conexión falla.
+import { base44 } from '@/api/base44Client';
 import { getAll, put, del, findPackageByLabelCode, findPackageByTracking } from '@/lib/offlineDb';
 import { buildCajaCode, isCajaCode } from '@/lib/cajaCodes';
 import { realPackageCount } from '@/lib/bultoCounts';
@@ -22,6 +23,21 @@ export async function findLocalClientByMark(markRaw) {
   if (!mark) return null;
   const clients = await getAll('clients').catch(() => []);
   return clients.find((c) => text(c.shipping_mark).toLowerCase() === mark) || null;
+}
+
+// Bulto que ya existe en el servidor (creado desde otro dispositivo o en una sesión
+// anterior): se consulta cuando no está en el caché para poder absorberlo en una caja.
+export async function findServerBultoByCode(code) {
+  const value = text(code);
+  if (!value) return null;
+  try {
+    const res = await base44.functions.invoke('getBultoByLabelCode', { label_code: value });
+    const bulto = res?.data?.bulto;
+    if (!bulto?.label_code) return null;
+    return { ...bulto, from_server: true };
+  } catch (_) {
+    return null;
+  }
 }
 
 export async function findLocalBultoByCode(code) {
