@@ -1,17 +1,21 @@
 // Exportación de los resultados del Portal de Consulta Compartido.
 // El navegador arma el archivo con las filas que ya entregó el servidor: el
 // portal nunca expone datos fuera del alcance ni de lo que se está viendo.
-import { portalEstadoLabel, portalOrigenLabel } from '@/lib/sharedPortalFormat';
+import { portalEstadoLabel } from '@/lib/sharedPortalFormat';
 
+// La columna 'Origen' no se exporta: nadie la usa fuera de la app.
 export const PORTAL_COLUMNS = [
   { key: 'tracking_number', label: 'Tracking', label_zh: '追踪号' },
   { key: 'shipping_mark', label: 'Shipping Mark', label_zh: '唛头' },
   { key: 'registro', label: 'Fecha de registro', label_zh: '登记日期' },
   { key: 'recepcion', label: 'Fecha de recepción', label_zh: '收货日期' },
   { key: 'estado', label: 'Estado', label_zh: '状态' },
-  { key: 'origen', label: 'Origen', label_zh: '来源' },
   { key: 'photo_url', label: 'Foto de entrega', label_zh: '交货照片' },
 ];
+
+// Texto que se muestra en la celda del Excel en lugar de la dirección completa:
+// así el enlace se toca y abre desde el móvil sin pelear con una URL larga.
+export const PORTAL_PHOTO_LABEL = 'Ver foto';
 
 // La tabla exportada arranca con dos filas de encabezado: el texto en español y,
 // debajo, el mismo encabezado en chino mandarín.
@@ -19,7 +23,6 @@ const PORTAL_HEADER_ROWS = 2;
 
 function cellText(row, key) {
   if (key === 'estado') return portalEstadoLabel(row?.estado);
-  if (key === 'origen') return portalOrigenLabel(row?.origen);
   if (key === 'recepcion') return row?.recepcion || 'Pendiente';
   if (key === 'photo_url') return String(row?.photo_url || '');
   return String(row?.[key] ?? '');
@@ -61,15 +64,20 @@ export function downloadPortalCsv(rows) {
 export async function downloadPortalXlsx(rows) {
   const XLSX = await import('xlsx');
   const sheet = XLSX.utils.aoa_to_sheet(portalRowsToAoa(rows));
-  // Foto de la entrega del cliente: viaja como enlace abrible desde el propio Excel.
+  // Foto de la entrega: la celda queda como enlace de verdad, con un texto corto
+  // que se puede tocar desde el móvil. En CSV y en "Copiar" viaja la dirección
+  // completa, para quien la necesite pegar en otra parte.
   const photoColumn = PORTAL_COLUMNS.findIndex((column) => column.key === 'photo_url');
   rows.forEach((row, index) => {
     const target = String(row?.photo_url || '');
     if (!target) return;
     const ref = XLSX.utils.encode_cell({ r: index + PORTAL_HEADER_ROWS, c: photoColumn });
-    if (sheet[ref]) sheet[ref].l = { Target: target, Tooltip: 'Foto de la entrega' };
+    if (!sheet[ref]) return;
+    sheet[ref].v = PORTAL_PHOTO_LABEL;
+    sheet[ref].t = 's';
+    sheet[ref].l = { Target: target, Tooltip: 'Tocar para abrir la foto de la entrega' };
   });
-  sheet['!cols'] = [{ wch: 20 }, { wch: 18 }, { wch: 16 }, { wch: 26 }, { wch: 30 }, { wch: 16 }, { wch: 44 }];
+  sheet['!cols'] = [{ wch: 20 }, { wch: 18 }, { wch: 16 }, { wch: 26 }, { wch: 30 }, { wch: 14 }];
   const book = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(book, sheet, 'Trackings');
   XLSX.writeFile(book, `${portalExportName()}.xlsx`);
