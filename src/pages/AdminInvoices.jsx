@@ -106,13 +106,6 @@ export default function AdminInvoices({ user }) {
     if (showCreateModal && consolidations.length === 0) loadConsolidations();
   }, [showCreateModal]);
 
-  // Ganancia visible: descuenta las líneas de almacenamiento que están en pausa.
-  const visibleProfit = (invoice) => {
-    const stored = Number(invoice?.profit_amount || 0);
-    const hidden = Number(invoice?.total || 0) - billableTotal(invoice);
-    return stored - hidden;
-  };
-
   const computeStats = (list) => {
     let paid = 0, pending = 0, revenue = 0, profit = 0, insuranceCollected = 0;
     for (const i of list) {
@@ -129,7 +122,7 @@ export default function AdminInvoices({ user }) {
         }
       }
       else if (i.status === 'pendiente') pending++;
-      if (i.profit_amount !== undefined && i.profit_amount !== null) profit += visibleProfit(i);
+      if (i.profit_amount !== undefined && i.profit_amount !== null) profit += Number(i.profit_amount) || 0;
     }
     setStats({ total: list.length, paid, pending, revenue, profit, insuranceCollected });
   };
@@ -519,7 +512,7 @@ export default function AdminInvoices({ user }) {
 
       setInvoices(prev => prev.map(i => i.id === invoice.id ? { ...i, provider_payment_history: newHistory } : i));
       setStats(prev => {
-        const oldProfit = (invoice.profit_amount != null) ? visibleProfit(invoice) : 0;
+        const oldProfit = (invoice.profit_amount != null) ? Number(invoice.profit_amount) : 0;
         return { ...prev, profit: Number(prev.profit || 0) - oldProfit + profit };
       });
       toast.success('Abono registrado');
@@ -1003,8 +996,8 @@ export default function AdminInvoices({ user }) {
               {/* Columna lateral derecha: badges + acciones apiladas */}
               <div className="flex flex-row flex-wrap lg:flex-col gap-2 w-full lg:w-44 shrink-0 items-stretch content-start">
                 {invoice.profit_amount != null && (
-                  <span className={`text-xs font-semibold px-2.5 py-1.5 rounded-full text-center whitespace-nowrap ${visibleProfit(invoice) >= 0 ? 'bg-purple-100 text-purple-700' : 'bg-red-100 text-red-700'}`}>
-                    Ganancia: ${visibleProfit(invoice).toFixed(2)}
+                  <span className={`text-xs font-semibold px-2.5 py-1.5 rounded-full text-center whitespace-nowrap ${Number(invoice.profit_amount) >= 0 ? 'bg-purple-100 text-purple-700' : 'bg-red-100 text-red-700'}`}>
+                    Ganancia: ${Number(invoice.profit_amount).toFixed(2)}
                   </span>
                 )}
                 {invoice.provider_paid && (
