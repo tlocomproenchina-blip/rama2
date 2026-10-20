@@ -17,8 +17,9 @@ import InvoiceCard from '@/components/invoice/InvoiceCard';
 import ProviderCostControl from '@/components/invoice/ProviderCostControl';
 import ProviderInvoiceUploader from '@/components/manual-billing/ProviderInvoiceUploader';
 import DispatchReceiptModal from '@/components/invoice/DispatchReceiptModal';
-import { FileText, Search, Loader2, Download, Edit, Trash2, PackageX, Package, MessageCircle, Truck, ClipboardList } from 'lucide-react';
+import { FileText, Search, Loader2, Download, Edit, Trash2, PackageX, Package, MessageCircle, Truck, ClipboardList, Calculator } from 'lucide-react';
 import InvoiceStatsCards from '@/components/invoice/InvoiceStatsCards';
+import InvoiceTariffRecalcDialog from '@/components/invoice/recalc/InvoiceTariffRecalcDialog';
 import WarehouseOrderModal from '@/components/invoice/WarehouseOrderModal';
 import { generateWarehouseOrder } from '@/lib/warehouseOrder';
 import WarehousePaidTable from '@/components/invoice/WarehousePaidTable';
@@ -64,6 +65,7 @@ export default function AdminInvoices({ user }) {
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [showPaymentsSettings, setShowPaymentsSettings] = useState(false);
+  const [showTariffRecalc, setShowTariffRecalc] = useState(false);
   const [appConfig, setAppConfig] = useState(null);
   const [dispatchReceipt, setDispatchReceipt] = useState(null);
   const [warehouseOrderInvoice, setWarehouseOrderInvoice] = useState(null);
@@ -727,6 +729,10 @@ export default function AdminInvoices({ user }) {
           <p className="text-slate-500">Administra facturas y pagos de clientes</p>
         </div>
         <div className="header-actions flex flex-wrap gap-2 w-full sm:w-auto">
+          <Button variant="outline" onClick={() => setShowTariffRecalc(true)}>
+            <Calculator className="h-4 w-4 mr-2" />
+            Recalcular tarifas
+          </Button>
           <Button onClick={handleExportAll} variant="outline">
             <Download className="h-4 w-4 mr-2" />
             Exportar CSV
@@ -1273,6 +1279,13 @@ export default function AdminInvoices({ user }) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Recálculo de tarifas por tipo de carga de cada recibo */}
+      <InvoiceTariffRecalcDialog
+        open={showTariffRecalc}
+        onOpenChange={setShowTariffRecalc}
+        onApplied={() => loadInvoices(false)}
+      />
 
       {/* Recibo de Despacho */}
       <DispatchReceiptModal
