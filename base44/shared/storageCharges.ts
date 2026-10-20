@@ -364,24 +364,61 @@ export function applyStorageLines(invoice: any, plan: any, units: any[]) {
 
   if (plan.storage_accumulated_after > 0) {
     const days = Math.max(1, num(plan.days_charged_after) - plan.start_day + 1);
-    lines.push({
-      description: `Almacenamiento y custodia (día ${plan.start_day} al ${num(plan.days_charged_after)})`,
-      quantity: days,
-      unit_price: round2(plan.storage_accumulated_after / days),
-      total: round2(plan.storage_accumulated_after),
-      details: {
-        kind: STORAGE_LINE_KIND,
-        days,
-        from_day: plan.start_day,
-        to_day: num(plan.days_charged_after),
-        daily_amount: plan.daily_amount,
-        units_standard: plan.units_standard,
-        units_large: plan.units_large,
-        rate_standard: plan.daily_rate_standard,
-        rate_large: plan.daily_rate_large,
-        updated_date: now,
-      },
-    });
+    const toDay = num(plan.days_charged_after);
+    const rateStandard = num(plan.daily_rate_standard);
+    const rateLarge = num(plan.daily_rate_large);
+    const unitsStandard = num(plan.units_standard);
+    const unitsLarge = num(plan.units_large);
+
+    // Cada tipo de bulto va en su propia línea con la tarifa diaria aprobada
+    // como precio unitario y los bulto-día como cantidad (bultos × días), para
+    // que el almacenamiento nunca se confunda con el recargo de montacargas.
+    const computedStandard = round2(unitsStandard * rateStandard * days);
+    const computedLarge = round2(unitsLarge * rateLarge * days);
+    const computed = round2(computedStandard + computedLarge);
+    const factor = computed > 0 ? num(plan.storage_accumulated_after) / computed : 0;
+
+    const storageLine = (category: string, units: number, amount: number) => {
+      const quantity = Math.max(1, units * days);
+      lines.push({
+        description: `Almacenamiento y custodia · bultos ${category} (día ${plan.start_day} al ${toDay})`,
+        quantity,
+        unit_price: round2(amount / quantity),
+        total: round2(amount),
+        details: {
+          kind: STORAGE_LINE_KIND,
+          category: category === "grandes" ? CATEGORY_LARGE : CATEGORY_STANDARD,
+          days,
+          from_day: plan.start_day,
+          to_day: toDay,
+          units,
+          rate: category === "grandes" ? rateLarge : rateStandard,
+          daily_amount: round2(units * (category === "grandes" ? rateLarge : rateStandard)),
+          updated_date: now,
+        },
+      });
+    };
+
+    if (unitsStandard > 0) storageLine("estándar", unitsStandard, computedStandard * factor);
+    if (unitsLarge > 0) storageLine("grandes", unitsLarge, computedLarge * factor);
+    if (!unitsStandard && !unitsLarge) {
+      lines.push({
+        description: `Almacenamiento y custodia (día ${plan.start_day} al ${toDay})`,
+        quantity: days,
+        unit_price: round2(num(plan.storage_accumulated_after) / days),
+        total: round2(plan.storage_accumulated_after),
+        details: {
+          kind: STORAGE_LINE_KIND,
+          days,
+          from_day: plan.start_day,
+          to_day: toDay,
+          daily_amount: plan.daily_amount,
+          rate_standard: rateStandard,
+          rate_large: rateLarge,
+          updated_date: now,
+        },
+      });
+    }
   }
 
   if (plan.forklift_accumulated_after > 0) {

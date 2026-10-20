@@ -10,6 +10,7 @@ import { createPageUrl } from '@/utils';
 import PayPalInline from '@/components/payments/PayPalInline';
 import PaymentModal from '@/components/PaymentModal';
 import { FileText, Search, Loader2, CreditCard } from 'lucide-react';
+import { displayInvoiceItems } from '@/lib/storageLines';
 import { toast } from 'sonner';
 import jsPDF from 'jspdf';
 import ClientPageHero from '@/components/client-portal/ClientPageHero';
@@ -127,7 +128,7 @@ export default function MyInvoices({ user }) {
     yPos += 7;
     
     doc.setFontSize(10);
-    invoice.items?.forEach(item => {
+    displayInvoiceItems(invoice).forEach(item => {
       doc.text(item.description, 20, yPos);
       doc.text(`$${item.total.toFixed(2)}`, 170, yPos);
       yPos += 7;

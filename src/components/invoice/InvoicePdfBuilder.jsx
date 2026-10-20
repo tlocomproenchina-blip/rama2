@@ -1,4 +1,5 @@
 import jsPDF from 'jspdf';
+import { displayInvoiceItems } from '@/lib/storageLines';
 
 const fmt = (n) => `USD${Number(n || 0).toFixed(2)}`;
 const fmtDate = (d) => {
@@ -216,7 +217,7 @@ export async function buildInvoicePdf(invoice, appConfig = {}, clientUser = null
     }
   };
 
-  (invoice.items || []).forEach((item) => {
+  displayInvoiceItems(invoice).forEach((item) => {
     const qty = item.quantity || 1;
     const unit = item.unit_price != null ? item.unit_price : (item.total || 0);
     const descLines = doc.splitTextToSize(item.description || '', colCantX - marginL - 6);

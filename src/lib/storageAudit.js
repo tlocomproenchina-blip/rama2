@@ -40,7 +40,9 @@ export function invoiceStorageLines(invoice) {
     const kind = item?.details?.kind;
     if (kind === 'storage_charge') {
       storage += Number(item.total) || 0;
-      days += Number(item.details?.days) || 0;
+      // El almacenamiento puede venir en dos líneas (bultos estándar y grandes):
+      // los días se cuentan una sola vez.
+      days = Math.max(days, Number(item.details?.days) || 0);
     } else if (kind === 'forklift_charge') {
       forklift += Number(item.total) || 0;
     }

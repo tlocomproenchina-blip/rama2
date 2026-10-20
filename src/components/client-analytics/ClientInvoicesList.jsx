@@ -6,6 +6,7 @@ import { buildWhatsAppUrl } from '@/lib/whatsappContact';
 import InvoicePDFGenerator from '@/components/invoice/InvoicePDFGenerator';
 import ClientInvoicePayments from '@/components/client-analytics/ClientInvoicePayments';
 import ClientPaymentsSummary from '@/components/client-analytics/ClientPaymentsSummary';
+import { displayInvoiceItems } from '@/lib/storageLines';
 
 const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 
@@ -90,7 +91,7 @@ export default function ClientInvoicesList({ invoices, payments = [], client, on
         ) : (
           list.map((invoice) => {
             const isOpen = expanded === invoice.id;
-            const items = Array.isArray(invoice.items) ? invoice.items : [];
+            const items = displayInvoiceItems(invoice);
             const invoicePayments = paymentsByInvoice.get(invoice.id) || [];
             const paid = paidFor(invoice.id);
             const balance = Math.max(num(invoice.total) - paid, 0);
