@@ -5,19 +5,7 @@ import { toast } from 'sonner';
 import { buildBultoLabelPayload, concatUint8Arrays } from '@/lib/tspl';
 import { labelContentCodes, realPackageCount } from '@/lib/bultoCounts';
 import { isNewLabel, labelSymbolImage } from '@/lib/labelSymbol';
-
-// Common BLE service/characteristic UUIDs for ESC/POS thermal printers (POS-9250-L / ZJ-9250)
-const PRINTER_SERVICES = [
-  '000018f0-0000-1000-8000-00805f9b34fb',
-  '0000ff00-0000-1000-8000-00805f9b34fb',
-  '0000fee7-0000-1000-8000-00805f9b34fb',
-  '49535343-fe7d-4ae4-9fa8-5b5fef8f6bd7',
-];
-const WRITE_CHARACTERISTICS = [
-  '00002af1-0000-1000-8000-00805f9b34fb',
-  '0000ff02-0000-1000-8000-00805f9b34fb',
-  '49535343-8841-43f4-a8d4-ecbe34729bb3',
-];
+import { resolvePrinterDevice, findWriteCharacteristic, connectAuthorizedPrinter } from '@/lib/bluetoothReconnect';
 
 const CHUNK_SIZE = 180; // safe BLE write chunk
 const INTER_CHUNK_DELAY_MS = 80; // delay entre chunks para evitar desbordamiento del buffer
@@ -31,41 +19,14 @@ export default function BluetoothPrinter({ bultos = [], onPrinted, size = 'defau
 
   const btSupported = typeof navigator !== 'undefined' && !!navigator.bluetooth;
 
-  const findWriteCharacteristic = async (server) => {
-    for (const serviceUuid of PRINTER_SERVICES) {
-      let service;
-      try {
-        service = await server.getPrimaryService(serviceUuid);
-      } catch (_) {
-        continue;
-      }
-      for (const charUuid of WRITE_CHARACTERISTICS) {
-        try {
-          const char = await service.getCharacteristic(charUuid);
-          if (char && (char.properties.write || char.properties.writeWithoutResponse)) {
-            return char;
-          }
-        } catch (_) {}
-      }
-      // Fallback: first writable characteristic in the service
-      try {
-        const chars = await service.getCharacteristics();
-        const writable = chars.find((c) => c.properties.write || c.properties.writeWithoutResponse);
-        if (writable) return writable;
-      } catch (_) {}
-    }
-    return null;
-  };
-
   const connect = async () => {
     if (!btSupported) throw new Error('Bluetooth no soportado en este navegador');
     setStatus('connecting');
     setError('');
 
-    const device = await navigator.bluetooth.requestDevice({
-      filters: [{ services: [PRINTER_SERVICES[0]] }, { services: [PRINTER_SERVICES[1]] }, { namePrefix: 'POS' }, { namePrefix: 'ZJ' }, { namePrefix: 'Printer' }],
-      optionalServices: PRINTER_SERVICES,
-    });
+    // En standby esto pide el dispositivo como siempre; con la reconexión
+    // activada reutiliza la impresora ya autorizada y evita el diálogo.
+    const { device } = await resolvePrinterDevice();
 
     deviceRef.current = device;
     const server = await device.gatt.connect();
@@ -124,7 +85,15 @@ export default function BluetoothPrinter({ bultos = [], onPrinted, size = 'defau
     try {
       // Connect if needed
       if (!characteristicRef.current || !deviceRef.current?.gatt?.connected) {
-        await connect();
+        const silent = await connectAuthorizedPrinter();
+        if (silent) {
+          deviceRef.current = silent.device;
+          serverRef.current = silent.server;
+          characteristicRef.current = silent.characteristic;
+          setStatus('connected');
+        } else {
+          await connect();
+        }
       }
       setStatus('printing');
 
