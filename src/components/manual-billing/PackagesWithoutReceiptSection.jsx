@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { PackageX, ShieldCheck, FileText, Layers, CheckCircle2 } from 'lucide-react';
+import { PackageX, ShieldCheck, FileText, Layers } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   Select,
@@ -29,20 +29,25 @@ export default function PackagesWithoutReceiptSection({ packages, onChange, avai
     return map;
   }, [receipts]);
 
-  if (!packages || packages.length === 0) return null;
+  // Los paquetes ya asignados a un recibo salen de esta lista: la asignación se conserva
+  // en el estado del padre y se integra al recibo al generar la factura.
+  const pendingPackages = useMemo(
+    () => (packages || []).filter((p) => !p.assigned_receipt_id),
+    [packages]
+  );
+
+  if (pendingPackages.length === 0) return null;
 
   const updatePkg = (id, patch) => {
     onChange(packages.map((p) => (p.id === id ? { ...p, ...patch } : p)));
   };
 
   const selectAll = (val) => {
-    onChange(packages.map((p) => ({ ...p, selected: !!val })));
+    onChange(packages.map((p) => (p.assigned_receipt_id ? p : { ...p, selected: !!val })));
   };
 
-  const selectedCount = packages.filter((p) => p.selected).length;
-  const allSelected = packages.length > 0 && selectedCount === packages.length;
-  const assignedCount = packages.filter((p) => p.assigned_receipt_id).length;
-  const pendingAssignCount = packages.length - assignedCount;
+  const selectedCount = pendingPackages.filter((p) => p.selected).length;
+  const allSelected = pendingPackages.length > 0 && selectedCount === pendingPackages.length;
 
   const handleAssign = (pkgId, receiptId) => {
     updatePkg(pkgId, { assigned_receipt_id: receiptId });
@@ -53,8 +58,8 @@ export default function PackagesWithoutReceiptSection({ packages, onChange, avai
 
   const applyBulkAssign = () => {
     if (!bulkReceiptId) return;
-    const count = packages.filter((p) => p.selected).length;
-    onChange(packages.map((p) => (p.selected ? { ...p, assigned_receipt_id: bulkReceiptId } : p)));
+    const count = pendingPackages.filter((p) => p.selected).length;
+    onChange(packages.map((p) => (p.assigned_receipt_id || !p.selected ? p : { ...p, assigned_receipt_id: bulkReceiptId })));
     if (onAssignReceipt) onAssignReceipt(bulkReceiptId);
     const num = receiptNumberById[bulkReceiptId] || '';
     setBulkReceiptId('');
@@ -72,17 +77,7 @@ export default function PackagesWithoutReceiptSection({ packages, onChange, avai
             />
             <PackageX className="h-5 w-5 text-amber-600" />
             <h3 className="font-semibold text-slate-800">Paquetes sin recibo</h3>
-            <span className="text-xs text-slate-500">({packages.length})</span>
-            {pendingAssignCount > 0 && (
-              <span className="rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700">
-                {pendingAssignCount} pendiente(s) de asignar
-              </span>
-            )}
-            {assignedCount > 0 && (
-              <span className="rounded-full border border-emerald-300 bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
-                {assignedCount} asignado(s)
-              </span>
-            )}
+            <span className="text-xs text-slate-500">({pendingPackages.length})</span>
           </div>
           {selectedCount > 0 && (
             <button
@@ -136,16 +131,12 @@ export default function PackagesWithoutReceiptSection({ packages, onChange, avai
           </div>
         )}
         <div className="space-y-2">
-          {packages.map((pkg) => {
-            const assignedNumber = pkg.assigned_receipt_id ? receiptNumberById[pkg.assigned_receipt_id] : null;
-            const isAssigned = !!pkg.assigned_receipt_id;
+          {pendingPackages.map((pkg) => {
             return (
               <div
                 key={pkg.id}
                 className={`rounded-lg border p-3 transition-colors ${
-                  isAssigned
-                    ? 'border-emerald-300 bg-emerald-50/50'
-                    : pkg.selected ? 'border-amber-300 bg-amber-50/40' : 'border-slate-200'
+                  pkg.selected ? 'border-amber-300 bg-amber-50/40' : 'border-slate-200'
                 }`}
               >
                 <div className="flex items-start gap-3">
@@ -159,12 +150,6 @@ export default function PackagesWithoutReceiptSection({ packages, onChange, avai
                     {pkg.fob_value > 0 && (
                       <p className="text-xs text-emerald-700 flex items-center gap-1 mt-0.5">
                         <ShieldCheck className="h-3 w-3" /> FOB ${Number(pkg.fob_value).toFixed(2)}
-                      </p>
-                    )}
-                    {isAssigned && (
-                      <p className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-emerald-700">
-                        <CheckCircle2 className="h-3.5 w-3.5" />
-                        Asignado al recibo {assignedNumber || 'seleccionado'}
                       </p>
                     )}
                     {pkg.selected && (
