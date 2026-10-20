@@ -13,8 +13,8 @@ export default function PublicGuidesHeader() {
         <div className="min-w-0">
           <p className="font-display text-lg font-bold text-foreground md:text-xl">Guías de despacho</p>
           <p className="text-sm text-muted-foreground">
-            Consulta por cliente, shipping mark o número de guía. Verás el número de contenedor y los
-            bultos de cada cliente.
+            Consulta por cliente, shipping mark, contenedor o número de guía. Verás tus contenedores y los
+            bultos de cada uno, con la opción de imprimir o descargar el informe.
           </p>
         </div>
       </div>

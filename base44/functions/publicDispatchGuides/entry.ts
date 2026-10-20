@@ -1,13 +1,21 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.54';
+import { fetchAllFilter, errorMessage, normTracking } from '../../shared/paginatedFetch.ts';
 
-// Consulta pública de guías de despacho: solo lectura y sin sesión de la app.
-// Devuelve únicamente lo que necesita quien consulta desde el enlace: el número
-// de guía, el número de contenedor de cada cliente, los bultos por cliente y los
-// totales. No expone correos, cédulas ni direcciones. El filtrado, el conteo de
-// coincidencias y la paginación se resuelven aquí.
+// =====================================================================
+// Consulta pública de guías de despacho (enlace compartido, solo lectura).
+//
+// Devuelve las guías agrupadas por cliente, con el mismo contenido que el
+// informe administrativo "Contenedores por cliente": por cada cliente, sus
+// números de contenedor (N° de orden/envío de sus bultos en las guías), los
+// bultos de cada contenedor y una descripción.
+//
+// No expone correos, cédulas ni direcciones: el nombre del cliente y su
+// shipping mark son lo único que se muestra.
+// =====================================================================
 
-const PAGE_SIZE = 40;
-const MAX_PAGE_SIZE = 100;
+const PAGE_SIZE = 12;
+const MAX_PAGE_SIZE = 60;
+const CHUNK = 100;
 const SIN_CONTENEDOR = /^sin\s+n/i;
 
 const text = (value: any) => String(value ?? '').trim();
@@ -15,54 +23,14 @@ const num = (value: any) => {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : 0;
 };
-
-// N° de contenedor de un cliente: los N° de orden/envío de sus bultos en la guía,
-// sin repetir y sin las líneas que salieron sin contenedor asignado.
-const containersOf = (client: any) => {
-  const found = new Set<string>();
-  (Array.isArray(client?.bultos) ? client.bultos : []).forEach((bulto: any) => {
-    const number = text(bulto?.order_number);
-    if (number && !SIN_CONTENEDOR.test(number)) found.add(number);
-  });
-  return [...found];
-};
-
-const clientOf = (client: any) => ({
-  client_name: text(client?.client_name) || text(client?.client_email) || 'Cliente',
-  shipping_mark: text(client?.shipping_mark) || text(client?.client?.shipping_mark),
-  bultos: num(client?.totals?.bultos) || (Array.isArray(client?.bultos) ? client.bultos.length : 0),
-  packages: num(client?.totals?.packages),
-  unregistered: num(client?.totals?.unregistered),
-  containers: containersOf(client),
-});
-
-const guideOf = (guide: any) => {
-  const clients = (Array.isArray(guide?.clients) ? guide.clients : []).map(clientOf);
-  return {
-    id: guide.id,
-    guide_number: text(guide.guide_number),
-    emitted_date: guide.emitted_date || '',
-    last_updated_date: guide.last_updated_date || '',
-    auto_generated: !!guide.auto_generated,
-    source: text(guide.source),
-    dispatch_status: guide.dispatch_status === 'entregada' ? 'entregada' : 'emitida',
-    delivered_date: guide.delivered_date || '',
-    received_by: text(guide.received_by),
-    totals: {
-      clients: num(guide?.totals?.clients) || clients.length,
-      bultos: num(guide?.totals?.bultos),
-      packages: num(guide?.totals?.packages),
-      unregistered: num(guide?.totals?.unregistered),
-      cbm: num(guide?.totals?.cbm),
-    },
-    clients,
-  };
-};
+const key = (value: any) => text(value).toUpperCase();
+const randInt = (max: number) => Math.floor(Math.random() * max);
 
 export default async function (req: Request): Promise<Response> {
   try {
     const base44 = createClientFromRequest(req);
     const body = await req.json().catch(() => ({}));
+    const svc = base44.asServiceRole.entities;
 
     const query = text(body?.query ?? body?.search);
     const from = text(body?.from);
@@ -72,49 +40,161 @@ export default async function (req: Request): Promise<Response> {
     const skip = Math.max(num(body?.skip), 0);
 
     const andClauses: any[] = [];
-
     if (from || to) {
       const range: any = {};
       if (from) range.$gte = from;
       if (to) range.$lte = to;
       andClauses.push({ emitted_date: range });
     }
-
     if (status === 'emitida' || status === 'entregada') {
       andClauses.push({ dispatch_status: status });
     }
 
-    // Búsqueda por cliente, shipping mark, número de guía o código de bulto.
-    // El texto se escapa para que un carácter suelto no rompa la consulta.
-    if (query) {
-      const rx = { $regex: query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' };
-      andClauses.push({
-        $or: [
-          { guide_number: rx },
-          { client_names: rx },
-          { shipping_marks: rx },
-          { bulto_codes: rx },
-        ],
-      });
+    const guides = await fetchAllFilter(
+      svc.DispatchGuide,
+      andClauses.length ? { $and: andClauses } : {},
+      '-emitted_date'
+    );
+
+    // Agrupación por cliente y, dentro de cada cliente, por contenedor.
+    const clientes = new Map<string, any>();
+    const etiquetas = new Set<string>();
+
+    for (const guide of guides) {
+      const guideNumber = text((guide as any).guide_number);
+      for (const client of ((guide as any).clients || [])) {
+        const shippingMark = text(client?.shipping_mark) || text(client?.client?.shipping_mark);
+        const clientName =
+          text(client?.client_name) ||
+          text(client?.client?.full_name) ||
+          text(client?.client_email) ||
+          'Cliente';
+        const clientKey = key(shippingMark) || clientName.toLowerCase();
+        if (!clientKey) continue;
+
+        if (!clientes.has(clientKey)) {
+          clientes.set(clientKey, {
+            key: clientKey,
+            name: clientName,
+            shipping_mark: shippingMark,
+            containers: new Map<string, any>(),
+            guides: new Set<string>(),
+          });
+        }
+
+        const cliente = clientes.get(clientKey);
+        if (!cliente.shipping_mark && shippingMark) cliente.shipping_mark = shippingMark;
+        if (guideNumber) cliente.guides.add(guideNumber);
+
+        for (const line of (client?.bultos || [])) {
+          const container = text(line?.order_number);
+          if (!container || SIN_CONTENEDOR.test(container)) continue;
+
+          if (!cliente.containers.has(container)) {
+            cliente.containers.set(container, { container, labels: new Set<string>(), unlabeled: 0, guides: new Set<string>() });
+          }
+          const bucket = cliente.containers.get(container);
+          const labelCode = key(line?.label_code);
+          if (labelCode) {
+            bucket.labels.add(labelCode);
+            etiquetas.add(labelCode);
+          } else {
+            bucket.unlabeled += 1;
+          }
+          if (guideNumber) bucket.guides.add(guideNumber);
+        }
+      }
     }
 
-    const filter: any = andClauses.length ? { $and: andClauses } : {};
+    // Descripción de cada bulto: la registrada del bulto o, si no tiene, la de
+    // uno de sus productos.
+    const todasEtiquetas = [...etiquetas];
+    const bultoPorLabel = new Map<string, any>();
+    for (let i = 0; i < todasEtiquetas.length; i += CHUNK) {
+      const chunk = todasEtiquetas.slice(i, i + CHUNK);
+      const bultos = await fetchAllFilter(svc.Bulto, { label_code: { $in: chunk } }, '-created_date');
+      for (const bulto of bultos) {
+        const label = key((bulto as any).label_code);
+        if (!bultoPorLabel.has(label)) bultoPorLabel.set(label, bulto);
+      }
+    }
 
-    const [rawGuides, matched] = await Promise.all([
-      base44.asServiceRole.entities.DispatchGuide.filter(filter, '-emitted_date', limit, skip),
-      base44.asServiceRole.entities.DispatchGuide.count(filter).catch(() => null),
-    ]);
+    const trackings = [...new Set(
+      [...bultoPorLabel.values()].flatMap((bulto: any) =>
+        (bulto.package_trackings || []).map((tracking: any) => normTracking(tracking))
+      ).filter(Boolean)
+    )];
+    const descripcionPorTracking = new Map<string, string>();
+    for (let i = 0; i < trackings.length; i += CHUNK) {
+      const chunk = trackings.slice(i, i + CHUNK);
+      const paquetes = await fetchAllFilter(svc.Package, { tracking_number: { $in: chunk } }, '-created_date');
+      for (const paquete of paquetes) {
+        const description = text((paquete as any).description);
+        if (description) descripcionPorTracking.set(normTracking((paquete as any).tracking_number), description);
+      }
+    }
 
-    const guides = (Array.isArray(rawGuides) ? rawGuides : []).map(guideOf);
+    const descripcionDeBulto = (label: string): string => {
+      const bulto: any = bultoPorLabel.get(label);
+      const propia = text(bulto?.description);
+      if (propia) return propia;
+      const opciones = [...new Set(
+        (bulto?.package_trackings || [])
+          .map((tracking: any) => descripcionPorTracking.get(normTracking(tracking)))
+          .filter(Boolean)
+      )];
+      if (!opciones.length) return '';
+      return opciones[randInt(opciones.length)];
+    };
+
+    const clientList = [...clientes.values()].map((cliente) => {
+      const containers = [...cliente.containers.values()]
+        .map((bucket: any) => {
+          const labels = [...bucket.labels].sort();
+          const descripciones = [...new Set(labels.map(descripcionDeBulto).filter(Boolean))].slice(0, 10);
+          return {
+            container: bucket.container,
+            bultos: labels.length + bucket.unlabeled,
+            description: descripciones.join(' · '),
+            guides: [...bucket.guides].sort(),
+          };
+        })
+        .sort((a, b) => String(a.container).localeCompare(String(b.container), 'es', { numeric: true }));
+
+      return {
+        key: cliente.key,
+        name: cliente.name,
+        shipping_mark: cliente.shipping_mark,
+        guides: [...cliente.guides].sort(),
+        containers,
+        totals: {
+          containers: containers.length,
+          bultos: containers.reduce((sum, row) => sum + row.bultos, 0),
+        },
+      };
+    });
+
+    // La búsqueda se resuelve aquí: cliente, shipping mark, contenedor o guía.
+    const term = query.toLowerCase();
+    const filtered = term
+      ? clientList.filter((cliente) =>
+          [cliente.name, cliente.shipping_mark, ...cliente.guides, ...cliente.containers.map((row: any) => row.container)]
+            .filter(Boolean)
+            .some((value) => String(value).toLowerCase().includes(term))
+        )
+      : clientList;
+
+    filtered.sort((a, b) => a.name.localeCompare(b.name, 'es'));
+    const page = filtered.slice(skip, skip + limit);
 
     return Response.json({
-      guides,
-      matched: matched === null ? null : num(matched),
-      has_more: guides.length === limit,
-      next_skip: skip + guides.length,
+      clients: page,
+      matched: filtered.length,
+      has_more: skip + page.length < filtered.length,
+      next_skip: skip + page.length,
       generated_at: new Date().toISOString(),
     });
   } catch (error: any) {
-    return Response.json({ error: error?.message || 'No se pudo consultar las guías' }, { status: 500 });
+    return Response.json({ error: errorMessage(error) || 'No se pudo consultar las guías' }, { status: 500 });
   }
 }
