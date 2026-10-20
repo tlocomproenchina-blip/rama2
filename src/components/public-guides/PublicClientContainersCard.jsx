@@ -3,6 +3,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ChevronDown, Package } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import PublicClientDataGrid from '@/components/public-guides/PublicClientDataGrid';
 
 // Tarjeta de solo lectura del portal público de guías: un cliente con sus
 // contenedores y los bultos que salieron en las guías de despacho.
@@ -34,11 +35,15 @@ export default function PublicClientContainersCard({ client }) {
             <span>
               {totalBultos} bulto{totalBultos === 1 ? '' : 's'} en guías de despacho
             </span>
-            {client.guides?.length > 0 && <span>Guía{client.guides.length === 1 ? '' : 's'}: {client.guides.join(', ')}</span>}
           </div>
         </div>
+        <span className="mt-1 shrink-0 text-[11px] font-semibold text-muted-foreground">
+          {expanded ? 'Ocultar' : 'Ver contenedores'}
+        </span>
         <ChevronDown className={cn('mt-1 h-4 w-4 shrink-0 text-muted-foreground transition-transform', expanded && 'rotate-180')} />
       </button>
+
+      <PublicClientDataGrid client={client} />
 
       {expanded && (
         <div className="overflow-x-auto border-t border-border/70">

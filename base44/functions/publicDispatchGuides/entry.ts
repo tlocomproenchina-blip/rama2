@@ -9,8 +9,10 @@ import { fetchAllFilter, errorMessage, normTracking } from '../../shared/paginat
 // números de contenedor (N° de orden/envío de sus bultos en las guías), los
 // bultos de cada contenedor y una descripción.
 //
-// No expone correos, cédulas ni direcciones: el nombre del cliente y su
-// shipping mark son lo único que se muestra.
+// Además del nombre y el shipping mark, devuelve los datos de contacto que la
+// guía guardó en su snapshot del cliente (correo, cédula, WhatsApp, dirección,
+// ciudad y estado) y sus N° de orden/envío, para que el enlace compartido
+// muestre la ficha completa de cada cliente.
 // =====================================================================
 
 const PAGE_SIZE = 12;
@@ -80,6 +82,13 @@ export default async function (req: Request): Promise<Response> {
             key: clientKey,
             name: clientName,
             shipping_mark: shippingMark,
+            email: '',
+            cedula: '',
+            whatsapp: '',
+            address: '',
+            city: '',
+            state: '',
+            orders: new Set<string>(),
             containers: new Map<string, any>(),
             guides: new Set<string>(),
           });
@@ -89,9 +98,22 @@ export default async function (req: Request): Promise<Response> {
         if (!cliente.shipping_mark && shippingMark) cliente.shipping_mark = shippingMark;
         if (guideNumber) cliente.guides.add(guideNumber);
 
+        // Ficha del cliente tal como quedó guardada en la guía.
+        const ficha = client?.client || {};
+        const completar = (campo: string, valor: any) => {
+          if (!cliente[campo] && text(valor)) cliente[campo] = text(valor);
+        };
+        completar('email', client?.client_email || ficha.email);
+        completar('cedula', ficha.cedula);
+        completar('whatsapp', ficha.whatsapp);
+        completar('address', ficha.address);
+        completar('city', ficha.city);
+        completar('state', ficha.state);
+
         for (const line of (client?.bultos || [])) {
           const container = text(line?.order_number);
           if (!container || SIN_CONTENEDOR.test(container)) continue;
+          cliente.orders.add(container);
 
           if (!cliente.containers.has(container)) {
             cliente.containers.set(container, { container, labels: new Set<string>(), unlabeled: 0, guides: new Set<string>() });
@@ -168,11 +190,19 @@ export default async function (req: Request): Promise<Response> {
         key: cliente.key,
         name: cliente.name,
         shipping_mark: cliente.shipping_mark,
+        email: cliente.email,
+        cedula: cliente.cedula,
+        whatsapp: cliente.whatsapp,
+        address: cliente.address,
+        city: cliente.city,
+        state: cliente.state,
+        orders: [...cliente.orders].sort((a: string, b: string) => a.localeCompare(b, 'es', { numeric: true })),
         guides: [...cliente.guides].sort(),
         containers,
         totals: {
           containers: containers.length,
           bultos: containers.reduce((sum, row) => sum + row.bultos, 0),
+          orders: cliente.orders.size,
         },
       };
     });
