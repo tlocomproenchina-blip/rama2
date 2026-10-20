@@ -3,11 +3,12 @@ import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
-import { Download, Loader2, Printer, RefreshCw, Search, Boxes } from 'lucide-react';
+import { Download, Loader2, Printer, RefreshCw, Search, Boxes, History } from 'lucide-react';
 import { toast } from 'sonner';
 import { groupContainersByClient, containerKey, buildSelectionGroups } from '@/lib/containersByClientReport';
 import { generateContainersReportPdf } from '@/lib/containersReportPdf';
 import ClientContainersCard from '@/components/containers-by-client/ClientContainersCard';
+import ContainersExportHistoryDialog from '@/components/containers-by-client/ContainersExportHistoryDialog';
 
 // Pantalla administrativa: contenedores agrupados por cliente. Permite buscar,
 // seleccionar clientes completos o contenedores sueltos y exportar solo eso.
@@ -17,6 +18,7 @@ export default function AdminContainersReport() {
   const [search, setSearch] = useState('');
   const [selectedKeys, setSelectedKeys] = useState([]);
   const [exporting, setExporting] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -56,6 +58,29 @@ export default function AdminContainersReport() {
     setSelectedKeys((current) => (current.includes(key) ? current.filter((item) => item !== key) : [...current, key]));
   };
 
+  // Guarda en el historial qué clientes y contenedores salieron en el informe.
+  const saveExportLog = async (groups, mode) => {
+    const me = await base44.auth.me();
+    await base44.entities.ContainersReportExport.create({
+      exported_by: me?.email || '',
+      exported_date: new Date().toISOString(),
+      mode,
+      clients_count: groups.length,
+      containers_count: groups.reduce((sum, group) => sum + group.totalContainers, 0),
+      bultos_count: groups.reduce((sum, group) => sum + group.totalBultos, 0),
+      clients: groups.map((group) => ({
+        name: group.name,
+        shipping_mark: group.shipping_mark || '',
+        email: group.email || '',
+        containers: group.containers.map((row) => ({
+          container: String(row.container || ''),
+          bultos: Number(row.bultos || 0),
+          description: String(row.description || ''),
+        })),
+      })),
+    });
+  };
+
   const exportSelection = async (mode = 'save') => {
     if (!selectedGroups.length) {
       toast.error('Selecciona al menos un contenedor');
@@ -63,6 +88,7 @@ export default function AdminContainersReport() {
     }
     setExporting(true);
     await generateContainersReportPdf(selectedGroups, 'TLEC CARGO', mode);
+    await saveExportLog(selectedGroups, mode === 'print' ? 'print' : 'pdf');
     setExporting(false);
     if (mode === 'save') {
       const containersCount = selectedGroups.reduce((sum, group) => sum + group.totalContainers, 0);
@@ -96,6 +122,10 @@ export default function AdminContainersReport() {
           <Button variant="outline" onClick={load} disabled={loading}>
             {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
             Recargar
+          </Button>
+          <Button variant="outline" onClick={() => setHistoryOpen(true)}>
+            <History className="mr-2 h-4 w-4" />
+            Historial
           </Button>
           <Button variant="outline" onClick={() => exportSelection('print')} disabled={!selectedGroups.length || exporting}>
             <Printer className="mr-2 h-4 w-4" />
@@ -164,6 +194,8 @@ export default function AdminContainersReport() {
         Selección actual: {selectedGroups.length} cliente(s) · {selectedContainers} contenedor(es) · {selectedBultos} bulto(s).
         El PDF lista en secuencia continua cada contenedor con su cliente, shipping mark, número, bultos y descripción.
       </p>
+
+      <ContainersExportHistoryDialog open={historyOpen} onOpenChange={setHistoryOpen} />
     </div>
   );
 }

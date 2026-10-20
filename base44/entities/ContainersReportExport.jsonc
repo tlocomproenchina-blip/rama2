@@ -1,0 +1,106 @@
+{
+  "name": "ContainersReportExport",
+  "type": "object",
+  "properties": {
+    "exported_by": {
+      "type": "string",
+      "description": "Email del admin que export\u00f3 el informe de contenedores"
+    },
+    "exported_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Momento en que se gener\u00f3 el informe"
+    },
+    "mode": {
+      "type": "string",
+      "enum": [
+        "pdf",
+        "print"
+      ],
+      "default": "pdf",
+      "description": "C\u00f3mo sali\u00f3 el informe: pdf (descargado) o print (enviado a imprimir)"
+    },
+    "clients_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Cantidad de clientes incluidos en el informe"
+    },
+    "containers_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Cantidad de contenedores incluidos en el informe"
+    },
+    "bultos_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Cantidad de bultos incluidos en el informe"
+    },
+    "clients": {
+      "type": "array",
+      "default": [],
+      "description": "Detalle exportado: cada cliente con los contenedores que salieron en el informe",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "shipping_mark": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "containers": {
+            "type": "array",
+            "default": [],
+            "items": {
+              "type": "object",
+              "properties": {
+                "container": {
+                  "type": "string"
+                },
+                "bultos": {
+                  "type": "number"
+                },
+                "description": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Descripci\u00f3n opcional"
+    }
+  },
+  "required": [
+    "exported_date"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
