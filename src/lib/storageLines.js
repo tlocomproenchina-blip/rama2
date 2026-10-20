@@ -13,6 +13,14 @@ const num = (value) => {
   return Number.isFinite(n) ? n : 0;
 };
 
+// Almacenamiento y custodia en pausa: estas líneas siguen guardadas en la
+// factura, pero no se muestran mientras se revisan los cálculos.
+export function isStorageInvoiceLine(item) {
+  const details = item?.details || {};
+  if (details.kind === 'storage_charge') return true;
+  return String(item?.description || '').trim().toLowerCase().startsWith('almacenamiento y custodia');
+}
+
 const dayRange = (details) => {
   const from = num(details?.from_day);
   const to = num(details?.to_day);
@@ -45,6 +53,7 @@ export function displayInvoiceItems(invoice) {
   const items = Array.isArray(invoice?.items) ? invoice.items : [];
   const rows = [];
   for (const item of items) {
+    if (isStorageInvoiceLine(item)) continue;
     const details = item?.details || {};
     // Las líneas nuevas ya vienen separadas por tipo de bulto.
     if (details.kind !== 'storage_charge' || details.category) {

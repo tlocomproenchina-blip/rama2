@@ -11,6 +11,7 @@ import InvoiceCbmOrders from './InvoiceCbmOrders';
 import InvoiceCreditApply from './InvoiceCreditApply';
 import useFileViewer from '@/hooks/useFileViewer';
 import { getFileKind } from '@/components/common/FileViewerModal';
+import { isStorageInvoiceLine } from '@/lib/storageLines';
 
 function InvoiceCard({ invoice, user, onPay, onDownload, showPayButton = false, onOtherPay, showOtherMethodsButton = false, onPayPal, showPayPalButton = false, onAbono, showAbonoButton = false, extraActions = null, selectionControl = null, showInsuranceBreakdown = false, isAdmin = false, onRefresh }) {
   const [abonosOpen, setAbonosOpen] = useState(false);
@@ -44,7 +45,7 @@ function InvoiceCard({ invoice, user, onPay, onDownload, showPayButton = false, 
     cancelada: 'Cancelada'
   };
 
-  const invoiceItems = Array.isArray(invoice.items) ? invoice.items : [];
+  const invoiceItems = (Array.isArray(invoice.items) ? invoice.items : []).filter((item) => !isStorageInvoiceLine(item));
   const getItemTotal = (item) => Number(item?.total || 0);
   const isInsuranceItem = (item) => {
     const description = String(item?.description || '').toLowerCase();
