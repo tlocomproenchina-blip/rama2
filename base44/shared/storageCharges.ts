@@ -2,8 +2,10 @@
 //
 // Reglas del contrato (secciones VII, XIII y XV):
 //   - Días 1 al 7 desde la emisión de la factura: almacenamiento gratuito.
-//   - Desde el día 8: USD 10 diarios por bulto estándar (hasta 30 × 30 × 30 cm)
-//     y USD 20 diarios por bulto grande (supera alguna de esas medidas).
+//   - Desde el día 8: USD 10 diarios por bulto estándar (hasta 0.027 CBM de
+//     volumen, que equivale a 30 × 30 × 30 cm) y USD 20 diarios por bulto grande
+//     (supera ese volumen). El volumen del bulto se compara en CBM, que es la
+//     unidad con la que se factura la carga.
 //   - El recargo de montacargas es USD 150 por palet, UNA sola vez por cada palet
 //     marcado que requiera el equipo: se suma al almacenamiento diario, no es diario.
 //   - Hasta el día 45 se sigue acumulando; después el sistema deja de cobrar.
@@ -36,7 +38,7 @@ export const DEFAULT_STORAGE_CONFIG: Record<string, any> = {
   standard_daily_rate: 10,
   large_daily_rate: 20,
   forklift_fee: 150,
-  standard_max_cm: 30,
+  standard_max_cbm: 0.027,
   large_if_multiple_packages: true,
   default_category: CATEGORY_STANDARD,
   fallback_unit_per_order: true,
@@ -121,7 +123,9 @@ export function invoiceOrderNumbers(invoice: any, receipts: any[] = []) {
   return [...numbers];
 }
 
-async function maxSidesOfPackages(base44: any, bultos: any[]) {
+// Volumen en CBM de cada paquete del bulto: manda el CBM registrado (actual_cbm)
+// y, cuando no está, se calcula con las medidas (largo × ancho × alto en cm).
+async function volumeOfPackages(base44: any, bultos: any[]) {
   const ids = [...new Set(
     (bultos || []).flatMap((b) => (Array.isArray(b.package_ids) ? b.package_ids : [])).filter(Boolean)
   )].slice(0, 300);
@@ -132,27 +136,37 @@ async function maxSidesOfPackages(base44: any, bultos: any[]) {
   const pages = await Promise.all(batches.map((batch) => base44.asServiceRole.entities.Package
     .filter(
       { id: { $in: batch } },
-      { limit: 100, fields: ["actual_length_cm", "actual_width_cm", "actual_height_cm"] }
+      { limit: 100, fields: ["actual_cbm", "actual_length_cm", "actual_width_cm", "actual_height_cm"] }
     )
     .catch(() => ({ items: [] }))));
   for (const page of pages) {
     for (const p of page?.items || []) {
-      map[p.id] = Math.max(num(p.actual_length_cm), num(p.actual_width_cm), num(p.actual_height_cm));
+      const registered = num(p.actual_cbm);
+      const measured = (num(p.actual_length_cm) * num(p.actual_width_cm) * num(p.actual_height_cm)) / 1000000;
+      map[p.id] = registered > 0 ? registered : measured;
     }
   }
   return map;
 }
 
-// Estándar o grande: manda la marca manual del bulto; si no hay, las medidas
-// registradas de sus paquetes y, cuando no hay medidas, la regla configurable de
-// caja consolidada / varios paquetes.
-export function classifyBultoCategory(bulto: any, packageMaxSide: Record<string, number>, config: any) {
+// Volumen del bulto en CBM: manda el CBM oficial registrado a mano y, si no hay,
+// la suma del volumen de sus paquetes.
+export function bultoVolumeCbm(bulto: any, packageVolume: Record<string, number> = {}) {
+  const oficial = num(bulto?.cargo_cbm);
+  if (oficial > 0) return oficial;
+  return (Array.isArray(bulto?.package_ids) ? bulto.package_ids : [])
+    .reduce((sum: number, id: string) => sum + num(packageVolume?.[id]), 0);
+}
+
+// Estándar o grande: manda la marca manual del bulto; si no hay, su volumen en
+// CBM contra el máximo configurado y, cuando no hay volumen registrado, la regla
+// configurable de caja consolidada / varios paquetes.
+export function classifyBultoCategory(bulto: any, packageVolume: Record<string, number>, config: any) {
   const manual = text(bulto?.storage_category).toLowerCase();
   if (manual === CATEGORY_LARGE || manual === CATEGORY_STANDARD) return manual;
 
-  const maxCm = num(config?.standard_max_cm) || 30;
-  const ids = Array.isArray(bulto?.package_ids) ? bulto.package_ids : [];
-  if (ids.some((id: string) => num(packageMaxSide?.[id]) > maxCm)) return CATEGORY_LARGE;
+  const maxCbm = num(config?.standard_max_cbm) || num(DEFAULT_STORAGE_CONFIG.standard_max_cbm);
+  if (bultoVolumeCbm(bulto, packageVolume) > maxCbm) return CATEGORY_LARGE;
 
   if (config?.large_if_multiple_packages !== false && (bulto?.is_caja || packageCountOfBulto(bulto) > 1)) {
     return CATEGORY_LARGE;
@@ -165,6 +179,7 @@ function fallbackUnit(orderNumber: string, config: any) {
     bulto_id: null,
     label_code: orderNumber,
     status: "",
+    volume_cbm: 0,
     category: text(config?.default_category) === CATEGORY_LARGE ? CATEGORY_LARGE : CATEGORY_STANDARD,
     pallets: 0,
     requires_forklift: false,
@@ -233,12 +248,13 @@ export async function resolveStorageUnits(base44: any, invoice: any, config: any
     };
   }
 
-  const packageMax = await maxSidesOfPackages(base44, enAlmacen);
+  const packageVolume = await volumeOfPackages(base44, enAlmacen);
   const units = enAlmacen.map((b) => ({
     bulto_id: b.id,
     label_code: text(b.label_code) || `Bulto ${b.bulto_number ?? ""}`.trim() || b.id,
     status: text(b.status),
-    category: classifyBultoCategory(b, packageMax, config),
+    volume_cbm: Math.round(bultoVolumeCbm(b, packageVolume) * 1000000) / 1000000,
+    category: classifyBultoCategory(b, packageVolume, config),
     pallets: Math.max(0, Math.round(num(b.pallet_count))),
     requires_forklift: !!b.requiere_montacargas,
     source: "bulto",

@@ -17,7 +17,7 @@ export const STORAGE_CONFIG_DEFAULTS = {
   standard_daily_rate: 10,
   large_daily_rate: 20,
   forklift_fee: 150,
-  standard_max_cm: 30,
+  standard_max_cbm: 0.027,
   large_if_multiple_packages: true,
   default_category: 'estandar',
   fallback_unit_per_order: true,
@@ -122,12 +122,12 @@ export default function StorageChargeSettings() {
           <div className="space-y-2">
             <Label>Bulto estándar (USD diarios)</Label>
             <Input type="number" step="0.01" value={config.standard_daily_rate} onChange={(e) => setNumber('standard_daily_rate', e.target.value)} />
-            <p className="text-xs text-slate-500">Cajas o paquetes de hasta {config.standard_max_cm} × {config.standard_max_cm} × {config.standard_max_cm} cm.</p>
+            <p className="text-xs text-slate-500">Bultos de hasta {config.standard_max_cbm} CBM de volumen.</p>
           </div>
           <div className="space-y-2">
             <Label>Bulto grande (USD diarios)</Label>
             <Input type="number" step="0.01" value={config.large_daily_rate} onChange={(e) => setNumber('large_daily_rate', e.target.value)} />
-            <p className="text-xs text-slate-500">Bultos que superan alguna de esas medidas.</p>
+            <p className="text-xs text-slate-500">Bultos que superan ese volumen en CBM.</p>
           </div>
           <div className="space-y-2">
             <Label>Montacargas (USD por palet, cargo único)</Label>
@@ -135,9 +135,9 @@ export default function StorageChargeSettings() {
             <p className="text-xs text-slate-500">Se cobra una sola vez por cada palet marcado que requiera el equipo.</p>
           </div>
           <div className="space-y-2">
-            <Label>Dimensión máxima del bulto estándar (cm)</Label>
-            <Input type="number" value={config.standard_max_cm} onChange={(e) => setNumber('standard_max_cm', e.target.value)} />
-            <p className="text-xs text-slate-500">Si algún lado del bulto la supera, se cobra como grande.</p>
+            <Label>Volumen máximo del bulto estándar (CBM)</Label>
+            <Input type="number" step="0.001" min="0" value={config.standard_max_cbm} onChange={(e) => setNumber('standard_max_cbm', e.target.value)} />
+            <p className="text-xs text-slate-500">Si el volumen del bulto lo supera, se cobra como grande. Referencia: 30 × 30 × 30 cm = 0.027 CBM.</p>
           </div>
           <div className="space-y-2">
             <Label>Días de almacenamiento gratuito</Label>

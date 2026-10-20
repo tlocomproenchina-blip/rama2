@@ -111,7 +111,10 @@ export default function StorageChargeInvoiceRow({ row, onRefresh }) {
               <div className="space-y-1.5">
                 {units.map((unit, index) => (
                   <div key={unit.bulto_id || unit.label_code || index} className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-white p-2">
-                    <span className="min-w-[160px] flex-1 truncate text-[12px] font-medium text-slate-700">{unit.label_code}</span>
+                    <span className="min-w-[160px] flex-1 truncate text-[12px] font-medium text-slate-700">
+                      {unit.label_code}
+                      {unit.volume_cbm > 0 && <span className="ml-1 font-normal text-slate-400">· {unit.volume_cbm} CBM</span>}
+                    </span>
                     <Select value={unit.category} onValueChange={(value) => setUnit(index, 'category', value)}>
                       <SelectTrigger className="h-8 w-[130px] text-[11px]"><SelectValue /></SelectTrigger>
                       <SelectContent>
