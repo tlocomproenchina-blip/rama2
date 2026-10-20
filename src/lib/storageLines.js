@@ -31,6 +31,13 @@ export function hiddenStorageTotal(invoice) {
     .reduce((sum, item) => sum + (Number(item?.total) || 0), 0);
 }
 
+// Monto facturado que sí se cobra: el total de la factura sin las líneas de
+// almacenamiento en pausa. Es el que debe mostrarse en la factura, en el PDF y
+// en el saldo para que cuadre con los conceptos visibles.
+export function billableTotal(invoice) {
+  return Math.max(round2(num(invoice?.total) - hiddenStorageTotal(invoice)), 0);
+}
+
 const dayRange = (details) => {
   const from = num(details?.from_day);
   const to = num(details?.to_day);

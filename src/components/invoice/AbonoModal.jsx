@@ -9,6 +9,7 @@ import { uploadImageNoCredits } from '@/lib/imgbbUpload';
 import { Wallet, Copy, Upload, CheckCircle, Loader2, DollarSign } from 'lucide-react';
 import { toast } from 'sonner';
 import DispatchOrderSelector from './DispatchOrderSelector';
+import { billableTotal } from '@/lib/storageLines';
 
 export default function AbonoModal({ open, onClose, invoice, onSubmitted }) {
   const [config, setConfig] = useState(null);
@@ -20,7 +21,7 @@ export default function AbonoModal({ open, onClose, invoice, onSubmitted }) {
   const [availableMethods, setAvailableMethods] = useState([]);
   const [reference, setReference] = useState('');
 
-  const total = Number(invoice?.total || 0);
+  const total = billableTotal(invoice);
   const paidAmount = Number(invoice?.paid_amount || 0);
   const balance = Math.max(0, total - paidAmount);
   const isManualDispatch = Array.isArray(invoice?.manual_recibos) && invoice.manual_recibos.length > 0;

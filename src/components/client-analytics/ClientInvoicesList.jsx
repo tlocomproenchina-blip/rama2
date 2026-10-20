@@ -6,13 +6,11 @@ import { buildWhatsAppUrl } from '@/lib/whatsappContact';
 import InvoicePDFGenerator from '@/components/invoice/InvoicePDFGenerator';
 import ClientInvoicePayments from '@/components/client-analytics/ClientInvoicePayments';
 import ClientPaymentsSummary from '@/components/client-analytics/ClientPaymentsSummary';
-import { displayInvoiceItems, hiddenStorageTotal } from '@/lib/storageLines';
+import { displayInvoiceItems, billableTotal } from '@/lib/storageLines';
 
 const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 
-// Monto realmente facturado: el total de la factura sin las líneas ocultas de
-// almacenamiento y custodia (que están en pausa).
-const invoicedAmount = (invoice) => Math.max(num(invoice?.total) - hiddenStorageTotal(invoice), 0);
+const invoicedAmount = (invoice) => billableTotal(invoice);
 
 const STATUS_STYLES = {
   pendiente: 'bg-amber-100 text-amber-700 border-amber-200',

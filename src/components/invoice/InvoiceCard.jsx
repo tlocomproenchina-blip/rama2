@@ -11,12 +11,12 @@ import InvoiceCbmOrders from './InvoiceCbmOrders';
 import InvoiceCreditApply from './InvoiceCreditApply';
 import useFileViewer from '@/hooks/useFileViewer';
 import { getFileKind } from '@/components/common/FileViewerModal';
-import { isStorageInvoiceLine } from '@/lib/storageLines';
+import { isStorageInvoiceLine, billableTotal } from '@/lib/storageLines';
 
 function InvoiceCard({ invoice, user, onPay, onDownload, showPayButton = false, onOtherPay, showOtherMethodsButton = false, onPayPal, showPayPalButton = false, onAbono, showAbonoButton = false, extraActions = null, selectionControl = null, showInsuranceBreakdown = false, isAdmin = false, onRefresh }) {
   const [abonosOpen, setAbonosOpen] = useState(false);
   const fileViewer = useFileViewer();
-  const total = Number(invoice.total || 0);
+  const total = billableTotal(invoice);
   const paidAmount = Number(invoice.paid_amount || 0);
   const balance = Math.max(0, total - paidAmount);
   const hasAbonos = paidAmount > 0 || invoice.status === 'pendiente';
@@ -57,7 +57,7 @@ function InvoiceCard({ invoice, user, onPay, onDownload, showPayButton = false, 
     return description.startsWith('servicio de consolidación') || description.startsWith('consolidación de carga') || description.includes('$1 por paquete');
   };
   const consolidationTotal = invoiceItems.filter(isConsolidationFeeItem).reduce((sum, item) => sum + getItemTotal(item), 0);
-  const shippingTotal = Math.max(0, Number(invoice.total || 0) - insuranceTotal - consolidationTotal);
+  const shippingTotal = Math.max(0, total - insuranceTotal - consolidationTotal);
 
   const daysSinceInvoice = invoice.invoice_date
     ? Math.floor((Date.now() - new Date(invoice.invoice_date).getTime()) / (1000 * 60 * 60 * 24))
@@ -120,7 +120,7 @@ function InvoiceCard({ invoice, user, onPay, onDownload, showPayButton = false, 
                 </span>
                 <span className="flex items-center gap-1">
                   <DollarSign className="h-3 w-3" />
-                  ${invoice.total.toFixed(2)}
+                  ${total.toFixed(2)}
                 </span>
                 {daysSinceInvoice !== null && invoice.status === 'pendiente' && (
                   <Badge className={`text-xs ${daysBadgeClass}`}>
@@ -170,7 +170,7 @@ function InvoiceCard({ invoice, user, onPay, onDownload, showPayButton = false, 
           )}
           <div className="border-t pt-2 flex justify-between font-semibold text-slate-800">
             <span>Total</span>
-            <span>${Number(invoice.total || 0).toFixed(2)}</span>
+            <span>${total.toFixed(2)}</span>
           </div>
           {paidAmount > 0 && (
             <div className="mt-2 rounded-lg bg-slate-50 border border-slate-200 p-2 space-y-1 text-sm">

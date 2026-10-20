@@ -1,5 +1,5 @@
 import jsPDF from 'jspdf';
-import { displayInvoiceItems } from '@/lib/storageLines';
+import { displayInvoiceItems, billableTotal } from '@/lib/storageLines';
 
 const fmt = (n) => `USD${Number(n || 0).toFixed(2)}`;
 const fmtDate = (d) => {
@@ -141,9 +141,10 @@ export async function buildInvoicePdf(invoice, appConfig = {}, clientUser = null
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(15);
   doc.setTextColor(...colDark);
+  const invoiceAmount = billableTotal(invoice);
   const dueText = invoice.due_date
-    ? `${fmt(invoice.total)} con fecha de vencimiento del ${fmtDate(invoice.due_date)}`
-    : `${fmt(invoice.total)}`;
+    ? `${fmt(invoiceAmount)} con fecha de vencimiento del ${fmtDate(invoice.due_date)}`
+    : `${fmt(invoiceAmount)}`;
   doc.splitTextToSize(dueText, marginR - marginL).forEach((line) => {
     doc.text(line, marginL, y);
     y += 8;
@@ -240,11 +241,12 @@ export async function buildInvoicePdf(invoice, appConfig = {}, clientUser = null
   const totalsLabelX = pageWidth / 2 + 15;
   doc.setDrawColor(220, 220, 220);
 
-  const subtotal = invoice.subtotal != null ? invoice.subtotal : invoice.total;
+  const total = billableTotal(invoice);
+  const subtotal = total;
   const totalsRows = [
     ['Subtotal', fmt(subtotal), false],
-    ['Total', fmt(invoice.total), false],
-    ['Importe por pagar', fmt(invoice.total), true],
+    ['Total', fmt(total), false],
+    ['Importe por pagar', fmt(total), true],
   ];
   totalsRows.forEach(([label, value, bold]) => {
     doc.line(totalsLabelX, y - 4, marginR, y - 4);

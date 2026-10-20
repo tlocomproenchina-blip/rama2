@@ -10,7 +10,7 @@ import { createPageUrl } from '@/utils';
 import PayPalInline from '@/components/payments/PayPalInline';
 import PaymentModal from '@/components/PaymentModal';
 import { FileText, Search, Loader2, CreditCard } from 'lucide-react';
-import { displayInvoiceItems } from '@/lib/storageLines';
+import { displayInvoiceItems, billableTotal } from '@/lib/storageLines';
 import { toast } from 'sonner';
 import jsPDF from 'jspdf';
 import ClientPageHero from '@/components/client-portal/ClientPageHero';
@@ -140,7 +140,7 @@ export default function MyInvoices({ user }) {
     yPos += 7;
     doc.setFontSize(12);
     doc.text('TOTAL:', 130, yPos);
-    doc.text(`$${invoice.total.toFixed(2)}`, 170, yPos);
+    doc.text(`$${billableTotal(invoice).toFixed(2)}`, 170, yPos);
     
     // Status
     yPos += 10;
@@ -295,7 +295,7 @@ export default function MyInvoices({ user }) {
                 onRefresh={loadInvoices}
                 onOtherPay={(inv) => {
                   if (inv.status === 'pagada' || inv.status === 'revision') return;
-                  const balance = Math.max(0, Number(inv.total || 0) - Number(inv.paid_amount || 0));
+                  const balance = Math.max(0, billableTotal(inv) - Number(inv.paid_amount || 0));
                   setSelectedConsolidation({ id: inv.consolidation_id, invoice_id: inv.id, total_cost: balance, consolidation_tracking: inv.consolidation_tracking });
                   setPaymentOpen(true);
                 }}

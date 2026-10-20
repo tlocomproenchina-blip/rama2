@@ -3,6 +3,7 @@ import { base44 } from '@/components/api/ApiQueueManager';
 import { Button } from '@/components/ui/button';
 import { Wallet, Loader2, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { billableTotal } from '@/lib/storageLines';
 
 /**
  * Muestra el saldo a favor disponible del cliente y permite aplicarlo
@@ -16,7 +17,7 @@ export default function InvoiceCreditApply({ invoice, onApplied }) {
   const [loading, setLoading] = useState(true);
   const [applying, setApplying] = useState(false);
 
-  const total = Number(invoice.total || 0);
+  const total = billableTotal(invoice);
   const paid = Number(invoice.paid_amount || 0);
   const debt = Math.max(0, total - paid);
   const isPending = invoice.status === 'pendiente' || invoice.status === 'revision';
