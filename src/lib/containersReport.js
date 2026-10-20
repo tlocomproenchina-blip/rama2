@@ -1,5 +1,5 @@
 // Genera el archivo Excel del informe de contenedores y bultos.
-const HEADERS = ['Shipping mark', 'Nombre', 'Apellido', 'N° de contenedor (factura)', 'Cantidad de bultos', 'Descripción registrada'];
+const HEADERS = ['Shipping mark', 'Nombre', 'Apellido', 'N° de contenedor (factura)', 'Cantidad de bultos', 'Descripción'];
 
 export async function downloadContainersReport(rows = []) {
   const XLSX = await import('xlsx');

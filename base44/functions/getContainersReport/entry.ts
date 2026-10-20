@@ -8,14 +8,18 @@ import { fetchAllFilter, errorMessage } from '../../shared/paginatedFetch.ts';
 //   - shipping mark del cliente
 //   - nombre y apellido del cliente
 //   - número de contenedor (factura)
-//   - cantidad de bultos registrados en almacén para ese contenedor
-//   - descripción registrada (la del envío o, si no tiene, la de sus paquetes)
+//   - cantidad de bultos: las líneas de bulto (y caja consolidada) que salieron
+//     en las guías de despacho (DispatchGuide) para ese N° de orden
+//   - descripción: por cada bulto se usa su descripción registrada y, si no
+//     tiene, se toma al azar la descripción de uno de sus productos
 // Solo admin.
 // =====================================================================
 
 const CHUNK = 100;
 
 const key = (value: any) => String(value || '').trim().toUpperCase();
+
+const randInt = (max: number) => Math.floor(Math.random() * max);
 
 Deno.serve(async (req) => {
   try {
@@ -28,30 +32,40 @@ Deno.serve(async (req) => {
 
     const receipts = await fetchAllFilter(svc.CbmIngreso, {}, '-fecha');
     const containers = receipts.filter((r: any) => String(r.invoice_number || '').trim());
-    const orderNumbers: string[] = [...new Set(containers.map((r: any) => String(r.invoice_number).trim()))];
+    const containerSet = new Set(containers.map((r: any) => String(r.invoice_number).trim()));
 
-    // Bultos registrados en almacén por contenedor (Bulto.cbm_order_numbers).
-    const bultosPorContenedor = new Map<string, number>();
-    const trackingsPorContenedor = new Map<string, Set<string>>();
-    for (let i = 0; i < orderNumbers.length; i += CHUNK) {
-      const chunk = orderNumbers.slice(i, i + CHUNK);
-      const bultos = await fetchAllFilter(svc.Bulto, { cbm_order_numbers: { $in: chunk } }, '-created_date');
-      for (const bulto of bultos) {
-        const trackings: string[] = (bulto as any).package_trackings || [];
-        for (const orderNumber of ((bulto as any).cbm_order_numbers || [])) {
-          const container = String(orderNumber || '').trim();
-          if (!chunk.includes(container)) continue;
-          bultosPorContenedor.set(container, (bultosPorContenedor.get(container) || 0) + 1);
-          const bucket = trackingsPorContenedor.get(container) || new Set<string>();
-          trackings.forEach((tracking) => bucket.add(key(tracking)));
-          trackingsPorContenedor.set(container, bucket);
+    // Líneas de bulto de las guías de despacho por contenedor (N° de orden).
+    const labelsPorContenedor = new Map<string, Set<string>>();
+    const guides = await fetchAllFilter(svc.DispatchGuide, {}, '-emitted_date');
+    for (const guide of guides) {
+      for (const client of ((guide as any).clients || [])) {
+        for (const line of (client.bultos || [])) {
+          const container = String(line.order_number || '').trim();
+          const labelCode = String(line.label_code || '').trim();
+          if (!labelCode || !containerSet.has(container)) continue;
+          const bucket = labelsPorContenedor.get(container) || new Set<string>();
+          bucket.add(key(labelCode));
+          labelsPorContenedor.set(container, bucket);
         }
       }
     }
 
-    // Descripción registrada de los paquetes de cada contenedor (respaldo cuando
-    // el envío no trae descripción propia).
-    const allTrackings = [...new Set([...trackingsPorContenedor.values()].flatMap((set) => [...set]))];
+    // Bultos por etiqueta: descripción propia y trackings de sus productos.
+    const allLabels = [...new Set([...labelsPorContenedor.values()].flatMap((set) => [...set]))];
+    const bultoPorLabel = new Map<string, any>();
+    for (let i = 0; i < allLabels.length; i += CHUNK) {
+      const chunk = allLabels.slice(i, i + CHUNK);
+      const bultos = await fetchAllFilter(svc.Bulto, { label_code: { $in: chunk } }, '-created_date');
+      for (const bulto of bultos) {
+        const label = key((bulto as any).label_code);
+        if (!bultoPorLabel.has(label)) bultoPorLabel.set(label, bulto);
+      }
+    }
+
+    // Descripciones de los productos de cada bulto.
+    const allTrackings = [...new Set(
+      [...bultoPorLabel.values()].flatMap((bulto: any) => (bulto.package_trackings || []).map(key))
+    )];
     const descripcionPorTracking = new Map<string, string>();
     for (let i = 0; i < allTrackings.length; i += CHUNK) {
       const chunk = allTrackings.slice(i, i + CHUNK);
@@ -63,17 +77,30 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Descripción de un bulto: la registrada o, si no tiene, una de sus
+    // productos elegida al azar.
+    const descripcionDeBulto = (label: string): string => {
+      const bulto: any = bultoPorLabel.get(label);
+      const propia = String(bulto?.description || '').trim();
+      if (propia) return propia;
+      const opciones = [...new Set(
+        (bulto?.package_trackings || [])
+          .map((tracking: any) => descripcionPorTracking.get(key(tracking)))
+          .filter(Boolean)
+      )];
+      if (!opciones.length) return '';
+      return opciones[randInt(opciones.length)];
+    };
+
     const rows = containers.map((receipt: any) => {
       const container = String(receipt.invoice_number).trim();
       const fullName = String(receipt.client_name || '').trim();
       const parts = fullName.split(/\s+/).filter(Boolean);
       const firstName = parts.shift() || '';
 
-      const trackings = trackingsPorContenedor.get(container) || new Set<string>();
-      const packageDescriptions = [...new Set(
-        [...trackings].map((tracking) => descripcionPorTracking.get(tracking)).filter(Boolean)
-      )];
-      const description = String(receipt.descripcion || '').trim() || packageDescriptions.slice(0, 10).join(' · ');
+      const labels = [...(labelsPorContenedor.get(container) || new Set<string>())].sort();
+      const descripciones = [...new Set(labels.map(descripcionDeBulto).filter(Boolean))].slice(0, 10);
+      const description = String(receipt.descripcion || '').trim() || descripciones.join(' · ');
 
       return {
         container,
@@ -81,7 +108,7 @@ Deno.serve(async (req) => {
         first_name: firstName,
         last_name: parts.join(' '),
         client_email: String(receipt.client_email || '').trim(),
-        bultos: bultosPorContenedor.get(container) || 0,
+        bultos: labels.length,
         description,
         date: receipt.fecha || receipt.fecha_salida || '',
       };

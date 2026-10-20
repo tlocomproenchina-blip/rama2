@@ -64,7 +64,7 @@ export default function ContainersReportButton() {
                   <p className="text-sm font-bold text-slate-800">{rows.length}</p>
                 </div>
                 <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                  <p className="text-[10px] uppercase tracking-wide text-slate-500">Bultos registrados</p>
+                  <p className="text-[10px] uppercase tracking-wide text-slate-500">Bultos en guías de despacho</p>
                   <p className="text-sm font-bold text-slate-800">{totalBultos}</p>
                 </div>
                 <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
