@@ -1,11 +1,14 @@
 // Agrupa los contenedores por cliente en la pantalla "Contenedores por cliente".
 // Los bultos son los que el backend cuenta desde las guías de despacho.
 
-// Descripción visible del contenedor: "Paquete manual" se muestra como
-// "Artículos varios", conservando el resto del texto. Si el contenedor tiene
-// bultos pero no tiene descripción, también se muestra "Artículos varios".
+// Descripción visible del contenedor: las descripciones genéricas ("Paquete
+// manual", "Pre-alerta rápida (admin)") se muestran como "Artículos varios",
+// conservando el resto del texto. Si el contenedor tiene bultos pero no tiene
+// descripción, también se muestra "Artículos varios".
 export function normalizeContainerDescription(description, bultos = 0) {
-  const text = String(description || '').replace(/paquete\s+manual/gi, 'Artículos varios');
+  const text = String(description || '')
+    .replace(/paquete\s+manual/gi, 'Artículos varios')
+    .replace(/pre-?alerta\s+r[áa]pida(\s*\(admin\))?/gi, 'Artículos varios');
   if (!text.trim() && Number(bultos || 0) > 0) return 'Artículos varios';
   return text;
 }
