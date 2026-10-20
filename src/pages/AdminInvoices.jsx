@@ -26,6 +26,7 @@ import StorageChargesAuditDialog from '@/components/invoice/storage/StorageCharg
 import OverdueInvoicesReportButton from '@/components/invoice/overdue/OverdueInvoicesReportButton';
 import ContainersReportButton from '@/components/invoice/containers/ContainersReportButton';
 import { fetchStorageTotals } from '@/lib/storageAudit';
+import { billableTotal } from '@/lib/storageLines';
 import WarehouseOrderModal from '@/components/invoice/WarehouseOrderModal';
 import { generateWarehouseOrder } from '@/lib/warehouseOrder';
 import WarehousePaidTable from '@/components/invoice/WarehousePaidTable';
@@ -105,11 +106,18 @@ export default function AdminInvoices({ user }) {
     if (showCreateModal && consolidations.length === 0) loadConsolidations();
   }, [showCreateModal]);
 
+  // Ganancia visible: descuenta las líneas de almacenamiento que están en pausa.
+  const visibleProfit = (invoice) => {
+    const stored = Number(invoice?.profit_amount || 0);
+    const hidden = Number(invoice?.total || 0) - billableTotal(invoice);
+    return stored - hidden;
+  };
+
   const computeStats = (list) => {
     let paid = 0, pending = 0, revenue = 0, profit = 0, insuranceCollected = 0;
     for (const i of list) {
       if (i.status === 'pagada') {
-        paid++; revenue += Number(i.total) || 0;
+        paid++; revenue += billableTotal(i);
         // Sumar items de seguro cobrados
         if (Array.isArray(i.items)) {
           for (const it of i.items) {
@@ -121,7 +129,7 @@ export default function AdminInvoices({ user }) {
         }
       }
       else if (i.status === 'pendiente') pending++;
-      if (i.profit_amount !== undefined && i.profit_amount !== null) profit += Number(i.profit_amount) || 0;
+      if (i.profit_amount !== undefined && i.profit_amount !== null) profit += visibleProfit(i);
     }
     setStats({ total: list.length, paid, pending, revenue, profit, insuranceCollected });
   };
@@ -470,7 +478,7 @@ export default function AdminInvoices({ user }) {
   const handleNotifyPayment = (invoice) => {
     const phone = invoice.client_whatsapp;
     const name = (invoice.client_first_name || '').trim() || 'estimado cliente';
-    const message = `Hola ${name}, le contactamos de TLEC CARGO. Tiene una factura pendiente de pago (${invoice.invoice_number || ''}) por un monto de $${Number(invoice.total || 0).toFixed(2)}. Agradecemos su pago a la brevedad para poder realizar el despacho de su carga. ¡Gracias!`;
+    const message = `Hola ${name}, le contactamos de TLEC CARGO. Tiene una factura pendiente de pago (${invoice.invoice_number || ''}) por un monto de $${billableTotal(invoice).toFixed(2)}. Agradecemos su pago a la brevedad para poder realizar el despacho de su carga. ¡Gracias!`;
     const url = buildWhatsAppUrl(phone, message);
     if (!url) {
       toast.error('Este cliente no tiene número de WhatsApp registrado');
@@ -489,7 +497,7 @@ export default function AdminInvoices({ user }) {
       const newHistory = [...history, { description, amount: Number(enteredAmount), date: new Date().toISOString() }];
       const totalPaid = newHistory.reduce((sum, h) => sum + Number(h.amount || 0), 0);
       const providerCost = Number(invoice.provider_cost_total || 0);
-      const profit = Number(invoice.total || 0) - providerCost;
+      const profit = billableTotal(invoice) - providerCost;
       await base44.entities.Invoice.update(invoice.id, {
         provider_payment_history: newHistory
       });
@@ -511,7 +519,7 @@ export default function AdminInvoices({ user }) {
 
       setInvoices(prev => prev.map(i => i.id === invoice.id ? { ...i, provider_payment_history: newHistory } : i));
       setStats(prev => {
-        const oldProfit = (invoice.profit_amount != null) ? Number(invoice.profit_amount) : 0;
+        const oldProfit = (invoice.profit_amount != null) ? visibleProfit(invoice) : 0;
         return { ...prev, profit: Number(prev.profit || 0) - oldProfit + profit };
       });
       toast.success('Abono registrado');
@@ -995,8 +1003,8 @@ export default function AdminInvoices({ user }) {
               {/* Columna lateral derecha: badges + acciones apiladas */}
               <div className="flex flex-row flex-wrap lg:flex-col gap-2 w-full lg:w-44 shrink-0 items-stretch content-start">
                 {invoice.profit_amount != null && (
-                  <span className={`text-xs font-semibold px-2.5 py-1.5 rounded-full text-center whitespace-nowrap ${Number(invoice.profit_amount) >= 0 ? 'bg-purple-100 text-purple-700' : 'bg-red-100 text-red-700'}`}>
-                    Ganancia: ${Number(invoice.profit_amount).toFixed(2)}
+                  <span className={`text-xs font-semibold px-2.5 py-1.5 rounded-full text-center whitespace-nowrap ${visibleProfit(invoice) >= 0 ? 'bg-purple-100 text-purple-700' : 'bg-red-100 text-red-700'}`}>
+                    Ganancia: ${visibleProfit(invoice).toFixed(2)}
                   </span>
                 )}
                 {invoice.provider_paid && (

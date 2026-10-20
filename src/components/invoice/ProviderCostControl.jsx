@@ -3,6 +3,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Loader2, Check, Trash2, Pencil, X } from 'lucide-react';
+import { billableTotal } from '@/lib/storageLines';
 
 /**
  * Control manual de costo al proveedor por factura (acumulación por abonos).
@@ -24,7 +25,7 @@ export default function ProviderCostControl({ invoice, onSaveCost, onTogglePaid,
   const entered = parseFloat(value);
   const validEntered = Number.isFinite(entered) && entered > 0;
   // La ganancia = total facturado - acumulado real pagado al proveedor (abonos)
-  const profit = Number(invoice.total || 0) - accumulated;
+  const profit = billableTotal(invoice) - accumulated;
 
   const resetForm = () => {
     setDescription('');

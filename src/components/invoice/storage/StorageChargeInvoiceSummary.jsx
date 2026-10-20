@@ -7,7 +7,6 @@ import {
   formatDate,
   invoiceNotices,
   invoiceStorageLines,
-  money,
 } from '@/lib/storageAudit';
 
 // Resumen por factura de los cargos automáticos de almacenamiento y custodia, con
@@ -44,32 +43,14 @@ export default function StorageChargeInvoiceSummary({ invoice, summary, onOpenDe
         </Button>
       </div>
 
-      <div className="mt-2 grid gap-2 sm:grid-cols-3">
-        <div className="rounded-lg bg-white/70 px-2.5 py-2">
-          <p className="text-[10px] uppercase tracking-wide text-slate-500">Registrado y sumado</p>
-          <p className="text-sm font-bold text-slate-800">{money(registered)}</p>
-          <p className="text-[10px] text-slate-500">
-            {days ? `${days} día(s) cobrados` : 'sin días cobrados'}
-            {forklift > 0 ? ` · montacargas ${money(forklift)}` : ''}
-          </p>
-        </div>
-        <div className="rounded-lg bg-white/70 px-2.5 py-2">
-          <p className="text-[10px] uppercase tracking-wide text-slate-500">En la factura hoy</p>
-          <p className="text-sm font-bold text-slate-800">{money(lines.total)}</p>
-          <p className="text-[10px] text-slate-500">
-            almacenamiento {money(lines.storage)}
-            {lines.forklift > 0 ? ` · montacargas ${money(lines.forklift)}` : ''}
-          </p>
-        </div>
-        <div className="rounded-lg bg-white/70 px-2.5 py-2">
-          <p className="text-[10px] uppercase tracking-wide text-slate-500">Aviso de cargos</p>
-          <p className="text-sm font-semibold text-slate-800">
-            {summary?.notifiedDate ? 'Enviado' : 'Pendiente'}
-          </p>
-          <p className="text-[10px] text-slate-500">
-            {summary?.notifiedDate ? formatDate(summary.notifiedDate) : 'sin aviso registrado'}
-          </p>
-        </div>
+      <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">
+        <p className="text-[11px] text-slate-600">
+          {days ? `${days} día(s) cobrados` : 'sin días cobrados'}
+          {forklift > 0 ? ' · con montacargas' : ''}
+        </p>
+        <p className="text-[11px] text-slate-600">
+          Aviso de cargos: <span className="font-semibold text-slate-800">{summary?.notifiedDate ? `enviado ${formatDate(summary.notifiedDate)}` : 'pendiente'}</span>
+        </p>
       </div>
 
       <div className="mt-2 flex flex-wrap items-center gap-1.5">
