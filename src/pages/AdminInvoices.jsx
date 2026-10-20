@@ -21,6 +21,9 @@ import { FileText, Search, Loader2, Download, Edit, Trash2, PackageX, Package, M
 import InvoiceStatsCards from '@/components/invoice/InvoiceStatsCards';
 import InvoiceTariffRecalcDialog from '@/components/invoice/recalc/InvoiceTariffRecalcDialog';
 import StorageChargeDialog from '@/components/invoice/storage/StorageChargeDialog';
+import StorageChargeInvoiceSummary from '@/components/invoice/storage/StorageChargeInvoiceSummary';
+import StorageChargesAuditDialog from '@/components/invoice/storage/StorageChargesAuditDialog';
+import { fetchStorageTotals } from '@/lib/storageAudit';
 import WarehouseOrderModal from '@/components/invoice/WarehouseOrderModal';
 import { generateWarehouseOrder } from '@/lib/warehouseOrder';
 import WarehousePaidTable from '@/components/invoice/WarehousePaidTable';
@@ -68,6 +71,9 @@ export default function AdminInvoices({ user }) {
   const [showPaymentsSettings, setShowPaymentsSettings] = useState(false);
   const [showTariffRecalc, setShowTariffRecalc] = useState(false);
   const [showStorageCharges, setShowStorageCharges] = useState(false);
+  const [showStorageAudit, setShowStorageAudit] = useState(false);
+  const [storageAuditFocus, setStorageAuditFocus] = useState(null);
+  const [storageTotals, setStorageTotals] = useState({});
   const [appConfig, setAppConfig] = useState(null);
   const [dispatchReceipt, setDispatchReceipt] = useState(null);
   const [warehouseOrderInvoice, setWarehouseOrderInvoice] = useState(null);
@@ -176,6 +182,13 @@ export default function AdminInvoices({ user }) {
   useEffect(() => {
     computeStats(rangeQueryActive ? (paidRange || []) : invoices);
   }, [rangeQueryActive, paidRange, invoices]);
+
+  // Totales de almacenamiento ya sumados a cada factura (una sola consulta).
+  const invoiceIdsKey = useMemo(() => invoices.map(inv => inv.id).join(','), [invoices]);
+  useEffect(() => {
+    if (!invoiceIdsKey) return;
+    fetchStorageTotals().then(setStorageTotals);
+  }, [invoiceIdsKey]);
 
   const loadInvoices = async (append = false) => {
     if (append) setLoadingMore(true); else setLoading(true);
@@ -739,6 +752,13 @@ export default function AdminInvoices({ user }) {
             <Package className="h-4 w-4 mr-2" />
             Cargos de almacenamiento
           </Button>
+          <Button
+            variant="outline"
+            onClick={() => { setStorageAuditFocus(null); setShowStorageAudit(true); }}
+          >
+            <ClipboardList className="h-4 w-4 mr-2" />
+            Cargos y avisos por factura
+          </Button>
           <Button onClick={handleExportAll} variant="outline">
             <Download className="h-4 w-4 mr-2" />
             Exportar CSV
@@ -926,6 +946,11 @@ export default function AdminInvoices({ user }) {
                   )}
                   extraActions={(
                     <div className="w-full space-y-3">
+                      <StorageChargeInvoiceSummary
+                        invoice={invoice}
+                        summary={storageTotals[invoice.id]}
+                        onOpenDetail={(inv) => { setStorageAuditFocus(inv.id); setShowStorageAudit(true); }}
+                      />
                       {invoice.status === 'pendiente' && invoice.client_whatsapp && (
                         <button
                           onClick={(e) => { e.stopPropagation(); handleNotifyPayment(invoice); }}
@@ -1291,6 +1316,13 @@ export default function AdminInvoices({ user }) {
         open={showStorageCharges}
         onOpenChange={setShowStorageCharges}
         onApplied={() => loadInvoices()}
+      />
+
+      {/* Cargos de almacenamiento y avisos ya enviados, factura por factura */}
+      <StorageChargesAuditDialog
+        open={showStorageAudit}
+        onOpenChange={(value) => { setShowStorageAudit(value); if (!value) setStorageAuditFocus(null); }}
+        focusInvoiceId={storageAuditFocus}
       />
 
       <InvoiceTariffRecalcDialog
