@@ -2,6 +2,7 @@ import React from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { base44 as rawBase44 } from '@/api/base44Client';
+import { isStaleChunkError, reloadForStaleChunk } from '@/lib/staleChunkReload';
 
 export default class SoftErrorBoundary extends React.Component {
   constructor(props) {
@@ -17,23 +18,10 @@ export default class SoftErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    // Detectar errores de chunk obsoleto tras un deploy nuevo y recargar automáticamente
-    const msg = String(error?.message || '');
-    const isStaleChunkError = /Failed to fetch dynamically imported module|Importing a module script failed|ChunkLoadError|Loading chunk \d+ failed/i.test(msg);
-    if (isStaleChunkError) {
-      try {
-        const key = 'app:stale-chunk-reloaded';
-        const already = sessionStorage.getItem(key);
-        if (!already) {
-          sessionStorage.setItem(key, String(Date.now()));
-          window.location.reload();
-          return;
-        }
-      } catch {
-        window.location.reload();
-        return;
-      }
-    }
+    // Página que el navegador no pudo descargar (versión nueva publicada o vista
+    // previa reiniciándose): se recarga sola, con reintentos limitados, en vez
+    // de dejar el error en pantalla.
+    if (isStaleChunkError(error?.message) && reloadForStaleChunk()) return;
 
     rawBase44.auth.me().then((me) => this.setState({ viewerRole: me?.role || null })).catch(() => this.setState({ viewerRole: null }));
     const hash = (str) => {
