@@ -62,6 +62,8 @@ export default function CloseBultoDialog({ open, bulto, onConfirm, onCancel }) {
               value={orderText}
               onChange={(e) => setOrderText(e.target.value)}
               placeholder="Ej: 12345 (separar con comas si son varias)"
+              inputMode="numeric"
+              pattern="[0-9, ]*"
               className="mt-1 text-sm font-mono"
             />
             <p className="mt-1 text-[10px] text-slate-400">
