@@ -13,6 +13,8 @@ import InvoiceRecalcRow from './InvoiceRecalcRow';
 
 const money = (v) => `$${(Number(v) || 0).toFixed(2)}`;
 
+const PENDING_STATUSES = ['pendiente', 'vencida', 'revision'];
+
 // Recálculo de tarifas de todas las facturas: cada envío se cobra con la tarifa
 // del tipo de carga de su propio recibo, en vez del promedio prorrateado.
 // Primero se revisa (antes → después) y solo al confirmar se aplica.
@@ -21,6 +23,7 @@ export default function InvoiceTariffRecalcDialog({ open, onOpenChange, onApplie
   const [loading, setLoading] = useState(false);
   const [applying, setApplying] = useState(false);
   const [onlyChanged, setOnlyChanged] = useState(false);
+  const [scope, setScope] = useState('all');
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [excluded, setExcluded] = useState(() => new Set());
   const overridesRef = useRef({});
@@ -44,6 +47,7 @@ export default function InvoiceTariffRecalcDialog({ open, onOpenChange, onApplie
     overridesRef.current = {};
     setExcluded(new Set());
     setOnlyChanged(false);
+    setScope('all');
     load();
   }, [open, load]);
 
@@ -72,11 +76,16 @@ export default function InvoiceTariffRecalcDialog({ open, onOpenChange, onApplie
     });
   };
 
-  const changedInvoices = useMemo(
-    () => invoices.filter((i) => i.changed && !i.blocked),
-    [invoices]
+  // Alcance: todas las facturas o solo las que están pendientes por pagar.
+  const inScope = useMemo(
+    () => (scope === 'pending' ? invoices.filter((i) => PENDING_STATUSES.includes(i.status)) : invoices),
+    [invoices, scope]
   );
-  const blockedCount = useMemo(() => invoices.filter((i) => i.blocked).length, [invoices]);
+  const changedInvoices = useMemo(
+    () => inScope.filter((i) => i.changed && !i.blocked),
+    [inScope]
+  );
+  const blockedCount = useMemo(() => inScope.filter((i) => i.blocked).length, [inScope]);
   const targets = useMemo(
     () => changedInvoices.filter((i) => !excluded.has(i.invoice_id)),
     [changedInvoices, excluded]
@@ -85,7 +94,7 @@ export default function InvoiceTariffRecalcDialog({ open, onOpenChange, onApplie
     () => targets.reduce((s, i) => s + ((Number(i.after?.total) || 0) - (Number(i.before?.total) || 0)), 0),
     [targets]
   );
-  const visible = onlyChanged ? invoices.filter((i) => i.changed) : invoices;
+  const visible = onlyChanged ? inScope.filter((i) => i.changed) : inScope;
 
   const handleApply = async () => {
     if (!targets.length) return;
@@ -127,7 +136,23 @@ export default function InvoiceTariffRecalcDialog({ open, onOpenChange, onApplie
 
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
             <div className="flex flex-wrap items-center gap-4 text-[11px] text-slate-600">
-              <span><strong className="text-slate-800">{invoices.length}</strong> factura(s)</span>
+              <div className="flex items-center gap-1 rounded-lg border border-slate-300 bg-white p-0.5">
+                <button
+                  type="button"
+                  onClick={() => setScope('all')}
+                  className={`rounded-md px-2.5 py-1 text-[11px] font-medium ${scope === 'all' ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
+                >
+                  Todas
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setScope('pending')}
+                  className={`rounded-md px-2.5 py-1 text-[11px] font-medium ${scope === 'pending' ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
+                >
+                  Pendientes por pagar
+                </button>
+              </div>
+              <span><strong className="text-slate-800">{inScope.length}</strong> factura(s)</span>
               <span className="text-amber-700"><strong>{changedInvoices.length}</strong> con cambio</span>
               <span><strong>{blockedCount}</strong> sin ajuste automático</span>
               <span>
@@ -147,10 +172,17 @@ export default function InvoiceTariffRecalcDialog({ open, onOpenChange, onApplie
                 Actualizar
               </Button>
               <Button size="sm" onClick={() => setConfirmOpen(true)} disabled={!targets.length || loading}>
-                Aplicar {targets.length} factura(s)
+                {scope === 'pending' ? `Ajustar ${targets.length} pendiente(s)` : `Aplicar ${targets.length} factura(s)`}
               </Button>
             </div>
           </div>
+
+          {!loading && scope === 'pending' && inScope.length > 0 && !changedInvoices.length && (
+            <p className="rounded-lg bg-emerald-50 p-2.5 text-[11px] text-emerald-800">
+              Las {inScope.length} facturas pendientes por pagar ya están cobradas con la tarifa del tipo de cada recibo: no hay nada que ajustar.
+              Si un recibo es alto riesgo/sensible, cámbiale el tipo de carga en el detalle y el ajuste aparecerá.
+            </p>
+          )}
 
           {loading ? (
             <div className="flex items-center justify-center py-16">

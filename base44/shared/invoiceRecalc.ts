@@ -261,6 +261,8 @@ export function buildInvoiceRecalc({ invoice, receiptsOfClient, ctx, overrides }
         type: p.type,
         type_from: overrides?.[p.key] ? "manual" : (saved_of(details, p.u.number) || l.type ? "guardado" : (p.u.receipt?.cargo_type ? "recibo" : "predeterminado")),
         mode,
+        rate_general: round2(genRate),
+        rate_high: round2(highRate),
         unit_before: round2(effStored),
         unit_after: unitAfter,
         total_before: round2(p.beforeShare),
