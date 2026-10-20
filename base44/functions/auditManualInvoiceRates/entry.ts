@@ -103,6 +103,12 @@ export default async function (req: Request): Promise<Response> {
       if (!lines.length) { reject('La factura no tiene líneas de envío que revisar.'); continue; }
 
       const stored = round2(lines.reduce((s: number, l: any) => s + num(l.amount), 0));
+      // Factura que no cobró nada por el envío: no hay una tarifa mal aplicada que
+      // reconstruir, así que se deja para revisión manual en vez de inventar un cobro.
+      if (stored <= 0) {
+        reject('Esta factura no cobró nada por el envío: hay que revisar a mano si le corresponde la tarifa de sus recibos.');
+        continue;
+      }
 
       // Recibos de la factura con su volumen, su fecha y su tipo de carga.
       const key = (order: any) => `${email.trim().toLowerCase()}|${String(order || '').trim()}`;
@@ -242,8 +248,9 @@ export default async function (req: Request): Promise<Response> {
         ].filter(Boolean).join('\n').slice(0, 1000),
       };
       // La ganancia guardada depende del total: se recalcula con el mismo criterio
-      // con el que se calculó al emitir. La cuenta por pagar no se toca.
-      if (num(invoice.provider_cost_total) > 0) {
+      // con el que se calculó al emitir (total - costo proveedor). La cuenta por
+      // pagar del proveedor y sus abonos no se tocan.
+      if (invoice.profit_amount !== undefined && invoice.profit_amount !== null) {
         updates.profit_amount = round2(after - num(invoice.provider_cost_total));
       }
 
