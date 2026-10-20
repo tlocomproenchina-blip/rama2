@@ -71,8 +71,8 @@ export default function StorageChargeDialog({ open, onOpenChange, onApplied }) {
         <div className="space-y-3">
           <p className="text-xs text-slate-500">
             Días 1 al 7 gratis. Desde el día 8: {money(config.standard_daily_rate || 10)} diarios por bulto estándar y{' '}
-            {money(config.large_daily_rate || 20)} por bulto grande, más {money(config.forklift_fee || 150)} por palet con
-            montacargas (cargo único). Se acumula hasta el día {config.max_days || 45}.
+            {money(config.large_daily_rate || 20)} por bulto grande. El montacargas ({money(config.forklift_fee || 150)}{' '}
+            por palet, cargo único) se aplica a mano en cada factura. Se acumula hasta el día {config.max_days || 45}.
           </p>
 
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
@@ -107,7 +107,12 @@ export default function StorageChargeDialog({ open, onOpenChange, onApplied }) {
           ) : (
             <div className="max-h-[58vh] space-y-2 overflow-y-auto pr-1">
               {rows.map((row) => (
-                <StorageChargeInvoiceRow key={row.invoice_id} row={row} onRefresh={load} />
+                <StorageChargeInvoiceRow
+                  key={row.invoice_id}
+                  row={row}
+                  onRefresh={load}
+                  forkliftFee={Number(config.forklift_fee) || 150}
+                />
               ))}
             </div>
           )}

@@ -6,8 +6,8 @@
 //     volumen, que equivale a 30 × 30 × 30 cm) y USD 20 diarios por bulto grande
 //     (supera ese volumen). El volumen del bulto se compara en CBM, que es la
 //     unidad con la que se factura la carga.
-//   - El recargo de montacargas es USD 150 por palet, UNA sola vez por cada palet
-//     marcado que requiera el equipo: se suma al almacenamiento diario, no es diario.
+//   - El recargo de montacargas es USD 150 por palet, UNA sola vez por palet y NO
+//     lo cobra el proceso automático: lo aplica un administrador a mano.
 //   - Hasta el día 45 se sigue acumulando; después el sistema deja de cobrar.
 //   - No existe una penalización independiente por mora: aquí solo hay
 //     almacenamiento y custodia, más el recargo de montacargas.
@@ -293,15 +293,18 @@ export function planInvoiceCharges({ invoice, units, charges, config, now = new 
   const rateLarge = num(config?.large_daily_rate);
   const dailyAmount = round2(unitsStandard * rateStandard + unitsLarge * rateLarge);
 
+  // El montacargas NO se cobra automáticamente: los palets marcados solo quedan
+  // como referencia y el recargo lo aplica un administrador a mano desde el panel
+  // de cargos (función applyStorageForklift).
   const palletsMarked = list.reduce(
     (sum: number, u: any) => sum + (u.requires_forklift ? Math.max(0, Math.round(num(u.pallets))) : 0),
     0
   );
   const palletsCharged = records.reduce((sum: number, r: any) => sum + num(r.forklift_pallets_today), 0);
-  const newPallets = Math.max(0, palletsMarked - palletsCharged);
+  const newPallets = 0;
 
   const storageAmount = round2(days.length * dailyAmount);
-  const forkliftAmount = round2(newPallets * num(config?.forklift_fee));
+  const forkliftAmount = 0;
   const amount = round2(storageAmount + forkliftAmount);
 
   // El aviso de fin de contrato (día tope alcanzado) se registra una sola vez.
@@ -336,6 +339,8 @@ export function planInvoiceCharges({ invoice, units, charges, config, now = new 
     daily_amount: dailyAmount,
     storage_amount: storageAmount,
     forklift_pallets: newPallets,
+    forklift_pallets_marked: palletsMarked,
+    forklift_pallets_charged: palletsCharged,
     forklift_amount: forkliftAmount,
     amount,
     accumulated_before: accumulatedBefore,

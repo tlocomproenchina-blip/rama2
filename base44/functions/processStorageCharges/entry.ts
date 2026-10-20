@@ -185,6 +185,7 @@ export default async function (req: Request): Promise<Response> {
         daily_amount: plan.daily_amount,
         storage_amount: plan.storage_amount,
         forklift_pallets: plan.forklift_pallets,
+        forklift_pallets_marked: plan.forklift_pallets_marked,
         forklift_amount: plan.forklift_amount,
         amount: plan.amount,
         accumulated_after: plan.accumulated_after,

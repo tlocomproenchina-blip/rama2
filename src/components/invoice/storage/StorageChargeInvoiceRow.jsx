@@ -5,19 +5,21 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ChevronDown, ChevronUp, Loader2, Save } from 'lucide-react';
+import { ChevronDown, ChevronUp, Loader2, Save, Truck } from 'lucide-react';
 import { toast } from 'sonner';
 
 const money = (value) => `$${(Number(value) || 0).toFixed(2)}`;
 
 // Una factura dentro del panel de cargos: qué se cobraría hoy y, al abrirla, las
 // unidades que siguen en almacén (para marcarlas) y el desglose día por día.
-export default function StorageChargeInvoiceRow({ row, onRefresh }) {
+export default function StorageChargeInvoiceRow({ row, onRefresh, forkliftFee = 150 }) {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState([]);
   const [history, setHistory] = useState(null);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [savingMarks, setSavingMarks] = useState(false);
+  const [pallets, setPallets] = useState(1);
+  const [applyingForklift, setApplyingForklift] = useState(false);
 
   const units = draft.length ? draft : (row.units || []);
 
@@ -73,6 +75,27 @@ export default function StorageChargeInvoiceRow({ row, onRefresh }) {
     setSavingMarks(false);
   };
 
+  // El montacargas no lo cobra el proceso diario: se aplica aquí, a mano y una
+  // sola vez por palet.
+  const applyForklift = async () => {
+    const count = Math.max(1, Math.round(Number(pallets) || 0));
+    setApplyingForklift(true);
+    try {
+      const res = await base44.functions.invoke('applyStorageForklift', {
+        invoice_id: row.invoice_id,
+        pallets: count,
+      });
+      const amount = Number(res?.data?.amount) || 0;
+      toast.success(`Montacargas aplicado: ${money(amount)}`);
+      setPallets(1);
+      await loadHistory();
+      await onRefresh?.();
+    } catch {
+      toast.error('No se pudo aplicar el montacargas');
+    }
+    setApplyingForklift(false);
+  };
+
   const accumulated = (history || []).reduce((sum, h) => sum + (Number(h.amount) || 0), 0);
 
   return (
@@ -85,7 +108,7 @@ export default function StorageChargeInvoiceRow({ row, onRefresh }) {
         <Badge variant="outline" className="text-[11px]">Día {row.day_number}</Badge>
         <span className="text-[11px] text-slate-600">
           {row.units_standard} estándar · {row.units_large} grande
-          {row.forklift_pallets ? ` · ${row.forklift_pallets} palet(s) montacargas` : ''}
+          {row.forklift_pallets_marked ? ` · ${row.forklift_pallets_marked} palet(s) marcado(s)` : ''}
         </span>
         {row.units_source === 'envio' && <Badge variant="secondary" className="text-[11px]">por envío</Badge>}
         {row.stopped && <Badge className="bg-slate-700 text-[11px]">cargos detenidos (día {row.day_number})</Badge>}
@@ -146,6 +169,30 @@ export default function StorageChargeInvoiceRow({ row, onRefresh }) {
               </Button>
             </div>
           )}
+
+          <div className="space-y-2 rounded-lg border border-slate-200 bg-white p-2">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Montacargas (aplicación manual)</p>
+            <div className="flex flex-wrap items-center gap-2">
+              <Input
+                type="number"
+                min="1"
+                value={pallets}
+                onChange={(e) => setPallets(e.target.value)}
+                className="h-8 w-[80px] text-[11px]"
+                title="Palets a cobrar"
+              />
+              <span className="text-[11px] text-slate-600">
+                palet(s) × {money(forkliftFee)} = {money(Math.max(0, Math.round(Number(pallets) || 0)) * forkliftFee)}
+              </span>
+              <Button size="sm" onClick={applyForklift} disabled={applyingForklift}>
+                {applyingForklift ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : <Truck className="mr-2 h-3.5 w-3.5" />}
+                Aplicar a la factura
+              </Button>
+            </div>
+            <p className="text-[10px] text-slate-500">
+              El proceso diario no cobra montacargas: se aplica aquí una sola vez por palet, cuando corresponda.
+            </p>
+          </div>
 
           <div className="space-y-1.5">
             <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Desglose registrado</p>
