@@ -347,17 +347,7 @@ export default function WarehouseScanPack({ user }) {
           onRemoveLast={pack.removeLast}
           onOrderChange={pack.saveOrder}
         />
-      ) : (
-        <Card>
-          <CardContent className="p-8 text-center text-slate-500">
-            <ScanLine className="h-8 w-8 mx-auto mb-2 text-slate-300" />
-            <p className="text-sm">
-              Escanea un paquete para abrir la unidad del cliente, o el código de una caja (-C##) o
-              de un bulto (-B##) para retomarla.
-            </p>
-          </CardContent>
-        </Card>
-      )}
+      ) : null}
 
       <PackUnitChips
         units={pack.units}
