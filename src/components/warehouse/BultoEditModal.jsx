@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import AccountingSyncNotice from '@/components/warehouse/AccountingSyncNotice';
 import AbsorbBultosConfirmDialog from '@/components/warehouse/AbsorbBultosConfirmDialog';
 import AbsorbedBultosHistory from '@/components/warehouse/AbsorbedBultosHistory';
+import { packageCountForDispatch } from '@/lib/bultoCounts';
 
 // Modal de edición completa de un bulto: paquetes incluidos, snapshot del cliente y estado.
 export default function BultoEditModal({ bulto, open, onClose, onSaved }) {
@@ -30,6 +31,14 @@ export default function BultoEditModal({ bulto, open, onClose, onSaved }) {
   const [orderNumbers, setOrderNumbers] = useState('');
   // Avisos cuando el cambio no pudo aplicarse al recibo de contabilidad.
   const [syncWarnings, setSyncWarnings] = useState([]);
+  // Correcciones de cantidad: paquetes que realmente hay dentro del bulto y total de
+  // bultos físicos del cliente que debe despacharse.
+  const [packageCount, setPackageCount] = useState('');
+  // Conteo con el que abrió el modal: si no se cambia, no se envía (no se toca el recibo
+  // de contabilidad ni la guía).
+  const [initialPackageCount, setInitialPackageCount] = useState(0);
+  const [totalBultos, setTotalBultos] = useState('');
+  const [clientBultos, setClientBultos] = useState([]);
 
   useEffect(() => {
     if (!bulto) return;
@@ -55,6 +64,11 @@ export default function BultoEditModal({ bulto, open, onClose, onSaved }) {
     setAbsorbedSources([]);
     setPendingAbsorb(null);
     setSyncWarnings([]);
+    const initialCount = packageCountForDispatch(bulto) || 1;
+    setPackageCount(String(initialCount));
+    setInitialPackageCount(initialCount);
+    setTotalBultos(String(bulto.total_bultos ?? ''));
+    setClientBultos([]);
 
     // Cargar paquetes recibidos del cliente + bultos hermanos para marcar ocupados
     (async () => {
@@ -76,6 +90,7 @@ export default function BultoEditModal({ bulto, open, onClose, onSaved }) {
         ]);
         const received = (pkgs || []).filter((p) => p.status === 'recibido');
         setClientPackages(received);
+        setClientBultos(bultos || []);
 
         // Bultos hermanos del cliente: los paquetes que estén dentro de ellos se pueden
         // marcar igual. Al guardar, ese bulto viejo se fusiona y se elimina.
@@ -157,16 +172,44 @@ export default function BultoEditModal({ bulto, open, onClose, onSaved }) {
       const parsedOrders = orderNumbers.trim()
         ? orderNumbers.split(',').map((s) => s.trim()).filter(Boolean)
         : [];
-      const res = await base44.functions.invoke('updateBulto', {
+      const count = Math.round(Number(packageCount));
+      const payload = {
         bulto_id: bulto.id,
         package_ids: selectedIds,
         client_snapshot: snapshot,
         status,
         cbm_order_numbers: parsedOrders,
-      });
+      };
+      if (Number.isFinite(count) && count >= 1 && count !== initialPackageCount) {
+        payload.cargo_package_count = count;
+      }
+
+      const res = await base44.functions.invoke('updateBulto', payload);
       if (res?.data?.error) {
         toast.error(res.data.error);
         return;
+      }
+
+      // Total de bultos físicos del cliente: si cambió, se unifican los que sobran en el
+      // anterior y se renumera.
+      const wanted = Math.round(Number(totalBultos));
+      const declared = Math.round(Number(bulto.total_bultos) || 0);
+      if (clientBultos.length > 0 && Number.isFinite(wanted) && wanted >= 1 && wanted !== declared) {
+        const adj = await base44.functions.invoke('adjustClientBultos', {
+          client_email: bulto.client_email,
+          total_bultos: wanted,
+        });
+        if (adj?.data?.error) {
+          toast.error(adj.data.error);
+        } else {
+          const mergedCount = (adj?.data?.merged || []).length;
+          toast.success(
+            mergedCount > 0
+              ? `${wanted} bulto(s): se unieron ${mergedCount} en el anterior`
+              : `Total de bultos ajustado a ${wanted}`
+          );
+          (adj?.data?.warnings || []).forEach((message) => toast.warning(message));
+        }
       }
       // El recibo de contabilidad se alinea con el N° de contenedor, el CBM y el conteo
       // registrados aquí (almacén de Venezuela); si hay conflicto, se avisa.
@@ -205,6 +248,9 @@ export default function BultoEditModal({ bulto, open, onClose, onSaved }) {
   const unregisteredCodes = Array.isArray(bulto?.unregistered_codes)
     ? bulto.unregistered_codes.filter(Boolean)
     : [];
+
+  const wantedTotal = Math.round(Number(totalBultos));
+  const reducing = Number.isFinite(wantedTotal) && wantedTotal >= 1 && wantedTotal < clientBultos.length;
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
@@ -326,6 +372,45 @@ export default function BultoEditModal({ bulto, open, onClose, onSaved }) {
                   Número(s) de contenedor asignado(s) en el almacén de China. Se muestran en la etiqueta y al cliente.
                 </p>
               </div>
+            </div>
+
+            {/* Cantidades que se despachan: paquetes dentro del bulto y total de bultos del cliente */}
+            <div className="rounded-lg border border-border p-3 space-y-3">
+              <p className="text-xs font-semibold text-slate-700">Cantidades para despacho</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <Label className="mb-1 block text-xs">Cantidad de paquetes en este bulto</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    inputMode="numeric"
+                    value={packageCount}
+                    onChange={(e) => setPackageCount(e.target.value)}
+                  />
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    Es el conteo que usan la guía de despacho y la facturación.
+                  </p>
+                </div>
+                <div>
+                  <Label className="mb-1 block text-xs">Total de bultos del cliente</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    inputMode="numeric"
+                    value={totalBultos}
+                    onChange={(e) => setTotalBultos(e.target.value)}
+                  />
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    Hoy hay {clientBultos.length} bulto(s) registrado(s) para el cliente.
+                  </p>
+                </div>
+              </div>
+              {reducing && (
+                <p className="text-[11px] text-amber-700">
+                  Al guardar, los bultos sobrantes se unen en el anterior (sus paquetes y su
+                  contenedor pasan a ese bulto) y los bultos quedan numerados 1 a {wantedTotal}.
+                </p>
+              )}
             </div>
           </div>
         )}

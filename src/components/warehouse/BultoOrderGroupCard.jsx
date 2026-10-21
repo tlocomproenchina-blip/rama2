@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { ChevronDown, ChevronRight, Hash, CheckSquare, Square } from 'lucide-react';
-import { realPackageCount } from '@/lib/bultoCounts';
+import { packageCountForDispatch } from '@/lib/bultoCounts';
 import BultoHistoryRow from './BultoHistoryRow';
 
 // Tarjeta plegable que reúne todos los bultos de un mismo cliente con el mismo N° de contenedor.
@@ -14,7 +14,7 @@ export default function BultoOrderGroupCard({
   const bultos = entry.bultos;
   const first = bultos[0];
   const count = bultos.length;
-  const packages = bultos.reduce((sum, bulto) => sum + realPackageCount(bulto), 0);
+  const packages = bultos.reduce((sum, bulto) => sum + packageCountForDispatch(bulto), 0);
   const numbers = bultos.map((bulto) => (
     bulto.bulto_number !== undefined && bulto.bulto_number !== null ? bulto.bulto_number : bulto.label_code
   ));

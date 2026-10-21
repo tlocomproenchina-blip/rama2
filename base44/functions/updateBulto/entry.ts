@@ -6,6 +6,7 @@ import {
   recountClientBultos,
 } from '../../shared/bultoAbsorption.ts';
 import { markPackagesReceivedIfMissing } from '../../shared/bultoScan.ts';
+import { syncGuidesAfterBultoChange } from '../../shared/bultoCountSync.ts';
 
 // Actualiza un bulto existente. Recibe: { bulto_id, package_ids?, client_snapshot?, status? }
 // - Valida que los package_ids sean del mismo cliente del bulto.
@@ -227,9 +228,20 @@ export default async function(req: Request): Promise<Response> {
       }).catch(() => ({ action: 'skipped', warnings: [] }));
     }
 
+    // El conteo corregido del bulto se refleja en las guías ya emitidas: la línea del bulto
+    // queda con la cantidad nueva y la guía recalcula sus totales.
+    let guideSync: any = null;
+    if (cargoCountProvided && updated?.label_code) {
+      guideSync = await syncGuidesAfterBultoChange(base44, {
+        counts: { [updated.label_code]: Number(updated.cargo_package_count) || 0 },
+        actor: user.email || '',
+      }).catch(() => null);
+    }
+
     return Response.json({
       bulto: updated,
       cbm_applied_to: cbmAppliedTo,
+      guide_sync: guideSync,
       sync,
       absorbed: {
         bultos: plan?.absorbed || [],

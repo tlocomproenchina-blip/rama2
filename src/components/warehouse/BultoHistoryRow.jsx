@@ -2,7 +2,7 @@ import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Pencil, Trash2, Printer, CheckSquare, Square, CloudOff, Hash } from 'lucide-react';
-import { realPackageCount } from '@/lib/bultoCounts';
+import { packageCountForDispatch } from '@/lib/bultoCounts';
 import PrintCountBadge from './PrintCountBadge';
 
 // Tarjeta de un bulto individual del historial: la usan los bultos sin N° de contenedor y los
@@ -57,7 +57,7 @@ export default function BultoHistoryRow({
                 <span className="font-mono">{b.shipping_mark}</span>
                 <span>{b.client_email}</span>
                 {b.client_snapshot?.state && <span>{b.client_snapshot.state}</span>}
-                <span>{realPackageCount(b)} paq.</span>
+                <span>{packageCountForDispatch(b)} paq.</span>
                 {Array.isArray(b.cbm_order_numbers) && b.cbm_order_numbers.length > 0 && (
                   <span className="inline-flex items-center gap-0.5 text-blue-600 font-medium">
                     <Hash className="h-3 w-3" /> {b.cbm_order_numbers.join(', ')}

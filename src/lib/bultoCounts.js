@@ -13,6 +13,14 @@ export function realPackageCount(bulto) {
   return registered + unregistered;
 }
 
+// Conteo con el que se despacha y se factura un bulto: si el almacén corrigió a mano la
+// cantidad de paquetes, manda esa corrección; si no, el conteo real de paquetes.
+export function packageCountForDispatch(bulto) {
+  const cargo = Number(bulto?.cargo_package_count);
+  if (Number.isFinite(cargo) && cargo > 0) return cargo;
+  return realPackageCount(bulto);
+}
+
 // Códigos que la etiqueta imprime como CONTENIDO: exactamente los paquetes que cuenta
 // realPackageCount, sin las etiquetas de bultos ya fusionados ni códigos repetidos.
 export function labelContentCodes(bulto) {
