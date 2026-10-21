@@ -252,6 +252,23 @@
       "type": "string",
       "format": "date-time",
       "description": "Fecha y hora en que el administrador habilit\u00f3 la excepci\u00f3n del plazo del comprobante de entrega"
+    },
+    "billing_assigned_receipt_id": {
+      "type": "string",
+      "description": "ID del recibo (CbmIngreso) al que un administrador asign\u00f3 este paquete desde Facturaci\u00f3n Manual. Se guarda para que la asignaci\u00f3n sobreviva a recargar la pantalla y el paquete se integre a ese recibo al generar la factura."
+    },
+    "billing_assigned_receipt_number": {
+      "type": "string",
+      "description": "N\u00b0 visible del recibo asignado desde Facturaci\u00f3n Manual (cache para mostrar)"
+    },
+    "billing_assigned_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha y hora de la asignaci\u00f3n del paquete a un recibo desde Facturaci\u00f3n Manual"
+    },
+    "billing_assigned_by": {
+      "type": "string",
+      "description": "Email del administrador que asign\u00f3 el paquete a un recibo"
     }
   },
   "required": [

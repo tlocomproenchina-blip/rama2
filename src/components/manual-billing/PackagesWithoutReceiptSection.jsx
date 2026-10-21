@@ -51,16 +51,18 @@ export default function PackagesWithoutReceiptSection({ packages, onChange, avai
 
   const handleAssign = (pkgId, receiptId) => {
     updatePkg(pkgId, { assigned_receipt_id: receiptId });
-    if (onAssignReceipt) onAssignReceipt(receiptId);
+    // El recibo elegido se guarda en el paquete para que la asignación no se pierda al recargar
+    if (onAssignReceipt) onAssignReceipt([pkgId], receiptId);
     const num = receiptNumberById[receiptId];
     toast.success(`Paquete asignado al recibo ${num || ''}`.trim());
   };
 
   const applyBulkAssign = () => {
     if (!bulkReceiptId) return;
-    const count = pendingPackages.filter((p) => p.selected).length;
+    const selectedPkgs = pendingPackages.filter((p) => p.selected);
+    const count = selectedPkgs.length;
     onChange(packages.map((p) => (p.assigned_receipt_id || !p.selected ? p : { ...p, assigned_receipt_id: bulkReceiptId })));
-    if (onAssignReceipt) onAssignReceipt(bulkReceiptId);
+    if (onAssignReceipt) onAssignReceipt(selectedPkgs.map((p) => p.id), bulkReceiptId);
     const num = receiptNumberById[bulkReceiptId] || '';
     setBulkReceiptId('');
     toast.success(`${count} paquete(s) asignados al recibo ${num}`.trim());

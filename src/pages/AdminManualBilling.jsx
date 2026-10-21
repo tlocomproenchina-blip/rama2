@@ -295,6 +295,8 @@ export default function AdminManualBilling({ user }) {
             paid_insurance_amount: paidIns,
             selected: false,
             assigned_receipt_id: '',
+            // Recibo guardado en el paquete: se restaura más abajo si sigue disponible
+            billing_assigned_receipt_id: p.billing_assigned_receipt_id || '',
           };
         });
       setOrphanPackages(orphans);
@@ -334,6 +336,19 @@ export default function AdminManualBilling({ user }) {
         };
       });
       setRows(built);
+      // Restaurar las asignaciones guardadas: si el recibo elegido sigue disponible para
+      // facturar, el paquete vuelve asignado a él (y el recibo queda marcado) tras recargar.
+      const builtIds = new Set(built.map((r) => r.id));
+      const restoredAssignments = new Set();
+      setOrphanPackages(orphans.map((p) => {
+        const rid = p.billing_assigned_receipt_id || '';
+        if (!rid || !builtIds.has(rid)) return p;
+        restoredAssignments.add(rid);
+        return { ...p, assigned_receipt_id: rid, selected: true };
+      }));
+      if (restoredAssignments.size > 0) {
+        setRows((prev) => prev.map((r) => (restoredAssignments.has(r.id) ? { ...r, selected: true } : r)));
+      }
       // Contenedores marcados a mano como ya facturados: se conservan (con su CBM y
       // trackings intactos) agrupados en su propia sección, fuera de la facturable.
       setMarkedReceipts((ingresos || [])
@@ -468,6 +483,25 @@ export default function AdminManualBilling({ user }) {
     setMarkingReceiptId(null);
   };
 
+  // Guarda en los paquetes el recibo al que se asignaron, para que la asignación
+  // sobreviva a recargar la pantalla y el paquete se integre a ese recibo al facturar.
+  const persistReceiptAssignment = async (packageIds, receiptId) => {
+    const ids = (packageIds || []).filter(Boolean);
+    if (!receiptId || ids.length === 0) return;
+    const receipt = rows.find((r) => r.id === receiptId);
+    const patch = {
+      billing_assigned_receipt_id: receiptId,
+      billing_assigned_receipt_number: receipt?.invoice_number || '',
+      billing_assigned_date: new Date().toISOString(),
+      billing_assigned_by: user?.email || '',
+    };
+    try {
+      await Promise.all(ids.map((id) => base44.entities.Package.update(id, patch)));
+    } catch {
+      toast.error('El paquete quedó asignado en pantalla, pero no se pudo guardar');
+    }
+  };
+
   const updateRow = (updated) => {
     setRows((prev) => prev.map((r) => {
       if (r.id !== updated.id) return r;
@@ -481,6 +515,13 @@ export default function AdminManualBilling({ user }) {
 
   const selectedRows = rows.filter((r) => r.selected);
   const selectedOrphans = orphanPackages.filter((p) => p.selected);
+  // Trackings de paquetes sin recibo ya asignados: se muestran dentro de su recibo
+  const assignedOrphansByReceipt = {};
+  orphanPackages.forEach((p) => {
+    if (!p.assigned_receipt_id) return;
+    if (!assignedOrphansByReceipt[p.assigned_receipt_id]) assignedOrphansByReceipt[p.assigned_receipt_id] = [];
+    assignedOrphansByReceipt[p.assigned_receipt_id].push(p.tracking_number);
+  });
   // El envío SIEMPRE se cobra consolidado: un solo cálculo sobre el CBM total
   // (manual si se indicó "CBM facturado", o la suma de las cargas seleccionadas)
   const selectedCbmSum = selectedRows.reduce((s, r) => s + num(r.cbm), 0);
@@ -820,6 +861,11 @@ export default function AdminManualBilling({ user }) {
       // Quitar los paquetes sin recibo ya facturados
       const orphanIds = new Set(selOrphans.map((p) => p.id));
       setOrphanPackages((prev) => prev.filter((p) => !orphanIds.has(p.id)));
+      // La asignación ya cumplió su función: el tracking quedó dentro de su recibo
+      await Promise.all([...orphanIds].map((id) => base44.entities.Package.update(id, {
+        billing_assigned_receipt_id: '',
+        billing_assigned_receipt_number: '',
+      }).catch(() => {})));
       setPaymentMethod('');
       setManualConsolidationFee('');
       setBilledCbm('');
@@ -1129,6 +1175,7 @@ export default function AdminManualBilling({ user }) {
                     onChange={updateRow}
                     cargoType={cargoType}
                     marking={markingReceiptId === row.id}
+                    assignedTrackings={assignedOrphansByReceipt[row.id] || []}
                     onMarkReceipt={(r) => handleMarkReceipt(r, true)}
                   />
                 ))}
@@ -1140,7 +1187,10 @@ export default function AdminManualBilling({ user }) {
                 packages={orphanPackages}
                 onChange={setOrphanPackages}
                 availableReceipts={rows}
-                onAssignReceipt={(receiptId) => setRows((prev) => prev.map((r) => r.id === receiptId ? { ...r, selected: true } : r))}
+                onAssignReceipt={(packageIds, receiptId) => {
+                  setRows((prev) => prev.map((r) => (r.id === receiptId ? { ...r, selected: true } : r)));
+                  persistReceiptAssignment(packageIds, receiptId);
+                }}
               />
             )}
 

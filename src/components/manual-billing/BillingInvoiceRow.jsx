@@ -16,8 +16,10 @@ const fmtDate = (d) => {
   return `${dd}-${mm}-${yy}`;
 };
 
-export default function BillingInvoiceRow({ row, onChange, cargoType = 'general', marking = false, onMarkReceipt }) {
+export default function BillingInvoiceRow({ row, onChange, cargoType = 'general', marking = false, assignedTrackings = [], onMarkReceipt }) {
   const update = (patch) => onChange({ ...row, ...patch });
+  // Trackings de paquetes sin recibo asignados a este recibo: se suman a su contenido
+  const trackingsText = [row.consolidation_tracking, ...assignedTrackings].filter(Boolean).join(', ');
   // Tipo de carga del recibo: el elegido en su tarjeta o, si no se ha elegido, el de la factura
   const effectiveCargoType = row.cargo_type || cargoType;
   const isHighRisk = effectiveCargoType === 'alto_riesgo';
@@ -52,10 +54,15 @@ export default function BillingInvoiceRow({ row, onChange, cargoType = 'general'
               </span>
             </div>
             <p className="text-xs text-slate-500 break-all line-clamp-2">
-              {row.consolidation_tracking || 'Sin tracking'}
+              {trackingsText || 'Sin tracking'}
             </p>
             <div className="flex flex-wrap gap-3 mt-1 text-xs text-slate-600">
-              <span className="inline-flex items-center gap-1"><PackageIcon className="h-3 w-3" /> {row.package_count} paquete(s)</span>
+              <span className="inline-flex items-center gap-1"><PackageIcon className="h-3 w-3" /> {Number(row.package_count || 0) + assignedTrackings.length} paquete(s)</span>
+              {assignedTrackings.length > 0 && (
+                <span className="inline-flex items-center gap-1 text-amber-700">
+                  <PackageIcon className="h-3 w-3" /> {assignedTrackings.length} sin recibo asignado(s)
+                </span>
+              )}
               {row.total_fob > 0 && (
                 <span className="inline-flex items-center gap-1 text-emerald-700">
                   <ShieldCheck className="h-3 w-3" /> FOB ${Number(row.total_fob || 0).toFixed(2)}
