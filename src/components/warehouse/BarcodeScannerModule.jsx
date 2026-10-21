@@ -308,7 +308,7 @@ export default function BarcodeScannerModule({
             <ScanLine className="h-4 w-4" />
             {title}
           </CardTitle>
-          <p className="text-sm text-slate-500">{description}</p>
+          {description ? <p className="text-sm text-slate-500">{description}</p> : null}
         </CardHeader>
         <CardContent className="space-y-3">
           {/* Cámara inline — se despliega arriba del campo de entrada dentro de la misma tarjeta */}

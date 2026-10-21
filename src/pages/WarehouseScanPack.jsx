@@ -272,7 +272,7 @@ export default function WarehouseScanPack({ user }) {
 
       <BarcodeScannerModule
         title="Recepción y empaque"
-        description="Usa la cámara, una lectora USB o escribe el código. El paquete entra en la unidad activa; el código de la caja (-C##) la abre y un bulto (-B##) se absorbe dentro de ella. La cámara toma una foto automática de cada código escaneado y la guarda en el paquete."
+        description=""
         placeholder="Tracking, etiqueta, bulto (-B##) o caja (-C##)"
         actionLabel="Agregar"
         value={code}
