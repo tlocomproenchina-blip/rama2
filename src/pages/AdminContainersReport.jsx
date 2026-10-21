@@ -58,8 +58,40 @@ export default function AdminContainersReport() {
     setSelectedKeys((current) => (current.includes(key) ? current.filter((item) => item !== key) : [...current, key]));
   };
 
+  // Firma del contenido del informe (clientes + contenedores + bultos), sin importar el orden.
+  const reportSignature = (groups) =>
+    groups
+      .map((group) => {
+        const containers = (group.containers || [])
+          .map((row) => `${row.container}:${Number(row.bultos || 0)}`)
+          .sort()
+          .join(',');
+        return `${group.email || group.shipping_mark || group.name}|${containers}`;
+      })
+      .sort()
+      .join('||');
+
+  // Un informe ya exportado con el mismo contenido no se vuelve a registrar: al reimprimir
+  // o volver a descargar, la fecha de creación original siempre prevalece.
+  const exportAlreadyLogged = async (groups) => {
+    const page = await base44.entities.ContainersReportExport.filter({}, { sort: '-exported_date', limit: 100 });
+    const signature = reportSignature(groups);
+    return (page?.items || []).some(
+      (entry) =>
+        reportSignature(
+          (entry.clients || []).map((client) => ({
+            name: client.name,
+            shipping_mark: client.shipping_mark,
+            email: client.email,
+            containers: client.containers || [],
+          }))
+        ) === signature
+    );
+  };
+
   // Guarda en el historial qué clientes y contenedores salieron en el informe.
   const saveExportLog = async (groups, mode) => {
+    if (await exportAlreadyLogged(groups)) return;
     const me = await base44.auth.me();
     await base44.entities.ContainersReportExport.create({
       exported_by: me?.email || '',
