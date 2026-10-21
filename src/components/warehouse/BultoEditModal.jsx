@@ -254,7 +254,7 @@ export default function BultoEditModal({ bulto, open, onClose, onSaved }) {
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="grid-cols-1 max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Package className="h-5 w-5" /> Editar bulto {bulto?.bulto_number}/{bulto?.total_bultos}
@@ -262,9 +262,9 @@ export default function BultoEditModal({ bulto, open, onClose, onSaved }) {
         </DialogHeader>
 
         {snapshot && (
-          <div className="space-y-5">
+          <div className="min-w-0 space-y-5">
             {/* Paquetes incluidos */}
-            <div>
+            <div className="min-w-0">
               <Label className="mb-2 block">Paquetes incluidos ({selectedIds.length})</Label>
               {loadingPkgs ? (
                 <div className="flex items-center gap-2 text-sm text-slate-500 py-2">
@@ -273,14 +273,14 @@ export default function BultoEditModal({ bulto, open, onClose, onSaved }) {
               ) : listedPackages.length === 0 ? (
                 <p className="text-sm text-slate-500">No hay paquetes recibidos para este cliente.</p>
               ) : (
-                <div className="max-h-48 space-y-1.5 overflow-y-auto rounded-lg border border-border p-2">
+                <div className="max-h-48 min-w-0 space-y-1.5 overflow-y-auto overflow-x-hidden rounded-lg border border-border p-2">
                   {listedPackages.map((p) => {
                     const source = otherBultoMap[p.id];
                     const isSelected = selectedIds.includes(p.id);
                     return (
                       <label
                         key={p.id}
-                        className={`flex items-center gap-2 rounded-md border px-2.5 py-1.5 cursor-pointer transition-colors ${
+                        className={`flex items-start gap-2 rounded-md border px-2.5 py-1.5 cursor-pointer transition-colors ${
                           isSelected ? 'border-blue-400 bg-blue-50' : 'border-border hover:bg-muted/40'
                         }`}
                       >
@@ -288,20 +288,22 @@ export default function BultoEditModal({ bulto, open, onClose, onSaved }) {
                           type="checkbox"
                           checked={isSelected}
                           onChange={() => togglePackage(p.id)}
-                          className="h-4 w-4 accent-blue-600"
+                          className="mt-0.5 h-4 w-4 shrink-0 accent-blue-600"
                         />
                         <div className="min-w-0 flex-1">
                           <p className="font-mono text-xs text-slate-800 break-all">{p.tracking_number}</p>
                           {p.description && <p className="text-xs text-slate-500 truncate">{p.description}</p>}
+                          <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                            {source && (
+                              <span className="text-[10px] text-blue-700">
+                                Fusiona bulto {source.label_code || source.bulto_number}
+                              </span>
+                            )}
+                            {!source && p.status && p.status !== 'recibido' && (
+                              <span className="text-[10px] text-slate-400">{p.status}</span>
+                            )}
+                          </div>
                         </div>
-                        {source && (
-                          <span className="shrink-0 text-[10px] text-blue-700">
-                            Fusiona bulto {source.label_code || source.bulto_number}
-                          </span>
-                        )}
-                        {!source && p.status && p.status !== 'recibido' && (
-                          <span className="text-xs text-slate-400 shrink-0">{p.status}</span>
-                        )}
                       </label>
                     );
                   })}
@@ -408,7 +410,8 @@ export default function BultoEditModal({ bulto, open, onClose, onSaved }) {
               {reducing && (
                 <p className="text-[11px] text-amber-700">
                   Al guardar, los bultos sobrantes se unen en el anterior (sus paquetes y su
-                  contenedor pasan a ese bulto) y los bultos quedan numerados 1 a {wantedTotal}.
+                  N° de contenedor pasan a ese bulto) y el cliente queda con {wantedTotal}{' '}
+                  bulto(s). Las etiquetas ya impresas no se renumeran.
                 </p>
               )}
             </div>
