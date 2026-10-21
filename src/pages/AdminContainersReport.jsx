@@ -31,11 +31,7 @@ export default function AdminContainersReport() {
     load();
   }, []);
 
-  // Los clientes sin bultos en las guías de despacho no se muestran.
-  const groups = useMemo(
-    () => groupContainersByClient(rows).filter((group) => group.totalBultos > 0),
-    [rows]
-  );
+  const groups = useMemo(() => groupContainersByClient(rows), [rows]);
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
