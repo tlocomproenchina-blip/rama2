@@ -102,6 +102,27 @@ export async function generateContainersReportPdf(groups = [], appName = 'TLEC C
     y += 5;
   });
 
+  // Total de bultos de todo el reporte, al cierre del detalle
+  const totalBultos = groups.reduce(
+    (sum, group) => sum + (group.containers || []).reduce((s, row) => s + Number(row.bultos || 0), 0),
+    0
+  );
+  if (y > BOTTOM - 12) {
+    doc.addPage();
+    y = drawTableHeader(doc, 20);
+  }
+  doc.setDrawColor(203, 213, 225);
+  doc.line(MARGIN, y - 3.5, MARGIN + CONTENT_WIDTH, y - 3.5);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9.5);
+  doc.setTextColor(30, 41, 59);
+  doc.text('TOTAL', COL_CONTAINER, y + 2);
+  doc.text(String(totalBultos), COL_BULTOS, y + 2, { align: 'right' });
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(100, 116, 139);
+  doc.text(`${index} contenedor(es) · ${groups.length} cliente(s)`, COL_DESC, y + 2);
+
   const pages = doc.getNumberOfPages();
   for (let page = 1; page <= pages; page += 1) {
     doc.setPage(page);
