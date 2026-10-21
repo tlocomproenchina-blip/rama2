@@ -348,7 +348,6 @@ export default function ShippingCalculator({ user, defaultStateCode, defaultShip
                     <label htmlFor="destination" className="font-medium text-slate-800 cursor-pointer">
                       {`${destConfig.label || 'Cobro destino'} ($${(Number(destConfig.rate_per_bulto) || 0).toFixed(2)} por bulto o caja consolidada)`}
                     </label>
-                    <p className="text-sm text-slate-500">Se paga al retirar la carga en destino. Puedes excluirlo del estimado.</p>
                   </div>
                 </div>
                 {includeDestination && (
