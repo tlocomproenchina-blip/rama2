@@ -3,11 +3,26 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, User, Boxes, DoorOpen, X } from 'lucide-react';
 import UniversalClientSearch from '@/components/warehouse/UniversalClientSearch';
+import { base44 } from '@/components/api/ApiQueueManager';
 import { getAll as idbGetAll } from '@/lib/offlineDb';
 import { isCajaCode } from '@/lib/cajaCodes';
 
 const DISPATCHABLE = ['activo', 'cerrado', 'en_almacen_ve'];
 const STATUS_LABEL = { activo: 'Abierto', cerrado: 'Cerrado', en_almacen_ve: 'En almacén VE' };
+
+const norm = (v) => String(v || '').toLowerCase();
+const isDispatchable = (b) => DISPATCHABLE.includes(b.status || 'activo');
+
+// Bultos del cliente tal como están en el servidor: es la misma fuente que usa el
+// historial, así el despacho manual no depende de lo que tenga la caché del dispositivo.
+async function loadServerBultos(email) {
+  const lists = await Promise.all(
+    DISPATCHABLE.map((status) =>
+      base44.entities.Bulto.filter({ client_email: email, status }, 'bulto_number', 300).catch(() => [])
+    )
+  );
+  return lists.flat().filter(Boolean);
+}
 
 // Despacho manual sin escáner: se busca y selecciona el cliente, se elige su bulto o caja
 // y se despacha con el mismo proceso del escaneo (paquetes despachados + guía + aviso).
@@ -27,14 +42,25 @@ export default function ManualBultoDispatchCard({ onDispatch }) {
     }
     setLoading(true);
     (async () => {
-      const all = await idbGetAll('bultos');
-      const mine = (all || [])
-        .filter((b) => String(b.client_email || '').toLowerCase() === client.email.toLowerCase())
-        .filter((b) => DISPATCHABLE.includes(b.status || 'activo'))
-        .sort((a, b) => (a.bulto_number || 0) - (b.bulto_number || 0));
+      const [serverList, localList] = await Promise.all([
+        loadServerBultos(client.email),
+        idbGetAll('bultos').then((list) => list || []).catch(() => []),
+      ]);
       if (!alive) return;
-      setBultos(mine);
-      setSelected(mine.length === 1 ? mine[0].label_code : '');
+      const email = norm(client.email);
+      const seen = new Set();
+      const merged = [];
+      for (const b of [...serverList, ...localList]) {
+        if (norm(b.client_email) !== email) continue;
+        if (!isDispatchable(b)) continue;
+        const key = b.label_code || b.id;
+        if (!key || seen.has(key)) continue;
+        seen.add(key);
+        merged.push(b);
+      }
+      merged.sort((a, b) => (a.bulto_number || 0) - (b.bulto_number || 0));
+      setBultos(merged);
+      setSelected(merged.length === 1 ? merged[0].label_code : '');
       setLoading(false);
     })().catch(() => alive && setLoading(false));
     return () => { alive = false; };
