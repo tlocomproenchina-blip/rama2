@@ -14,6 +14,7 @@ import useScannedPhotoUploader from '@/hooks/useScannedPhotoUploader';
 import QuickPreAlertForm from '@/components/admin/QuickPreAlertForm';
 import DispatchScanHistoryPanel from '@/components/warehouse/DispatchScanHistoryPanel';
 import DispatchApprovalModal from '@/components/warehouse/DispatchApprovalModal';
+import ManualBultoDispatchCard from '@/components/warehouse/ManualBultoDispatchCard';
 import { recordScanLog, flushPendingScanLogs } from '@/lib/scanLogs';
 import { isCajaCode } from '@/lib/cajaCodes';
 import { useOfflineWarehouseData } from '@/hooks/useOfflineWarehouseData';
@@ -500,6 +501,8 @@ export default function WarehouseDispatch({ user }) {
         onPhotoCaptured={handlePhotoCaptured}
         continuous={true}
       />
+
+      <ManualBultoDispatchCard onDispatch={(bulto) => handleBultoDispatch(bulto)} />
 
       {scanning && (
         <Card>
