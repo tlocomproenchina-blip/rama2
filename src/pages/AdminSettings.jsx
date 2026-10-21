@@ -49,6 +49,7 @@ import BatteryBannerSettings from '@/components/admin/BatteryBannerSettings';
 import WholesalerConnectionCard from '@/components/admin/WholesalerConnectionCard';
 import AiTicketSettingsCard from '@/components/admin/AiTicketSettingsCard';
 import StorageChargeSettings from '@/components/admin/StorageChargeSettings';
+import DestinationChargeSettings from '@/components/admin/DestinationChargeSettings';
 import DispatchOrderWhatsappSettingsCard from '@/components/admin/DispatchOrderWhatsappSettingsCard';
 import TermsNoticeCard from '@/components/admin/TermsNoticeCard';
 
@@ -916,6 +917,10 @@ export default function AdminSettings({ user }) {
               </Button>
             </CardContent>
           </Card>
+
+          <div className="mt-6">
+            <DestinationChargeSettings />
+          </div>
         </TabsContent>
 
         {/* Tab Estados */}

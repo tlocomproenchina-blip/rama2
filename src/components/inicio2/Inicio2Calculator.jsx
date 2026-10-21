@@ -16,14 +16,20 @@ export default function Inicio2Calculator({ defaultStateCode }) {
   const [peso, setPeso] = useState(5);
   const [loading, setLoading] = useState(true);
   const [result, setResult] = useState(null);
+  // Cobro destino: solo marítimo, por cada bulto o caja consolidada.
+  const [destConfig, setDestConfig] = useState(null);
+  const [includeDestino, setIncludeDestino] = useState(true);
+  const [bultos, setBultos] = useState(1);
 
   useEffect(() => {
     (async () => {
-      const [prc, sts] = await Promise.all([
+      const [prc, sts, destRows] = await Promise.all([
         base44.entities.PricingConfig.filter({ config_key: 'main' }),
         base44.entities.StateConfig.filter({ is_active: true }),
+        base44.entities.DestinationCharge.filter({ config_key: 'main' }),
       ]);
       setPricing(prc[0] || null);
+      setDestConfig(destRows[0] || null);
       const sorted = sts.sort((a, b) => (a.state_name || '').localeCompare(b.state_name || ''));
       setStates(sorted);
       const def = sorted.find((s) => s.state_code === (defaultStateCode || 'carabobo')) || sorted[0];
@@ -49,8 +55,24 @@ export default function Inicio2Calculator({ defaultStateCode }) {
     const multiplier = Number(peso) >= WEIGHT_DOUBLE_FROM_KG ? 2 : 1;
     const freight = cbm * rate * multiplier;
 
-    setResult({ cbm, rate: rate * multiplier, total: freight + RECEPTION_FEE, multiplier });
+    const destRate = Number(destConfig?.rate_per_bulto) || 0;
+    const destEnabled = !!destConfig && destConfig.is_enabled !== false;
+    const destBultos = Number(bultos) || 0;
+    const destinationCharge = destEnabled && includeDestino ? destBultos * destRate : 0;
+
+    setResult({
+      cbm,
+      rate: rate * multiplier,
+      total: freight + RECEPTION_FEE + destinationCharge,
+      multiplier,
+      destinationCharge,
+      destRate,
+      destBultos,
+    });
   };
+
+  const destEnabled = !!destConfig && destConfig.is_enabled !== false;
+  const destRateValue = Number(destConfig?.rate_per_bulto) || 0;
 
   const setDim = (key) => (e) => setDims((d) => ({ ...d, [key]: e.target.value }));
   const inputCls = 'mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-center text-sm font-semibold text-slate-900 focus:border-orange-400 focus:outline-none';
@@ -121,6 +143,38 @@ export default function Inicio2Calculator({ defaultStateCode }) {
                 <span className="mt-1 flex shrink-0 items-center rounded-lg border border-slate-200 bg-slate-100 px-3 text-xs text-slate-500">Kilogramos (kg)</span>
               </div>
             </div>
+            {destEnabled && (
+              <div className="rounded-2xl border border-sky-200 bg-sky-50 p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-bold text-slate-900">{destConfig.label || 'Cobro destino'}</p>
+                    <p className="mt-0.5 text-xs text-slate-600">${destRateValue.toFixed(2)} por bulto o caja consolidada en destino</p>
+                  </div>
+                  <button
+                    onClick={() => setIncludeDestino(!includeDestino)}
+                    className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-bold ${includeDestino ? 'bg-sky-600 text-white' : 'border border-slate-300 bg-white text-slate-600'}`}
+                  >
+                    {includeDestino ? 'Incluido' : 'Excluido'}
+                  </button>
+                </div>
+                {includeDestino && (
+                  <div className="mt-3">
+                    <label className="text-xs text-slate-500">Cantidad de bultos a enviar</label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={bultos}
+                      onChange={(e) => setBultos(e.target.value)}
+                      className={inputCls}
+                    />
+                    <p className="mt-1 text-center text-xs font-semibold text-sky-700">
+                      {(Number(bultos) || 0)} × ${destRateValue.toFixed(2)} = ${((Number(bultos) || 0) * destRateValue).toFixed(2)}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
             <button
               onClick={handleCalc}
               className="flex w-full items-center justify-center gap-1 rounded-xl bg-zinc-900 px-6 py-3.5 text-sm font-bold text-white hover:bg-zinc-800"
@@ -136,6 +190,9 @@ export default function Inicio2Calculator({ defaultStateCode }) {
               <div className="flex justify-between"><span className="text-slate-500">Ruta de Envío:</span><span className="font-bold text-slate-900">🇨🇳 Guangdong → 🇻🇪 {stateCfg?.state_name || 'Venezuela'}</span></div>
               <div className="flex justify-between"><span className="text-slate-500">Tarifa Unitaria:</span><span className="font-bold text-slate-900">{result ? `$${result.rate.toFixed(2)} / CBM` : '—'}</span></div>
               <div className="flex justify-between"><span className="text-slate-500">Tiempo de Tránsito:</span><span className="font-bold text-sky-700">🚢 75 a 90 días</span></div>
+              {result?.destinationCharge > 0 && (
+                <div className="flex justify-between gap-2"><span className="text-slate-500">{destConfig?.label || 'Cobro destino'}:</span><span className="text-right font-bold text-slate-900">{`${result.destBultos} × $${result.destRate.toFixed(2)} = $${result.destinationCharge.toFixed(2)}`}</span></div>
+              )}
             </div>
             {result?.multiplier === 2 && (
               <div className="mt-4 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700">

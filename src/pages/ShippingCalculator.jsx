@@ -25,6 +25,10 @@ export default function ShippingCalculator({ user, defaultStateCode, defaultShip
   const [dimensions, setDimensions] = useState({ length: '', width: '', height: '' });
   const [cbm, setCbm] = useState('');
   const [result, setResult] = useState(null);
+  // Cobro destino: solo marítimo, por cada bulto o caja consolidada.
+  const [destConfig, setDestConfig] = useState(null);
+  const [includeDestination, setIncludeDestination] = useState(true);
+  const [bultosCount, setBultosCount] = useState('1');
   // Desde este peso (inclusive) el costo del envío marítimo se multiplica por 2.
   const WEIGHT_DOUBLE_FROM_KG = 400;
 
@@ -33,11 +37,14 @@ export default function ShippingCalculator({ user, defaultStateCode, defaultShip
   }, []);
 
   const loadConfig = async () => {
-    const [configs, pricing, allStates] = await Promise.all([
+    const [configs, pricing, allStates, destRows] = await Promise.all([
       base44.entities.AppConfig.filter({ config_key: 'main' }),
       base44.entities.PricingConfig.filter({ config_key: 'main' }),
-      base44.entities.StateConfig.filter({ is_active: true })
+      base44.entities.StateConfig.filter({ is_active: true }),
+      base44.entities.DestinationCharge.filter({ config_key: 'main' })
     ]);
+
+    setDestConfig(destRows[0] || null);
 
     if (configs.length > 0) {
       setConfig(configs[0]);
@@ -139,7 +146,13 @@ export default function ShippingCalculator({ user, defaultStateCode, defaultShip
     const RECEPTION_FEE = 1;
     const fob = parseFloat(fobValue) || 0;
     const insuranceCost = includeInsurance && fob > 0 ? fob * (config?.insurance_percentage / 100) : 0;
-    const totalCost = shippingCost + RECEPTION_FEE + insuranceCost;
+
+    const destApplicable = shippingType === 'maritimo' && destConfig?.is_enabled !== false && !!destConfig;
+    const destRate = Number(destConfig?.rate_per_bulto) || 0;
+    const destBultos = Math.max(parseFloat(bultosCount) || 0, 0);
+    const destinationCharge = destApplicable && includeDestination ? destBultos * destRate : 0;
+
+    const totalCost = shippingCost + RECEPTION_FEE + insuranceCost + destinationCharge;
 
     setResult({
     rateType,
@@ -151,6 +164,10 @@ export default function ShippingCalculator({ user, defaultStateCode, defaultShip
     shippingCost,
     receptionFee: RECEPTION_FEE,
     insuranceCost,
+    destinationCharge,
+    destRate,
+    destBultos,
+    destApplied: destinationCharge > 0,
     totalCost,
     stateName: selectedStateConfig?.state_name || null,
     densityKgPerCbm,
@@ -160,7 +177,7 @@ export default function ShippingCalculator({ user, defaultStateCode, defaultShip
 
   useEffect(() => {
     calculateShipping();
-  }, [shippingType, cargoCategory, includeInsurance, fobValue, inputMode, weight, dimensions.length, dimensions.width, dimensions.height, cbm, selectedState, pricingConfig, config, states]);
+  }, [shippingType, cargoCategory, includeInsurance, fobValue, inputMode, weight, dimensions.length, dimensions.width, dimensions.height, cbm, selectedState, pricingConfig, config, states, destConfig, includeDestination, bultosCount]);
 
   if (loading) {
     return (
@@ -323,6 +340,29 @@ export default function ShippingCalculator({ user, defaultStateCode, defaultShip
               </div>
             )}
 
+            {shippingType === 'maritimo' && destConfig && destConfig.is_enabled !== false && (
+              <div className="rounded-lg border border-cyan-200 bg-cyan-50 p-4 space-y-3">
+                <div className="flex items-start space-x-3">
+                  <Checkbox id="destination" checked={includeDestination} onCheckedChange={setIncludeDestination} />
+                  <div>
+                    <label htmlFor="destination" className="font-medium text-slate-800 cursor-pointer">
+                      {`${destConfig.label || 'Cobro destino'} ($${(Number(destConfig.rate_per_bulto) || 0).toFixed(2)} por bulto o caja consolidada)`}
+                    </label>
+                    <p className="text-sm text-slate-500">Se paga al retirar la carga en destino. Puedes excluirlo del estimado.</p>
+                  </div>
+                </div>
+                {includeDestination && (
+                  <div className="space-y-2">
+                    <Label>Cantidad de bultos a enviar</Label>
+                    <Input type="number" min="0" step="1" value={bultosCount} onChange={(e) => setBultosCount(e.target.value)} placeholder="1" />
+                    <p className="text-xs text-cyan-700">
+                      {`${parseFloat(bultosCount) || 0} × $${(Number(destConfig.rate_per_bulto) || 0).toFixed(2)} = $${((parseFloat(bultosCount) || 0) * (Number(destConfig.rate_per_bulto) || 0)).toFixed(2)}`}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="flex items-start space-x-3 p-4 bg-emerald-50 rounded-lg border border-emerald-200">
               <Checkbox id="insurance" checked={includeInsurance} onCheckedChange={setIncludeInsurance} />
               <div className="flex-1 space-y-3">
@@ -381,6 +421,13 @@ export default function ShippingCalculator({ user, defaultStateCode, defaultShip
                   <p className="mt-1 text-2xl font-bold text-slate-900">${result.shippingCost.toFixed(2)}</p>
                   <p className="text-xs text-slate-500">{`${result.finalRate.toFixed(2)} × ${result.billableWeight.toFixed(shippingType === 'aereo' ? 2 : 4)}`}</p>
                 </div>
+                {result.destinationCharge > 0 && (
+                  <div className="rounded-xl border border-cyan-200 bg-cyan-50 p-4">
+                    <p className="text-sm font-medium text-cyan-800">{destConfig?.label || 'Cobro destino'}</p>
+                    <p className="mt-1 text-2xl font-bold text-cyan-700">${result.destinationCharge.toFixed(2)}</p>
+                    <p className="text-xs text-cyan-700">{`${result.destBultos} bulto(s) × $${result.destRate.toFixed(2)}`}</p>
+                  </div>
+                )}
                 {includeInsurance && (parseFloat(fobValue) || 0) > 0 && (
                   <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
                     <p className="text-sm font-medium text-emerald-800">Total estimado</p>
@@ -402,6 +449,11 @@ export default function ShippingCalculator({ user, defaultStateCode, defaultShip
                 <div className="rounded-lg bg-slate-100/80 px-3 py-2">Peso volumétrico: {result.volumetricWeight.toFixed(2)} kg</div>
                 <div className="rounded-lg bg-slate-100/80 px-3 py-2">CBM calculado: {result.cbm.toFixed(4)}</div>
                 <div className="rounded-lg bg-slate-100/80 px-3 py-2 md:col-span-2">Cargo por recepción de paquete: ${result.receptionFee.toFixed(2)}</div>
+                {result.destinationCharge > 0 && (
+                  <div className="rounded-lg bg-cyan-50 px-3 py-2 text-cyan-800 md:col-span-2">
+                    {`${destConfig?.label || 'Cobro destino'}: ${result.destBultos} bulto(s) × $${result.destRate.toFixed(2)} = $${result.destinationCharge.toFixed(2)}`}
+                  </div>
+                )}
                 {shippingType === 'maritimo' && result.densityKgPerCbm > 0 && (
                   <div className="rounded-lg bg-indigo-50 px-3 py-2 text-indigo-700 md:col-span-2">
                     {result.maritimeMultiplier === 2 ? 'Sobrepeso: el peso real llega a los 400 kg, se aplica x2 al costo del envío.' : 'El cobro x2 se aplica desde 400 kg de peso real (inclusive), en carga general y de alto riesgo.'}

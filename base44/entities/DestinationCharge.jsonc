@@ -1,0 +1,56 @@
+{
+  "name": "DestinationCharge",
+  "type": "object",
+  "properties": {
+    "config_key": {
+      "type": "string",
+      "default": "main",
+      "description": "Clave \u00fanica de configuraci\u00f3n"
+    },
+    "is_enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Muestra el cobro destino en la calculadora de env\u00edos mar\u00edtimos"
+    },
+    "rate_per_bulto": {
+      "type": "number",
+      "default": 9,
+      "description": "Tarifa de cobro destino (USD) por cada bulto o caja consolidada"
+    },
+    "label": {
+      "type": "string",
+      "default": "Cobro destino",
+      "description": "Nombre del cargo mostrado al cliente en la calculadora"
+    },
+    "updated_by": {
+      "type": "string",
+      "description": "Email del administrador que guard\u00f3 la configuraci\u00f3n"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Descripci\u00f3n opcional"
+    }
+  },
+  "required": [
+    "config_key"
+  ],
+  "rls": {
+    "read": true,
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
