@@ -340,43 +340,45 @@ export default function ShippingCalculator({ user, defaultStateCode, defaultShip
               </div>
             )}
 
-            {shippingType === 'maritimo' && destConfig && destConfig.is_enabled !== false && (
-              <div className="rounded-lg border border-cyan-200 bg-cyan-50 p-4 space-y-3">
-                <div className="flex items-start space-x-3">
-                  <Checkbox id="destination" checked={includeDestination} onCheckedChange={setIncludeDestination} />
-                  <div>
-                    <label htmlFor="destination" className="font-medium text-slate-800 cursor-pointer">
-                      {`${destConfig.label || 'Cobro destino'} ($${(Number(destConfig.rate_per_bulto) || 0).toFixed(2)} por bulto o caja consolidada)`}
-                    </label>
+            <div className="grid gap-3 md:grid-cols-2 items-start">
+              {shippingType === 'maritimo' && destConfig && destConfig.is_enabled !== false && (
+                <div className="rounded-lg border border-cyan-200 bg-cyan-50 p-4 space-y-3">
+                  <div className="flex items-start space-x-3">
+                    <Checkbox id="destination" checked={includeDestination} onCheckedChange={setIncludeDestination} />
+                    <div>
+                      <label htmlFor="destination" className="font-medium text-slate-800 cursor-pointer">
+                        {`${destConfig.label || 'Cobro destino'} ($${(Number(destConfig.rate_per_bulto) || 0).toFixed(2)} por bulto o caja consolidada)`}
+                      </label>
+                    </div>
                   </div>
+                  {includeDestination && (
+                    <div className="space-y-2">
+                      <Label>Cantidad de bultos a enviar</Label>
+                      <Input type="number" min="0" step="1" value={bultosCount} onChange={(e) => setBultosCount(e.target.value)} placeholder="1" />
+                      <p className="text-xs text-cyan-700">
+                        {`${parseFloat(bultosCount) || 0} × $${(Number(destConfig.rate_per_bulto) || 0).toFixed(2)} = $${((parseFloat(bultosCount) || 0) * (Number(destConfig.rate_per_bulto) || 0)).toFixed(2)}`}
+                      </p>
+                    </div>
+                  )}
                 </div>
-                {includeDestination && (
-                  <div className="space-y-2">
-                    <Label>Cantidad de bultos a enviar</Label>
-                    <Input type="number" min="0" step="1" value={bultosCount} onChange={(e) => setBultosCount(e.target.value)} placeholder="1" />
-                    <p className="text-xs text-cyan-700">
-                      {`${parseFloat(bultosCount) || 0} × $${(Number(destConfig.rate_per_bulto) || 0).toFixed(2)} = $${((parseFloat(bultosCount) || 0) * (Number(destConfig.rate_per_bulto) || 0)).toFixed(2)}`}
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
+              )}
 
-            <div className="flex items-start space-x-3 p-4 bg-emerald-50 rounded-lg border border-emerald-200">
-              <Checkbox id="insurance" checked={includeInsurance} onCheckedChange={setIncludeInsurance} />
-              <div className="flex-1 space-y-3">
-                <div>
-                  <label htmlFor="insurance" className="font-medium text-slate-800 cursor-pointer">
-                    Asegurar Carga ({config?.insurance_percentage || 5}% del valor FOB)
-                  </label>
-                  <p className="text-sm text-slate-500">Protege tu envío contra daños o pérdidas</p>
-                </div>
-                {includeInsurance && (
-                  <div className="space-y-2">
-                    <Label>Valor FOB (USD)</Label>
-                    <Input type="number" step="0.01" value={fobValue} onChange={(e) => setFobValue(e.target.value)} placeholder="0.00" />
+              <div className="flex items-start space-x-3 p-4 bg-emerald-50 rounded-lg border border-emerald-200">
+                <Checkbox id="insurance" checked={includeInsurance} onCheckedChange={setIncludeInsurance} />
+                <div className="flex-1 space-y-3">
+                  <div>
+                    <label htmlFor="insurance" className="font-medium text-slate-800 cursor-pointer">
+                      Asegurar Carga ({config?.insurance_percentage || 5}% del valor FOB)
+                    </label>
+                    <p className="text-sm text-slate-500">Protege tu envío contra daños o pérdidas</p>
                   </div>
-                )}
+                  {includeInsurance && (
+                    <div className="space-y-2">
+                      <Label>Valor FOB (USD)</Label>
+                      <Input type="number" step="0.01" value={fobValue} onChange={(e) => setFobValue(e.target.value)} placeholder="0.00" />
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </CardContent>
