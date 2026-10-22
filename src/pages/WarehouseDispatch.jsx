@@ -115,6 +115,15 @@ export default function WarehouseDispatch({ user }) {
       }
     }
 
+    // 0b. Bulto del servidor que ya figuraba como despachado pero conserva paquetes en el
+    // almacén: se devuelve a 'en_almacen_ve' para que el servidor registre la salida real
+    // (si no, lo daría por ya despachado y no haría nada).
+    if (!isLocal && bulto.status === 'despachado' && bulto.id) {
+      try {
+        await base44.entities.Bulto.update(bulto.id, { status: 'en_almacen_ve' });
+      } catch (_) {}
+    }
+
     // 1. Marcar todos los paquetes como despachados localmente
     const localPackages = await idbGetAll('packages');
     const toUpdate = localPackages.filter((p) => packageIds.includes(p.id));

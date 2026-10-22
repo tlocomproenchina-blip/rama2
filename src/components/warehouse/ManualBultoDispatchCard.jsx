@@ -9,19 +9,39 @@ import { isCajaCode } from '@/lib/cajaCodes';
 
 const DISPATCHABLE = ['activo', 'cerrado', 'en_almacen_ve'];
 const STATUS_LABEL = { activo: 'Abierto', cerrado: 'Cerrado', en_almacen_ve: 'En almacén VE' };
+// Estados de paquete que siguen dentro del almacén (no han salido).
+const IN_WAREHOUSE_PKG = ['pre_alerta', 'recibido', 'consolidado', 'en_transito', 'disponible', 'sin_cliente'];
 
 const norm = (v) => String(v || '').toLowerCase();
-const isDispatchable = (b) => DISPATCHABLE.includes(b.status || 'activo');
+const isDispatchable = (b) => DISPATCHABLE.includes(b.status || 'activo') || (b.pending_packages || 0) > 0;
 
-// Bultos del cliente tal como están en el servidor: es la misma fuente que usa el
-// historial, así el despacho manual no depende de lo que tenga la caché del dispositivo.
+// Bultos del cliente tal como están en el servidor (misma fuente que el historial).
+// Incluye los que figuran como 'despachado' pero todavía tienen paquetes en el almacén:
+// esos se pueden despachar de verdad (al darles salida se reactivan primero).
 async function loadServerBultos(email) {
-  const lists = await Promise.all(
-    DISPATCHABLE.map((status) =>
-      base44.entities.Bulto.filter({ client_email: email, status }, 'bulto_number', 300).catch(() => [])
-    )
+  const res = await base44.entities.Bulto.filter(
+    { client_email: email }, 'bulto_number', 300
+  ).catch(() => []);
+  const list = (res?.items || res || []).filter(Boolean);
+
+  const dispatched = list.filter((b) => b.status === 'despachado' && (b.package_ids || []).length);
+  if (!dispatched.length) return list;
+
+  const ids = dispatched.flatMap((b) => b.package_ids || []);
+  const pkgsRes = await base44.entities.Package.filter(
+    { id: { $in: ids } }, '-created_date', 500
+  ).catch(() => []);
+  const packages = pkgsRes?.items || pkgsRes || [];
+  const inside = new Set(
+    packages.filter((p) => IN_WAREHOUSE_PKG.includes(p.status || '')).map((p) => p.id)
   );
-  return lists.flat().filter(Boolean);
+
+  return list
+    .filter((b) => isDispatchable(b) || (b.package_ids || []).some((id) => inside.has(id)))
+    .map((b) => {
+      const pending = (b.package_ids || []).filter((id) => inside.has(id)).length;
+      return pending ? { ...b, pending_packages: pending } : b;
+    });
 }
 
 // Despacho manual sin escáner: se busca y selecciona el cliente, se elige su bulto o caja
@@ -142,6 +162,11 @@ export default function ManualBultoDispatchCard({ onDispatch }) {
                       {isCajaCode(b.label_code) ? 'Caja consolidada' : 'Bulto'} · {count} paquete(s)
                       {STATUS_LABEL[b.status] ? ` · ${STATUS_LABEL[b.status]}` : ''}
                     </p>
+                    {b.pending_packages > 0 && (
+                      <p className="text-[10px] font-medium text-amber-700">
+                        Figuró despachado, pero tiene {b.pending_packages} paquete(s) en el almacén
+                      </p>
+                    )}
                   </div>
                 </button>
               );
