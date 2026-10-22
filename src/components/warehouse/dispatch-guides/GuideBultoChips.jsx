@@ -34,13 +34,21 @@ export default function GuideBultoChips({ guide, clientGroup, onGuideUpdated }) 
   const remove = async () => {
     if (!toRemove) return;
     setRemoving(true);
+    // La línea sin bulto registrado se identifica por su N° de contenedor, no por código.
+    const unregistered = isUnregisteredLine(toRemove);
     try {
       await base44.functions.invoke('updateDispatchGuideBultos', {
         guide_id: guide.id,
         client_email: clientGroup?.client_email || '',
-        remove_codes: [toRemove.label_code],
+        ...(unregistered
+          ? { remove_unregistered: [String(toRemove.order_number || '').trim()].filter(Boolean) }
+          : { remove_codes: [toRemove.label_code] }),
       });
-      toast.success(`Bulto ${toRemove.label_code} quitado de la guía`);
+      toast.success(
+        unregistered
+          ? `Carga del contenedor ${toRemove.order_number || ''} quitada de la guía`
+          : `Bulto ${toRemove.label_code} quitado de la guía`
+      );
       setToRemove(null);
       onGuideUpdated?.();
     } catch (e) {
@@ -65,6 +73,14 @@ export default function GuideBultoChips({ guide, clientGroup, onGuideUpdated }) 
               >
                 SIN BULTO · Contenedor {bulto.order_number || '—'} · {bulto.package_count || 0} paq.
                 {bulto.invoice_number ? ` · ${bulto.invoice_number}` : ''}
+                <button
+                  type="button"
+                  onClick={() => setToRemove(bulto)}
+                  title="Quitar de la guía"
+                  className="rounded p-0.5 text-amber-500 transition hover:bg-amber-100 hover:text-amber-800"
+                >
+                  <X className="h-3 w-3" />
+                </button>
               </span>
             ) : (
               <span
@@ -102,10 +118,14 @@ export default function GuideBultoChips({ guide, clientGroup, onGuideUpdated }) 
       <AlertDialog open={Boolean(toRemove)} onOpenChange={(open) => !open && setToRemove(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>¿Quitar el bulto de la guía?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {isUnregisteredLine(toRemove) ? '¿Quitar esta carga sin bulto de la guía?' : '¿Quitar el bulto de la guía?'}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              {toRemove?.label_code} sale de la guía {guide?.guide_number || ''} y vuelve a quedar pendiente
-              por despachar. La guía se recalcula sola.
+              {isUnregisteredLine(toRemove)
+                ? `La carga del contenedor ${toRemove?.order_number || '—'} sale de la guía ${guide?.guide_number || ''}. Úsalo cuando esa carga ya entre a la guía con su bulto.`
+                : `${toRemove?.label_code} sale de la guía ${guide?.guide_number || ''} y vuelve a quedar pendiente por despachar.`}{' '}
+              La guía se recalcula sola.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

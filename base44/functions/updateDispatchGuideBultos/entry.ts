@@ -14,7 +14,10 @@ import {
 // se marcan (entran) o se sueltan (salen) para que la lista de pendientes quede igual
 // que la guía.
 //
-// Recibe: { guide_id, client_email, add_codes?: string[], remove_codes?: string[] }
+// Recibe: { guide_id, client_email, add_codes?: string[], remove_codes?: string[],
+//           remove_unregistered?: string[] }
+// remove_unregistered quita las líneas de carga emitidas por su N° de contenedor
+// (carga que salió sin bulto registrado) usando esos números.
 // Devuelve: { guide, added: string[], removed: string[] }
 export default async function (req: Request): Promise<Response> {
   try {
@@ -30,8 +33,13 @@ export default async function (req: Request): Promise<Response> {
     const removeCodes = unique(
       (Array.isArray(body.remove_codes) ? body.remove_codes : []).map(normCode).filter(Boolean)
     );
+    const removeOrders = unique(
+      (Array.isArray(body.remove_unregistered) ? body.remove_unregistered : [])
+        .map((order: any) => String(order || '').trim())
+        .filter(Boolean)
+    );
 
-    if (!guideId || (!addCodes.length && !removeCodes.length)) {
+    if (!guideId || (!addCodes.length && !removeCodes.length && !removeOrders.length)) {
       return Response.json({ error: 'Falta la guía o los bultos a mover' }, { status: 400 });
     }
     if (!clientEmail) {
@@ -61,6 +69,15 @@ export default async function (req: Request): Promise<Response> {
       );
     }
 
+    // --- Líneas sin bulto registrado que salen (por su N° de contenedor) ---
+    const isUnregistered = (bulto: any) => !!bulto && (!!bulto.unregistered || !normCode(bulto?.label_code));
+    const orderOf = (bulto: any) => String(bulto?.order_number || '').trim();
+    if (removeOrders.length) {
+      target.bultos = target.bultos.filter(
+        (bulto: any) => !(isUnregistered(bulto) && removeOrders.includes(orderOf(bulto)))
+      );
+    }
+
     // --- Bultos que entran: se toman del registro real del bulto ---
     const emittedDate = new Date().toISOString();
     if (addCodes.length) {
@@ -85,7 +102,21 @@ export default async function (req: Request): Promise<Response> {
       target.bultos = [...target.bultos, ...fresh].sort((a: any, b: any) =>
         String(a.label_code).localeCompare(String(b.label_code))
       );
-      if (!fresh.length && !removeCodes.length) {
+      // Esa carga ya tiene bulto dentro de la guía: la línea que salió sin bulto
+      // registrado por el mismo N° de contenedor deja de mostrarse.
+      const addedOrders = new Set(
+        (rows || []).flatMap((row: any) =>
+          (Array.isArray(row?.cbm_order_numbers) ? row.cbm_order_numbers : []).map((order: any) =>
+            String(order || '').trim()
+          )
+        )
+      );
+      if (addedOrders.size) {
+        target.bultos = target.bultos.filter(
+          (bulto: any) => !(isUnregistered(bulto) && addedOrders.has(orderOf(bulto)))
+        );
+      }
+      if (!fresh.length && !removeCodes.length && !removeOrders.length) {
         return Response.json({ error: 'Esos bultos ya están en la guía' }, { status: 409 });
       }
     }
