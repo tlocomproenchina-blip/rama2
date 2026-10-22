@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 import { applyCreditsToUnpaidInvoices } from '../../shared/clientCredit.ts';
+import { INVOICE_IMMUTABLE_REASON } from '../../shared/invoiceLock.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -51,6 +52,8 @@ Deno.serve(async (req) => {
 
     // Create local Invoice with 2 items
     const invoice = await base44.asServiceRole.entities.Invoice.create({
+      locked: true,
+      lock_reason: INVOICE_IMMUTABLE_REASON,
       client_email: apReq.client_email,
       consolidation_id: apReq.id,
       consolidation_tracking: `AP-${String(apReq.id).slice(0, 8).toUpperCase()}`,

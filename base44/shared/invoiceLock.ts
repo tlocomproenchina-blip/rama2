@@ -11,6 +11,51 @@
 export const INVOICE_LOCK_REASON =
   "Factura protegida: no se permite editar su contenido ni sus montos.";
 
+// Regla general: toda factura nace inmutable. Nada de lo que la define (líneas,
+// montos, CBM, recibos, número, cliente y fechas) se puede cambiar después de
+// crearla; la única corrección posible es eliminarla y crear una nueva.
+export const INVOICE_IMMUTABLE_REASON =
+  "Factura inmutable: no se puede editar. Para corregirla, elimínala y crea una nueva.";
+
+export const INVOICE_IMMUTABLE_MESSAGE =
+  "Las facturas no se pueden editar. Elimina esta factura y crea una nueva con los datos correctos.";
+
+export const INVOICE_FROZEN_FIELDS = [
+  "items",
+  "subtotal",
+  "tax",
+  "total",
+  "cost_breakdown",
+  "total_cbm",
+  "billed_cbm",
+  "manual_recibos",
+  "invoice_number",
+  "client_email",
+  "consolidation_id",
+  "consolidation_tracking",
+  "invoice_date",
+  "due_date",
+  "description",
+];
+
+// Campos congelados que intenta cambiar una actualización (vacío = permitida).
+export function frozenChanges(updates: any) {
+  if (!updates) return [];
+  return INVOICE_FROZEN_FIELDS.filter((field) => Object.prototype.hasOwnProperty.call(updates, field));
+}
+
+// Corta cualquier intento de cambiar lo que define la factura emitida.
+export function assertInvoiceImmutable(updates: any) {
+  const fields = frozenChanges(updates);
+  if (fields.length) {
+    const error: any = new Error(INVOICE_IMMUTABLE_MESSAGE);
+    error.code = "invoice_immutable";
+    error.fields = fields;
+    throw error;
+  }
+  return true;
+}
+
 export const INVOICE_LOCK_MESSAGE =
   "Esta factura está protegida y no se puede modificar.";
 

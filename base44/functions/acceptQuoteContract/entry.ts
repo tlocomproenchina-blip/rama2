@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 import { sendBrevoEmail } from '../../shared/brevoEmail.ts';
+import { INVOICE_IMMUTABLE_REASON } from '../../shared/invoiceLock.ts';
 
 async function notifyAdminsOfContractAcceptance(base44: any, quote: any) {
   try {
@@ -105,6 +106,8 @@ export default async function(req) {
 
           const invoiceNumber = `PRES-${quote.quote_number || quote.token.slice(0, 8).toUpperCase()}`;
           invoiceCreated = await base44.asServiceRole.entities.Invoice.create({
+            locked: true,
+            lock_reason: INVOICE_IMMUTABLE_REASON,
             invoice_number: invoiceNumber,
             client_email: quote.client_email,
             consolidation_id: quote.id,

@@ -1,4 +1,5 @@
 import { base44 } from '@/api/base44Client';
+import { IMMUTABLE_INVOICE_FIELDS } from '@/lib/invoiceImmutability';
 
 export async function generateInvoice(consolidation) {
   const invoiceNumber = `INV-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
@@ -74,6 +75,7 @@ export async function generateInvoice(consolidation) {
   const ddpNotes = `Service Terms – DDP Door to Door Logistics\n\nThis invoice corresponds to international logistics and freight forwarding services under DDP (Delivered Duty Paid) terms. The service includes freight transportation, customs clearance, applicable import duties/taxes, and final delivery to destination.\n\nThe client authorizes TLEC Cargo LTD to manage customs and shipping procedures on their behalf.\n\nOnce shipment processing or cargo reservation has started, payments are non-refundable except in cases of operational cancellation prior to dispatch.\n\nTracking and shipment reference: ${consolidation.consolidation_tracking}\n\nFor support: tlocomproenchina@gmail.com | +1 502 694 6833${total > 2000 ? '\n\nCommercial shipment – non-personal goods – freight forwarding service' : ''}`;
 
   const invoice = await base44.entities.Invoice.create({
+    ...IMMUTABLE_INVOICE_FIELDS,
     invoice_number: invoiceNumber,
     client_email: consolidation.client_email,
     consolidation_id: consolidation.id,

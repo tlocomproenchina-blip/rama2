@@ -1,4 +1,5 @@
 import { base44 } from '@/components/api/ApiQueueManager';
+import { IMMUTABLE_INVOICE_FIELDS } from '@/lib/invoiceImmutability';
 
 // =====================================================================
 // Facturación de carga en almacén (Venezuela).
@@ -325,6 +326,7 @@ export async function generateWarehouseInvoice({ client, selectedItems, totals, 
   }));
 
   const invoice = await base44.entities.Invoice.create({
+    ...IMMUTABLE_INVOICE_FIELDS,
     invoice_number: `INV-M-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
     client_email: client.client_email,
     consolidation_id: 'manual',

@@ -261,12 +261,10 @@ export default function AdminInvoices({ user }) {
     setGeneratingOrderId(null);
   };
 
+  // Solo se registra el estado y el pago: los datos y montos de la factura no
+  // se tocan nunca (para corregirlos hay que borrarla y crear una nueva).
   const handleEditInvoice = async () => {
     if (!editingInvoice) return;
-    if (editingInvoice.locked) {
-      toast.error('Esta factura está protegida y no se puede editar');
-      return;
-    }
 
     setProcessing(true);
     try {
@@ -315,11 +313,7 @@ export default function AdminInvoices({ user }) {
 
   const handleDeleteInvoice = async () => {
     if (!deleteInvoice) return;
-    if (deleteInvoice.locked) {
-      toast.error('Esta factura está protegida y no se puede borrar');
-      return;
-    }
-    
+
     setDeleting(true);
     try {
       const released = await releaseBilledCbm(deleteInvoice.id);
@@ -417,7 +411,7 @@ export default function AdminInvoices({ user }) {
   const executeBulkAction = async () => {
     setBulkProcessing(true);
     try {
-      const selectedInvs = sourceInvoices.filter(i => selectedInvoices.includes(i.id) && !i.locked);
+      const selectedInvs = sourceInvoices.filter(i => selectedInvoices.includes(i.id));
 
       if (bulkAction === 'delete') {
         await Promise.all(selectedInvs.map(inv => releaseBilledCbm(inv.id)));
@@ -758,6 +752,15 @@ export default function AdminInvoices({ user }) {
         </div>
       </div>
 
+      {/* Regla de negocio: las facturas no se editan */}
+      <div className="flex items-start gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
+        <Lock className="h-4 w-4 mt-0.5 shrink-0 text-slate-600" />
+        <p className="text-xs text-slate-600">
+          Las facturas son inmutables: una vez creadas no se pueden editar. Si hay un error, borra
+          la factura y crea una nueva.
+        </p>
+      </div>
+
       {/* Stats */}
       <InvoiceStatsCards stats={stats} />
 
@@ -946,7 +949,6 @@ export default function AdminInvoices({ user }) {
                     <Checkbox 
                       checked={selectedInvoices.includes(invoice.id)}
                       onCheckedChange={(checked) => handleSelectInvoice(invoice.id, checked)}
-                      disabled={!!invoice.locked}
                       className="bg-white"
                     />
                   )}
@@ -981,7 +983,7 @@ export default function AdminInvoices({ user }) {
               <div className="flex flex-row flex-wrap lg:flex-col gap-2 w-full lg:w-44 shrink-0 items-stretch content-start">
                 {invoice.locked && (
                   <span className="inline-flex items-center justify-center gap-1 rounded-full bg-slate-800 px-2.5 py-1.5 text-center text-xs font-semibold whitespace-nowrap text-white">
-                    <Lock className="h-3 w-3" /> Protegida
+                    <Lock className="h-3 w-3" /> Inmutable
                   </span>
                 )}
                 {invoice.profit_amount != null && (
@@ -1009,15 +1011,13 @@ export default function AdminInvoices({ user }) {
                   variant="outline"
                   size="sm"
                   className="justify-start"
-                  disabled={!!invoice.locked}
-                  title={invoice.locked ? 'Factura protegida: no se puede editar' : undefined}
                   onClick={() => {
                     setEditingInvoice(invoice);
                     setShowEditModal(true);
                   }}
                 >
                   <Edit className="h-4 w-4 mr-1" />
-                  Editar
+                  Estado y pago
                 </Button>
                 {invoice.provider_paid && (
                   <Button
@@ -1055,8 +1055,6 @@ export default function AdminInvoices({ user }) {
                 <Button
                   variant="outline"
                   size="sm"
-                  disabled={!!invoice.locked}
-                  title={invoice.locked ? 'Factura protegida: no se puede borrar' : undefined}
                   onClick={() => setDeleteInvoice(invoice)}
                   className="justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
                 >
@@ -1116,10 +1114,14 @@ export default function AdminInvoices({ user }) {
       <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Editar Factura</DialogTitle>
+            <DialogTitle>Estado y pago de la factura</DialogTitle>
           </DialogHeader>
           {editingInvoice && (
             <div className="space-y-4 py-4">
+              <p className="text-xs text-slate-500">
+                Los datos y montos de la factura no se pueden editar. Si hay un error, borra la
+                factura y crea una nueva.
+              </p>
               <div className="space-y-2">
                 <Label>Estado</Label>
                 <Select 
@@ -1218,6 +1220,8 @@ export default function AdminInvoices({ user }) {
               Estás a punto de eliminar la factura{' '}
               <span className="font-semibold text-slate-800">{deleteInvoice?.invoice_number}</span>.
               Esta acción no se puede deshacer.
+              <br /><br />
+              Las facturas no se pueden editar: si necesitas corregirla, elimínala y crea una nueva.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

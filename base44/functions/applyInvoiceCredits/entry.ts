@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
+import { invoiceLocked } from '../../shared/invoiceLock.ts';
 
 function minDefined(a, b) { if (typeof a !== 'number') return b; if (typeof b !== 'number') return a < b ? a : b; return Math.min(a, b); }
 
@@ -24,6 +25,12 @@ Deno.serve(async (req) => {
     const invRows = await base44.asServiceRole.entities.Invoice.filter({ id: invoiceId });
     const invoice = invRows[0];
     if (!invoice) return Response.json({ error: 'invoice not found' }, { status: 404 });
+
+    // Las facturas son inmutables: el descuento por créditos cambia el total, así
+    // que solo se aplica mientras la factura no exista como registro emitido.
+    if (invoiceLocked(invoice)) {
+      return Response.json({ skipped: true, reason: 'factura inmutable' });
+    }
 
     const settings = await getSettings(base44);
     const subtotal = typeof invoice.subtotal === 'number' ? invoice.subtotal : (typeof invoice.subtotal_usd === 'number' ? invoice.subtotal_usd : 0);

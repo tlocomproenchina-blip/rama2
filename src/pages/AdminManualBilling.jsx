@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
+import { IMMUTABLE_INVOICE_FIELDS } from '@/lib/invoiceImmutability';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2, ReceiptText, RotateCcw, AlertTriangle, Package, ChevronDown, Boxes } from 'lucide-react';
@@ -744,6 +745,7 @@ export default function AdminManualBilling({ user }) {
       dueDate.setDate(dueDate.getDate() + num(appConfig?.invoice_overdue_days || 7));
 
       const invoice = await base44.entities.Invoice.create({
+        ...IMMUTABLE_INVOICE_FIELDS,
         invoice_number: `INV-M-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
         client_email: client.email,
         consolidation_id: selectedRows[0]?.consolidation_id || 'manual',
