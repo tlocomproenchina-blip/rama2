@@ -17,6 +17,7 @@ import ClientCbmHistory from '@/components/client-analytics/ClientCbmHistory';
 import ClientInvoicesList from '@/components/client-analytics/ClientInvoicesList';
 import ClientCargoPanel from '@/components/client-cargo/ClientCargoPanel';
 import ClientGuidesPanel from '@/components/client-cargo/ClientGuidesPanel';
+import Client360DispatchOrders from '@/components/support/client360/Client360DispatchOrders';
 import { billableTotal } from '@/lib/storageLines';
 
 function getLastMonths(count) {
@@ -301,6 +302,18 @@ export default function ClientAnalytics() {
       {selectedClient && <ClientCargoPanel client={selectedClient} />}
 
       {selectedClient && <ClientGuidesPanel client={selectedClient} />}
+
+      {selectedClient && (
+        <Card className="border-0 shadow-sm">
+          {dispatchOrders.length === 0 ? (
+            <CardContent className="p-4">
+              <p className="text-sm text-slate-400 bg-slate-50 rounded-lg px-4 py-3">Este cliente no tiene órdenes de despacho registradas.</p>
+            </CardContent>
+          ) : (
+            <Client360DispatchOrders orders={dispatchOrders} />
+          )}
+        </Card>
+      )}
 
       {selectedClient && (
         <ClientPackagesTable
