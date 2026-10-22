@@ -36,6 +36,9 @@ export default async function (req: Request): Promise<Response> {
 
     const invoice: any = await base44.asServiceRole.entities.Invoice.get(invoiceId);
     if (!invoice) return Response.json({ error: 'Factura no encontrada' }, { status: 404 });
+    if (invoice.locked === true) {
+      return Response.json({ error: 'Esta factura está protegida y no se le pueden agregar cargos.' }, { status: 409 });
+    }
 
     const items = Array.isArray(invoice.items) ? invoice.items : [];
     const index = items.findIndex((item: any) => text(item?.details?.kind) === FORKLIFT_LINE_KIND);

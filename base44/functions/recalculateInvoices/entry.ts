@@ -11,6 +11,7 @@ import {
   buildRateContext, loadRateBase, loadClientStates, stateShippingRateFor,
 } from '../../shared/billingRates.ts';
 import { buildInvoiceRecalc } from '../../shared/invoiceRecalc.ts';
+import { invoiceLocked, lockedReason } from '../../shared/invoiceLock.ts';
 
 const CHUNK = 6;
 
@@ -61,6 +62,8 @@ export default async function (req: any) {
         ctx,
         overrides,
       });
+      // Factura protegida: se informa y no se toca, aunque el recálculo la incluya.
+      const locked = invoiceLocked(invoice);
       return {
         invoice_number: invoice.invoice_number || '',
         client_email: email,
@@ -68,6 +71,7 @@ export default async function (req: any) {
         paid: invoice.status === 'pagada',
         invoice_date: invoice.invoice_date || null,
         ...sim,
+        ...(locked ? { changed: false, updates: null, blocked: lockedReason(invoice) } : {}),
       };
     });
 

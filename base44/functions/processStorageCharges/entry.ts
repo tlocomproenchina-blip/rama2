@@ -30,6 +30,8 @@ const TEMPLATE_NAME = 'Almacenamiento - Cargo Diario';
 const NOTICE_DAYS = [20, 30, 45];
 
 function isUnpaidInvoice(invoice: any) {
+  // Factura protegida: no recibe cargos automáticos.
+  if (invoice?.locked === true) return false;
   const status = text(invoice?.status);
   if (status === 'pagada' || status === 'cancelada') return false;
   return !!invoice?.invoice_date && !!text(invoice?.client_email);

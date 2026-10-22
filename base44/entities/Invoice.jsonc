@@ -384,6 +384,58 @@
       "type": "boolean",
       "default": false,
       "description": "Indica si ya se envi\u00f3 la notificaci\u00f3n de remate de los 45 d\u00edas"
+    },
+    "locked": {
+      "type": "boolean",
+      "default": false,
+      "description": "Factura protegida: no se puede editar su contenido ni sus montos. Los procesos autom\u00e1ticos (rec\u00e1lculo de tarifas, cargos de almacenamiento, montacargas, fusi\u00f3n de recibos duplicados) la omiten y la pantalla de facturas esconde sus controles de edici\u00f3n."
+    },
+    "lock_reason": {
+      "type": "string",
+      "description": "Motivo por el que la factura qued\u00f3 protegida"
+    },
+    "locked_by": {
+      "type": "string",
+      "description": "Email del administrador que protegi\u00f3 la factura"
+    },
+    "locked_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha y hora en que la factura qued\u00f3 protegida"
+    },
+    "amount_restore": {
+      "type": "object",
+      "description": "Registro de la restauraci\u00f3n de montos: qui\u00e9n la hizo, cu\u00e1ndo y los importes anteriores y restaurados.",
+      "properties": {
+        "restored_date": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "restored_by": {
+          "type": "string"
+        },
+        "before_total": {
+          "type": "number"
+        },
+        "restored_total": {
+          "type": "number"
+        },
+        "before_shipping": {
+          "type": "number"
+        },
+        "restored_shipping": {
+          "type": "number"
+        },
+        "source_note": {
+          "type": "string",
+          "description": "Registro del rec\u00e1lculo que se est\u00e1 corrigiendo"
+        }
+      }
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Descripci\u00f3n opcional"
     }
   },
   "required": [

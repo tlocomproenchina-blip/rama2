@@ -17,9 +17,10 @@ import InvoiceCard from '@/components/invoice/InvoiceCard';
 import ProviderCostControl from '@/components/invoice/ProviderCostControl';
 import ProviderInvoiceUploader from '@/components/manual-billing/ProviderInvoiceUploader';
 import DispatchReceiptModal from '@/components/invoice/DispatchReceiptModal';
-import { FileText, Search, Loader2, Download, Edit, Trash2, PackageX, Package, MessageCircle, Truck, ClipboardList, Calculator } from 'lucide-react';
+import { FileText, Search, Loader2, Download, Edit, Trash2, PackageX, Package, MessageCircle, Truck, ClipboardList, Calculator, ShieldCheck, Lock } from 'lucide-react';
 import InvoiceStatsCards from '@/components/invoice/InvoiceStatsCards';
 import InvoiceTariffRecalcDialog from '@/components/invoice/recalc/InvoiceTariffRecalcDialog';
+import RestoreProtectedInvoicesDialog from '@/components/invoice/lock/RestoreProtectedInvoicesDialog';
 import OverdueInvoicesReportButton from '@/components/invoice/overdue/OverdueInvoicesReportButton';
 import ContainersReportButton from '@/components/invoice/containers/ContainersReportButton';
 import { billableTotal } from '@/lib/storageLines';
@@ -69,6 +70,7 @@ export default function AdminInvoices({ user }) {
   const [loadingMore, setLoadingMore] = useState(false);
   const [showPaymentsSettings, setShowPaymentsSettings] = useState(false);
   const [showTariffRecalc, setShowTariffRecalc] = useState(false);
+  const [showRestore, setShowRestore] = useState(false);
   const [appConfig, setAppConfig] = useState(null);
   const [dispatchReceipt, setDispatchReceipt] = useState(null);
   const [warehouseOrderInvoice, setWarehouseOrderInvoice] = useState(null);
@@ -261,6 +263,10 @@ export default function AdminInvoices({ user }) {
 
   const handleEditInvoice = async () => {
     if (!editingInvoice) return;
+    if (editingInvoice.locked) {
+      toast.error('Esta factura está protegida y no se puede editar');
+      return;
+    }
 
     setProcessing(true);
     try {
@@ -309,6 +315,10 @@ export default function AdminInvoices({ user }) {
 
   const handleDeleteInvoice = async () => {
     if (!deleteInvoice) return;
+    if (deleteInvoice.locked) {
+      toast.error('Esta factura está protegida y no se puede borrar');
+      return;
+    }
     
     setDeleting(true);
     try {
@@ -407,7 +417,7 @@ export default function AdminInvoices({ user }) {
   const executeBulkAction = async () => {
     setBulkProcessing(true);
     try {
-      const selectedInvs = sourceInvoices.filter(i => selectedInvoices.includes(i.id));
+      const selectedInvs = sourceInvoices.filter(i => selectedInvoices.includes(i.id) && !i.locked);
 
       if (bulkAction === 'delete') {
         await Promise.all(selectedInvs.map(inv => releaseBilledCbm(inv.id)));
@@ -732,6 +742,10 @@ export default function AdminInvoices({ user }) {
           <p className="text-slate-500">Administra facturas y pagos de clientes</p>
         </div>
         <div className="header-actions flex flex-wrap gap-2 w-full sm:w-auto">
+          <Button variant="outline" onClick={() => setShowRestore(true)}>
+            <ShieldCheck className="h-4 w-4 mr-2" />
+            Restablecer y proteger
+          </Button>
           <Button variant="outline" onClick={() => setShowTariffRecalc(true)}>
             <Calculator className="h-4 w-4 mr-2" />
             Recalcular tarifas
@@ -932,6 +946,7 @@ export default function AdminInvoices({ user }) {
                     <Checkbox 
                       checked={selectedInvoices.includes(invoice.id)}
                       onCheckedChange={(checked) => handleSelectInvoice(invoice.id, checked)}
+                      disabled={!!invoice.locked}
                       className="bg-white"
                     />
                   )}
@@ -964,6 +979,11 @@ export default function AdminInvoices({ user }) {
               </div>
               {/* Columna lateral derecha: badges + acciones apiladas */}
               <div className="flex flex-row flex-wrap lg:flex-col gap-2 w-full lg:w-44 shrink-0 items-stretch content-start">
+                {invoice.locked && (
+                  <span className="inline-flex items-center justify-center gap-1 rounded-full bg-slate-800 px-2.5 py-1.5 text-center text-xs font-semibold whitespace-nowrap text-white">
+                    <Lock className="h-3 w-3" /> Protegida
+                  </span>
+                )}
                 {invoice.profit_amount != null && (
                   <span className={`text-xs font-semibold px-2.5 py-1.5 rounded-full text-center whitespace-nowrap ${Number(invoice.profit_amount) >= 0 ? 'bg-purple-100 text-purple-700' : 'bg-red-100 text-red-700'}`}>
                     Ganancia: ${Number(invoice.profit_amount).toFixed(2)}
@@ -989,6 +1009,8 @@ export default function AdminInvoices({ user }) {
                   variant="outline"
                   size="sm"
                   className="justify-start"
+                  disabled={!!invoice.locked}
+                  title={invoice.locked ? 'Factura protegida: no se puede editar' : undefined}
                   onClick={() => {
                     setEditingInvoice(invoice);
                     setShowEditModal(true);
@@ -1033,6 +1055,8 @@ export default function AdminInvoices({ user }) {
                 <Button
                   variant="outline"
                   size="sm"
+                  disabled={!!invoice.locked}
+                  title={invoice.locked ? 'Factura protegida: no se puede borrar' : undefined}
                   onClick={() => setDeleteInvoice(invoice)}
                   className="justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
                 >
@@ -1300,6 +1324,12 @@ export default function AdminInvoices({ user }) {
       <InvoiceTariffRecalcDialog
         open={showTariffRecalc}
         onOpenChange={setShowTariffRecalc}
+        onApplied={() => loadInvoices(false)}
+      />
+
+      <RestoreProtectedInvoicesDialog
+        open={showRestore}
+        onOpenChange={setShowRestore}
         onApplied={() => loadInvoices(false)}
       />
 

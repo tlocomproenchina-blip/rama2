@@ -605,6 +605,14 @@ export async function applyMerge(base44: any, plan: any, ctx: any, actor: any) {
   const simulations: any[] = [];
   for (const id of Object.keys(invoicesById)) {
     const invoice = invoicesById[id];
+    if (invoice?.locked === true) {
+      return {
+        skipped: true,
+        order: plan.order,
+        reason: `La factura ${invoice.invoice_number} está protegida: no se puede fusionar recibos sobre ella.`,
+        invoices: [],
+      };
+    }
     const sim = recalcInvoice({ invoice, plan, receiptsOfClient: mergedReceipts, ctx });
     if (sim.blocked) return { skipped: true, order: plan.order, reason: sim.blocked, invoices: [] };
     simulations.push({ invoice, sim });
