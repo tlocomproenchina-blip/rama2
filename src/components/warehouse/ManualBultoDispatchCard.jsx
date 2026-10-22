@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, User, Boxes, DoorOpen, X } from 'lucide-react';
+import { Loader2, User, Boxes, DoorOpen, X, Hash } from 'lucide-react';
 import UniversalClientSearch from '@/components/warehouse/UniversalClientSearch';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { getAll as idbGetAll } from '@/lib/offlineDb';
@@ -144,6 +144,9 @@ export default function ManualBultoDispatchCard({ onDispatch }) {
             {bultos.map((b) => {
               const isSelected = selected === b.label_code;
               const count = (b.package_ids || []).length || (b.package_trackings || []).length;
+              const containers = (Array.isArray(b.cbm_order_numbers) ? b.cbm_order_numbers : [])
+                .map((value) => String(value || '').trim())
+                .filter(Boolean);
               return (
                 <button
                   key={b.label_code}
@@ -161,6 +164,14 @@ export default function ManualBultoDispatchCard({ onDispatch }) {
                     <p className="text-[10px] text-slate-500">
                       {isCajaCode(b.label_code) ? 'Caja consolidada' : 'Bulto'} · {count} paquete(s)
                       {STATUS_LABEL[b.status] ? ` · ${STATUS_LABEL[b.status]}` : ''}
+                    </p>
+                    <p className={`flex items-center gap-1 text-[10px] ${
+                      containers.length ? 'text-slate-600' : 'text-amber-700'
+                    }`}>
+                      <Hash className="h-3 w-3 shrink-0" />
+                      <span className="truncate">
+                        {containers.length ? `Contenedor ${containers.join(', ')}` : 'Sin contenedor asignado'}
+                      </span>
                     </p>
                     {b.pending_packages > 0 && (
                       <p className="text-[10px] font-medium text-amber-700">
