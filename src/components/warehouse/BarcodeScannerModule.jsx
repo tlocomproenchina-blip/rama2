@@ -4,8 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Camera, Keyboard, Loader2, ScanLine, X } from 'lucide-react';
 import { toast } from 'sonner';
-
-const normalizeCode = (value = '') => String(value).replace(/\r?\n/g, '').trim();
+import { normalizeScannedCode as normalizeCode } from '@/lib/codeScan';
 
 export default function BarcodeScannerModule({
   title = 'Escaneo de códigos',
@@ -25,6 +24,7 @@ export default function BarcodeScannerModule({
   const [scanValue, setScanValue] = useState('');
   const [cameraOpen, setCameraOpen] = useState(false);
   const [cameraLoading, setCameraLoading] = useState(false);
+  const [detectorReady, setDetectorReady] = useState(null);
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const detectorRef = useRef(null);
@@ -119,6 +119,31 @@ export default function BarcodeScannerModule({
     return canvas;
   }, []);
 
+  // Recorta la franja central que ve el usuario y la amplía. Los códigos finos o
+  // lejanos (barras pequeñas, QR impresos chicos) se leen mucho mejor así que
+  // sobre el fotograma completo.
+  const captureCenterCrop = useCallback((scale = 2) => {
+    const video = videoRef.current;
+    if (!video || video.readyState < 2) return null;
+    const w = video.videoWidth;
+    const h = video.videoHeight;
+    if (!w || !h) return null;
+
+    const sx = Math.round(w * 0.08);
+    const sw = Math.round(w * 0.84);
+    const sy = Math.round(h * 0.28);
+    const sh = Math.round(h * 0.44);
+
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.min(1800, Math.round(sw * scale));
+    canvas.height = Math.round((canvas.width / sw) * sh);
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+    return canvas;
+  }, []);
+
   // Foto del paquete en el instante en que se detecta el código: se entrega al
   // consumidor para que la suba y la guarde junto con la recepción.
   const emitPhoto = (code) => {
@@ -131,27 +156,41 @@ export default function BarcodeScannerModule({
     } catch (_) {}
   };
 
+  // Lee todos los códigos de un fotograma: un mismo cuadro puede traer la
+  // etiqueta y el QR nuevo a la vez, así que no se mira solo el primero.
+  const detectFrom = async (source) => {
+    if (!detectorRef.current || !source) return '';
+    const found = await detectorRef.current.detect(source).catch(() => []);
+    for (const item of found || []) {
+      const value = normalizeCode(item?.rawValue || '');
+      if (value) return value;
+    }
+    return '';
+  };
+
   const scanFrame = async () => {
     if (!activeRef.current || !videoRef.current) return;
     scanAttemptsRef.current++;
 
     const video = videoRef.current;
-    if (video.readyState >= 2 && nativeBarcodeSupported && detectorRef.current) {
-      // Direct detection on the live video stream — fastest path.
-      // BarcodeDetector ya tolera inclinaciones moderadas; no rotamos por frame
-      // porque eso destruye el FPS. Solo después de varios fallos intentamos rotar.
-      let detected = await detectorRef.current.detect(video).catch(() => []);
-      let code = normalizeCode(detected?.[0]?.rawValue || '');
+    if (video.readyState >= 2) {
+      // Lectura directa sobre el video en vivo — la ruta más rápida.
+      let code = await detectFrom(video);
 
-      // Tras ~0.7s sin detectar, probar rotaciones suaves cada cierto tiempo
+      // Si aún no hay lectura, se recorta y amplía la franja central donde el
+      // usuario ubica el código.
+      if (!code && scanAttemptsRef.current > 2) {
+        const crop = captureCenterCrop();
+        if (crop) code = await detectFrom(crop);
+      }
+
+      // Última opción: fotogramas ligeramente rotados (código torcido o de lado).
       if (!code && scanAttemptsRef.current > 6 && scanAttemptsRef.current % 4 === 0) {
-        const angles = [10, -10, 20, -20];
-        for (const angle of angles) {
+        for (const angle of [10, -10, 20, -20]) {
           if (!activeRef.current) return;
           const canvas = captureFrame(angle);
           if (!canvas) break;
-          detected = await detectorRef.current.detect(canvas).catch(() => []);
-          code = normalizeCode(detected?.[0]?.rawValue || '');
+          code = await detectFrom(canvas);
           if (code) break;
         }
       }
@@ -247,11 +286,32 @@ export default function BarcodeScannerModule({
     } catch (_) {}
 
     if (nativeBarcodeSupported) {
-      // Lista priorizada: code_128 y EAN-13 son los más comunes en logística.
-      // Menos formatos = decodificación más rápida.
-      detectorRef.current = new window.BarcodeDetector({
-        formats: ['code_128', 'ean_13', 'code_39', 'qr_code', 'ean_8', 'upc_a', 'upc_e', 'itf', 'data_matrix'],
-      });
+      // Solo se piden los formatos que este navegador realmente soporta: si se
+      // incluye uno desconocido el detector falla al crearse y deja de leer todo,
+      // tanto códigos de barras como QR. code_128, EAN y qr_code van primero.
+      const wished = [
+        'code_128', 'qr_code', 'ean_13', 'code_39', 'ean_8', 'upc_a', 'upc_e',
+        'itf', 'code_93', 'codabar', 'data_matrix', 'pdf417', 'aztec',
+      ];
+      let formats = wished;
+      try {
+        const supported = await window.BarcodeDetector.getSupportedFormats?.();
+        if (Array.isArray(supported) && supported.length) {
+          formats = wished.filter((format) => supported.includes(format));
+        }
+      } catch (_) {}
+      try {
+        detectorRef.current = formats.length
+          ? new window.BarcodeDetector({ formats })
+          : new window.BarcodeDetector();
+      } catch (_) {
+        try {
+          detectorRef.current = new window.BarcodeDetector();
+        } catch (_) {
+          detectorRef.current = null;
+        }
+      }
+      setDetectorReady(!!detectorRef.current);
     }
 
     if (videoRef.current) {
@@ -334,10 +394,10 @@ export default function BarcodeScannerModule({
                   <X className="h-3.5 w-3.5" /> Cerrar cámara
                 </Button>
               </div>
-              <p className="text-xs text-slate-500">
-                {nativeBarcodeSupported
-                  ? 'Escaneo automático. No necesita estar perfectamente recto.'
-                  : 'Sin lector nativo en este navegador. Usa la lectora USB o escribe el código manualmente.'}
+              <p className={`text-xs ${detectorReady === false ? 'text-amber-600' : 'text-slate-500'}`}>
+                {detectorReady === false
+                  ? 'No se pudo activar el lector de códigos en este navegador. Usa la lectora USB o escribe el código.'
+                  : 'Lee código de barras y QR automáticamente. Acércalo y evita el reflejo si no toma la lectura.'}
               </p>
             </div>
           )}
