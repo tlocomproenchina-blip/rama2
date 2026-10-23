@@ -10,7 +10,6 @@ import OpenBultoCard from '@/components/warehouse/OpenBultoCard';
 import CajaActiveCard from '@/components/warehouse/CajaActiveCard';
 import CajaLotList from '@/components/warehouse/CajaLotList';
 import CajaLabelsDialog from '@/components/warehouse/CajaLabelsDialog';
-import CombineUnitsCard from '@/components/warehouse/CombineUnitsCard';
 import PackDestinationSelector from '@/components/warehouse/PackDestinationSelector';
 import PackUnitChips from '@/components/warehouse/PackUnitChips';
 import PackStatusBar from '@/components/warehouse/PackStatusBar';
@@ -355,9 +354,6 @@ export default function WarehouseScanPack({ user }) {
         activeId={pack.activeUnitId}
         onSelect={pack.selectUnit}
       />
-
-      {/* Combinar bultos y cajas en una sola unidad nueva con su etiqueta */}
-      <CombineUnitsCard units={pack.units} busy={pack.busy} onCombine={pack.combineUnits} />
 
       {/* Cajas del cliente que esperan etiqueta continua y despacho */}
       <CajaLotList cajas={cajas} onPrintLabels={() => setLabelsOpen(true)} />

@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Loader2, Search, Trash2, Boxes, ChevronLeft, ChevronRight, Printer, CheckSquare, Square, X, Printer as PrinterIcon, Hash } from 'lucide-react';
+import { Loader2, Search, Trash2, Boxes, ChevronLeft, ChevronRight, Printer, CheckSquare, Square, X, Printer as PrinterIcon, Hash, Combine } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { getAll } from '@/lib/offlineDb';
@@ -17,6 +17,7 @@ import { groupBultosByOrder } from '@/lib/bultoOrderGroups';
 import BultoHistoryRow from './BultoHistoryRow';
 import BultoOrderGroupCard from './BultoOrderGroupCard';
 import ReprintDialog from './ReprintDialog';
+import CombineSelectedDialog from './CombineSelectedDialog';
 
 const PAGE_SIZE = 50;
 
@@ -42,6 +43,7 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [bulkPrintTarget, setBulkPrintTarget] = useState(null);
   const [orderAssignOpen, setOrderAssignOpen] = useState(false);
+  const [combineOpen, setCombineOpen] = useState(false);
 
   // Los bultos que no están entre los cargados se buscan en el servidor por el final
   // del código de etiqueta (basta con los últimos caracteres).
@@ -266,6 +268,14 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
             <Button
               size="sm"
               variant="outline"
+              onClick={() => setCombineOpen(true)}
+              disabled={selectedIds.size < 2}
+            >
+              <Combine className="h-3.5 w-3.5" /> Combinar ({selectedIds.size})
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
               onClick={() => setOrderAssignOpen(true)}
               disabled={!selectedIds.size}
             >
@@ -395,6 +405,19 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Combinar las unidades seleccionadas en una sola */}
+      <CombineSelectedDialog
+        bultos={bultos.filter((b) => selectedIds.has(b.id))}
+        open={combineOpen}
+        onClose={() => setCombineOpen(false)}
+        onDone={() => {
+          setCombineOpen(false);
+          try { apiQueue.invalidateEntityCache('Bulto'); } catch (_) {}
+          exitSelectMode();
+          load();
+        }}
+      />
 
       {/* N° de contenedor para varios bultos a la vez */}
       <BulkOrderAssignDialog
