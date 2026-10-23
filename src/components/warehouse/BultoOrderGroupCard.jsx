@@ -9,7 +9,7 @@ import BultoHistoryRow from './BultoHistoryRow';
 // que contiene y cuántos bultos son; al desplegarse se ven los bultos individuales.
 export default function BultoOrderGroupCard({
   entry, expanded, onToggle, selectMode, selectedIds,
-  onToggleSelect, onToggleGroup, canDelete, onPrint, onEdit, onDelete,
+  onToggleSelect, onToggleGroup, canDelete, onPrint, onEdit, onDelete, onDismantle,
 }) {
   const bultos = entry.bultos;
   const first = bultos[0];
@@ -95,6 +95,7 @@ export default function BultoOrderGroupCard({
                 onPrint={onPrint}
                 onEdit={onEdit}
                 onDelete={onDelete}
+                onDismantle={onDismantle}
               />
             ))}
           </div>

@@ -1,15 +1,18 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Pencil, Trash2, Printer, CheckSquare, Square, CloudOff, Hash } from 'lucide-react';
+import { Pencil, Trash2, Printer, CheckSquare, Square, CloudOff, Hash, PackageOpen } from 'lucide-react';
 import { packageCountForDispatch } from '@/lib/bultoCounts';
 import PrintCountBadge from './PrintCountBadge';
 
 // Tarjeta de un bulto individual del historial: la usan los bultos sin N° de contenedor y los
 // bultos que se despliegan dentro de su grupo.
 export default function BultoHistoryRow({
-  bulto: b, selectMode, selected, onToggleSelect, canDelete, onPrint, onEdit, onDelete,
+  bulto: b, selectMode, selected, onToggleSelect, canDelete, onPrint, onEdit, onDelete, onDismantle,
 }) {
+  // Solo las cajas consolidadas que siguen en el almacén se pueden desarmar.
+  const canDismantle = !!onDismantle && b.is_caja && !b.is_local_pending
+    && b.status !== 'despachado' && !b.billed_invoice_id;
   return (
     <Card className={`shadow-sm transition-all ${selectMode && selected ? 'ring-2 ring-blue-400 bg-blue-50/30' : ''}`}>
       <CardContent className="p-3">
@@ -73,6 +76,16 @@ export default function BultoHistoryRow({
           </div>
           {!selectMode && (
             <div className="flex items-center gap-1.5 shrink-0">
+              {canDismantle && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onDismantle(b)}
+                  className="text-amber-700 hover:bg-amber-50 hover:border-amber-200"
+                >
+                  <PackageOpen className="h-3.5 w-3.5" /> Desarmar
+                </Button>
+              )}
               <Button variant="outline" size="sm" onClick={() => onPrint(b)}>
                 <Printer className="h-3.5 w-3.5" />
               </Button>

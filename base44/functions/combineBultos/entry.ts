@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 import { describeBultoForAbsorption } from '../../shared/bultoAbsorption.ts';
+import { nextBultoNumber } from '../../shared/bultoNumber.ts';
 
 // Combinar unidades ya registradas desde el historial.
 //
@@ -7,45 +8,8 @@ import { describeBultoForAbsorption } from '../../shared/bultoAbsorption.ts';
 // los combina en una sola unidad nueva con su propio código ({shipping_mark}-C## o -B##).
 // El contenido de las unidades elegidas pasa a la nueva y las originales se eliminan,
 // dejando constancia de lo combinado en absorbed_bultos.
-const COUNTER_KEY = 'main';
 const text = (value: any) => String(value ?? '').trim();
 const uniq = (list: any[]) => [...new Set((list || []).map(text).filter(Boolean))];
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
-// Siguiente número de etiqueta de bulto/caja del almacén (un solo número).
-async function nextBultoNumber(base44: any) {
-  for (let attempt = 0; attempt < 8; attempt += 1) {
-    const rows = await base44.asServiceRole.entities.BultoNumberCounter
-      .filter({ config_key: COUNTER_KEY }, '-updated_date', 1)
-      .catch(() => []);
-    let counter = rows?.[0] || null;
-
-    if (!counter) {
-      const shared = await base44.asServiceRole.entities.ShippingMarkCounter
-        .filter({ config_key: COUNTER_KEY }, '-updated_date', 1)
-        .catch(() => []);
-      const seed = Number(shared?.[0]?.last_number);
-      try {
-        counter = await base44.asServiceRole.entities.BultoNumberCounter.create({
-          config_key: COUNTER_KEY,
-          last_number: Number.isFinite(seed) ? seed : 49999,
-        });
-      } catch (_) {
-        await sleep(60);
-        continue;
-      }
-    }
-
-    const oldValue = Number(counter.last_number) || 0;
-    const result = await base44.asServiceRole.entities.BultoNumberCounter.updateMany(
-      { config_key: COUNTER_KEY, last_number: oldValue },
-      { $inc: { last_number: 1 } }
-    );
-    if (result?.updated >= 1) return oldValue + 1;
-    await sleep(60);
-  }
-  return null;
-}
 
 export default async function (req: Request): Promise<Response> {
   try {

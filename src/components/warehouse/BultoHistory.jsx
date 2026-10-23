@@ -18,6 +18,7 @@ import BultoHistoryRow from './BultoHistoryRow';
 import BultoOrderGroupCard from './BultoOrderGroupCard';
 import ReprintDialog from './ReprintDialog';
 import CombineSelectedDialog from './CombineSelectedDialog';
+import DismantleCajaDialog from './DismantleCajaDialog';
 
 const PAGE_SIZE = 50;
 
@@ -31,7 +32,6 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
   const [expandedKeys, setExpandedKeys] = useState(new Set());
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
   const [page, setPage] = useState(0);
   const [total, setTotal] = useState(0);
   const [deleteTargets, setDeleteTargets] = useState([]);
@@ -44,6 +44,7 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
   const [bulkPrintTarget, setBulkPrintTarget] = useState(null);
   const [orderAssignOpen, setOrderAssignOpen] = useState(false);
   const [combineOpen, setCombineOpen] = useState(false);
+  const [dismantleTarget, setDismantleTarget] = useState(null);
 
   // Los bultos que no están entre los cargados se buscan en el servidor por el final
   // del código de etiqueta (basta con los últimos caracteres).
@@ -130,9 +131,6 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
       const localNotInServer = localPending.filter((b) => !serverIds.has(b.server_bulto_id) && !serverBultos.some((s) => s.label_code === b.label_code));
       let filtered = [...localNotInServer, ...serverBultos];
 
-      if (statusFilter !== 'all') {
-        filtered = filtered.filter((b) => b.status === statusFilter);
-      }
       if (search.trim()) {
         const q = search.trim().toLowerCase();
         filtered = filtered.filter((b) => {
@@ -147,8 +145,7 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
 
         // La coincidencia por el final del código la resuelve el servidor, así
         // aparece el bulto aunque no esté entre los últimos cargados.
-        const extra = codeMatches.filter((b) => statusFilter === 'all' || b.status === statusFilter);
-        if (extra.length) filtered = mergeBultos(filtered, extra);
+        if (codeMatches.length) filtered = mergeBultos(filtered, codeMatches);
       }
 
       setTotal(filtered.length);
@@ -167,7 +164,7 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
     } finally {
       setLoading(false);
     }
-  }, [search, statusFilter, page, refreshKey, codeMatches]);
+  }, [search, page, refreshKey, codeMatches]);
 
   // Permiso de borrado: solo la cuenta autorizada ve las acciones de eliminar
   useEffect(() => {
@@ -178,8 +175,8 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
 
   useEffect(() => { load(); }, [load]);
 
-  // Reset page al cambiar filtros
-  useEffect(() => { setPage(0); }, [search, statusFilter]);
+  // Reset page al cambiar la búsqueda
+  useEffect(() => { setPage(0); }, [search]);
 
   const confirmDelete = async () => {
     if (!deleteTargets.length) return;
@@ -231,16 +228,6 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
                 className="pl-10"
               />
             </div>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="rounded-md border border-input bg-background px-3 py-2 text-sm"
-            >
-              <option value="all">Todos los estados</option>
-              <option value="activo">Activos</option>
-              <option value="en_almacen_ve">En Almacén Venezuela</option>
-              <option value="despachado">Despachados</option>
-            </select>
           </div>
           <div className="flex items-center justify-between gap-2">
             <p className="text-xs text-slate-500">{total} bulto(s) encontrado(s)</p>
@@ -328,6 +315,7 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
                 onPrint={setPrintTarget}
                 onEdit={setEditTarget}
                 onDelete={(bulto) => setDeleteTargets([bulto])}
+                onDismantle={setDismantleTarget}
               />
             ) : (
               <BultoHistoryRow
@@ -340,6 +328,7 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
                 onPrint={setPrintTarget}
                 onEdit={setEditTarget}
                 onDelete={(bulto) => setDeleteTargets([bulto])}
+                onDismantle={setDismantleTarget}
               />
             )
           ))}
@@ -411,6 +400,11 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
         bultos={bultos.filter((b) => selectedIds.has(b.id))}
         open={combineOpen}
         onClose={() => setCombineOpen(false)}
+        onCreated={() => {
+          // La fusión ya está hecha: se refresca la lista mientras se pregunta por la impresión.
+          try { apiQueue.invalidateEntityCache('Bulto'); } catch (_) {}
+          load();
+        }}
         onDone={() => {
           setCombineOpen(false);
           try { apiQueue.invalidateEntityCache('Bulto'); } catch (_) {}
@@ -418,6 +412,20 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
           load();
         }}
       />
+
+      {/* Desarmar una caja consolidada: sus bultos vuelven al cliente */}
+      {dismantleTarget && (
+        <DismantleCajaDialog
+          bulto={dismantleTarget}
+          open={!!dismantleTarget}
+          onClose={() => setDismantleTarget(null)}
+          onDone={() => {
+            setDismantleTarget(null);
+            try { apiQueue.invalidateEntityCache('Bulto'); } catch (_) {}
+            load();
+          }}
+        />
+      )}
 
       {/* N° de contenedor para varios bultos a la vez */}
       <BulkOrderAssignDialog
