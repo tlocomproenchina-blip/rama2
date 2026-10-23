@@ -315,7 +315,6 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
                 onPrint={setPrintTarget}
                 onEdit={setEditTarget}
                 onDelete={(bulto) => setDeleteTargets([bulto])}
-                onDismantle={setDismantleTarget}
               />
             ) : (
               <BultoHistoryRow
@@ -328,7 +327,6 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
                 onPrint={setPrintTarget}
                 onEdit={setEditTarget}
                 onDelete={(bulto) => setDeleteTargets([bulto])}
-                onDismantle={setDismantleTarget}
               />
             )
           ))}
@@ -399,33 +397,13 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
       <CombineSelectedDialog
         bultos={bultos.filter((b) => selectedIds.has(b.id))}
         open={combineOpen}
-        onClose={() => setCombineOpen(false)}
-        onCreated={() => {
-          // La fusión ya está hecha: se refresca la lista mientras se pregunta por la impresión.
-          try { apiQueue.invalidateEntityCache('Bulto'); } catch (_) {}
-          load();
-        }}
-        onDone={() => {
+        onClose={() => {
           setCombineOpen(false);
           try { apiQueue.invalidateEntityCache('Bulto'); } catch (_) {}
           exitSelectMode();
           load();
         }}
       />
-
-      {/* Desarmar una caja consolidada: sus bultos vuelven al cliente */}
-      {dismantleTarget && (
-        <DismantleCajaDialog
-          bulto={dismantleTarget}
-          open={!!dismantleTarget}
-          onClose={() => setDismantleTarget(null)}
-          onDone={() => {
-            setDismantleTarget(null);
-            try { apiQueue.invalidateEntityCache('Bulto'); } catch (_) {}
-            load();
-          }}
-        />
-      )}
 
       {/* N° de contenedor para varios bultos a la vez */}
       <BulkOrderAssignDialog
