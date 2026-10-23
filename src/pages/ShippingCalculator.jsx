@@ -429,13 +429,13 @@ export default function ShippingCalculator({ user, defaultStateCode, defaultShip
                     <p className="text-xs text-cyan-700">{`${result.destBultos} bulto(s) × $${result.destRate.toFixed(2)}`}</p>
                   </div>
                 )}
-                {includeInsurance && (parseFloat(fobValue) || 0) > 0 && (
-                  <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
-                    <p className="text-sm font-medium text-emerald-800">Total estimado</p>
-                    <p className="mt-1 text-2xl font-bold text-emerald-700">${result.totalCost.toFixed(2)}</p>
-                    <p className="text-xs text-emerald-700">Incluye seguro si fue seleccionado</p>
-                  </div>
-                )}
+                <div className="rounded-xl border-2 border-emerald-300 bg-emerald-50 p-4 md:col-span-2">
+                  <p className="text-sm font-medium text-emerald-800">Total estimado</p>
+                  <p className="mt-1 text-2xl font-bold text-emerald-700">${result.totalCost.toFixed(2)}</p>
+                  <p className="text-xs text-emerald-700">
+                    {`Envío $${result.shippingCost.toFixed(2)} + recepción $${result.receptionFee.toFixed(2)}${result.destinationCharge > 0 ? ` + ${(destConfig?.label || 'Cobro destino').toLowerCase()} $${result.destinationCharge.toFixed(2)}` : ''}${result.insuranceCost > 0 ? ` + seguro $${result.insuranceCost.toFixed(2)}` : ''}`}
+                  </p>
+                </div>
               </div>
 
               {result.insuranceCost > 0 && (
