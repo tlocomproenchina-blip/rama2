@@ -123,6 +123,7 @@ export function useOfflineBultoSync() {
               client_email: item.client_email,
               package_codes: item.package_codes || [],
               absorb_codes: item.absorb_codes || [],
+              combine_codes: item.combine_codes || [],
               unregistered_codes: item.unregistered_codes || [],
               cbm_order_numbers: item.cbm_order_numbers || [],
               device_id: item.device_id || '',
@@ -148,7 +149,7 @@ export function useOfflineBultoSync() {
                   server_bulto_id: data.caja.id,
                 });
               }
-              for (const code of item.absorb_codes || []) {
+              for (const code of [...(item.absorb_codes || []), ...(item.combine_codes || [])]) {
                 const absorbed = localBultos.find(
                   (b) => b.label_code === code && (b.local_bulto_id || b.id) !== item.id
                 );
@@ -195,6 +196,7 @@ export function useOfflineBultoSync() {
               invoice_status: item.invoice_status || '',
               invoice_number: item.invoice_number || '',
               cbm_order_numbers: item.cbm_order_numbers || [],
+              combine_codes: item.combine_codes || [],
               warehouse_id: item.warehouse_id || '',
               created_by: item.created_by || '',
               closed_at: item.closed_at || new Date().toISOString(),

@@ -8,6 +8,7 @@ import {
   removeLastFromLocalCaja, saveLocalCaja,
 } from '@/lib/cajaLocal';
 import { addPackageToUnit, createLocalBulto, findOpenUnit, loadOpenUnits, sameClient, saveUnit } from '@/lib/packUnits';
+import { combineUnitsLocally } from '@/lib/combineUnits';
 
 // Mesa única de empaque: un solo escáner recibe paquetes, arma bultos y arma la caja
 // consolidada. El selector decide el destino del próximo escaneo y la unidad que el
@@ -420,6 +421,53 @@ export default function usePackUnit({
     }
   }, [activateUnit, applyUnits, onHistoryChange, selectUnit]);
 
+  // --- Combinar unidades abiertas en una sola unidad nueva ---
+  // El contenido de las unidades elegidas pasa a la unidad nueva (con su propio código) y
+  // las originales se sueltan del dispositivo. Al cerrarla, sus etiquetas viajan en
+  // combine_codes para que el servidor también las elimine.
+  const combineUnits = useCallback(async ({ ids = [], kind = 'caja' } = {}) => {
+    const sources = unitsRef.current.filter((u) => ids.includes(u.id));
+    if (sources.length < 2) {
+      setError('Selecciona al menos dos unidades para combinar.');
+      return false;
+    }
+    const clientEmail = sources[0].client_email;
+    if (sources.some((u) => !sameClient(u.client_email, clientEmail))) {
+      setError('Solo se pueden combinar unidades del mismo cliente.');
+      return false;
+    }
+
+    setBusy(true);
+    busyRef.current = true;
+    setError('');
+    try {
+      const number = await getNextNumber();
+      if (!number) {
+        setError('No hay números disponibles. Revisa tu conexión.');
+        return false;
+      }
+      const client = (await getClientByEmail(clientEmail)) || {
+        email: clientEmail,
+        shipping_mark: sources[0].shipping_mark,
+      };
+      const created = kind === 'bulto'
+        ? await createLocalBulto({ client, number, user })
+        : await createLocalCaja({ client, number, user });
+      const combined = await combineUnitsLocally(created, sources, user?.email || '');
+      applyUnits((prev) => [...prev.filter((u) => !ids.includes(u.id)), combined]);
+      await activateUnit(combined);
+      toast.success(`${sources.length} unidades combinadas en ${combined.label_code}`);
+      onHistoryChange?.();
+      return true;
+    } catch (e) {
+      setError('No se pudieron combinar las unidades. Intenta de nuevo.');
+      return false;
+    } finally {
+      busyRef.current = false;
+      setBusy(false);
+    }
+  }, [activateUnit, applyUnits, getClientByEmail, getNextNumber, onHistoryChange, user]);
+
   // --- Cerrar la unidad: bulto (etiqueta individual) o caja (etiquetas continuas) ---
   const closeUnit = useCallback(async (ordersOverride) => {
     const unit = activeUnitRef.current;
@@ -454,6 +502,7 @@ export default function usePackUnit({
             ...(closed.absorbed_codes || []),
           ],
           absorb_codes: closed.absorbed_codes || [],
+          combine_codes: closed.combined_codes || [],
           unregistered_codes: closed.unregistered_codes || [],
           cbm_order_numbers: orders,
         });
@@ -503,6 +552,7 @@ export default function usePackUnit({
       invoice_status: closed.invoice_status || '',
       invoice_number: closed.invoice_number || '',
       cbm_order_numbers: cbmOrderNumbers,
+      combine_codes: closed.combined_codes || [],
       warehouse_id: closed.warehouse_id || '',
       created_by: closed.created_by || user?.email || '',
       closed_at: closed.closed_at,
@@ -537,6 +587,7 @@ export default function usePackUnit({
     contents,
     busy,
     error,
+    combineUnits,
     closeUnit,
     removeLast,
     saveOrder,

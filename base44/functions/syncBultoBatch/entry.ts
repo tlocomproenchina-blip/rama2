@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.49';
 import { markPackagesReceivedIfMissing } from '../../shared/bultoScan.ts';
+import { planCombinedSources, deleteCombinedSources } from '../../shared/combineSources.ts';
 
 // Sincroniza un bulto cerrado (creado offline) con todos sus paquetes al servidor.
 // Recibe:
@@ -63,6 +64,22 @@ export default async function(req: Request): Promise<Response> {
       .map((id, i) => (String(id).startsWith('local_') ? rawTrackings[i] || '' : ''))
       .filter(Boolean);
 
+    // Unidades combinadas en la mesa de empaque: su contenido pasa a este bulto nuevo y las
+    // originales se eliminan recién cuando el bulto ya quedó creado.
+    const combineCodes: string[] = Array.isArray(body.combine_codes)
+      ? body.combine_codes.map((c: any) => String(c || '').trim()).filter(Boolean)
+      : [];
+    const combined = combineCodes.length
+      ? await planCombinedSources(base44, {
+          codes: combineCodes,
+          clientEmail: client_email,
+          actor: created_by || user.email || '',
+        })
+      : null;
+    const mergedPackageIds = [...new Set([...validPackageIds, ...(combined?.package_ids || [])])];
+    const mergedTrackings = [...new Set([...validTrackings, ...(combined?.trackings || [])])];
+    const mergedUnregistered = [...new Set([...unregisteredFromLocal, ...(combined?.unregistered_codes || [])])];
+
     // Todos los bultos nacen 'en_almacen_ve' (sellados en el almacén, esperando despacho al cliente).
     // Las etiquetas vacías creadas en lote también: antes nacían como 'despachado' y aparecían
     // como entregadas sin haber salido del almacén. El paso a 'despachado' es manual en WarehouseDispatch.
@@ -70,12 +87,12 @@ export default async function(req: Request): Promise<Response> {
 
     // Auto-lookup CbmIngreso order numbers if not provided manually
     let finalOrderNumbers: string[] = Array.isArray(cbm_order_numbers) ? cbm_order_numbers.filter(Boolean) : [];
-    if (finalOrderNumbers.length === 0 && validTrackings.length > 0) {
+    if (finalOrderNumbers.length === 0 && mergedTrackings.length > 0) {
       try {
         const cbms = await base44.asServiceRole.entities.CbmIngreso.filter(
           { client_email }, '-fecha', 200
         );
-        const trackingSet = new Set(validTrackings);
+        const trackingSet = new Set(mergedTrackings);
         for (const c of cbms || []) {
           const tn = Array.isArray(c.tracking_numbers) ? c.tracking_numbers : [];
           if (tn.some((t: string) => trackingSet.has(t)) && c.invoice_number) {
@@ -84,6 +101,10 @@ export default async function(req: Request): Promise<Response> {
         }
       } catch (_) {}
     }
+    // El N° de contenedor que traían las unidades combinadas también cuenta.
+    const mergedOrderNumbers = [
+      ...new Set([...finalOrderNumbers, ...(combined?.order_numbers || [])]),
+    ];
 
     // Crear el bulto en el servidor
     const newBulto = await base44.asServiceRole.entities.Bulto.create({
@@ -92,10 +113,11 @@ export default async function(req: Request): Promise<Response> {
       shipping_mark: shipping_mark || '',
       bulto_number: bulto_number || 1,
       total_bultos: total_bultos || bulto_number || 1,
-      package_ids: validPackageIds,
-      package_trackings: validTrackings,
-      unregistered_codes: unregisteredFromLocal,
-      cbm_order_numbers: finalOrderNumbers,
+      package_ids: mergedPackageIds,
+      package_trackings: mergedTrackings,
+      unregistered_codes: mergedUnregistered,
+      cbm_order_numbers: mergedOrderNumbers,
+      absorbed_bultos: combined?.absorbed || [],
       client_snapshot: client_snapshot || {},
       invoice_paid: !!invoice_paid,
       invoice_status: invoice_status || '',
@@ -110,16 +132,24 @@ export default async function(req: Request): Promise<Response> {
     // la conservan: no se vuelve a contar ni se mueve su fecha de recepción.
     await markPackagesReceivedIfMissing(
       base44,
-      validPackageIds,
+      mergedPackageIds,
       closed_at || new Date().toISOString(),
       created_by || user.email || ''
     );
+
+    // El contenido ya vive en el bulto nuevo: se eliminan las unidades combinadas.
+    const combinedDeleted = await deleteCombinedSources(base44, combined?.deletable || []);
 
     return Response.json({
       success: true,
       bulto: newBulto,
       already_exists: false,
       synced: true,
+      combined: {
+        deleted: combinedDeleted.deleted,
+        failed: combinedDeleted.failed,
+        warnings: [...(combined?.warnings || [])],
+      },
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });

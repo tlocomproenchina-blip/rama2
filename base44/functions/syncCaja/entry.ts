@@ -13,6 +13,7 @@ import {
   markPackagesRecognizedIfMissing,
 } from '../../shared/bultoAbsorption.ts';
 import { syncBultoToAccounting } from '../../shared/veAccountingSync.ts';
+import { planCombinedSources, deleteCombinedSources } from '../../shared/combineSources.ts';
 
 // Registra en el servidor una caja consolidada armada en el almacén de Venezuela.
 //
@@ -163,6 +164,25 @@ export default async function (req: Request): Promise<Response> {
       if (!unregistered.includes(code) && !ownCodes.includes(code)) unregistered.push(code);
     }
 
+    // Unidades combinadas en la mesa de empaque: su contenido entra a esta caja y las
+    // originales se eliminan después de crear la caja, nunca antes.
+    const combineCodes = (Array.isArray(body.combine_codes) ? body.combine_codes : [])
+      .map((c: any) => String(c || '').trim())
+      .filter(Boolean);
+    const combined = combineCodes.length
+      ? await planCombinedSources(base44, { codes: combineCodes, clientEmail, actor: assignedBy })
+      : null;
+    if (combined) {
+      for (const id of combined.package_ids) {
+        if (!packageIds.includes(id)) packageIds.push(id);
+      }
+      for (const code of [...combined.unregistered_codes, ...combined.trackings]) {
+        if (!unregistered.includes(code)) unregistered.push(code);
+      }
+      movedOrders.push(...combined.order_numbers);
+      warnings.push(...combined.warnings);
+    }
+
     // Los paquetes reales no se cuentan dos veces como "sin registrar".
     const resolvedTrackings = new Set<string>();
     const pkgs = (await Promise.all(
@@ -215,7 +235,11 @@ export default async function (req: Request): Promise<Response> {
     const highRisk = pkgs.some((p) => p.risk_category === 'alto_riesgo');
     const invoice = await latestInvoiceSnapshot(base44, clientEmail);
     const now = new Date().toISOString();
-    const absorptionHistory = [...(existing?.absorbed_bultos || []), ...plan.absorbed];
+    const absorptionHistory = [
+      ...(existing?.absorbed_bultos || []),
+      ...(combined?.absorbed || []),
+      ...plan.absorbed,
+    ];
 
     const payload: any = {
       label_code: labelCode,
@@ -266,6 +290,14 @@ export default async function (req: Request): Promise<Response> {
     // El contenido ya está dentro de la caja: los bultos absorbidos se eliminan.
     const absorbed = await applyAbsorption(base44, plan);
 
+    // Las unidades combinadas que el plan no haya borrado (una caja sin paquetes
+    // registrados, por ejemplo) se eliminan aquí: su contenido ya vive en la caja nueva.
+    const combinedPending = (combined?.deletable || []).filter(
+      (source: any) =>
+        !plan.absorbed.some((entry: any) => String(entry.label_code) === String(source.label_code))
+    );
+    const combinedDeleted = await deleteCombinedSources(base44, combinedPending);
+
     await markPackagesRecognizedIfMissing(base44, plan.package_ids, now, assignedBy);
     // Todo lo escaneado quedó dentro de la caja, en el almacén: el paquete que no tenía
     // recepción registrada queda recibido ahora; los ya recibidos no se vuelven a contar.
@@ -300,6 +332,8 @@ export default async function (req: Request): Promise<Response> {
         deleted: absorbed.deleted,
         stripped: absorbed.stripped,
         failed: absorbed.failed,
+        combined_deleted: combinedDeleted.deleted,
+        combined_failed: combinedDeleted.failed,
         warnings: [...warnings, ...absorbed.warnings],
       },
       sync,
