@@ -24,10 +24,11 @@ export default function ClientCargoPanel({ client }) {
     const list = page.items || [];
     setBultos(list);
 
-    // Los ids del escaneo offline ('local_pkg_...') no existen como registro y hacen
-    // fallar la consulta de paquetes, así que se descartan antes de pedirlos.
+    // Solo se piden ids reales de registro: cualquier otro valor (los del escaneo
+    // offline 'local_pkg_...', ids de prueba, etc.) hace fallar la consulta con
+    // «id is not a valid record ID».
     const ids = [...new Set(list.flatMap((b) => b.package_ids || []))]
-      .filter((id) => id && !String(id).startsWith('local_'))
+      .filter((id) => /^[a-f0-9]{24}$/i.test(String(id || '').trim()))
       .slice(0, 300);
     if (ids.length) {
       const pkgPage = await base44.entities.Package.filter(
