@@ -50,21 +50,30 @@ export async function approveAbonoPayment(base44: any, paymentId: string, adminE
   const payment = payments[0];
   if (payment.status !== 'pendiente') fail(`El abono ya fue ${payment.status}`, 400);
 
-  // Verificar que las órdenes de despacho de este abono no estén ya pagadas
-  // por otro abono aprobado (evita doble pago)
-  const paymentOrderIds = Array.isArray(payment.dispatch_order_ids) ? payment.dispatch_order_ids : [];
-  if (paymentOrderIds.length > 0) {
-    const existingPayments = await base44.asServiceRole.entities.InvoicePayment
-      .filter({ invoice_id: payment.invoice_id }, '-created_date', 200)
-      .catch(() => []);
-    const alreadyPaidIds = new Set<string>();
-    (existingPayments || []).forEach((p: any) => {
-      if (p.status === 'aprobado' && p.id !== paymentId && Array.isArray(p.dispatch_order_ids)) {
-        p.dispatch_order_ids.forEach((id: any) => alreadyPaidIds.add(String(id)));
-      }
-    });
-    const conflicts = paymentOrderIds.filter((id: any) => alreadyPaidIds.has(String(id)));
-    if (conflicts.length > 0) fail('Una o más órdenes de despacho ya fueron pagadas en otro abono aprobado', 400);
+  const invs = await base44.asServiceRole.entities.Invoice.filter({ id: payment.invoice_id });
+  if (!invs || invs.length === 0) fail('Factura no encontrada', 404);
+  const invoice = invs[0];
+  const total = Number(invoice.total || 0);
+
+  // Los abonos se cobran contra la factura, así que la protección real contra el
+  // doble pago es el saldo: no se puede aprobar un abono si el dinero ya aprobado
+  // cubre la factura o si este abono supera lo que falta por pagar. No se comparan
+  // las órdenes de despacho porque un mismo despacho se paga en varios abonos
+  // parciales y eso bloqueaba pagos legítimos.
+  const previousPayments = await base44.asServiceRole.entities.InvoicePayment
+    .filter({ invoice_id: payment.invoice_id }, '-created_date', 200)
+    .catch(() => []);
+  const approvedBefore = (previousPayments || [])
+    .filter((p: any) => p.status === 'aprobado' && String(p.id) !== String(paymentId))
+    .reduce((sum: number, p: any) => sum + Number(p.amount || 0), 0);
+  const pendingBalance = Math.round(Math.max(0, total - approvedBefore) * 100) / 100;
+  const paymentAmount = Number(payment.amount || 0);
+
+  if (pendingBalance <= 0.01) {
+    fail(`La factura ya está completamente pagada ($${total.toFixed(2)}): este abono no se puede aprobar`, 400);
+  }
+  if (paymentAmount > pendingBalance + 0.01) {
+    fail(`El abono de $${paymentAmount.toFixed(2)} supera el saldo pendiente de la factura ($${pendingBalance.toFixed(2)})`, 400);
   }
 
   const nowIso = new Date().toISOString();
@@ -80,10 +89,6 @@ export async function approveAbonoPayment(base44: any, paymentId: string, adminE
     .filter((p: any) => p.status === 'aprobado')
     .reduce((sum: number, p: any) => sum + Number(p.amount || 0), 0);
 
-  const invs = await base44.asServiceRole.entities.Invoice.filter({ id: payment.invoice_id });
-  if (!invs || invs.length === 0) fail('Factura no encontrada', 404);
-  const invoice = invs[0];
-  const total = Number(invoice.total || 0);
   const newPaidAmount = Math.round(paidAmount * 100) / 100;
   const isFullyPaid = newPaidAmount >= total;
 

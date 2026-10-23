@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import useFileViewer from '@/hooks/useFileViewer';
 import BulkApproveButton from '@/components/admin/bulk-approval/BulkApproveButton';
 import { downloadPaymentReport } from '@/lib/paymentReportTxt';
+import { invokeErrorMessage } from '@/lib/invokeErrorMessage';
 
 const METHOD_LABELS = {
   transferencia: 'Transferencia',
@@ -113,7 +114,8 @@ export default function AdminAbonosValidation({ onRefresh, search = '' }) {
         toast.error(res.data?.error || 'Error al aprobar abono');
       }
     } catch (e) {
-      toast.error('Error al aprobar abono');
+      // El motivo real del rechazo del backend (saldo, abono ya procesado, etc.)
+      toast.error(invokeErrorMessage(e, 'Error al aprobar abono'));
     } finally {
       setProcessing(null);
     }
@@ -139,7 +141,7 @@ export default function AdminAbonosValidation({ onRefresh, search = '' }) {
         toast.error(res.data?.error || 'Error al rechazar abono');
       }
     } catch (e) {
-      toast.error('Error al rechazar abono');
+      toast.error(invokeErrorMessage(e, 'Error al rechazar abono'));
     } finally {
       setProcessing(null);
     }

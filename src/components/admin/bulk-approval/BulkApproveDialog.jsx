@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { CheckCheck, Loader2, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { downloadPaymentReport } from '@/lib/paymentReportTxt';
+import { invokeErrorMessage } from '@/lib/invokeErrorMessage';
 
 // Confirmación de la aprobación masiva: resumen (cantidad + monto), progreso y resultado final.
 export default function BulkApproveDialog({ open, onOpenChange, ids, type, label, amount, amountLabel, onDone }) {
@@ -38,7 +39,7 @@ export default function BulkApproveDialog({ open, onOpenChange, ids, type, label
         await onDone?.(data.approved || []);
       }
     } catch (e) {
-      toast.error('No se pudo aprobar en bloque');
+      toast.error(invokeErrorMessage(e, 'No se pudo aprobar en bloque'));
     } finally {
       setRunning(false);
     }
