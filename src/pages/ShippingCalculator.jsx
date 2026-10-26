@@ -324,7 +324,7 @@ export default function ShippingCalculator({ user, defaultStateCode, defaultShip
                 <p className="text-sm text-indigo-700">Se calcula por volumen en CBM y también puedes validar el peso de la carga.</p>
                 <p className="text-xs text-indigo-600">Fórmula: (L × A × H) / 1,000,000</p>
                 <div className="rounded-lg bg-white/70 border border-indigo-200 px-3 py-2 text-sm text-indigo-800">
-                  La tarifa por CBM es normal hasta 399 kg. Desde 400 kg inclusive, el costo del envío se multiplica por 2, en carga general y en carga de alto riesgo.
+                  {`El peso máximo sin recargo es de ${WEIGHT_DOUBLE_FROM_KG - 1} kg. Desde ${WEIGHT_DOUBLE_FROM_KG} kg inclusive, el costo del envío se factura x2 (al doble), tanto en carga general como en carga de alto riesgo.`}
                 </div>
               </div>
             )}
@@ -398,7 +398,7 @@ export default function ShippingCalculator({ user, defaultStateCode, defaultShip
           {shippingType === 'maritimo' && result.maritimeMultiplier === 2 && (
             <div className="rounded-xl border-2 border-red-300 bg-red-50 p-4">
               <p className="font-semibold text-red-700">⚠️ SOBREPESO DETECTADO</p>
-              <p className="mt-1 text-sm text-red-700">El peso real de tu carga ({parseFloat(weight).toFixed(2)} kg) llega a los 400 kg. Por este motivo, el costo del envío se multiplica por 2.</p>
+              <p className="mt-1 text-sm text-red-700">El peso real de tu carga ({parseFloat(weight).toFixed(2)} kg) supera el máximo de {WEIGHT_DOUBLE_FROM_KG - 1} kg. Por este motivo, el costo del envío se factura x2.</p>
             </div>
           )}
           <Card className="border-border/70 bg-gradient-to-br from-slate-50 to-white shadow-card">
@@ -457,7 +457,7 @@ export default function ShippingCalculator({ user, defaultStateCode, defaultShip
                 )}
                 {shippingType === 'maritimo' && result.densityKgPerCbm > 0 && (
                   <div className="rounded-lg bg-indigo-50 px-3 py-2 text-indigo-700 md:col-span-2">
-                    {result.maritimeMultiplier === 2 ? 'Sobrepeso: el peso real llega a los 400 kg, se aplica x2 al costo del envío.' : 'El cobro x2 se aplica desde 400 kg de peso real (inclusive), en carga general y de alto riesgo.'}
+                    {result.maritimeMultiplier === 2 ? `Sobrepeso: el peso real supera los ${WEIGHT_DOUBLE_FROM_KG - 1} kg, se aplica x2 al costo del envío.` : `El peso máximo sin recargo es ${WEIGHT_DOUBLE_FROM_KG - 1} kg; desde ${WEIGHT_DOUBLE_FROM_KG} kg se aplica x2, en carga general y de alto riesgo.`}
                   </div>
                 )}
                 {result.stateName && (
