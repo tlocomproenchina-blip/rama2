@@ -45,6 +45,7 @@ export default function ClientAnalytics() {
   const [invoices, setInvoices] = useState([]);
   const [invoicePayments, setInvoicePayments] = useState([]);
   const [packages, setPackages] = useState([]);
+  const [insurancePayments, setInsurancePayments] = useState([]);
   const [cbmIngresos, setCbmIngresos] = useState([]);
   const [dispatchOrders, setDispatchOrders] = useState([]);
   const [appConfig, setAppConfig] = useState(null);
@@ -84,6 +85,7 @@ export default function ClientAnalytics() {
       setInvoices([]);
       setInvoicePayments([]);
       setPackages([]);
+      setInsurancePayments([]);
       setCbmIngresos([]);
       setDispatchOrders([]);
       return;
@@ -91,18 +93,20 @@ export default function ClientAnalytics() {
 
     try {
       setLoading(true);
-      const [consolidationList, invoiceList, paymentList, packageList, cbmList, dispatchList] = await Promise.all([
+      const [consolidationList, invoiceList, paymentList, packageList, cbmList, dispatchList, insuranceList] = await Promise.all([
         base44.entities.Consolidation.filter({ client_email: clientEmail }, '-created_date', 500),
         base44.entities.Invoice.filter({ client_email: clientEmail }, '-created_date', 500),
         base44.entities.InvoicePayment.filter({ client_email: clientEmail }, '-created_date', 500).catch(() => []),
         base44.entities.Package.filter({ client_email: clientEmail }, '-created_date', 1000),
         base44.entities.CbmIngreso.filter({ client_email: clientEmail }, '-fecha', 500),
-        base44.entities.DispatchOrder.filter({ client_email: clientEmail }, '-created_date', 500).catch(() => [])
+        base44.entities.DispatchOrder.filter({ client_email: clientEmail }, '-created_date', 500).catch(() => []),
+        base44.entities.InsurancePayment.filter({ client_email: clientEmail }, '-created_date', 500).catch(() => [])
       ]);
       setConsolidations(consolidationList || []);
       setInvoices(invoiceList || []);
       setInvoicePayments(paymentList || []);
       setPackages(packageList || []);
+      setInsurancePayments(insuranceList || []);
       setCbmIngresos(cbmList || []);
       setDispatchOrders(dispatchList || []);
     } catch {
@@ -320,6 +324,7 @@ export default function ClientAnalytics() {
           packages={packages}
           client={selectedClient}
           cbmIngresos={cbmIngresos}
+          insurancePayments={insurancePayments}
           onPackageReceived={(pkgId, patch) => {
             setPackages((prev) => prev.map((p) => p.id === pkgId ? { ...p, ...patch } : p));
           }}

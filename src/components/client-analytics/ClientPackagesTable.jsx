@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Search, Package, MessageCircle, FileSpreadsheet, ShieldCheck, CheckCircle, Loader2 } from 'lucide-react';
+import { Search, Package, MessageCircle, FileSpreadsheet, CheckCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { buildWhatsAppUrl } from '@/lib/whatsappContact';
@@ -13,6 +13,7 @@ import { base44 } from '@/components/api/ApiQueueManager';
 import { uploadImageNoCredits } from '@/lib/imgbbUpload';
 import { sendInAppNotification, sendNotification } from '@/components/NotificationUtils';
 import ReceivePackageInlineModal from '@/components/client-analytics/ReceivePackageInlineModal';
+import InsuranceStatusCell from '@/components/client-analytics/InsuranceStatusCell';
 
 const STATUS_TABS = [
   { key: 'all', label: 'Todos' },
@@ -26,7 +27,7 @@ const STATUS_TABS = [
 const fmt = (d) => (d ? format(new Date(d), 'dd/MM/yyyy HH:mm') : '—');
 const fmtShort = (d) => (d ? format(new Date(d), 'dd/MM/yyyy') : '—');
 
-export default function ClientPackagesTable({ packages, client, cbmIngresos = [], onPackageReceived }) {
+export default function ClientPackagesTable({ packages, client, cbmIngresos = [], insurancePayments = [], onPackageReceived }) {
   const [tab, setTab] = useState('all');
   const [q, setQ] = useState('');
   const [selectedIds, setSelectedIds] = useState(new Set());
@@ -105,6 +106,24 @@ export default function ClientPackagesTable({ packages, client, cbmIngresos = []
     });
     return map;
   }, [cbmIngresos]);
+
+  // Mapa tracking → último pago de seguro reportado (el más reciente manda,
+  // pero un pago aprobado siempre prevalece sobre intentos posteriores)
+  const insuranceByTracking = useMemo(() => {
+    const map = {};
+    (insurancePayments || []).forEach((pay) => {
+      const key = (pay.tracking_number || '').trim();
+      if (!key) return;
+      const prev = map[key];
+      if (!prev) { map[key] = pay; return; }
+      if (prev.status === 'aprobado') return;
+      if (pay.status === 'aprobado') { map[key] = pay; return; }
+      const prevDate = new Date(prev.created_date || 0).getTime();
+      const nextDate = new Date(pay.created_date || 0).getTime();
+      if (nextDate >= prevDate) map[key] = pay;
+    });
+    return map;
+  }, [insurancePayments]);
 
   const filtered = useMemo(() => {
     let list = packages || [];
@@ -299,14 +318,7 @@ export default function ClientPackagesTable({ packages, client, cbmIngresos = []
                   <td className="py-2 pr-3">{Number(p.cbm || 0).toFixed(5)}</td>
                   <td className="py-2 pr-3">{Number(p.weight_kg || 0).toFixed(2)}</td>
                   <td className="py-2 pr-3">
-                    {p.has_insurance ? (
-                      <div className="flex items-center gap-1.5 text-emerald-700">
-                        <ShieldCheck className="h-4 w-4 flex-shrink-0" />
-                        <span className="font-semibold whitespace-nowrap">${Number(p.fob_value || 0).toFixed(2)}</span>
-                      </div>
-                    ) : (
-                      <span className="text-slate-400">—</span>
-                    )}
+                    <InsuranceStatusCell pkg={p} payment={insuranceByTracking[(p.tracking_number || '').trim()]} />
                   </td>
                   <td className="py-2 pr-3">
                     {(p.dispatched_date || p.status === 'despachado' || p.status === 'entregado') ? (
