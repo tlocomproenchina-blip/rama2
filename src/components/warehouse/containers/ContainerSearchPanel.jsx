@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, PackageSearch, Search } from 'lucide-react';
+import { Loader2, Search } from 'lucide-react';
 import ContainerSearchResults from './ContainerSearchResults';
 
 // Buscador independiente de contenedores: se escribe el N° de contenedor
@@ -56,18 +56,6 @@ export default function ContainerSearchPanel() {
   return (
     <Card className="border-slate-200">
       <CardContent className="space-y-4 p-4 sm:p-5">
-        <div className="flex items-start gap-3">
-          <div className="rounded-xl bg-blue-50 p-2 text-blue-600">
-            <PackageSearch className="h-5 w-5" />
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-slate-800">Buscador de contenedor</p>
-            <p className="text-xs text-slate-500">
-              Escribe el N° de contenedor y verás sus clientes, facturas y estado de pago, CBM, fecha de creación, guías de despacho y bultos o cajas consolidadas.
-            </p>
-          </div>
-        </div>
-
         <form onSubmit={search} className="flex flex-col gap-2 sm:flex-row">
           <Input
             value={number}

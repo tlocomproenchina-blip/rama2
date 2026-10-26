@@ -26,6 +26,10 @@ const TAB_HEADERS = {
     title: 'Orden de Despacho',
     description: 'Elige el período: se agrupan todas las facturas pagadas en esos días y se arma la orden con los clientes por ciudad, el N° de contenedor pagado y cuántas cajas y bultos le corresponden a cada uno.',
   },
+  contenedores: {
+    title: 'Buscador de contenedor',
+    description: 'Escribe el N° de contenedor y verás sus clientes, facturas y estado de pago, CBM, fecha de creación, guías de despacho y bultos o cajas consolidadas.',
+  },
 };
 
 export default function DispatchGuides() {
@@ -73,12 +77,11 @@ export default function DispatchGuides() {
       </div>
 
       <Tabs value={tab} onValueChange={setTab} className="space-y-5">
-        <TabsList className="grid w-full grid-cols-2 sm:max-w-md">
+        <TabsList className="grid w-full grid-cols-3 sm:max-w-2xl">
           <TabsTrigger value="guias">Guías de Despacho</TabsTrigger>
           <TabsTrigger value="ordenes">Órdenes despacho</TabsTrigger>
+          <TabsTrigger value="contenedores">Contenedor</TabsTrigger>
         </TabsList>
-
-        <ContainerSearchPanel />
 
         <TabsContent value="guias" className="space-y-5">
           <PublicGuidesLinkCard />
@@ -101,6 +104,10 @@ export default function DispatchGuides() {
 
         <TabsContent value="ordenes" className="space-y-5">
           <DispatchOrdersPanel />
+        </TabsContent>
+
+        <TabsContent value="contenedores" className="space-y-5">
+          <ContainerSearchPanel />
         </TabsContent>
       </Tabs>
     </div>
