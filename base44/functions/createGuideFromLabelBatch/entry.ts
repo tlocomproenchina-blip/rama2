@@ -9,6 +9,7 @@ import {
   recomputeGuideTotals,
   unique,
 } from '../../shared/dispatchGuideAppend.ts';
+import { nextSaturdayDateKey } from '../../shared/guideDispatchDue.ts';
 
 // Crea la guía de despacho de un lote de etiquetas: se llama justo después de que la
 // impresión del lote se confirmó, nunca al armarlo. El lote puede traer cajas
@@ -157,6 +158,8 @@ export default async function (req: Request): Promise<Response> {
       guide_number: guideNumber,
       guide_sequence: sequence,
       emitted_date: emittedDate,
+      // Sábado inmediato después de la emisión: ese día la guía queda despachada.
+      dispatch_due_date: nextSaturdayDateKey(emittedDate),
       emitted_by: user.email || '',
       emitted_by_name: user.full_name || '',
       auto_generated: false,

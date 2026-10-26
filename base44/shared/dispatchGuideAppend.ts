@@ -5,6 +5,8 @@
 // La usan la emisión manual (createDispatchGuide) y la automática que dispara el
 // escaneo de un bulto en Despacho por Escaneo (attachScanToDispatchGuide).
 
+import { nextSaturdayDateKey } from './guideDispatchDue.ts';
+
 const COUNTER_KEY = 'main';
 const MAX_ATTEMPTS = 6;
 const APPEND_ATTEMPTS = 3;
@@ -354,6 +356,8 @@ export async function appendScanToDispatchGuide(base44: any, entry: any) {
         guide_number: guideNumber,
         guide_sequence: sequence,
         emitted_date: scannedAt,
+        // Sábado inmediato después de la emisión: ese día la guía queda despachada.
+        dispatch_due_date: nextSaturdayDateKey(scannedAt),
         emitted_by: scannedBy,
         emitted_by_name: scannedByName,
         clients: [clientGroup],

@@ -1,0 +1,45 @@
+{
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "5 0 * * *",
+      "one_time_date": null,
+      "timezone": "America/Caracas",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "name": "Auto-despacho de gu\u00edas de despacho (s\u00e1bado)",
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "auto_despacho_guias_sabado",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "aplicar_despacho_guias": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "processGuideDispatchDue",
+            "args": {}
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Marcar gu\u00edas despachadas",
+            "description": "S\u00e1bado l\u00edmite alcanzado"
+          }
+        }
+      }
+    ]
+  },
+  "description": "Cada d\u00eda, al empezar en hora de Caracas, marca despachados los bultos y contenedores de toda gu\u00eda de despacho que ya alcanz\u00f3 el s\u00e1bado inmediato posterior a su emisi\u00f3n (s\u00e1bado inclusive). Tambi\u00e9n completa esa fecha l\u00edmite en las gu\u00edas anteriores a la regla."
+}

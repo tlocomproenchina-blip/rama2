@@ -21,6 +21,7 @@ import {
   unique,
 } from './dispatchGuideAppend.ts';
 import { fetchAllFilter } from './paginatedFetch.ts';
+import { nextSaturdayDateKey } from './guideDispatchDue.ts';
 
 const text = (value: any) => String(value ?? '').trim();
 const NO_ORDER = 'Sin N° de contenedor';
@@ -216,6 +217,8 @@ export async function buildPeriodDispatchGuides(base44: any, { from, to, generat
       guide_number: guideNumber,
       guide_sequence: sequence,
       emitted_date: emittedDate,
+      // Sábado inmediato después de la emisión: ese día la guía queda despachada.
+      dispatch_due_date: nextSaturdayDateKey(emittedDate),
       emitted_by: generatedBy,
       emitted_by_name: '',
       auto_generated: false,

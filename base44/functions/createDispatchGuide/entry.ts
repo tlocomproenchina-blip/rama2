@@ -14,6 +14,7 @@ import {
   resolveOrderCandidates,
 } from '../../shared/guideOrderSources.ts';
 import { createOrdersForGuide } from '../../shared/manualGuideOrders.ts';
+import { nextSaturdayDateKey } from '../../shared/guideDispatchDue.ts';
 
 // Emite una guía de despacho por dos vías, y las dos pueden combinarse:
 //   1) bultos escaneados que siguen pendientes (getDispatchGuides ya excluye los
@@ -235,6 +236,8 @@ export default async function (req: Request): Promise<Response> {
       guide_number: guideNumber,
       guide_sequence: sequence,
       emitted_date: emittedDate,
+      // Sábado inmediato después de la emisión: ese día la guía queda despachada.
+      dispatch_due_date: nextSaturdayDateKey(emittedDate),
       emitted_by: user.email || '',
       emitted_by_name: user.full_name || '',
       auto_generated: false,

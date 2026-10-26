@@ -340,6 +340,24 @@
       "type": "string",
       "format": "date-time",
       "description": "Fecha y hora de la \u00faltima anotaci\u00f3n de entrega"
+    },
+    "dispatch_due_date": {
+      "type": "string",
+      "format": "date",
+      "description": "S\u00e1bado inmediato posterior a la emisi\u00f3n de la gu\u00eda: ese d\u00eda (contando el s\u00e1bado, hora de Caracas) la gu\u00eda se marca despachada y con ella sus bultos y contenedores. Se guarda al emitir la gu\u00eda; en las gu\u00edas anteriores a la regla se completa al pasar la revisi\u00f3n autom\u00e1tica."
+    },
+    "dispatch_due_completed_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha y hora en que la revisi\u00f3n autom\u00e1tica marc\u00f3 despachados los bultos y contenedores de la gu\u00eda. Vac\u00edo mientras el s\u00e1bado l\u00edmite no se haya alcanzado."
+    },
+    "dispatch_due_bultos": {
+      "type": "number",
+      "description": "Bultos que quedaron marcados como despachados la primera vez que la revisi\u00f3n autom\u00e1tica proces\u00f3 la gu\u00eda"
+    },
+    "dispatch_due_containers": {
+      "type": "number",
+      "description": "Contenedores (recibos de carga) que quedaron marcados como despachados la primera vez que la revisi\u00f3n autom\u00e1tica proces\u00f3 la gu\u00eda"
     }
   },
   "required": [
