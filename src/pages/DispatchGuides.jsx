@@ -10,6 +10,7 @@ import PeriodGuidesCard from '@/components/warehouse/dispatch-guides/PeriodGuide
 import ManualGuideCard from '@/components/warehouse/dispatch-guides/ManualGuideCard';
 import PublicGuidesLinkCard from '@/components/warehouse/dispatch-guides/PublicGuidesLinkCard';
 import DispatchOrdersPanel from '@/components/dispatch-order/DispatchOrdersPanel';
+import ContainerSearchPanel from '@/components/warehouse/containers/ContainerSearchPanel';
 
 // Guías de despacho: aquí se generan las guías de un período pagado (una por cliente,
 // todas en un solo PDF) y se consulta el historial para reimprimir, descargar o anotar
@@ -76,6 +77,8 @@ export default function DispatchGuides() {
           <TabsTrigger value="guias">Guías de Despacho</TabsTrigger>
           <TabsTrigger value="ordenes">Órdenes despacho</TabsTrigger>
         </TabsList>
+
+        <ContainerSearchPanel />
 
         <TabsContent value="guias" className="space-y-5">
           <PublicGuidesLinkCard />
