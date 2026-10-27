@@ -85,6 +85,44 @@ export default async function (req: Request): Promise<Response> {
       });
     }
 
+    // Datos operativos que traía cada etiqueta (CBM, conteo real, monto de envío, categoría de
+    // almacenamiento y montacargas). Se suman solo cuando TODAS las unidades los tienen
+    // registrados: si a alguna le falta, se deja vacío para que el sistema lo vuelva a deducir
+    // de los paquetes y la unidad nueva no quede con un total incompleto.
+    const allHave = (pick: any) => sources.every((s) => Number(pick(s)) > 0);
+    const allEqual = (pick: any) =>
+      sources.every((s) => text(pick(s)) === text(pick(sources[0])));
+    const sumOf = (pick: any) => sources.reduce((total, s) => total + (Number(pick(s)) || 0), 0);
+
+    const operative: any = {};
+    if (allHave((s) => s.cargo_cbm)) operative.cargo_cbm = Number(sumOf((s) => s.cargo_cbm).toFixed(4));
+    if (allHave((s) => s.cargo_package_count)) {
+      operative.cargo_package_count = sumOf((s) => s.cargo_package_count);
+    }
+    if (allHave((s) => s.cargo_amount)) {
+      operative.cargo_amount = Number(sumOf((s) => s.cargo_amount).toFixed(2));
+      if (allEqual((s) => s.cargo_risk_category)) {
+        operative.cargo_risk_category = text(sources[0].cargo_risk_category) || undefined;
+      }
+      if (allEqual((s) => s.cargo_rate_kind)) {
+        operative.cargo_rate_kind = text(sources[0].cargo_rate_kind) || undefined;
+      }
+      if (allEqual((s) => s.cargo_rate_per_cbm)) {
+        operative.cargo_rate_per_cbm = Number(sources[0].cargo_rate_per_cbm) || 0;
+      }
+    }
+    const storage = sources.map((s) => text(s.storage_category)).filter(Boolean);
+    if (storage.length === sources.length) {
+      operative.storage_category = storage.includes('grande') ? 'grande' : 'estandar';
+    }
+    const pallets = sumOf((s) => s.pallet_count);
+    if (pallets > 0) operative.pallet_count = pallets;
+    if (sources.some((s) => s.requiere_montacargas)) operative.requiere_montacargas = true;
+    if (operative.cargo_cbm || operative.cargo_amount) {
+      operative.cargo_updated_by = user.email || '';
+      operative.cargo_updated_date = now;
+    }
+
     const sealed = sources.every((s) => text(s.status) !== 'activo');
     const newBulto = await base44.asServiceRole.entities.Bulto.create({
       label_code: labelCode,
@@ -100,6 +138,7 @@ export default async function (req: Request): Promise<Response> {
       absorbed_bultos: absorbedBultos,
       client_snapshot: sources[0].client_snapshot || {},
       warehouse_id: sources[0].warehouse_id || '',
+      ...operative,
       status: sealed ? 'en_almacen_ve' : 'cerrado',
       print_count: 0,
       created_by: user.email || '',
