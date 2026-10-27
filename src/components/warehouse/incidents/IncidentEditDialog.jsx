@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Loader2 } from 'lucide-react';
-import IncidentClientPicker from './IncidentClientPicker';
+import IncidentClientSearch from './IncidentClientSearch';
 import IncidentPhotoPicker from './IncidentPhotoPicker';
 import useSignedUri from './useSignedUri';
 
@@ -88,16 +88,13 @@ export default function IncidentEditDialog({ incident, open, onClose, onSaved })
 
           <div className="space-y-1.5">
             <Label htmlFor="edit-code">Código del cliente</Label>
-            <Input id="edit-code" value={code} onChange={(event) => setCode(event.target.value.toUpperCase())} />
-          </div>
-
-          <div className="space-y-1.5">
-            <Label>Cliente registrado</Label>
-            <IncidentClientPicker
+            <IncidentClientSearch
+              code={code}
               client={client}
+              onCodeChange={setCode}
               onSelect={(item) => {
                 setClient(item);
-                if (item?.shipping_mark) setCode(item.shipping_mark);
+                setCode(item.shipping_mark || '');
               }}
               onClear={() => setClient(null)}
             />
