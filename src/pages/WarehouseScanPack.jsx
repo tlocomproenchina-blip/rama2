@@ -272,7 +272,7 @@ export default function WarehouseScanPack({ user }) {
 
       <BarcodeScannerModule
         title="Recepción y empaque"
-        description=""
+        description="Se leen códigos QR y códigos de barras, con la cámara o la lectora."
         placeholder="Tracking, etiqueta, bulto (-B##) o caja (-C##)"
         actionLabel="Agregar"
         value={code}

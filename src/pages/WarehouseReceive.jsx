@@ -271,7 +271,7 @@ export default function WarehouseReceive({ user }) {
 
       <BarcodeScannerModule
         title="Escaneo rápido de recepción"
-        description="Busca un tracking usando la cámara del dispositivo o una lectora de códigos de barras. La cámara captura una foto automática del paquete al detectar el código."
+        description="Busca un tracking usando la cámara del dispositivo o una lectora: se leen códigos QR y códigos de barras. La cámara captura una foto automática del paquete al detectar el código."
         placeholder="Escanea el tracking del paquete"
         actionLabel="Buscar tracking"
         onDetected={(code) => { lastScanCodeRef.current = code; handleSearch(code); }}

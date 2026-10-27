@@ -245,7 +245,7 @@ export default function BultoOrderScan({ user }) {
       {!createState && (
         <BarcodeScannerModule
           title="Escanear etiqueta de bulto"
-          description="Apunta la cámara al código QR (o al código de barras de las etiquetas viejas) o usa la lectora USB. La cámara toma una foto automática del bulto al leer la etiqueta."
+          description="Apunta la cámara al código QR o al código de barras (etiquetas viejas) o usa la lectora USB. La cámara toma una foto automática del bulto al leer la etiqueta."
           placeholder="Código de etiqueta (label_code)"
           actionLabel="Buscar bulto"
           cameraLabel="Usar cámara"

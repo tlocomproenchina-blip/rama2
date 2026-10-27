@@ -8,7 +8,7 @@ import { normalizeScannedCode as normalizeCode } from '@/lib/codeScan';
 
 export default function BarcodeScannerModule({
   title = 'Escaneo de códigos',
-  description = 'Usa la cámara o una lectora para capturar el tracking rápidamente.',
+  description = 'Usa la cámara o una lectora: se leen códigos QR y códigos de barras.',
   placeholder = 'Escanea o escribe el código',
   actionLabel = 'Procesar código',
   cameraLabel = 'Usar cámara',
