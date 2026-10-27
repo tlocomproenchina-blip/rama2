@@ -1,0 +1,70 @@
+{
+  "name": "WarehouseIncident",
+  "type": "object",
+  "properties": {
+    "container_number": {
+      "type": "string",
+      "description": "N\u00b0 de contenedor en el que lleg\u00f3 el paquete abierto (ej: TLLU1234567)"
+    },
+    "client_code": {
+      "type": "string",
+      "description": "C\u00f3digo del cliente (shipping mark) al que pertenece el paquete abierto"
+    },
+    "client_email": {
+      "type": "string",
+      "description": "Email del cliente registrado seleccionado"
+    },
+    "client_name": {
+      "type": "string",
+      "description": "Nombre del cliente al momento de registrar la incidencia"
+    },
+    "photo_uri": {
+      "type": "string",
+      "description": "Archivo privado de la foto del paquete abierto (file_uri devuelto por UploadPrivateFile). Se abre con un enlace firmado temporal."
+    },
+    "notes": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Detalle de la incidencia: qu\u00e9 se encontr\u00f3 abierto o faltante"
+    },
+    "reported_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha y hora del registro de la incidencia"
+    },
+    "reported_by": {
+      "type": "string",
+      "description": "Email del usuario interno que registr\u00f3 la incidencia"
+    },
+    "reported_by_name": {
+      "type": "string",
+      "description": "Nombre del usuario interno que registr\u00f3 la incidencia"
+    }
+  },
+  "required": [
+    "container_number",
+    "photo_uri"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

@@ -19,7 +19,7 @@ export const ROLE_PRESETS: Record<string, { role_name: string; description: stri
   almacen: {
     role_name: 'Almacén',
     description: 'Recepción, ubicaciones, picking y packing.',
-    visible_pages: ['AdminDashboard', 'WarehouseDashboard', 'WarehouseReceive', 'WarehouseLocations', 'WarehousePickPackShip', 'WarehouseBultos', 'AdminInternalMessages'],
+    visible_pages: ['AdminDashboard', 'WarehouseDashboard', 'WarehouseReceive', 'WarehouseLocations', 'WarehousePickPackShip', 'WarehouseBultos', 'AdminWarehouseIncidents', 'AdminInternalMessages'],
   },
   contabilidad: {
     role_name: 'Contabilidad',
