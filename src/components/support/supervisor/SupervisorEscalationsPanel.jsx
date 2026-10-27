@@ -18,7 +18,7 @@ const PRIORITY_ORDER = { urgente: 0, alta: 1, media: 2, baja: 3 };
 
 const FILTERS = [
   { value: 'pendiente', label: 'Pendientes' },
-  { value: 'atendida', label: 'Atendidas' },
+  { value: 'atendida', label: 'Revisadas por el ATC' },
   { value: 'todas', label: 'Todas' },
 ];
 
@@ -43,25 +43,23 @@ export default function SupervisorEscalationsPanel({ user, initialTicketId = '' 
     setLoading(true);
     try {
       const query = { escalated: true };
-      if (statusFilter !== 'todas') query.escalation_status = statusFilter;
-      // "Mis casos" = los que tengo asignados o los que yo escalé. Sin esto, un
-      // caso elevado desde la lista de tickets (que no asigna a nadie) nunca
-      // aparecía para quien lo elevó.
+      // Un caso queda pendiente hasta que el ATC lo cierra con
+      // `atc_review_status: 'revisado'`. Así el supervisor ve exactamente la
+      // misma bandeja que el ATC, incluidos los casos elevados a mano.
+      if (statusFilter === 'pendiente') query.atc_review_status = { $ne: 'revisado' };
+      if (statusFilter === 'atendida') query.atc_review_status = 'revisado';
       if (scope === 'mios' && user?.email) {
         query.$or = [{ assigned_to: user.email }, { escalated_by: user.email }];
       }
 
-      const [rows, totals] = await Promise.all([
+      const [rows, pendienteCount, atendidaCount] = await Promise.all([
         base44.entities.SupportTicket.filter(query, '-escalated_date', 50),
-        base44.entities.SupportTicket.aggregate({ query: { escalated: true }, groupBy: 'escalation_status' }),
+        base44.entities.SupportTicket.count({ escalated: true, atc_review_status: { $ne: 'revisado' } }),
+        base44.entities.SupportTicket.count({ escalated: true, atc_review_status: 'revisado' }),
       ]);
 
       setCases(rows || []);
-      const byStatus = {};
-      (totals?.rows || []).forEach((row) => {
-        byStatus[row.escalation_status || 'pendiente'] = row.count;
-      });
-      setCounts({ pendiente: byStatus.pendiente || 0, atendida: byStatus.atendida || 0 });
+      setCounts({ pendiente: pendienteCount || 0, atendida: atendidaCount || 0 });
     } catch {
       toast.error('No se pudieron cargar los casos escalados');
       setCases([]);
@@ -88,8 +86,8 @@ export default function SupervisorEscalationsPanel({ user, initialTicketId = '' 
   };
 
   const ordered = [...cases].sort((a, b) => {
-    const aPending = (a.escalation_status || 'pendiente') === 'pendiente' ? 0 : 1;
-    const bPending = (b.escalation_status || 'pendiente') === 'pendiente' ? 0 : 1;
+    const aPending = a.atc_review_status === 'revisado' ? 1 : 0;
+    const bPending = b.atc_review_status === 'revisado' ? 1 : 0;
     if (aPending !== bPending) return aPending - bPending;
     const aPriority = PRIORITY_ORDER[a.priority] ?? 2;
     const bPriority = PRIORITY_ORDER[b.priority] ?? 2;
@@ -153,7 +151,8 @@ export default function SupervisorEscalationsPanel({ user, initialTicketId = '' 
         ) : (
           <div className="max-h-[70vh] space-y-2 overflow-y-auto pr-1">
             {ordered.map((ticket) => {
-              const isPending = (ticket.escalation_status || 'pendiente') === 'pendiente';
+              const reviewed = ticket.atc_review_status === 'revisado';
+              const awaitingReply = !ticket.supervisor_reply_date;
               const files = attachmentCount(ticket);
               return (
                 <button
@@ -171,8 +170,8 @@ export default function SupervisorEscalationsPanel({ user, initialTicketId = '' 
                   <p className="mt-1 truncate text-sm font-semibold text-foreground">{ticket.subject}</p>
                   <p className="truncate text-xs text-muted-foreground">{ticket.client_email}</p>
                   <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-muted-foreground">
-                    <Badge className={`${isPending ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'} text-[10px]`}>
-                      {isPending ? 'Pendiente' : 'Atendida'}
+                    <Badge className={`${reviewed ? 'bg-emerald-100 text-emerald-700' : awaitingReply ? 'bg-amber-100 text-amber-700' : 'bg-sky-100 text-sky-700'} text-[10px]`}>
+                      {reviewed ? 'Revisada por el ATC' : awaitingReply ? 'Pendiente' : 'Respondida · ATC por cerrar'}
                     </Badge>
                     {files > 0 ? (
                       <span className="flex items-center gap-0.5"><Paperclip className="h-3 w-3" /> {files}</span>

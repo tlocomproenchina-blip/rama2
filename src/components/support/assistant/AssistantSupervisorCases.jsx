@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { BellRing, Inbox, Loader2, ShieldCheck } from 'lucide-react';
+import { BellRing, Clock, Inbox, Loader2, ShieldCheck } from 'lucide-react';
 import useSupervisorAnsweredCases from '@/hooks/useSupervisorAnsweredCases';
 import SupervisorAnsweredCase from '@/components/support/assistant/SupervisorAnsweredCase';
 
@@ -62,16 +62,17 @@ export default function AssistantSupervisorCases({ user, onLoadToAssistant }) {
           <Card className="border-dashed border-border shadow-none">
             <CardContent className="space-y-2 py-6 text-center text-sm text-muted-foreground">
               <Inbox className="mx-auto h-6 w-6 text-muted-foreground" />
-              <p>{filter === 'revisados' ? 'Todavía no has revisado ningún caso.' : 'No hay casos con respuesta del supervisor por revisar.'}</p>
+              <p>{filter === 'revisados' ? 'Todavía no has revisado ningún caso.' : 'No hay casos pendientes de revisión.'}</p>
               <p className="text-xs">
-                Cuando Supervisión responda un caso escalado, aparecerá aquí con su expediente completo.
+                Aquí entran todos los casos escalados a Supervisión, también los que se elevan desde la lista de Tickets. Quedan pendientes hasta que los cierres con «Marcar atendido».
               </p>
             </CardContent>
           </Card>
         ) : (
           <div className="max-h-[70vh] space-y-2 overflow-y-auto pr-1">
             {cases.map((ticket) => {
-              const pending = (ticket.atc_review_status || 'pendiente') === 'pendiente';
+              const reviewed = ticket.atc_review_status === 'revisado';
+              const awaitingSupervisor = !ticket.supervisor_reply_date;
               return (
                 <button
                   key={ticket.id}
@@ -88,14 +89,19 @@ export default function AssistantSupervisorCases({ user, onLoadToAssistant }) {
                   <p className="mt-1 truncate text-sm font-semibold text-foreground">{ticket.subject}</p>
                   <p className="truncate text-xs text-muted-foreground">{ticket.client_email}</p>
                   <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-muted-foreground">
-                    {pending ? (
+                    {reviewed ? (
+                      <Badge className="bg-emerald-100 text-emerald-700 text-[10px]">Revisado</Badge>
+                    ) : awaitingSupervisor ? (
+                      <Badge className="bg-amber-100 text-amber-700 text-[10px]">
+                        <Clock className="mr-1 h-3 w-3" /> Esperando al supervisor
+                      </Badge>
+                    ) : (
                       <Badge className="bg-amber-100 text-amber-700 text-[10px]">
                         <BellRing className="mr-1 h-3 w-3" /> Respuesta nueva
                       </Badge>
-                    ) : (
-                      <Badge className="bg-emerald-100 text-emerald-700 text-[10px]">Revisado</Badge>
                     )}
-                    <span>{fdate(ticket.supervisor_reply_date)}</span>
+                    <span>{fdate(ticket.supervisor_reply_date || ticket.escalated_date || ticket.created_date)}</span>
+                    {awaitingSupervisor && ticket.escalated_by_name ? <span>· {ticket.escalated_by_name}</span> : null}
                     {ticket.supervisor_reply_by_name ? <span>· {ticket.supervisor_reply_by_name}</span> : null}
                   </div>
                 </button>
