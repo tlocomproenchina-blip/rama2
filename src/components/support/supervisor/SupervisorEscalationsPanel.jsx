@@ -16,12 +16,6 @@ const PRIORITY = {
 
 const PRIORITY_ORDER = { urgente: 0, alta: 1, media: 2, baja: 3 };
 
-const FILTERS = [
-  { value: 'pendiente', label: 'Pendientes' },
-  { value: 'atendida', label: 'Revisadas por el ATC' },
-  { value: 'todas', label: 'Todas' },
-];
-
 const fdate = (value) => (value
   ? new Date(value).toLocaleString('es-VE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
   : '');
@@ -32,41 +26,35 @@ const attachmentCount = (ticket) => (ticket.messages || [])
 // Pestaña Supervisor: los casos que el ATC escaló, pendientes primero, con su
 // expediente completo al abrirlos.
 export default function SupervisorEscalationsPanel({ user, initialTicketId = '' }) {
-  const [statusFilter, setStatusFilter] = useState('pendiente');
   const [scope, setScope] = useState('todos');
   const [cases, setCases] = useState([]);
-  const [counts, setCounts] = useState({ pendiente: 0, atendida: 0 });
+  const [pendingCount, setPendingCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const query = { escalated: true };
-      // Un caso queda pendiente hasta que el ATC lo cierra con
-      // `atc_review_status: 'revisado'`. Así el supervisor ve exactamente la
-      // misma bandeja que el ATC, incluidos los casos elevados a mano.
-      if (statusFilter === 'pendiente') query.atc_review_status = { $ne: 'revisado' };
-      if (statusFilter === 'atendida') query.atc_review_status = 'revisado';
+      // Solo lo elevado a revisión que el ATC todavía no cerró.
+      const query = { escalated: true, atc_review_status: { $ne: 'revisado' } };
       if (scope === 'mios' && user?.email) {
         query.$or = [{ assigned_to: user.email }, { escalated_by: user.email }];
       }
 
-      const [rows, pendienteCount, atendidaCount] = await Promise.all([
+      const [rows, total] = await Promise.all([
         base44.entities.SupportTicket.filter(query, '-escalated_date', 50),
         base44.entities.SupportTicket.count({ escalated: true, atc_review_status: { $ne: 'revisado' } }),
-        base44.entities.SupportTicket.count({ escalated: true, atc_review_status: 'revisado' }),
       ]);
 
       setCases(rows || []);
-      setCounts({ pendiente: pendienteCount || 0, atendida: atendidaCount || 0 });
+      setPendingCount(total || 0);
     } catch {
       toast.error('No se pudieron cargar los casos escalados');
       setCases([]);
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, scope, user?.email]);
+  }, [scope, user?.email]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -98,19 +86,9 @@ export default function SupervisorEscalationsPanel({ user, initialTicketId = '' 
   return (
     <div className="grid gap-5 lg:grid-cols-[minmax(0,340px)_minmax(0,1fr)]">
       <div className={`space-y-3 ${selected ? 'hidden lg:block' : ''}`}>
-        <div className="flex flex-wrap items-center gap-1.5">
-          {FILTERS.map((filter) => (
-            <Button
-              key={filter.value}
-              size="sm"
-              variant={statusFilter === filter.value ? 'default' : 'outline'}
-              onClick={() => setStatusFilter(filter.value)}
-            >
-              {filter.label}
-              {filter.value === 'pendiente' && counts.pendiente > 0 ? <span className="ml-1.5 text-xs">{counts.pendiente}</span> : null}
-              {filter.value === 'atendida' && counts.atendida > 0 ? <span className="ml-1.5 text-xs">{counts.atendida}</span> : null}
-            </Button>
-          ))}
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-sm font-semibold text-foreground">Pendientes de revisión</p>
+          {pendingCount > 0 ? <Badge variant="secondary">{pendingCount}</Badge> : null}
         </div>
 
         <Button
@@ -133,16 +111,12 @@ export default function SupervisorEscalationsPanel({ user, initialTicketId = '' 
           <Card className="border-dashed border-border shadow-none">
             <CardContent className="space-y-2 py-6 text-center text-sm text-muted-foreground">
               <Inbox className="mx-auto h-6 w-6 text-muted-foreground" />
-              <p>No hay casos escalados en esta vista.</p>
+              <p>No hay casos pendientes de revisión.</p>
               <p className="text-xs">
-                Los casos que se elevan desde la lista de Tickets o desde el Asistente ATC aparecen aquí en «Pendientes».
+                Los casos que se elevan desde la lista de Tickets o desde el Asistente ATC aparecen aquí hasta que el ATC los cierre.
               </p>
-              {(scope !== 'todos' || statusFilter !== 'todas') && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => { setScope('todos'); setStatusFilter('todas'); }}
-                >
+              {scope !== 'todos' && (
+                <Button size="sm" variant="outline" onClick={() => setScope('todos')}>
                   Ver todos los casos
                 </Button>
               )}
