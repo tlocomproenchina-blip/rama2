@@ -44,7 +44,12 @@ export default function SupervisorEscalationsPanel({ user, initialTicketId = '' 
     try {
       const query = { escalated: true };
       if (statusFilter !== 'todas') query.escalation_status = statusFilter;
-      if (scope === 'mios' && user?.email) query.assigned_to = user.email;
+      // "Mis casos" = los que tengo asignados o los que yo escalé. Sin esto, un
+      // caso elevado desde la lista de tickets (que no asigna a nadie) nunca
+      // aparecía para quien lo elevó.
+      if (scope === 'mios' && user?.email) {
+        query.$or = [{ assigned_to: user.email }, { escalated_by: user.email }];
+      }
 
       const [rows, totals] = await Promise.all([
         base44.entities.SupportTicket.filter(query, '-escalated_date', 50),
@@ -117,7 +122,7 @@ export default function SupervisorEscalationsPanel({ user, initialTicketId = '' 
           onClick={() => setScope(scope === 'mios' ? 'todos' : 'mios')}
         >
           <ShieldCheck className="mr-2 h-3.5 w-3.5" />
-          {scope === 'mios' ? 'Mostrando solo mis casos' : 'Ver solo los casos asignados a mí'}
+          {scope === 'mios' ? 'Mostrando mis casos' : 'Ver solo mis casos'}
         </Button>
 
         {loading ? (
@@ -132,8 +137,17 @@ export default function SupervisorEscalationsPanel({ user, initialTicketId = '' 
               <Inbox className="mx-auto h-6 w-6 text-muted-foreground" />
               <p>No hay casos escalados en esta vista.</p>
               <p className="text-xs">
-                Cuando el ATC escale un caso desde el asistente, aparecerá aquí con todo su expediente.
+                Los casos que se elevan desde la lista de Tickets o desde el Asistente ATC aparecen aquí en «Pendientes».
               </p>
+              {(scope !== 'todos' || statusFilter !== 'todas') && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => { setScope('todos'); setStatusFilter('todas'); }}
+                >
+                  Ver todos los casos
+                </Button>
+              )}
             </CardContent>
           </Card>
         ) : (
