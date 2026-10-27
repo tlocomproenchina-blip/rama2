@@ -3,8 +3,8 @@ import { Button } from '@/components/ui/button';
 import { Printer, Loader2, Bluetooth, BluetoothConnected, FileDown, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { buildBultoLabelPayload, concatUint8Arrays } from '@/lib/tspl';
-import { labelContentCodes, realPackageCount } from '@/lib/bultoCounts';
-import { isNewLabel, labelSymbolImage } from '@/lib/labelSymbol';
+import { isNewLabel } from '@/lib/labelSymbol';
+import { downloadBultoLabelsPdf } from '@/lib/bultoLabelPdf';
 import { resolvePrinterDevice, findWriteCharacteristic, connectAuthorizedPrinter } from '@/lib/bluetoothReconnect';
 
 const CHUNK_SIZE = 180; // safe BLE write chunk
@@ -120,154 +120,7 @@ export default function BluetoothPrinter({ bultos = [], onPrinted, size = 'defau
   const downloadPdf = async () => {
     if (!bultos.length) return;
     try {
-      const { default: jsPDF } = await import('jspdf');
-
-      for (const bulto of bultos) {
-        const doc = new jsPDF({ unit: 'mm', format: [100, 100] });
-        const cs = bulto.client_snapshot || {};
-        // Mismo conteo real que la ficha del almacén y que la impresión térmica.
-        const pkgCount = realPackageCount(bulto);
-        const trackings = labelContentCodes(bulto);
-        const estado = (cs.state || 'SIN ESTADO').toUpperCase();
-        const nameCedula = [cs.full_name, cs.cedula ? `C.I. ${cs.cedula}` : ''].filter(Boolean).join(' - ');
-        const cityState = [cs.city, cs.state].filter(Boolean).join(', ');
-        const addrLines = cs.address ? doc.splitTextToSize(cs.address, 90).slice(0, 2) : [];
-
-        // Símbolo escaneable como imagen: QR en las etiquetas nuevas y código de barras
-        // cuando esta etiqueta ya había salido impresa.
-        let symbol = null;
-        try {
-          symbol = await labelSymbolImage(bulto.label_code, { qr: isNewLabel(bulto) });
-        } catch (_) {}
-
-        // Métricas verticales (mm). Cada bloque conoce su alto y se dibuja centrado.
-        const MARGIN = 5;
-        const PRINTABLE_H = 90; // 100 mm menos márgenes
-        const CONTENT_LINE_H = 3;
-        const CONTENT_TITLE_H = 7; // separador + título CONTENIDO
-        const sep = (yy) => { doc.setLineWidth(0.3); doc.line(5, yy, 95, yy); };
-
-        const blocks = [];
-        const addBlock = (h, render) => blocks.push({ h, render });
-
-        // 1. Símbolo escaneable + el código de etiqueta escrito debajo
-        if (symbol) {
-          const imgWidth = symbol.isQr ? 45 : 85;
-          const imgHeight = symbol.ratio * imgWidth;
-          addBlock(imgHeight + (symbol.isQr ? 12 : 2), (yy) => {
-            doc.addImage(symbol.data, 'PNG', (100 - imgWidth) / 2, yy, imgWidth, imgHeight);
-            if (symbol.isQr) {
-              doc.setFont(undefined, 'bold');
-              doc.setFontSize(14);
-              doc.setTextColor(0);
-              doc.text(bulto.label_code, 50, yy + imgHeight + 8, { align: 'center' });
-            }
-          });
-        }
-
-        // 2. Separador
-        addBlock(4, (yy) => sep(yy + 2));
-
-        // 3. Estado + N° de contenedor: misma línea y mismo tamaño, con el rótulo
-        //    "ORDEN" en pequeño encima del número.
-        const ordenStr = (Array.isArray(bulto.cbm_order_numbers) ? bulto.cbm_order_numbers.filter(Boolean) : []).join(', ');
-        addBlock(ordenStr ? 15 : 12, (yy) => {
-          doc.setTextColor(0);
-          doc.setFont(undefined, 'bold');
-          let size = 28;
-          doc.setFontSize(size);
-          const gap = 6;
-          const maxW = 88;
-          const rawW = doc.getTextWidth(estado) + (ordenStr ? gap + doc.getTextWidth(ordenStr) : 0);
-          if (ordenStr && rawW > maxW) {
-            // Ambos textos comparten tamaño: se reduce solo lo necesario para que entren.
-            size = Math.max(9, Math.floor(size * maxW / rawW));
-            doc.setFontSize(size);
-          }
-          const wE = doc.getTextWidth(estado);
-          const wO = ordenStr ? doc.getTextWidth(ordenStr) : 0;
-          const totalW = wE + (ordenStr ? gap + wO : 0);
-          const x0 = Math.max(5, (100 - totalW) / 2);
-          if (ordenStr) {
-            const baseY = yy + 13;
-            doc.text(estado, x0, baseY);
-            doc.text(ordenStr, x0 + wE + gap, baseY);
-            doc.setFontSize(7);
-            doc.text('CONTENEDOR', x0 + wE + gap + wO / 2, yy + 3.5, { align: 'center' });
-          } else {
-            doc.text(estado, 50, yy + 11, { align: 'center' });
-          }
-        });
-
-        // 4. Separador
-        addBlock(4, (yy) => sep(yy + 2));
-
-        // 5. Bulto X/Y + cantidad de paquetes
-        addBlock(8.5, (yy) => {
-          doc.setFontSize(18);
-          doc.setFont(undefined, 'bold');
-          doc.text(`BULTO ${bulto.bulto_number}/${bulto.total_bultos} - ${pkgCount} PAQUETES`, 50, yy + 7, { align: 'center' });
-        });
-
-        // 6. Separador
-        addBlock(4, (yy) => sep(yy + 2));
-
-        // 7. Datos del cliente
-        if (nameCedula) addBlock(6.5, (yy) => {
-          doc.setFontSize(13);
-          doc.setFont(undefined, 'bold');
-          doc.text(nameCedula, 5, yy + 5);
-        });
-        if (cs.whatsapp) addBlock(5.5, (yy) => {
-          doc.setFontSize(11);
-          doc.setFont(undefined, 'bold');
-          doc.text(`Tel: ${cs.whatsapp}`, 5, yy + 4.5);
-        });
-        if (addrLines.length) addBlock(addrLines.length * 4.5, (yy) => {
-          doc.setFontSize(10);
-          doc.setFont(undefined, 'bold');
-          addrLines.forEach((ln, i) => doc.text(ln, 5, yy + 4 + i * 4.5));
-        });
-        if (cityState) addBlock(5.5, (yy) => {
-          doc.setFontSize(10);
-          doc.setFont(undefined, 'bold');
-          doc.text(cityState, 5, yy + 4.5);
-        });
-
-        const fixedH = blocks.reduce((sum, b) => sum + b.h, 0);
-
-        // 8. Trackings contenidos: usan el espacio que sobra tras centrar el resto.
-        //    Si no caben todos, la última línea resume cuántos faltan ("+N más").
-        const hasContent = trackings.length > 0 && PRINTABLE_H - fixedH >= CONTENT_TITLE_H + CONTENT_LINE_H;
-        const maxLines = hasContent ? Math.max(1, Math.floor((PRINTABLE_H - fixedH - CONTENT_TITLE_H) / CONTENT_LINE_H)) : 0;
-        const drawnLines = hasContent ? Math.min(trackings.length, maxLines) : 0;
-        const truncated = hasContent && trackings.length > drawnLines;
-        const shown = truncated ? drawnLines - 1 : drawnLines;
-
-        // Centrado vertical: márgenes parejos arriba y abajo
-        const contentH = hasContent ? CONTENT_TITLE_H : 0;
-        const totalH = fixedH + contentH + drawnLines * CONTENT_LINE_H;
-        let y = MARGIN + Math.max(0, (PRINTABLE_H - totalH) / 2);
-
-        for (const b of blocks) { b.render(y); y += b.h; }
-
-        if (hasContent) {
-          sep(y + 2);
-          doc.setFont(undefined, 'bold');
-          doc.setFontSize(8);
-          doc.text(`CONTENIDO (${trackings.length})`, 5, y + 5.5);
-          doc.setFont('courier', 'normal');
-          doc.setFontSize(7);
-          y += contentH;
-          trackings.slice(0, shown).forEach((t) => {
-            doc.text(String(t).slice(0, 48), 5, y + 2.2);
-            y += CONTENT_LINE_H;
-          });
-          if (truncated) doc.text(`+${trackings.length - shown} más`, 5, y + 2.2);
-        }
-
-        doc.save(`etiqueta-${bulto.label_code}.pdf`);
-      }
+      await downloadBultoLabelsPdf(bultos);
       toast.success(`${bultos.length} etiqueta(s) PDF descargada(s)`);
       onPrinted?.();
     } catch (e) {
