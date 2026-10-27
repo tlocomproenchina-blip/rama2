@@ -266,6 +266,33 @@ export default function AdminSupportTickets({ user }) {
     setAssigning(false);
   };
 
+  // Eleva el ticket al módulo Supervisor (o lo devuelve a la lista normal).
+  const handleSupervisorToggle = async (ticket, elevate) => {
+    const now = new Date().toISOString();
+    const updates = elevate
+      ? {
+          escalated: true,
+          escalation_status: 'pendiente',
+          escalated_date: now,
+          escalated_by: user?.email,
+          escalated_by_name: user?.full_name || user?.email,
+        }
+      : {
+          escalated: false,
+          escalation_status: 'pendiente',
+          escalation_summary: '',
+        };
+
+    try {
+      await base44.entities.SupportTicket.update(ticket.id, updates);
+      setTickets((prev) => prev.map((item) => item.id === ticket.id ? { ...item, ...updates } : item));
+      setSelectedTicket((prev) => prev && prev.id === ticket.id ? { ...prev, ...updates } : prev);
+      toast.success(elevate ? 'Ticket elevado a supervisor' : 'Ticket devuelto a la lista de tickets');
+    } catch {
+      toast.error(elevate ? 'No se pudo elevar el ticket' : 'No se pudo quitar de supervisor');
+    }
+  };
+
   const handleStatusChange = async (ticket, newStatus) => {
     const updates = { status: newStatus };
     if (newStatus === 'resuelto' || newStatus === 'cerrado') {
@@ -662,6 +689,7 @@ export default function AdminSupportTickets({ user }) {
             setSelectedAssignee={setSelectedAssignee}
             handleStatusChange={handleStatusChange}
             handleMarkAsUnread={handleMarkAsUnread}
+            handleSupervisorToggle={handleSupervisorToggle}
           />
           {hasMore && (
             <div className="flex justify-center">

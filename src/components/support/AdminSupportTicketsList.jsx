@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Mail, MessageSquare, UserCheck, Bot, AlertTriangle, Clock } from 'lucide-react';
+import { Mail, MessageSquare, UserCheck, Bot, AlertTriangle, Clock, ShieldCheck } from 'lucide-react';
 
 export default function AdminSupportTicketsList({
   filteredTickets,
@@ -24,7 +24,8 @@ export default function AdminSupportTicketsList({
   setSelectedAssignRole,
   setSelectedAssignee,
   handleStatusChange,
-  handleMarkAsUnread
+  handleMarkAsUnread,
+  handleSupervisorToggle = () => {}
 }) {
   if (filteredTickets.length === 0) {
     return (
@@ -114,6 +115,12 @@ export default function AdminSupportTicketsList({
                             Escalado a humano
                           </Badge>
                         )}
+                        {ticket.escalated && (
+                          <Badge className="bg-indigo-100 text-indigo-700 text-[10px] px-2 py-0.5 flex items-center gap-1 border border-indigo-300">
+                            <ShieldCheck className="h-3 w-3" />
+                            {ticket.escalation_status === 'atendida' ? 'Supervisor: atendida' : 'Elevado a supervisor'}
+                          </Badge>
+                        )}
                         {ticket.auto_closed && (
                           <Badge className="bg-slate-200 text-slate-600 text-[10px] px-2 py-0.5 flex items-center gap-1 border border-slate-300">
                             <Clock className="h-3 w-3" />
@@ -180,6 +187,15 @@ export default function AdminSupportTicketsList({
                   >
                     <UserCheck className="h-4 w-4 mr-1" />
                     {ticket.assigned_to ? 'Reasignar' : 'Asignar'}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={ticket.escalated ? 'border-indigo-300 text-indigo-700 hover:bg-indigo-50' : ''}
+                    onClick={() => handleSupervisorToggle(ticket, !ticket.escalated)}
+                  >
+                    <ShieldCheck className="h-4 w-4 mr-1" />
+                    {ticket.escalated ? 'Quitar de supervisor' : 'Elevar a supervisor'}
                   </Button>
                   <Select value={ticket.status} onValueChange={(value) => handleStatusChange(ticket, value)}>
                     <SelectTrigger className="h-8">
