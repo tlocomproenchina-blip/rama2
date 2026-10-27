@@ -1,4 +1,4 @@
-import { labelContentCodes, realPackageCount } from '@/lib/bultoCounts';
+import { realPackageCount } from '@/lib/bultoCounts';
 import { isNewLabel, labelSymbolImage } from '@/lib/labelSymbol';
 
 // Etiqueta de bulto en PDF para impresión térmica de 100 × 100 mm.
@@ -32,7 +32,6 @@ function fitSize(doc, text, maxWidth, maxSize, minSize, style = 'bold', family =
 async function drawLabel(doc, bulto) {
   const cs = bulto.client_snapshot || {};
   const pkgCount = realPackageCount(bulto);
-  const codes = labelContentCodes(bulto);
   const estado = String(cs.state || 'SIN ESTADO').toUpperCase();
   const orderNumbers = Array.isArray(bulto.cbm_order_numbers)
     ? bulto.cbm_order_numbers.filter(Boolean).join(', ')
@@ -67,26 +66,14 @@ async function drawLabel(doc, bulto) {
   const fixedBase = symbolH + codeH + SEP_H + stateH + SEP_H + bultoH + SEP_H
     + nameH + phoneH + addrH + cityH;
 
-  // Si el bloque fijo no deja aire para el contenido, se encoge la etiqueta.
-  const CONTENT_TITLE_H = 3.6;
-  const CONTENT_LINE_H = 2.7;
-  const spaceForContent = CONTENT_TITLE_H + CONTENT_LINE_H;
-  const scale = fixedBase > PRINTABLE_H - spaceForContent
-    ? Math.max(0.6, (PRINTABLE_H - spaceForContent) / fixedBase)
+  // Si el conjunto no cabe a lo alto, se encoge la etiqueta completa.
+  const scale = fixedBase > PRINTABLE_H
+    ? Math.max(0.6, PRINTABLE_H / fixedBase)
     : 1;
   const mm = (v) => v * scale;
 
   const fixedH = mm(fixedBase);
-  const available = PRINTABLE_H - fixedH;
-
-  const canShowContent = codes.length > 0 && available >= spaceForContent;
-  const maxLines = canShowContent ? Math.floor((available - CONTENT_TITLE_H) / CONTENT_LINE_H) : 0;
-  const truncated = canShowContent && codes.length > maxLines;
-  const shownLines = truncated ? Math.max(0, maxLines - 1) : Math.min(codes.length, maxLines);
-  const extraLines = truncated ? 1 : 0;
-  const contentH = canShowContent ? CONTENT_TITLE_H + (shownLines + extraLines) * CONTENT_LINE_H : 0;
-
-  const totalH = Math.min(PRINTABLE_H, fixedH + contentH);
+  const totalH = Math.min(PRINTABLE_H, fixedH);
   let y = MARGIN + (PRINTABLE_H - totalH) / 2;
 
   doc.setTextColor(0);
@@ -175,24 +162,6 @@ async function drawLabel(doc, bulto) {
     setFont(doc, Math.max(6, mm(8)));
     doc.text(cityState, MARGIN, y + mm(cityH) * 0.75);
     y += mm(cityH);
-  }
-
-  // 5. Contenido: los trackings que quedaron dentro de la unidad
-  if (canShowContent) {
-    doc.setDrawColor(0);
-    doc.setLineWidth(0.3);
-    doc.line(MARGIN, y + 1, PAGE_SIZE - MARGIN, y + 1);
-    setFont(doc, Math.max(5.5, mm(7.6)));
-    doc.text(`CONTENIDO (${codes.length})`, MARGIN, y + 4);
-    y += CONTENT_TITLE_H;
-    setFont(doc, Math.max(4.6, mm(6.6)), 'normal', 'courier');
-    codes.slice(0, shownLines).forEach((code) => {
-      doc.text(String(code).slice(0, 44), MARGIN, y + 2.1);
-      y += CONTENT_LINE_H;
-    });
-    if (extraLines) {
-      doc.text(`+${codes.length - shownLines} más`, MARGIN, y + 2.1);
-    }
   }
 }
 
