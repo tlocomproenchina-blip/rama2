@@ -18,6 +18,7 @@ import OfflineSyncBadge from '@/components/warehouse/OfflineSyncBadge';
 import OrphanWholesalerSelect from '@/components/admin/orphans/OrphanWholesalerSelect';
 import OrphanWholesalerBadge from '@/components/admin/orphans/OrphanWholesalerBadge';
 import OrphanAiModelSelect from '@/components/admin/orphans/OrphanAiModelSelect';
+import OrphanTrackingEditDialog from '@/components/admin/orphans/OrphanTrackingEditDialog';
 import { ORPHAN_AI_DEFAULT } from '@/lib/orphanAiModels';
 import { getAll } from '@/lib/offlineDb';
 
@@ -64,6 +65,7 @@ export default function AdminOrphanPackages({ user }) {
   const [bulkProcessing, setBulkProcessing] = useState(false);
   const [deleteProgress, setDeleteProgress] = useState(null); // { current, total }
   const [viewerImage, setViewerImage] = useState(null); // url de imagen a ampliar
+  const [trackingTarget, setTrackingTarget] = useState(null); // paquete cuyo tracking se está editando
   const [statFilter, setStatFilter] = useState(null); // null | 'pendingAi' | 'notRegistered' | 'unreadable' | 'noPhoto'
   const [aiScanBusy, setAiScanBusy] = useState(false);
   const [aiProgress, setAiProgress] = useState(null); // { processed, total, assigned, unreadable, notFound, errors }
@@ -666,6 +668,14 @@ export default function AdminOrphanPackages({ user }) {
                     <div className="flex items-center gap-2 flex-wrap">
                       <Package className={`h-4 w-4 shrink-0 ${p.ai_unreadable ? 'text-red-500' : 'text-amber-600'}`} />
                       <span className={`font-mono font-semibold break-all ${p.ai_unreadable ? 'text-red-600' : 'text-slate-800'}`}>{p.tracking_number}</span>
+                      <button
+                        type="button"
+                        onClick={() => setTrackingTarget(p)}
+                        className="text-slate-400 hover:text-amber-600 transition-colors"
+                        title="Editar tracking"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </button>
                       {p.is_orphan ? (
                         <Badge variant="outline" className="text-amber-700 border-amber-200 bg-amber-50">Sin cliente</Badge>
                       ) : (
@@ -875,6 +885,12 @@ export default function AdminOrphanPackages({ user }) {
           </Card>
         </div>
       )}
+
+      <OrphanTrackingEditDialog
+        pkg={trackingTarget}
+        onClose={() => setTrackingTarget(null)}
+        onSaved={(id, tracking) => setOrphans((prev) => prev.map((p) => (p.id === id ? { ...p, tracking_number: tracking } : p)))}
+      />
 
       <ImageViewerModal
         open={!!viewerImage}
