@@ -39,20 +39,18 @@ export const setFontSize = (width, height) => cmd(GS, 0x21, (((width - 1) & 0x07
 export const boldOn = () => cmd(ESC, 0x45, 0x01);
 export const boldOff = () => cmd(ESC, 0x45, 0x00);
 
-// Barcode height in dots (GS h n), 1-255
-export const setBarcodeHeight = (n) => cmd(GS, 0x68, n & 0xFF);
-
-// Barcode module width (GS w n), 1-6
-export const setBarcodeWidth = (n) => cmd(GS, 0x77, n & 0x0F);
-
-// HRI text position (GS H n): 0=off, 1=above, 2=below, 3=both
-export const setBarcodeTextPosition = (n) => cmd(GS, 0x48, n & 0x0F);
-
-// Print CODE128 barcode (GS k 73 n d1...dn)
-export const printBarcodeCODE128 = (data) => {
+// Código QR por ESC/POS (GS ( k): modelo 2, tamaño de módulo, corrección M, datos y
+// orden de impresión. La etiqueta lleva QR igual que la térmica TSPL y los PDF.
+export const printQrCode = (data, moduleSize = 6) => {
   const dataBytes = text(data);
-  const len = dataBytes.length;
-  return cmd(GS, 0x6B, 73, len, ...dataBytes);
+  const len = dataBytes.length + 3;
+  return concatUint8Arrays([
+    cmd(GS, 0x28, 0x6B, 4, 0, 49, 65, 50, 0), // modelo 2
+    cmd(GS, 0x28, 0x6B, 3, 0, 49, 67, moduleSize & 0xFF), // tamaño de módulo
+    cmd(GS, 0x28, 0x6B, 3, 0, 49, 69, 50), // corrección de errores nivel M
+    cmd(GS, 0x28, 0x6B, len & 0xFF, (len >> 8) & 0xFF, 49, 80, 48, ...dataBytes),
+    cmd(GS, 0x28, 0x6B, 3, 0, 49, 81, 48), // imprimir el símbolo almacenado
+  ]);
 };
 
 // Feed paper and cut (GS V 0 = partial cut)
@@ -66,12 +64,11 @@ export const buildBultoLabelPayload = (bulto) => {
 
   parts.push(initPrinter());
 
-  // 1. --- Barcode CODE128 of label_code (centered, top) ---
+  // 1. --- Código QR del label_code (centrado, arriba) ---
   parts.push(setAlign(1));
-  parts.push(setBarcodeHeight(80)); // ~10mm at 8 dots/mm
-  parts.push(setBarcodeWidth(2));
-  parts.push(setBarcodeTextPosition(2)); // HRI below
-  parts.push(printBarcodeCODE128(bulto.label_code));
+  parts.push(printQrCode(bulto.label_code, 6));
+  parts.push(lineFeed(2));
+  parts.push(text(bulto.label_code));
   parts.push(lineFeed(2));
 
   // 2. --- Estado de registro del cliente (very large, centered) ---

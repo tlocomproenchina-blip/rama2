@@ -75,7 +75,7 @@ export default function ContinuousLabelsDialog({ guide, open, onOpenChange }) {
   const selected = clients[selectedIndex];
   const clientData = useMemo(() => clientDataOf(selected), [selected]);
 
-  // Cajas con código de barras de ese cliente: las que van dentro de la guía (con su
+  // Cajas con código QR de ese cliente: las que van dentro de la guía (con su
   // código y su X/N ya guardados) y, si la guía no trae ninguna, las que quedaron
   // pendientes de etiqueta, que numera la función que ya existe.
   const guideCajas = useMemo(() => {
@@ -214,7 +214,7 @@ export default function ContinuousLabelsDialog({ guide, open, onOpenChange }) {
           <DialogDescription>
             {guideNumber ? `Guía ${guideNumber} · ` : ''}
             Tira continua numerada X/N con los datos del cliente de esa guía. Cada etiqueta puede
-            llevar el código de barras de la caja que identifica; no crea bultos ni códigos.
+            llevar el código QR de la caja que identifica; no crea bultos ni códigos.
           </DialogDescription>
         </DialogHeader>
 

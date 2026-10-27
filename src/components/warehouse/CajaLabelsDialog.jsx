@@ -16,7 +16,7 @@ import { localCajasOfClient, saveLocalCaja } from '@/lib/cajaLocal';
 import ContinuousLabelPreview from './dispatch-guides/ContinuousLabelPreview';
 
 // Etiquetas continuas del lote de un cliente: una tira numerada 1/N, 2/N… con los datos
-// del cliente y, en cada etiqueta, el código de barras de su caja. Esa es la etiqueta que
+// del cliente y, en cada etiqueta, el código QR de su caja. Esa es la etiqueta que
 // se pega en la caja y la que se escanea al despachar para dar la salida definitiva.
 //
 // La numeración la fija el servidor (assignCajaLabels) para que el X/N impreso coincida

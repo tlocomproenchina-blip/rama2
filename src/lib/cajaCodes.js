@@ -3,7 +3,7 @@
 // {shipping_mark}-C{##}. La letra distingue los dos tipos sin cambiar el shipping mark
 // del cliente, así que cualquier etiqueta dice de quién es la carga con solo leerla.
 
-// Caja consolidada (etiqueta continua con código de barras).
+// Caja consolidada (etiqueta continua con código QR).
 export const CAJA_CODE_RE = /-C\d+$/i;
 
 // Bulto suelto.

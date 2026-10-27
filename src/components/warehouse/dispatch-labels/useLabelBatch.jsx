@@ -17,7 +17,7 @@ const snapshotOf = (client) => ({
 // Etiquetas de despacho: se elige el cliente y cuántas cajas van a salir. Se imprime una
 // etiqueta por caja con los datos del cliente y el X/N de esa cantidad y, al confirmarse
 // la impresión, se crea la guía de despacho con esas cajas. Cuando el cliente no tiene
-// cajas pendientes la etiqueta sale igual —sin código de barras y sin crear guía— porque
+// cajas pendientes la etiqueta sale igual —sin código QR y sin crear guía— porque
 // el almacén necesita poder emitir una etiqueta de reemplazo. Todo lote impreso queda en
 // el historial del cliente, desde donde se reimprime tal como salió.
 export default function useLabelBatch() {
@@ -38,7 +38,7 @@ export default function useLabelBatch() {
   // Solo salen las cajas que todavía no están en una guía.
   const pending = useMemo(() => units.filter((unit) => !unit.in_guide), [units]);
   const count = Number(quantity) || 0;
-  // Sin cajas pendientes la etiqueta sale igual: sin código de barras y sin guía.
+  // Sin cajas pendientes la etiqueta sale igual: sin código QR y sin guía.
   const withoutBoxes = pending.length === 0;
 
   const bumpHistory = useCallback(() => setHistoryKey((key) => key + 1), []);

@@ -199,7 +199,7 @@ export const buildContinuousLabelPayload = ({
 
   // Armazón de una etiqueta de 100×100 mm. `compact` recorta la dirección y las filas
   // grandes a una sola línea, y `counterLimit` deja achicar el X/N: entre los dos el
-  // contenido siempre cabe en la etiqueta, aunque lleve código de barras. Sin código
+  // contenido siempre cabe en la etiqueta, aunque lleve el código QR. Sin código
   // de barras el reparto es el de siempre.
   const buildLayout = ({ compact = false, counterLimit = 4 } = {}) => {
     const blocks = [];

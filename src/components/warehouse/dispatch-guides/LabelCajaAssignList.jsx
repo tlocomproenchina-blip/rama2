@@ -4,8 +4,8 @@ import { Label } from '@/components/ui/label';
 import { ListOrdered } from 'lucide-react';
 
 // Lista compacta de las etiquetas del rango: una fila por número con su X/N y el
-// selector de la caja cuyo código de barras lleva esa etiqueta. La etiqueta que se
-// queda sin caja elegida sale como antes, sin código de barras.
+// selector de la caja cuyo código QR lleva esa etiqueta. La etiqueta que se
+// queda sin caja elegida sale como antes, sin código QR.
 export default function LabelCajaAssignList({ labels, total, cajas, assign, onAssign, onAutoAssign }) {
   return (
     <div className="space-y-2">
@@ -38,7 +38,7 @@ export default function LabelCajaAssignList({ labels, total, cajas, assign, onAs
                 onChange={(e) => onAssign(number, e.target.value)}
                 className="min-w-0 flex-1 rounded-lg border border-border/70 bg-card px-2 py-1.5 font-mono text-xs text-foreground"
               >
-                <option value="">Sin código de barras</option>
+                <option value="">Sin código QR</option>
                 {cajas.map((caja) => (
                   <option key={caja.label_code} value={caja.label_code}>
                     {caja.label_code}

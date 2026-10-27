@@ -20,7 +20,7 @@ export default function BoxQuantityCard({
   const connected = isPrinterConnected();
   const count = Number(quantity) || 0;
   const total = Number(progress?.total) || count;
-  // Sin cajas pendientes la etiqueta sale igual: sin código de barras y sin crear guía.
+  // Sin cajas pendientes la etiqueta sale igual: sin código QR y sin crear guía.
   const withoutBoxes = pendingCount === 0;
   const exceeds = !withoutBoxes && count > pendingCount;
 
@@ -68,7 +68,7 @@ export default function BoxQuantityCard({
       {withoutBoxes && (
         <p className="rounded-xl border border-blue-200 bg-blue-50/70 p-2 text-[11px] text-blue-800 dark:border-blue-500/40 dark:bg-blue-500/10 dark:text-blue-200">
           Este cliente no tiene cajas pendientes por despachar (su carga ya salió en una guía):
-          la etiqueta sale igual, sin código de barras y sin crear guía.
+          la etiqueta sale igual, sin código QR y sin crear guía.
         </p>
       )}
 
