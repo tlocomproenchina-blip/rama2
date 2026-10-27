@@ -1,5 +1,5 @@
 import { realPackageCount } from '@/lib/bultoCounts';
-import { isNewLabel, labelSymbolImage } from '@/lib/labelSymbol';
+import { labelSymbolImage } from '@/lib/labelSymbol';
 
 // Etiqueta de bulto en PDF para impresión térmica de 100 × 100 mm.
 // Todo el contenido se ajusta al área imprimible: los textos largos reducen su
@@ -10,8 +10,7 @@ const MARGIN = 4;
 const CONTENT_W = PAGE_SIZE - MARGIN * 2;
 const PRINTABLE_H = PAGE_SIZE - MARGIN * 2;
 
-const QR_SIZE = 32;
-const BARCODE_MAX_H = 22;
+const QR_SIZE = 38;
 
 function setFont(doc, size, style = 'bold', family = 'helvetica') {
   doc.setFont(family, style);
@@ -42,7 +41,7 @@ async function drawLabel(doc, bulto) {
 
   let symbol = null;
   try {
-    symbol = await labelSymbolImage(bulto.label_code, { qr: isNewLabel(bulto) });
+    symbol = await labelSymbolImage(bulto.label_code);
   } catch (_) {}
 
   // La dirección se divide en líneas con la letra de referencia (8pt) y se
@@ -53,8 +52,8 @@ async function drawLabel(doc, bulto) {
     : [];
 
   // Medidas a escala 1 (mm) de cada bloque.
-  const symbolH = symbol ? (symbol.isQr ? QR_SIZE : Math.min(BARCODE_MAX_H, CONTENT_W * symbol.ratio)) : 0;
-  const codeH = symbol?.isQr ? 5 : 0;
+  const symbolH = symbol ? QR_SIZE : 0;
+  const codeH = symbol ? 5 : 0;
   const SEP_H = 2.6;
   const stateH = 10.5;
   const bultoH = 7;
@@ -84,18 +83,15 @@ async function drawLabel(doc, bulto) {
     y += mm(SEP_H);
   };
 
-  // 1. Símbolo escaneable (+ el código escrito debajo en las etiquetas con QR)
+  // 1. Código QR + el código escrito debajo
   if (symbol) {
-    const w = (symbol.isQr ? QR_SIZE : CONTENT_W) * scale;
-    const h = mm(symbolH);
-    doc.addImage(symbol.data, 'PNG', (PAGE_SIZE - w) / 2, y, w, h);
-    y += h;
-    if (symbol.isQr) {
-      const size = fitSize(doc, bulto.label_code, CONTENT_W, mm(11), 5.5);
-      doc.setFontSize(size);
-      doc.text(bulto.label_code, PAGE_SIZE / 2, y + mm(codeH) - 1.2, { align: 'center' });
-      y += mm(codeH);
-    }
+    const side = QR_SIZE * scale;
+    doc.addImage(symbol.data, 'PNG', (PAGE_SIZE - side) / 2, y, side, mm(symbolH));
+    y += mm(symbolH);
+    const size = fitSize(doc, bulto.label_code, CONTENT_W, mm(11), 5.5);
+    doc.setFontSize(size);
+    doc.text(bulto.label_code, PAGE_SIZE / 2, y + mm(codeH) - 1.2, { align: 'center' });
+    y += mm(codeH);
   }
 
   // 2. Estado + N° de contenedor (mismo tamaño, reducido si no entran)
@@ -114,21 +110,9 @@ async function drawLabel(doc, bulto) {
     totalW = wState + (orderNumbers ? gap + wOrder : 0);
   }
   const x0 = Math.max(MARGIN, (PAGE_SIZE - totalW) / 2);
-  if (orderNumbers) {
-    const baseline = y + mm(stateH) - Math.max(1, mm(1.4));
-    doc.text(estado, x0, baseline);
-    doc.text(orderNumbers, x0 + wState + gap, baseline);
-    let labelSize = Math.max(4.4, numSize * 0.42);
-    setFont(doc, labelSize);
-    const labelW = doc.getTextWidth('CONTENEDOR');
-    if (wOrder > 0 && labelW > wOrder) {
-      labelSize = Math.max(3.6, labelSize * (wOrder / labelW));
-      setFont(doc, labelSize);
-    }
-    doc.text('CONTENEDOR', x0 + wState + gap + wOrder / 2, y + labelSize * 0.85, { align: 'center' });
-  } else {
-    doc.text(estado, PAGE_SIZE / 2, y + mm(stateH) / 2 + numSize * 0.28, { align: 'center' });
-  }
+  const baseline = y + mm(stateH) / 2 + numSize * 0.24;
+  doc.text(estado, x0, baseline);
+  if (orderNumbers) doc.text(orderNumbers, x0 + wState + gap, baseline);
   y += mm(stateH);
 
   // 3. Bulto X/Y + cantidad de paquetes

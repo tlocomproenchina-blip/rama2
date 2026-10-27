@@ -90,7 +90,6 @@ export default function CajaLabelsDialog({ open, onOpenChange, clientEmail, onPr
         index: caja.caja_number,
         total: caja.caja_total,
         barcodeCode: caja.label_code,
-        qr: true,
       })
     );
     const boundaries = [];

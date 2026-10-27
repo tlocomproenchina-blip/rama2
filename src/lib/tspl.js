@@ -3,7 +3,7 @@
 // 100mm = 800 dots. Commands are ASCII text, one per line, terminated with \r\n.
 // Reference: TSPL/TSPL2 Programming Manual (TSC / Zijiang-compatible).
 
-import { labelContentCodes, realPackageCount } from '@/lib/bultoCounts';
+import { realPackageCount } from '@/lib/bultoCounts';
 import { qrModuleCount } from '@/lib/qrCode';
 
 const enc = new TextEncoder();
@@ -53,39 +53,6 @@ const wrapText = (text, maxChars) => {
   return lines.length ? lines : [''];
 };
 
-// Bloque del código de barras CODE128 con el código escrito debajo, en el tamaño que usa
-// la etiqueta de bulto.
-const bultoBarcodeBlock = (code) => {
-  const codeLen = code.length;
-  const narrow = codeLen > 16 ? 3 : 4;
-  const wide = narrow * 2;
-  const barsWidth = (11 * (codeLen + 2) + 2) * narrow;
-  const x = Math.max(20, Math.floor((LABEL_W - barsWidth) / 2));
-  return {
-    h: 238,
-    render: (y) => [
-      `BARCODE ${x},${y},${q('128')},180,2,0,${narrow},${wide},${q(code)}`,
-      `TEXT ${centerX(code, '2', 2)},${y + 192},${q('2')},0,2,2,${q(code)}`,
-    ],
-  };
-};
-
-// Bloque del código de barras de la etiqueta continua (caja): barras más bajas y el
-// código escrito debajo, como salía en los lotes ya impresos.
-const continuousBarcodeBlock = (code) => {
-  const narrow = code.length > 22 ? 1 : 2;
-  const wide = narrow * 2;
-  const barsWidth = (11 * (code.length + 2) + 2) * narrow;
-  const codeScale = code.length > 18 ? 1 : 2;
-  return {
-    h: 154,
-    render: (y) => [
-      `BARCODE ${Math.max(20, Math.floor((LABEL_W - barsWidth) / 2))},${y},${q('128')},120,0,0,${narrow},${wide},${q(code)}`,
-      `TEXT ${centerX(code, '2', codeScale)},${y + 126},${q('2')},0,${codeScale},${codeScale},${q(code)}`,
-    ],
-  };
-};
-
 // Bloque del código QR: cuadrado y centrado, con el código escrito debajo para poderlo
 // leer a mano. El tamaño del módulo se ajusta para que el símbolo entre en el alto
 // reservado al símbolo escaneable, con el ancho de la etiqueta como tope.
@@ -105,10 +72,9 @@ const qrBlock = (code, { targetH = 190, maxCell = 10 } = {}) => {
 
 // Build the full bulto label payload in TSPL (100×100mm).
 // bulto: { label_code, bulto_number, total_bultos, shipping_mark, client_snapshot, package_ids, package_trackings }
-// qr: true en las etiquetas nuevas (llevan código QR) y false al reimprimir una etiqueta
-// que ya salió con código de barras.
+// Todas las etiquetas llevan código QR, también al reimprimir.
 // Returns Uint8Array ready for Web Bluetooth writeValue.
-export const buildBultoLabelPayload = (bulto, { qr = false } = {}) => {
+export const buildBultoLabelPayload = (bulto) => {
   const cs = bulto.client_snapshot || {};
   const estado = (cs.state || 'SIN ESTADO').toUpperCase();
   const labelCode = bulto.label_code || '';
@@ -117,38 +83,33 @@ export const buildBultoLabelPayload = (bulto, { qr = false } = {}) => {
   // ficha del almacén, sin sumar las etiquetas de los bultos ya fusionados dentro.
   const pkgCount = realPackageCount(bulto);
   const bultoPkg = `${bultoNum} - ${pkgCount} PAQUETES`;
-  const trackings = labelContentCodes(bulto);
 
   // Métricas verticales (dots @203dpi). Altura real de cada texto + respiro.
   const MARGIN = 20;
   const PRINTABLE_H = LABEL_W - MARGIN * 2; // 760 dots de alto útil
-  const CONTENT_LINE_H = 16;
-  const CONTENT_TITLE_H = 28; // separador + título CONTENIDO
 
   const nameCedula = [cs.full_name, cs.cedula ? `C.I. ${cs.cedula}` : ''].filter(Boolean).join(' - ');
   const cityState = [cs.city, cs.state].filter(Boolean).join(', ');
   const addrLines = cs.address ? wrapText(cs.address, 40).slice(0, 2) : [];
   const orderNumbers = Array.isArray(bulto.cbm_order_numbers) ? bulto.cbm_order_numbers.filter(Boolean) : [];
-  // N° de contenedor tal cual: la etiqueta lo rotula "CONTENEDOR" en pequeño.
+  // N° de contenedor tal cual, al lado del estado del cliente.
   const ordenStr = orderNumbers.join(', ');
 
   // Cada bloque conoce su alto y se dibuja en la Y que se le asigna
   const blocks = [];
   const addBlock = (h, render) => blocks.push({ h, render });
 
-  // 1. Símbolo escaneable + código de etiqueta: código QR en las etiquetas nuevas y
-  //    código de barras cuando la etiqueta ya había salido impresa.
-  const symbolBlock = qr ? qrBlock(labelCode) : bultoBarcodeBlock(labelCode);
+  // 1. Código QR + código de etiqueta
+  const symbolBlock = qrBlock(labelCode, { targetH: 220 });
   addBlock(symbolBlock.h, symbolBlock.render);
 
   // 2. Separador
   addBlock(22, (y) => [`BAR 50,${y + 9},700,3`]);
 
-  // 3. ESTADO + N° de contenedor: van en la misma línea y con el mismo tamaño, con
-  //    el rótulo "CONTENEDOR" en pequeño justo encima del número.
+  // 3. ESTADO + N° de contenedor: van en la misma línea y con el mismo tamaño.
   const BIG_CW = FONT_WIDTH['3']; // ancho de carácter de la fuente grande (24 dots)
   const ROW_GAP = 40; // separación entre ESTADO y el N° de contenedor
-  addBlock(ordenStr ? 94 : 78, (y) => {
+  addBlock(78, (y) => {
     // Escala común a los dos textos: llega al tamaño grande del ESTADO (3x) y baja
     // solo lo necesario para que ambos entren juntos en el ancho de la etiqueta.
     let scale = 3;
@@ -160,14 +121,9 @@ export const buildBultoLabelPayload = (bulto, { qr = false } = {}) => {
     const orderW = ordenStr ? ordenStr.length * BIG_CW * scale : 0;
     const pairW = estadoW + (ordenStr ? ROW_GAP + orderW : 0);
     const x0 = Math.max(10, Math.floor((LABEL_W - pairW) / 2));
-    // El número baja una línea para dejar sitio al rótulo de arriba.
-    const textY = y + (ordenStr ? 16 : 0);
-    const lines = [`TEXT ${x0},${textY},${q('3')},0,${scale},${scale},${q(estado)}`];
+    const lines = [`TEXT ${x0},${y},${q('3')},0,${scale},${scale},${q(estado)}`];
     if (ordenStr) {
-      const orderX = x0 + estadoW + ROW_GAP;
-      const captionW = 10 * 16; // "CONTENEDOR" con la fuente 1 al doble de ancho
-      lines.push(`TEXT ${orderX + Math.max(0, Math.floor((orderW - captionW) / 2))},${y},${q('1')},0,1,1,${q('CONTENEDOR')}`);
-      lines.push(`TEXT ${orderX},${textY},${q('3')},0,${scale},${scale},${q(ordenStr)}`);
+      lines.push(`TEXT ${x0 + estadoW + ROW_GAP},${y},${q('3')},0,${scale},${scale},${q(ordenStr)}`);
     }
     return lines;
   });
@@ -189,18 +145,8 @@ export const buildBultoLabelPayload = (bulto, { qr = false } = {}) => {
 
   const fixedH = blocks.reduce((sum, b) => sum + b.h, 0);
 
-  // 9. Trackings contenidos: usan el espacio que sobra tras centrar el resto.
-  //    Si no caben todos, la última línea resume cuántos faltan ("+N más") y
-  //    nunca se invade el borde inferior de la etiqueta.
-  const hasContent = trackings.length > 0 && PRINTABLE_H - fixedH >= CONTENT_TITLE_H + CONTENT_LINE_H;
-  const maxLines = hasContent ? Math.max(1, Math.floor((PRINTABLE_H - fixedH - CONTENT_TITLE_H) / CONTENT_LINE_H)) : 0;
-  const drawnLines = hasContent ? Math.min(trackings.length, maxLines) : 0;
-  const truncated = hasContent && trackings.length > drawnLines;
-  const shown = truncated ? drawnLines - 1 : drawnLines;
-
   // Centrado vertical: el contenido queda con márgenes parejos arriba y abajo
-  const contentH = hasContent ? CONTENT_TITLE_H : 0;
-  const totalH = fixedH + contentH + drawnLines * CONTENT_LINE_H;
+  const totalH = fixedH;
   const offsetY = MARGIN + Math.max(0, Math.round((PRINTABLE_H - totalH) / 2));
 
   const lines = [];
@@ -215,19 +161,6 @@ export const buildBultoLabelPayload = (bulto, { qr = false } = {}) => {
     y += b.h;
   }
 
-  if (hasContent) {
-    lines.push(`BAR 50,${y + 4},700,3`);
-    lines.push(`TEXT 50,${y + 16},${q('1')},0,1,1,${q(`CONTENIDO (${trackings.length})`)}`);
-    y += contentH;
-    for (const t of trackings.slice(0, shown)) {
-      lines.push(`TEXT 50,${y},${q('1')},0,1,1,${q(String(t).slice(0, 45))}`);
-      y += CONTENT_LINE_H;
-    }
-    if (truncated) {
-      lines.push(`TEXT 50,${y},${q('1')},0,1,1,${q(`+${trackings.length - shown} más`)}`);
-    }
-  }
-
   lines.push('PRINT 1');
   lines.push('END');
 
@@ -238,9 +171,9 @@ export const buildBultoLabelPayload = (bulto, { qr = false } = {}) => {
 // Etiqueta continua 100×100 mm (rollo continuo, sin separación) para identificar los
 // paquetes de un despacho: número X/N en grande y centrado, datos del cliente tal
 // como quedaron guardados en la guía y, al pie, el número de guía con su fecha.
-// Cuando identifica una caja consolidada (barcodeCode) imprime además el código de
-// barras de la caja: es el que se escanea en Despacho por Escaneo para dar la salida
-// definitiva de todo su contenido.
+// Cuando identifica una caja consolidada (barcodeCode) imprime además el código QR de la
+// caja: es el que se escanea en Despacho por Escaneo para dar la salida definitiva de todo
+// su contenido.
 // client: { full_name, cedula, whatsapp, address, city, state, shipping_mark }
 export const buildContinuousLabelPayload = ({
   client = {},
@@ -251,7 +184,6 @@ export const buildContinuousLabelPayload = ({
   barcodeCode = '',
   packageCount = 0,
   cbm = 0,
-  qr = false,
 }) => {
   const cs = client || {};
   const counter = `${index}/${total}`;
@@ -327,12 +259,9 @@ export const buildContinuousLabelPayload = ({
     }
 
     // 6. Símbolo de la caja: identifica la caja que lleva pegada la etiqueta y es el que
-    //    se escanea al despachar. Código QR en las etiquetas nuevas y código de barras al
-    //    reimprimir un lote que ya había salido impreso. Va escrito también bajo el símbolo.
+    //    se escanea al despachar. Va en código QR, escrito también bajo el símbolo.
     if (code) {
-      const symbol = qr
-        ? qrBlock(code, { targetH: 130, maxCell: 8 })
-        : continuousBarcodeBlock(code);
+      const symbol = qrBlock(code, { targetH: 130, maxCell: 8 });
       addBlock(symbol.h, symbol.render);
     }
 
@@ -345,8 +274,8 @@ export const buildContinuousLabelPayload = ({
     return { blocks, height: blocks.reduce((sum, b) => sum + b.h, 0) };
   };
 
-  // Si el contenido no cabe (etiqueta con código de barras), se compacta y, de ser
-  // necesario, se achica el X/N hasta que entre.
+  // Si el contenido no cabe, se compacta y, de ser necesario, se achica el X/N hasta
+  // que entre en la etiqueta.
   let layout = buildLayout();
   if (layout.height > PRINTABLE_H) layout = buildLayout({ compact: true });
   for (let limit = 3; layout.height > PRINTABLE_H && limit >= 1; limit -= 1) {

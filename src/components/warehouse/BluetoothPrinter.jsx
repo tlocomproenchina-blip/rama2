@@ -3,7 +3,6 @@ import { Button } from '@/components/ui/button';
 import { Printer, Loader2, Bluetooth, BluetoothConnected, FileDown, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { buildBultoLabelPayload, concatUint8Arrays } from '@/lib/tspl';
-import { isNewLabel } from '@/lib/labelSymbol';
 import { downloadBultoLabelsPdf } from '@/lib/bultoLabelPdf';
 import { resolvePrinterDevice, findWriteCharacteristic, connectAuthorizedPrinter } from '@/lib/bluetoothReconnect';
 
@@ -98,9 +97,8 @@ export default function BluetoothPrinter({ bultos = [], onPrinted, size = 'defau
       setStatus('printing');
 
       // Build combined payload for all bultos (single Bluetooth session)
-      // Cada etiqueta nueva sale con código QR; las que ya se imprimieron antes
-      // conservan su código de barras para no cambiar lo que ya está pegado.
-      const payloads = bultos.map((b) => buildBultoLabelPayload(b, { qr: isNewLabel(b) }));
+      // Cada etiqueta sale con su código QR
+      const payloads = bultos.map((b) => buildBultoLabelPayload(b));
       const combined = concatUint8Arrays(payloads);
       await writeData(combined);
 

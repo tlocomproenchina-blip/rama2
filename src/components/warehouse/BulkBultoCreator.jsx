@@ -318,7 +318,7 @@ export default function BulkBultoCreator({
                 />
                 <p className="text-xs text-slate-500">
                   {orderList.length
-                    ? `Se guarda en todas las etiquetas del lote y sale impreso como CONTENEDOR ${orderList.join(', ')}.`
+                    ? `Se guarda en todas las etiquetas del lote y sale impreso junto al estado: ${orderList.join(', ')}.`
                     : 'Se aplica a todas las etiquetas del lote (puedes escribir varios separados por coma).'}
                 </p>
               </div>

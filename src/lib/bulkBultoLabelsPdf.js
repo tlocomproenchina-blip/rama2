@@ -2,7 +2,7 @@
 // Se usa al crear bultos en lote para imprimir todas las etiquetas del lote en un
 // solo archivo, con la misma información que la etiqueta térmica: el código QR de la
 // etiqueta nueva, estado del cliente, N° de contenedor y datos de entrega.
-import { isNewLabel, labelSymbolImage } from '@/lib/labelSymbol';
+import { labelSymbolImage } from '@/lib/labelSymbol';
 
 export async function downloadCombinedBultoLabelsPdf({ bultos = [], nameHint = 'bultos' }) {
   if (!bultos.length) return 0;
@@ -19,7 +19,7 @@ export async function downloadCombinedBultoLabelsPdf({ bultos = [], nameHint = '
     let y = 5;
 
     try {
-      const symbol = await labelSymbolImage(bulto.label_code, { qr: isNewLabel(bulto) });
+      const symbol = await labelSymbolImage(bulto.label_code);
       const imgWidth = symbol.isQr ? 45 : 85;
       const imgHeight = symbol.ratio * imgWidth;
       doc.addImage(symbol.data, 'PNG', (100 - imgWidth) / 2, y, imgWidth, imgHeight);
