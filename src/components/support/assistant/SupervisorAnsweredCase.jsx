@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import AssistantCaseSupervisorReplies from '@/components/support/assistant/AssistantCaseSupervisorReplies';
 import AssistantCaseClientReply from '@/components/support/assistant/AssistantCaseClientReply';
 import AssistantCaseContext from '@/components/support/assistant/AssistantCaseContext';
+import InternalCaseChat from '@/components/support/internal-chat/InternalCaseChat';
 
 const PRIORITY = {
   baja: 'bg-slate-100 text-slate-600',
@@ -129,6 +130,8 @@ export default function SupervisorAnsweredCase({ ticket, user, onBack, onChange,
         disabled={loadingClient}
         onLoadToAssistant={onLoadToAssistant}
       />
+
+      <InternalCaseChat ticket={ticket} user={user} role="atc" />
 
       <AssistantCaseClientReply ticket={ticket} user={user} onChange={onChange} />
 

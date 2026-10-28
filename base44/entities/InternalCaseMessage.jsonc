@@ -1,0 +1,107 @@
+{
+  "name": "InternalCaseMessage",
+  "type": "object",
+  "properties": {
+    "ticket_id": {
+      "type": "string",
+      "description": "ID del caso (SupportTicket) al que pertenece este mensaje interno"
+    },
+    "ticket_number": {
+      "type": "string",
+      "description": "N\u00famero del caso (cache para mostrar)"
+    },
+    "client_email": {
+      "type": "string",
+      "description": "Email del cliente del caso, solo como referencia interna"
+    },
+    "atc_email": {
+      "type": "string",
+      "description": "Email del ATC que escal\u00f3 el caso: junto con Supervisi\u00f3n es el \u00fanico que puede ver y escribir esta conversaci\u00f3n"
+    },
+    "atc_name": {
+      "type": "string",
+      "description": "Nombre del ATC que escal\u00f3 el caso"
+    },
+    "author_email": {
+      "type": "string",
+      "description": "Email de quien escribi\u00f3 el mensaje interno"
+    },
+    "author_name": {
+      "type": "string",
+      "description": "Nombre de quien escribi\u00f3 el mensaje interno"
+    },
+    "author_role": {
+      "type": "string",
+      "enum": [
+        "atc",
+        "supervisor"
+      ],
+      "description": "Lado del chat que escribi\u00f3: atc (quien escal\u00f3 el caso) o supervisor (Supervisi\u00f3n)"
+    },
+    "body": {
+      "type": "string",
+      "maxLength": 4000,
+      "description": "Texto del mensaje interno"
+    },
+    "images": {
+      "type": "array",
+      "default": [],
+      "maxItems": 10,
+      "description": "Hasta 10 im\u00e1genes adjuntas al mensaje, guardadas en almacenamiento privado y abiertas con un enlace firmado temporal",
+      "items": {
+        "type": "object",
+        "properties": {
+          "file_uri": {
+            "type": "string",
+            "description": "URI del archivo privado devuelto por UploadPrivateFile"
+          },
+          "name": {
+            "type": "string",
+            "description": "Nombre original de la imagen"
+          }
+        },
+        "required": [
+          "file_uri"
+        ]
+      }
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Descripci\u00f3n opcional"
+    }
+  },
+  "required": [
+    "ticket_id",
+    "atc_email"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "data.atc_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
