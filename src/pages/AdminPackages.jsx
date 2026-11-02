@@ -8,6 +8,7 @@ import { Image as ImageIcon, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import PackagesSearchBar from '@/components/admin/packages/PackagesSearchBar';
 import BulkProgressIndicator from '@/components/admin/packages/BulkProgressIndicator';
+import BulkResultPanel from '@/components/admin/packages/BulkResultPanel';
 import PackagesWindowSummary from '@/components/admin/packages/PackagesWindowSummary';
 import ViewImageModal from '@/components/admin/packages/ViewImageModal';
 import PackagesMobileList from '@/components/admin/packages/PackagesMobileList';
@@ -71,6 +72,7 @@ export default function AdminPackages({ user }) {
     showBulkConfirm, setShowBulkConfirm,
     bulkProcessing,
     bulkProgress, setBulkProgress,
+    bulkResult, retryBulkFailed, dismissBulkResult,
     handleSelectAll,
     handleSelectPackage,
     handleBulkAction,
@@ -484,6 +486,13 @@ export default function AdminPackages({ user }) {
       />
 
       <BulkProgressIndicator progress={bulkProgress} />
+
+      <BulkResultPanel
+        result={bulkResult}
+        processing={bulkProcessing}
+        onRetry={retryBulkFailed}
+        onDismiss={dismissBulkResult}
+      />
 
       {selectedPackages.length > 0 && (
         <BulkActionsBar
