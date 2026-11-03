@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Sparkles, ArrowUpRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -6,8 +6,9 @@ import QuickMessagePicker from '@/components/support/QuickMessagePicker';
 import AssistantChatPanel from '@/components/support/assistant/AssistantChatPanel';
 
 // Atender: último mensaje del caso, pasarlo al asistente, respuestas rápidas y escalar.
-export default function CrmAttendPanel({ client, activeCase, assistant, onEscalate }) {
+export default function CrmAttendPanel({ client, activeCase, assistant, onEscalate, externalPrefill, askOrigin = 'atc' }) {
   const [prefill, setPrefill] = useState(null);
+  useEffect(() => { if (externalPrefill) setPrefill(externalPrefill); }, [externalPrefill]);
   const lastClientMsg = activeCase?.last_message && !activeCase.last_message.is_admin ? activeCase.last_message : null;
 
   const toAssistant = () => setPrefill({
@@ -37,7 +38,7 @@ export default function CrmAttendPanel({ client, activeCase, assistant, onEscala
         turns={assistant.turns}
         asking={assistant.asking}
         prefill={prefill}
-        onAsk={(text) => assistant.ask(text)}
+        onAsk={(text) => assistant.ask(text, { origin: askOrigin })}
         onEscalate={onEscalate}
       />
 

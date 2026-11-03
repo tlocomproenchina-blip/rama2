@@ -124,9 +124,7 @@ export const adminMenuItems = [
   { name: 'Calculadora', page: 'ShippingCalculator', icon: Calculator },
   { name: 'Tracking Asegurados', page: 'AdminInsured', icon: ShieldCheck },
   { name: 'CRM de atención', page: 'AdminSupportCRM', icon: Headphones },
-  { name: 'Asistente ATC', page: 'AdminSupportAssistant', icon: Headphones },
   { name: 'Supervisor', page: 'AdminSupportSupervisor', icon: ShieldCheck },
-  { name: 'Tickets Soporte', page: 'AdminSupportTickets', icon: MessageCircle },
   { name: 'Mensajes Rápidos', page: 'AdminSupportQuickMessages', icon: MessageCircle },
   { name: 'Cobranza', page: 'AdminSupportCollections', icon: Wallet },
   { name: 'Conocimiento Asistente', page: 'AdminAssistantKnowledge', icon: BookOpen },
@@ -156,7 +154,7 @@ export const adminGroups = [
   { label: 'COMUNICACIONES', items: ['AdminEmailCampaigns', 'AdminDeliveryProofCampaign', 'AdminEmailHistory', 'AdminEmailTemplates', 'AdminPaymentAlerts'] },
   { label: 'MARKETING', items: ['AdminPromotions', 'AdminMarketing', 'AdminCityAnalytics', 'AdminBlog', 'AdminReferrals'] },
   { label: 'SEGUIMIENTO', items: ['AdminSeguimiento', 'AdminActivityAudit', 'ShipmentTracking', 'AdminSeguimientoRutas', 'ShippingCalculator', 'AdminInsured'] },
-  { label: 'SOPORTE', items: ['AdminSupportAssistant', 'AdminSupportSupervisor', 'AdminSupportTickets', 'AdminSupportCollections', 'AdminSupportQuickMessages', 'AdminAssistantKnowledge', 'AdminInternalMessages', 'AdminFAQ'] },
+  { label: 'SOPORTE', items: ['AdminSupportCRM', 'AdminSupportSupervisor', 'AdminSupportCollections', 'AdminSupportQuickMessages', 'AdminAssistantKnowledge', 'AdminInternalMessages', 'AdminFAQ'] },
   { label: 'EQUIPO Y ACCESOS', items: ['AdminEmployees', 'AdminAdministrators', 'AdminRoles', 'AdminEmployeeAudit', 'AdminEmployeePerformance'] },
   { label: 'GESTIÓN', items: ['AdminClients', 'AdminWholesalerClients', 'AdminSharedPortal', 'AdminDuplicates', 'AdminKnowledgeBase', 'AdminDelete', 'AdminSettings'] },
 ];

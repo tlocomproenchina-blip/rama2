@@ -167,8 +167,8 @@ export default function SupervisorCaseFile({ ticket, user, onBack, onChange }) {
             </div>
             <div className="flex flex-wrap gap-2">
               <Button asChild size="sm" variant="outline">
-                <Link to={`/AdminSupportTickets?ticketId=${ticket.id}`}>
-                  <ExternalLink className="mr-1.5 h-3.5 w-3.5" /> Abrir en Tickets
+                <Link to={`/AdminSupportCRM?ticketId=${ticket.id}`}>
+                  <ExternalLink className="mr-1.5 h-3.5 w-3.5" /> Abrir en el CRM
                 </Link>
               </Button>
               {pending ? (

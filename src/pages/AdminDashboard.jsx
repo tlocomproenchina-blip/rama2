@@ -106,7 +106,7 @@ export default function AdminDashboard({ user }) {
       items.push({ title: 'Facturas vencidas', count: metrics.overdueInvoices, to: createPageUrl('AdminInvoices'), tone: 'amber' });
     }
     if (metrics.openTickets > 0) {
-      items.push({ title: 'Tickets abiertos', count: metrics.openTickets, to: createPageUrl('AdminSupportTickets'), tone: 'violet' });
+      items.push({ title: 'Tickets abiertos', count: metrics.openTickets, to: `${createPageUrl('AdminSupportCRM')}?tab=tickets`, tone: 'violet' });
     }
     if (metrics.preAlerts > 0) {
       items.push({ title: 'Pre-alertas pendientes', count: metrics.preAlerts, to: createPageUrl('AdminPreAlerts'), tone: 'blue' });
@@ -196,7 +196,7 @@ export default function AdminDashboard({ user }) {
         <AdminDashboardSectionCard
           title="Resumen de soporte"
           description="Tickets recientes con el estado actual."
-          action={<Link to={createPageUrl('AdminSupportTickets')}><Button variant="outline" size="sm">Abrir soporte</Button></Link>}
+          action={<Link to={`${createPageUrl('AdminSupportCRM')}?tab=tickets`}><Button variant="outline" size="sm">Abrir soporte</Button></Link>}
         >
           <div className="space-y-3">
             {recentTickets.length === 0 ? (
@@ -270,7 +270,7 @@ export default function AdminDashboard({ user }) {
             <AdminDashboardQuickLink to={createPageUrl('AdminPackages')} title="Operaciones de paquetes" description="Revisa ingresos, estados y seguimientos." icon={Package} tone="blue" />
             <AdminDashboardQuickLink to={createPageUrl('AdminPayments')} title="Validación de pagos" description="Confirma comprobantes y pagos pendientes." icon={CheckCircle2} tone="emerald" />
             <AdminDashboardQuickLink to={createPageUrl('AdminClients')} title="Gestión de clientes" description="Administra usuarios, estados y datos." icon={Users} tone="violet" />
-            <AdminDashboardQuickLink to={createPageUrl('AdminSupportTickets')} title="Mesa de ayuda" description="Da seguimiento a tickets y solicitudes." icon={Ticket} tone="amber" />
+            <AdminDashboardQuickLink to={`${createPageUrl('AdminSupportCRM')}?tab=tickets`} title="Mesa de ayuda" description="Da seguimiento a tickets y solicitudes." icon={Ticket} tone="amber" />
           </div>
         </AdminDashboardSectionCard>
       </section>

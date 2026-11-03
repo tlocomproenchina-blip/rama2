@@ -13,7 +13,7 @@ export default function useAttentionFlags({ user }) {
       // AdminPayments se maneja via useNotificationFlags (basado en entidad Notification)
       return [
         // Solo marcar atención cuando hay tickets abiertos/en_proceso (no al cerrar)
-        { key: 'AdminSupportTickets', entity: 'SupportTicket', openOnly: true },
+        { key: 'AdminSupportCRM', entity: 'SupportTicket', openOnly: true },
         { key: 'AdminPackages', entity: 'Package' },
       ];
     }

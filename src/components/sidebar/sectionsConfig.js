@@ -51,10 +51,10 @@ export const ADMIN_SECTIONS = [
     p('AdminCityAnalytics', 'Ciudades'), p('AdminBlog', 'Blog'),
   ] },
   { id: 'soporte', label: 'Soporte', icon: Headphones, pages: [
-    p('AdminSupportCRM', 'CRM'), p('AdminSupportAssistant', 'Asistente ATC'), p('AdminSupportSupervisor', 'Supervisor'), p('AdminSupportTickets', 'Tickets'),
+    p('AdminSupportCRM', 'CRM'), p('AdminSupportSupervisor', 'Supervisor'),
     p('AdminSupportQuickMessages', 'Mensajes rápidos'), p('AdminAssistantKnowledge', 'Conocimiento del asistente'),
     p('AdminInternalMessages', 'Mensajería interna'), p('AdminFAQ', 'FAQ'), p('AdminKnowledgeBase', 'Base de conocimiento'),
-  ], subPages: ['AdminSupport', 'AdminSupportClients'] },
+  ], subPages: ['AdminSupport', 'AdminSupportClients', 'AdminSupportAssistant', 'AdminSupportTickets'] },
   { id: 'control', label: 'Control', icon: ShieldCheck, pages: [
     p('AdminBodegaProductividad', 'Productividad'), p('AdminBultoAudit', 'Auditoría de bultos'), p('WarehousePrintAudit', 'Auditoría de impresiones'),
     p('WarehouseDispatchScanHistory', 'Historial de escaneos'), p('AdminWarehouseIncidents', 'Incidencias'), p('AdminDispositivosBodega', 'Dispositivos'),

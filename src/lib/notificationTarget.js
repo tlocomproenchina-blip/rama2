@@ -50,7 +50,7 @@ export function getNotificationUrl(notif, user) {
 
   if (isTicket) {
     if (isAdmin) {
-      return pageUrl('AdminSupportTickets', ref ? `?ticketId=${ref}` : '');
+      return pageUrl('AdminSupportCRM', ref ? `?ticketId=${ref}` : '?tab=tickets');
     }
     return pageUrl('Support');
   }

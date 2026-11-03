@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { Navigate } from 'react-router-dom';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -26,7 +27,17 @@ import AdminSupportNewTicketDialog from '@/components/support/AdminSupportNewTic
 import AdminSupportTicketDetailDialog from '@/components/support/AdminSupportTicketDetailDialog';
 import AdminSupportBulkBar from '@/components/support/AdminSupportBulkBar';
 
-export default function AdminSupportTickets({ user }) {
+// La pantalla vive dentro del CRM (pestaña Tickets); la ruta propia redirige allí.
+export default function AdminSupportTickets({ user, embedded = false, onOpenCase }) {
+  if (!embedded) {
+    const params = new URLSearchParams(window.location.search);
+    const ticketId = params.get('ticketId');
+    return <Navigate to={`/AdminSupportCRM?tab=tickets${ticketId ? `&ticketId=${ticketId}` : ''}`} replace />;
+  }
+  return <AdminSupportTicketsView user={user} onOpenCase={onOpenCase} />;
+}
+
+function AdminSupportTicketsView({ user, onOpenCase }) {
   const [tickets, setTickets] = useState([]);
   const [staffUsers, setStaffUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -669,7 +680,7 @@ export default function AdminSupportTickets({ user }) {
             statusConfig={statusConfig}
             priorityConfig={priorityConfig}
             hasUnreadClientMessage={hasUnreadClientMessage}
-            setSelectedTicket={setSelectedTicket}
+            setSelectedTicket={onOpenCase || setSelectedTicket}
             setOpenedTicketIds={setOpenedTicketIds}
             setManuallyUnreadTicketIds={setManuallyUnreadTicketIds}
             setAssigningTicket={setAssigningTicket}
