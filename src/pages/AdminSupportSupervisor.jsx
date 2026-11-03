@@ -4,7 +4,6 @@ import { Headphones, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import PageHero from '@/components/common/PageHero';
 import SupervisorEscalationsPanel from '@/components/support/supervisor/SupervisorEscalationsPanel';
-import PackageEditReviewPanel from '@/components/support/supervisor/PackageEditReviewPanel';
 import SupervisorDepartmentCrm from '@/components/support/supervisor/SupervisorDepartmentCrm';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
@@ -41,16 +40,6 @@ export default function AdminSupportSupervisor({ user }) {
           <SupervisorDepartmentCrm user={user} />
         </TabsContent>
       </Tabs>
-
-      <section className="space-y-3">
-        <div>
-          <h2 className="text-lg font-semibold text-foreground">Cambios de paquete enviados por el ATC</h2>
-          <p className="text-sm text-muted-foreground">
-            Tracking, monto del seguro, fecha de despacho e imágenes que Soporte corrigió desde el asistente o desde la ficha del cliente, pendientes de revisión.
-          </p>
-        </div>
-        <PackageEditReviewPanel user={user} />
-      </section>
     </div>
   );
 }
