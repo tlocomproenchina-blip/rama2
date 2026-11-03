@@ -25,8 +25,8 @@ export default function IncidentDetailsFields({ type, onType, notes, onNotes, ph
         <Textarea rows={3} value={notes} onChange={(e) => onNotes(e.target.value)} placeholder="Qué no coincide con lo declarado…" />
       </div>
       <div className="space-y-1.5">
-        <Label>Fotos del daño</Label>
-        <MultiPhotoPicker files={photos} onChange={onPhotos} hint="El cliente verá estas fotos en su portal." />
+        <Label>Fotos adicionales (opcional)</Label>
+        <MultiPhotoPicker files={photos} onChange={onPhotos} max={9} hint="La foto del contenido ya se incluye. Agrega más si hace falta; el cliente verá todas en su portal." />
       </div>
     </div>
   );

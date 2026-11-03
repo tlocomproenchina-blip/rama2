@@ -51,11 +51,11 @@ export default function InventoryReviewCard({ onChanged }) {
     if (!client || !unitId) return setError('Elige el cliente y la caja que revisas.');
     if (!container.trim()) return setError('Escribe el N° de contenedor.');
     if (!contentPhotos.length) return setError('La foto del contenido es obligatoria.');
-    if (hasIncident && (!type || !notes.trim() || !damagePhotos.length)) return setError('Completa el tipo, el detalle y las fotos del daño.');
+    if (hasIncident && (!type || !notes.trim())) return setError('Completa el tipo y el detalle de la incidencia.');
     setSaving(true);
     try {
       const content_photo_uri = await upload(contentPhotos[0]);
-      const damage_photo_uris = hasIncident ? await Promise.all(damagePhotos.map(upload)) : [];
+      const damage_photo_uris = hasIncident ? [content_photo_uri, ...(await Promise.all(damagePhotos.map(upload)))] : [];
       await base44.functions.invoke('cajaInventoryReview', {
         action: 'review', bulto_id: unitId, container_number: container, content_photo_uri,
         has_incident: hasIncident, incident_type: type, notes, damage_photo_uris,
