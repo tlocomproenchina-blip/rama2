@@ -74,7 +74,11 @@ export default function GuidedTour({ open, onClose, isAdmin, onOpenSidebar }) {
       setTooltipPos(null);
       return;
     }
-    const el = document.querySelector(current.selector);
+    // Las páginas del menú ahora viven dentro de una sección: se señala la fila
+    // de la sección que contiene esa página.
+    const tourPage = current.selector.match(/^\[data-tour="([^"]+)"\]$/)?.[1];
+    const el = (tourPage && document.querySelector(`aside [data-tour-pages~="${tourPage}"]`))
+      || document.querySelector(current.selector);
     if (!el) {
       setTargetRect(null);
       setTooltipPos(null);

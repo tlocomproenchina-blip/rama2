@@ -65,16 +65,22 @@ export default function GlobalSearchPalette() {
     saveHistory([]);
   }, []);
 
-  // Toggle with Cmd/Ctrl + K
+  // Toggle with Cmd/Ctrl + Shift + K (Ctrl+K abre el buscador de páginas, que
+  // también puede abrir este buscador de datos).
   useEffect(() => {
     const handler = (e) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         setOpen((o) => !o);
       }
     };
+    const openHandler = () => setOpen(true);
     window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
+    window.addEventListener('open-global-search', openHandler);
+    return () => {
+      window.removeEventListener('keydown', handler);
+      window.removeEventListener('open-global-search', openHandler);
+    };
   }, []);
 
   const runSearch = useCallback(async (term) => {

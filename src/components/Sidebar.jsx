@@ -1,19 +1,17 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Package, X } from 'lucide-react';
+import { Package, X, Search } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { base44 } from '@/components/api/ApiQueueManager';
 import { cacheManager } from '@/components/CacheManager';
 import OptimizedImage from '@/components/OptimizedImage';
 import useAttentionFlags from '@/components/notifications/useAttentionFlags';
 import useNotificationFlags from '@/components/notifications/useNotificationFlags';
-import SidebarNavGroup from '@/components/sidebar/SidebarNavGroup';
 import SidebarLogoutButton from '@/components/sidebar/SidebarLogoutButton';
-import {
-  adminGroups,
-  adminMenuItems,
-  clientGroups,
-  clientMenuItems,
-} from '@/components/sidebar/sidebarConfig';
+import SidebarSections from '@/components/sidebar/SidebarSections';
+import CommandSearch from '@/components/sidebar/CommandSearch';
+import { setNavState } from '@/components/sidebar/navStore';
+import { clientMenuItems } from '@/components/sidebar/sidebarConfig';
+import { ADMIN_SECTIONS, CLIENT_SECTIONS, filterSections, findSection, setLastTab } from '@/components/sidebar/sectionsConfig';
 import { getAreaPreset, menuPagesFor } from '@/lib/areaAccess';
 import useAreaAccess from '@/hooks/useAreaAccess';
 
@@ -95,24 +93,22 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
     [user, config, roleConfig]
   );
 
-  const filteredAdminMenuItems = useMemo(() => adminMenuItems.filter((item) => visibleAdminPages.includes(item.page)), [visibleAdminPages]);
-  const filteredAdminGroups = useMemo(() => {
-    return adminGroups.map((group) => ({
-      ...group,
-      items: group.items.filter((page) => visibleAdminPages.includes(page))
-    })).filter((group) => group.items.length > 0);
-  }, [visibleAdminPages]);
-
-  const adminItemsByPage = useMemo(() => Object.fromEntries(filteredAdminMenuItems.map((item) => [item.page, item])), [filteredAdminMenuItems]);
-  const clientItemsByPage = useMemo(() => Object.fromEntries(clientMenuItems.map((item) => [item.page, item])), []);
-
-  const filteredClientGroups = useMemo(() => {
+  const sections = useMemo(() => {
+    if (isAdmin) return filterSections(ADMIN_SECTIONS, visibleAdminPages);
     const hidden = new Set(config?.client_hidden_pages || []);
-    return clientGroups.map((group) => ({
-      ...group,
-      items: group.items.filter((page) => !hidden.has(page))
-    })).filter((group) => group.items.length > 0);
-  }, [config?.client_hidden_pages]);
+    return filterSections(CLIENT_SECTIONS, clientMenuItems.map((i) => i.page).filter((pg) => !hidden.has(pg)));
+  }, [isAdmin, visibleAdminPages, config?.client_hidden_pages]);
+
+  // Comparte secciones y puntos rojos con las pestañas de la página
+  useEffect(() => { setNavState({ sections, flags: displayFlags }); }, [sections, displayFlags]);
+
+  // Recordar la última pestaña visitada de cada sección
+  useEffect(() => {
+    const section = findSection(sections, currentPage);
+    if (section && section.pages.some((x) => x.page === currentPage)) setLastTab(section.id, currentPage);
+  }, [sections, currentPage]);
+
+  const [searchOpen, setSearchOpen] = useState(false);
 
 
   const handleLogout = useCallback(() => {
@@ -136,107 +132,62 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
       {/* Sidebar */}
       <aside
         className={`
-          fixed inset-y-0 left-0 z-50 lg:static lg:inset-y-0 lg:left-0 lg:h-full
-          w-[min(20rem,calc(100vw-0.75rem))] lg:w-80 rounded-r-[2rem] lg:rounded-none
-          border-y-0 border-l-0 border-r border-border/60 bg-sidebar/95
+          fixed inset-y-0 left-0 z-50 lg:static lg:h-full
+          w-[min(16rem,calc(100vw-3rem))] lg:w-60
+          border-r border-border bg-sidebar
           ${isOpen ? 'translate-x-0' : '-translate-x-[calc(100%+0.5rem)] lg:translate-x-0'}
-          flex flex-col overflow-hidden shadow-[0_18px_42px_-24px_rgba(15,23,42,0.24)] lg:backdrop-blur-xl
+          flex flex-col overflow-hidden
         `}
-        style={{ paddingTop: 'calc(env(safe-area-inset-top) + 0.15rem)', paddingBottom: 'calc(env(safe-area-inset-bottom) + 0.15rem)' }}
+        style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
-        <div className="pointer-events-none absolute inset-0 hidden overflow-hidden lg:block">
-          <div className="absolute inset-x-6 top-0 h-40 rounded-b-[2rem] bg-gradient-to-b from-white/90 to-transparent" />
-          <div className="absolute -right-10 top-24 h-36 w-36 rounded-full bg-sky-200/35 blur-3xl" />
-          <div className="absolute -left-10 bottom-24 h-36 w-36 rounded-full bg-blue-200/30 blur-3xl" />
-        </div>
-        {/* Navigation: marca y usuario integrados arriba de la barra lateral,
-            dentro del área desplazable, para que no queden fijos al hacer scroll */}
-        <nav className="relative flex-1 overflow-y-auto px-4 py-4 lg:py-5 [scrollbar-width:thin] [scrollbar-color:hsl(var(--border))_transparent]">
-          <div className="relative mb-3 space-y-3">
-            <div className="relative rounded-[1.75rem] border border-border/80 bg-card/85 p-4 shadow-card backdrop-blur transition-all duration-300 hover:shadow-premium">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute right-3 top-3 h-8 w-8 rounded-xl border border-border/70 bg-card/80 lg:hidden"
-                onClick={onClose}
-              >
-                <X className="h-3.5 w-3.5" />
-              </Button>
-              <div className="flex items-center gap-3 min-w-0 pr-10 lg:pr-0">
-                {config?.app_logo_url ? (
-                  <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl bg-card shadow-card ring-1 ring-border/60">
-                    <OptimizedImage
-                      src={config.app_logo_url}
-                      alt="Logo"
-                      width={48}
-                      height={48}
-                      className="h-full w-full object-cover"
-                      priority={false}
-                    />
-                  </div>
-                ) : (
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-500 to-blue-500 shadow-card">
-                    <Package className="h-5 w-5 text-white" />
-                  </div>
-                )}
-                <div className="min-w-0">
-                  <p className="hidden text-[11px] font-semibold uppercase tracking-[0.24em] text-primary/70 lg:block">Panel</p>
-                  <h1 className="truncate font-display text-lg font-bold text-foreground">
-                    {config?.app_name || 'TLEC CARGO'}
-                  </h1>
-                  <p className="hidden truncate text-[12px] text-muted-foreground lg:block">
-                    {config?.app_tagline || 'Sistema de Envíos'}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="hidden rounded-[1.5rem] border border-border/80 bg-card/78 p-4 shadow-sm backdrop-blur transition-all duration-300 hover:bg-card/88 lg:block">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold tracking-[-0.01em] text-foreground">{user?.full_name || user?.email}</p>
-                  <p className="mt-1 truncate text-[12px] text-muted-foreground">{user?.email}</p>
-                </div>
-                <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-                isAdmin ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`
-                }>
-                  {isAdmin ? (roleConfig?.role_name || getAreaPreset(user?.custom_role)?.role_name || 'Administrador') : 'Cliente'}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-[1.75rem] border border-border/75 bg-card/58 p-3 shadow-sm backdrop-blur transition-all duration-300">
-          {isAdmin ? (
-            filteredAdminGroups.map((group) => (
-              <SidebarNavGroup
-                key={group.label}
-                label={group.label}
-                pages={group.items}
-                itemsByPage={adminItemsByPage}
-                currentPage={currentPage}
-                flags={displayFlags}
-                onItemClick={handleMenuClick}
-              />
-            ))
+        <div className="flex items-center gap-2.5 border-b border-border px-3 py-3">
+          {config?.app_logo_url ? (
+            <OptimizedImage src={config.app_logo_url} alt="Logo" width={32} height={32} className="h-8 w-8 shrink-0 rounded-lg object-cover" priority={false} />
           ) : (
-            filteredClientGroups.map((group) => (
-              <SidebarNavGroup
-                key={group.label}
-                label={group.label}
-                pages={group.items}
-                itemsByPage={clientItemsByPage}
-                currentPage={currentPage}
-                flags={displayFlags}
-                onItemClick={handleMenuClick}
-              />
-            ))
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary">
+              <Package className="h-4 w-4 text-primary-foreground" />
+            </div>
           )}
-          {/* Cerrar Sesión: justo debajo de Configuración, al final del menú */}
-          <SidebarLogoutButton onClick={handleLogout} />
+          <div className="min-w-0 flex-1">
+            <p className="truncate font-display text-sm font-bold text-foreground">{config?.app_name || 'TLEC CARGO'}</p>
+            <p className="truncate text-[11px] text-muted-foreground">
+              {isAdmin ? (roleConfig?.role_name || getAreaPreset(user?.custom_role)?.role_name || 'Administrador') : 'Cliente'}
+            </p>
           </div>
+          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 lg:hidden" onClick={onClose}>
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+
+        <div className="px-2 pt-2">
+          <button
+            type="button"
+            onClick={() => setSearchOpen(true)}
+            className="flex h-10 w-full items-center gap-3 rounded-lg border border-border px-3 text-sm text-muted-foreground hover:bg-accent"
+          >
+            <Search className="h-4 w-4 shrink-0" />
+            <span className="flex-1 text-left">Buscar página</span>
+            <kbd className="hidden rounded border border-border px-1.5 text-[10px] lg:inline">Ctrl K</kbd>
+          </button>
+        </div>
+
+        <nav className="flex-1 overflow-y-auto px-2 py-2 [scrollbar-width:thin]">
+          <SidebarSections sections={sections} currentPage={currentPage} flags={displayFlags} onNavigate={handleMenuClick} />
         </nav>
+
+        <div className="border-t border-border px-2 py-2">
+          <p className="truncate px-3 pb-1 text-[11px] text-muted-foreground">{user?.email}</p>
+          <SidebarLogoutButton onClick={handleLogout} />
+        </div>
       </aside>
+
+      <CommandSearch
+        open={searchOpen}
+        onOpenChange={setSearchOpen}
+        sections={sections}
+        isAdmin={isAdmin}
+        onNavigate={handleMenuClick}
+      />
     </>);
 
 }
