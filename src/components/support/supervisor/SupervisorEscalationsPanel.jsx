@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, Paperclip, ShieldCheck, Inbox } from 'lucide-react';
 import { toast } from 'sonner';
 import SupervisorCaseFile from './SupervisorCaseFile';
+import ReplyStatusFilter from './ReplyStatusFilter';
 
 const PRIORITY = {
   baja: 'bg-slate-100 text-slate-600',
@@ -27,6 +28,7 @@ const attachmentCount = (ticket) => (ticket.messages || [])
 // expediente completo al abrirlos.
 export default function SupervisorEscalationsPanel({ user, initialTicketId = '' }) {
   const [scope, setScope] = useState('todos');
+  const [replyFilter, setReplyFilter] = useState('sin_responder');
   const [cases, setCases] = useState([]);
   const [pendingCount, setPendingCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -76,7 +78,17 @@ export default function SupervisorEscalationsPanel({ user, initialTicketId = '' 
     setSelected(updated);
   };
 
-  const ordered = [...cases].sort((a, b) => {
+  const isAnswered = (ticket) => !!ticket.supervisor_reply_date;
+  const replyCounts = {
+    sin_responder: cases.filter((t) => !isAnswered(t)).length,
+    respondidos: cases.filter(isAnswered).length,
+    todos: cases.length,
+  };
+  const visible = replyFilter === 'todos'
+    ? cases
+    : cases.filter((t) => (replyFilter === 'respondidos' ? isAnswered(t) : !isAnswered(t)));
+
+  const ordered = [...visible].sort((a, b) => {
     const aPending = a.atc_review_status === 'revisado' ? 1 : 0;
     const bPending = b.atc_review_status === 'revisado' ? 1 : 0;
     if (aPending !== bPending) return aPending - bPending;
@@ -104,6 +116,8 @@ export default function SupervisorEscalationsPanel({ user, initialTicketId = '' 
           {scope === 'mios' ? 'Mostrando mis casos' : 'Ver solo mis casos'}
         </Button>
 
+        <ReplyStatusFilter value={replyFilter} onChange={setReplyFilter} counts={replyCounts} />
+
         {loading ? (
           <Card className="border-border/70 shadow-card">
             <CardContent className="flex items-center gap-2 py-6 text-sm text-muted-foreground">
@@ -114,12 +128,18 @@ export default function SupervisorEscalationsPanel({ user, initialTicketId = '' 
           <Card className="border-dashed border-border shadow-none">
             <CardContent className="space-y-2 py-6 text-center text-sm text-muted-foreground">
               <Inbox className="mx-auto h-6 w-6 text-muted-foreground" />
-              <p>No hay casos pendientes de revisión.</p>
+              <p>
+                {replyFilter === 'sin_responder'
+                  ? 'No tienes casos sin responder.'
+                  : replyFilter === 'respondidos'
+                    ? 'No hay casos respondidos pendientes de cierre.'
+                    : 'No hay casos pendientes de revisión.'}
+              </p>
               <p className="text-xs">
                 Los casos que se elevan desde la lista de Tickets o desde el Asistente ATC aparecen aquí hasta que el ATC los cierre.
               </p>
-              {scope !== 'todos' && (
-                <Button size="sm" variant="outline" onClick={() => setScope('todos')}>
+              {(scope !== 'todos' || replyFilter !== 'todos') && (
+                <Button size="sm" variant="outline" onClick={() => { setScope('todos'); setReplyFilter('todos'); }}>
                   Ver todos los casos
                 </Button>
               )}
