@@ -4,10 +4,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import CrmTagFilter from './CrmTagFilter';
 import CrmAgendaList from './CrmAgendaList';
 import CrmCasesList from './CrmCasesList';
+import CrmDepartmentBoard from './departments/CrmDepartmentBoard';
+import useSupportDepartments from '@/hooks/useSupportDepartments';
 
-// Bandeja de trabajo: pestañas Agenda y Casos con el filtro por etiqueta.
+// Bandeja de trabajo: pestañas Agenda, Casos y Departamentos con el filtro por etiqueta.
 export default function CrmInbox({ inbox, onOpen, user }) {
   const { data, loading } = inbox;
+  const deps = useSupportDepartments(user);
   const catalog = data?.catalog || [];
 
   return (
@@ -17,6 +20,7 @@ export default function CrmInbox({ inbox, onOpen, user }) {
         <TabsList>
           <TabsTrigger value="agenda">Agenda ({data?.agenda?.length ?? 0})</TabsTrigger>
           <TabsTrigger value="casos">Casos ({data?.cases?.length ?? 0})</TabsTrigger>
+          <TabsTrigger value="departamentos">Departamentos ({deps.departments.length})</TabsTrigger>
         </TabsList>
         {loading && !data ? (
           <p className="flex items-center gap-2 py-6 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Cargando bandeja…</p>
@@ -27,6 +31,15 @@ export default function CrmInbox({ inbox, onOpen, user }) {
             </TabsContent>
             <TabsContent value="casos">
               <CrmCasesList cases={data?.cases} profiles={data?.profiles} tagsByEmail={data?.tags_by_email} catalog={catalog} onOpen={onOpen} />
+            </TabsContent>
+            <TabsContent value="departamentos">
+              <CrmDepartmentBoard
+                cases={data?.cases}
+                profiles={data?.profiles}
+                deps={deps}
+                onMove={(id, dep) => inbox.moveCase(id, dep, user)}
+                onOpen={onOpen}
+              />
             </TabsContent>
           </>
         )}

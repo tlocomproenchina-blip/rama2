@@ -1,0 +1,72 @@
+{
+  "name": "SupportDepartment",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Nombre del departamento al que se asignan los casos (ej: Facturaci\u00f3n, Almac\u00e9n)"
+    },
+    "color": {
+      "type": "string",
+      "enum": [
+        "gray",
+        "blue",
+        "green",
+        "yellow",
+        "red",
+        "purple",
+        "pink"
+      ],
+      "enumColors": [
+        "gray",
+        "blue",
+        "green",
+        "yellow",
+        "red",
+        "purple",
+        "pink"
+      ],
+      "default": "blue",
+      "description": "Color con el que se muestra la columna del departamento"
+    },
+    "sort_order": {
+      "type": "number",
+      "default": 0,
+      "description": "Orden de la columna en el tablero"
+    },
+    "created_by_email": {
+      "type": "string",
+      "description": "Email de quien cre\u00f3 el departamento"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Descripci\u00f3n opcional"
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

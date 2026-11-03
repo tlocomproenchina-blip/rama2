@@ -105,6 +105,8 @@ export default async function (req) {
           status: t.status,
           escalated: !!t.escalated,
           assigned_to: t.assigned_to || '',
+          department_id: t.department_id || '',
+          department_name: t.department_name || '',
           waiting: isWaiting(t),
           last_message: last ? {
             message: String(last.message || '').slice(0, 2000),

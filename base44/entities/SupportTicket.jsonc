@@ -118,6 +118,23 @@
       "type": "string",
       "description": "Email del administrador asignado. En un caso escalado es el supervisor responsable."
     },
+    "department_id": {
+      "type": "string",
+      "description": "ID del departamento (SupportDepartment) al que se movi\u00f3 el caso desde el tablero del CRM"
+    },
+    "department_name": {
+      "type": "string",
+      "description": "Nombre del departamento asignado (cache para mostrar)"
+    },
+    "department_assigned_by": {
+      "type": "string",
+      "description": "Email de quien movi\u00f3 el caso al departamento"
+    },
+    "department_assigned_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Momento en que el caso se movi\u00f3 al departamento"
+    },
     "related_tracking": {
       "type": "string",
       "description": "N\u00famero de tracking relacionado si aplica"
