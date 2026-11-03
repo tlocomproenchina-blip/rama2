@@ -15,7 +15,6 @@ import SupportClientProfileCard from '@/components/support/client-file/SupportCl
 import ClientSupport360 from '@/components/support/client360/ClientSupport360';
 import SupervisorCaseAttachments from './SupervisorCaseAttachments';
 import PackageEditReviewPanel from './PackageEditReviewPanel';
-import InternalCaseChat from '@/components/support/internal-chat/InternalCaseChat';
 
 const PRIORITY = {
   baja: 'bg-slate-100 text-slate-600',
@@ -200,7 +199,6 @@ export default function SupervisorCaseFile({ ticket, user, onBack, onChange }) {
         </Card>
       ) : null}
 
-      <InternalCaseChat ticket={ticket} user={user} role="supervisor" />
 
       <PackageEditReviewPanel clientEmail={ticket.client_email} user={user} />
 
