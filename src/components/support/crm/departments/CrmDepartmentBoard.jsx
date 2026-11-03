@@ -23,7 +23,7 @@ export default function CrmDepartmentBoard({ cases = [], profiles = {}, deps, on
   };
 
   return (
-    <div className="space-y-3">
+    <div className="w-full min-w-0 space-y-3">
       <div className="flex items-center justify-between gap-2">
         <p className="text-xs text-muted-foreground">Arrastra cada caso a su departamento. Haz clic en una tarjeta para abrirla.</p>
         <Button size="sm" variant="outline" onClick={() => setManageOpen(true)}>
@@ -31,7 +31,7 @@ export default function CrmDepartmentBoard({ cases = [], profiles = {}, deps, on
         </Button>
       </div>
       <DragDropContext onDragEnd={onDragEnd}>
-        <div className="flex gap-3 overflow-x-auto pb-2">
+        <div className="grid w-full min-w-0 grid-cols-1 gap-3 pb-2 sm:grid-cols-2 2xl:flex 2xl:overflow-x-auto">
           {columns.map((col) => (
             <DepartmentColumn key={col.id} column={col} items={byColumn[col.id]} profiles={profiles} onOpen={onOpen} />
           ))}

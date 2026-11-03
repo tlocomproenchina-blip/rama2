@@ -6,7 +6,7 @@ import DepartmentCaseCard from './DepartmentCaseCard';
 // Columna de un departamento: recibe los casos que se arrastran a ella.
 export default function DepartmentColumn({ column, items, profiles, onOpen }) {
   return (
-    <div className="flex w-72 shrink-0 flex-col rounded-2xl border border-border/70 bg-muted/40">
+    <div className="flex w-full min-w-0 flex-col rounded-2xl border border-border/70 bg-muted/40 2xl:w-72 2xl:shrink-0">
       <div className="flex items-center justify-between gap-2 px-3 py-2.5">
         <p className="flex min-w-0 items-center gap-2 text-sm font-semibold text-foreground">
           <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${departmentDot(column.color)}`} />
