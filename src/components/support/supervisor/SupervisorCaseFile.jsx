@@ -134,14 +134,14 @@ export default function SupervisorCaseFile({ ticket, user, onBack, onChange }) {
 
   return (
     <div className="space-y-5">
+      <Button variant="outline" size="sm" onClick={onBack}>
+        <ArrowLeft className="h-4 w-4" /> Volver al CRM
+      </Button>
       <Card className="border-border/70 shadow-card">
         <CardContent className="space-y-3 pt-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <Button variant="ghost" size="icon" className="lg:hidden" onClick={onBack} aria-label="Volver a la lista">
-                  <ArrowLeft className="h-4 w-4" />
-                </Button>
                 <span className="font-mono text-xs text-muted-foreground">{ticket.ticket_number}</span>
                 <Badge className={PRIORITY[ticket.priority] || PRIORITY.media}>{ticket.priority || 'media'}</Badge>
                 <Badge className={pending ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}>
