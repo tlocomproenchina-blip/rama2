@@ -1,13 +1,13 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
+import { useQueryClient } from '@tanstack/react-query';
+import usePrintAuditLogs from '@/hooks/usePrintAuditLogs';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Loader2, Search, Printer, ShieldCheck, CheckCircle2, XCircle, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import useCedulaClientEmails from '@/hooks/useCedulaClientEmails';
-
-const PAGE_SIZE = 50;
 
 const TYPE_LABELS = {
   primera: 'Primera impresión',
@@ -24,54 +24,28 @@ const STATUS_STYLES = {
 };
 
 export default function WarehousePrintAudit() {
-  const [logs, setLogs] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   // Cédula escrita en el buscador → correos de los clientes que la tienen.
   const cedulaEmails = useCedulaClientEmails(search);
   const [typeFilter, setTypeFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [page, setPage] = useState(0);
-  const [total, setTotal] = useState(0);
   const [actionLoading, setActionLoading] = useState(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const all = await base44.entities.BultoPrintLog.list('-print_date', 1000);
-      let filtered = all || [];
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 350);
+    return () => clearTimeout(t);
+  }, [search]);
 
-      if (typeFilter !== 'all') {
-        filtered = filtered.filter((l) => l.print_type === typeFilter);
-      }
-      if (statusFilter !== 'all') {
-        filtered = filtered.filter((l) => l.approval_status === statusFilter);
-      }
-      if (search.trim()) {
-        const q = search.trim().toLowerCase();
-        filtered = filtered.filter((l) => {
-          const label = (l.label_code || '').toLowerCase();
-          const email = (l.client_email || '').toLowerCase();
-          const by = (l.printed_by || '').toLowerCase();
-          const reason = (l.reason || '').toLowerCase();
-          const detail = (l.reason_detail || '').toLowerCase();
-          const cedulaMatch = cedulaEmails.has(email);
-          return label.includes(q) || email.includes(q) || by.includes(q) || reason.includes(q) || detail.includes(q) || cedulaMatch;
-        });
-      }
+  const { logs, total, loading, loadingMore, hasMore, loadMore } = usePrintAuditLogs({
+    search: debouncedSearch, typeFilter, statusFilter, cedulaEmails
+  });
 
-      setTotal(filtered.length);
-      const start = page * PAGE_SIZE;
-      setLogs(filtered.slice(start, start + PAGE_SIZE));
-    } catch (_) {
-      toast.error('Error al cargar auditoría');
-    } finally {
-      setLoading(false);
-    }
-  }, [search, typeFilter, statusFilter, page, cedulaEmails]);
-
-  useEffect(() => { load(); }, [load]);
-  useEffect(() => { setPage(0); }, [search, typeFilter, statusFilter]);
+  const load = () => {
+    queryClient.invalidateQueries({ queryKey: ['printAuditLogs'] });
+    queryClient.invalidateQueries({ queryKey: ['printAuditCount'] });
+  };
 
   const handleApprove = async (logId) => {
     setActionLoading(logId);
@@ -89,8 +63,6 @@ export default function WarehousePrintAudit() {
       setActionLoading(null);
     }
   };
-
-  const totalPages = Math.ceil(total / PAGE_SIZE);
 
   return (
     <div className="space-y-4 max-w-5xl mx-auto">
@@ -188,11 +160,12 @@ export default function WarehousePrintAudit() {
         </div>
       )}
 
-      {totalPages > 1 && (
+      {!loading && hasMore && (
         <div className="flex items-center justify-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(0, p - 1))} disabled={page === 0}>Anterior</Button>
-          <span className="text-sm text-slate-600">Página {page + 1} de {totalPages}</span>
-          <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1}>Siguiente</Button>
+          <span className="text-sm text-slate-600">Mostrando {logs.length} de {total}</span>
+          <Button variant="outline" size="sm" onClick={() => loadMore()} disabled={loadingMore}>
+            {loadingMore && <Loader2 className="h-3.5 w-3.5 animate-spin" />} Cargar más
+          </Button>
         </div>
       )}
     </div>

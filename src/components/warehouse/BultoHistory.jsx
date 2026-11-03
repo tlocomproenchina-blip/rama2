@@ -21,6 +21,7 @@ import CombineSelectedDialog from './CombineSelectedDialog';
 import DismantleCajaDialog from './DismantleCajaDialog';
 
 const PAGE_SIZE = 50;
+const SERVER_BLOCK = 300;
 
 // Solo esta cuenta puede eliminar bultos (el servidor lo valida también).
 const DELETE_AUTHORIZED_EMAILS = ['genel.agonzalez@gmail.com'];
@@ -45,6 +46,8 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
   const [orderAssignOpen, setOrderAssignOpen] = useState(false);
   const [combineOpen, setCombineOpen] = useState(false);
   const [dismantleTarget, setDismantleTarget] = useState(null);
+  const [serverLimit, setServerLimit] = useState(SERVER_BLOCK);
+  const [hasOlder, setHasOlder] = useState(false);
 
   // Los bultos que no están entre los cargados se buscan en el servidor por el final
   // del código de etiqueta (basta con los últimos caracteres).
@@ -107,7 +110,15 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
     setLoading(true);
     try {
       // Cargar bultos del servidor ordenados por fecha desc
-      const serverBultos = await base44.entities.Bulto.list('-created_date', 1000);
+      // Búsqueda filtrada en el servidor; sin búsqueda se cargan los más recientes
+      // por bloques ("Cargar bultos anteriores" amplía el bloque).
+      const q = search.trim();
+      const rx = q ? { $regex: q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' } : null;
+      const serverQuery = rx
+        ? { $or: ['shipping_mark', 'client_email', 'label_code', 'client_snapshot.full_name', 'client_snapshot.cedula'].map((f) => ({ [f]: rx })) }
+        : {};
+      const serverBultos = await base44.entities.Bulto.filter(serverQuery, '-created_date', serverLimit);
+      setHasOlder(serverBultos.length >= serverLimit);
 
       // Cargar bultos locales cerrados/despachados que aún no se han sincronizado
       let localPending = [];
@@ -164,7 +175,7 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
     } finally {
       setLoading(false);
     }
-  }, [search, page, refreshKey, codeMatches]);
+  }, [search, page, refreshKey, codeMatches, serverLimit]);
 
   // Permiso de borrado: solo la cuenta autorizada ve las acciones de eliminar
   useEffect(() => {
@@ -342,6 +353,14 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
           <span className="text-sm text-slate-600">Página {page + 1} de {totalPages}</span>
           <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1}>
             Siguiente <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
+
+      {hasOlder && !loading && page >= totalPages - 1 && (
+        <div className="flex justify-center">
+          <Button variant="outline" size="sm" onClick={() => setServerLimit((n) => n + SERVER_BLOCK)}>
+            Cargar bultos anteriores
           </Button>
         </div>
       )}

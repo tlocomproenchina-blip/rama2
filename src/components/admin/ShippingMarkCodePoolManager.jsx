@@ -44,10 +44,12 @@ export default function ShippingMarkCodePoolManager() {
   const loadStats = async () => {
     try {
       setLoading(true);
-      const codes = await base44.entities.ShippingMarkCode.list('-created_date', 5000);
-      const total = codes.length;
-      const available = codes.filter((item) => item.status === 'available').length;
-      const assigned = codes.filter((item) => item.status === 'assigned').length;
+      // Contadores en el servidor: no se descargan los códigos
+      const [total, available, assigned] = await Promise.all([
+        base44.entities.ShippingMarkCode.count({}),
+        base44.entities.ShippingMarkCode.count({ status: 'available' }),
+        base44.entities.ShippingMarkCode.count({ status: 'assigned' }),
+      ]);
       setStats({ total, available, assigned });
     } catch (_) {
       toast.error('No se pudieron cargar los códigos disponibles');
@@ -71,8 +73,13 @@ export default function ShippingMarkCodePoolManager() {
 
     try {
       setSaving(true);
-      const existing = await base44.entities.ShippingMarkCode.list('-created_date', 5000);
-      const existingSet = new Set(existing.map((item) => String(item.code || '').trim().toUpperCase()));
+      // Solo se consultan los códigos pegados que ya existan, en bloques
+      const existingSet = new Set();
+      for (let i = 0; i < validCodes.length; i += 200) {
+        const chunk = validCodes.slice(i, i + 200);
+        const found = await base44.entities.ShippingMarkCode.filter({ code: { $in: chunk } }, '-created_date', chunk.length);
+        found.forEach((item) => existingSet.add(String(item.code || '').trim().toUpperCase()));
+      }
       const newItems = validCodes
         .filter((code) => !existingSet.has(code))
         .map((code) => ({ code, status: 'available' }));
