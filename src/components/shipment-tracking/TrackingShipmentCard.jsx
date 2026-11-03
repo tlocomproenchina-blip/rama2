@@ -129,7 +129,7 @@ export default function TrackingShipmentCard({ consolidation, user, isPending = 
     ? { label: 'Pago validado', className: 'bg-emerald-100 text-emerald-700' }
     : consolidation.payment_proof_url
       ? { label: 'Pago por validar', className: 'bg-amber-100 text-amber-700' }
-      : { label: 'Pendiente pago', className: 'bg-slate-900 text-white' };
+      : { label: 'Pendiente pago', className: 'bg-primary text-primary-foreground' };
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(consolidation.consolidation_tracking || '');
@@ -366,7 +366,7 @@ export default function TrackingShipmentCard({ consolidation, user, isPending = 
                 return (
                   <div
                     key={stage.key}
-                    className={`rounded-full px-3 py-2 text-xs font-medium ${active ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-500'}`}
+                    className={`rounded-full px-3 py-2 text-xs font-medium ${active ? 'bg-primary text-primary-foreground' : 'bg-slate-100 text-slate-500'}`}
                   >
                     {stage.label}
                   </div>

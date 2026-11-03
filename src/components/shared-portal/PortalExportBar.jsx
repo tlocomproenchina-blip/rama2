@@ -46,7 +46,7 @@ export default function PortalExportBar({ selectedCount, allFiltered, resultados
             type="button"
             onClick={() => onExport('xlsx')}
             disabled={exporting}
-            className="h-11 bg-slate-900 text-white hover:bg-slate-800"
+            className="h-11 bg-primary text-primary-foreground hover:bg-primary/90"
           >
             {exporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileSpreadsheet className="mr-2 h-4 w-4" />}
             Excel

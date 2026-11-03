@@ -193,7 +193,7 @@ export default function InternalFloatingChat({ user }) {
           onClick={() => setExpanded((prev) => !prev)}
           className="flex min-w-0 flex-1 items-center gap-3 text-left"
         >
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-slate-900 text-white">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
             <MessageCircle className="h-5 w-5" />
           </div>
           <div className="min-w-0 flex-1">

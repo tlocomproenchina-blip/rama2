@@ -165,7 +165,7 @@ export default function AdminSharedPortal() {
           <Button
             type="button"
             onClick={() => setDialog({ open: true, link: null })}
-            className="bg-slate-900 text-white hover:bg-slate-800"
+            className="bg-primary text-primary-foreground hover:bg-primary/90"
           >
             <Plus className="mr-2 h-4 w-4" /> Generar enlace
           </Button>
@@ -185,7 +185,7 @@ export default function AdminSharedPortal() {
           </div>
           <div className="flex flex-col gap-2 sm:flex-row">
             <Input readOnly value={portalLinkUrl(revealed.token)} className="font-mono text-xs" />
-            <Button type="button" onClick={() => copyUrl(revealed.token)} className="shrink-0 bg-slate-900 text-white hover:bg-slate-800">
+            <Button type="button" onClick={() => copyUrl(revealed.token)} className="shrink-0 bg-primary text-primary-foreground hover:bg-primary/90">
               <Copy className="mr-2 h-4 w-4" /> Copiar
             </Button>
           </div>

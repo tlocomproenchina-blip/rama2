@@ -41,7 +41,7 @@ export default function PortalAccessGate({ onSubmit, error, loading, label }) {
           {error ? <p className="text-xs font-medium text-destructive">{error}</p> : null}
         </div>
 
-        <Button type="submit" disabled={loading} className="h-11 w-full bg-slate-900 text-white hover:bg-slate-800">
+        <Button type="submit" disabled={loading} className="h-11 w-full bg-primary text-primary-foreground hover:bg-primary/90">
           {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <KeyRound className="mr-2 h-4 w-4" />}
           Entrar al portal
         </Button>

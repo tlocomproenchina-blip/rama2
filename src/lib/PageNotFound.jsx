@@ -7,15 +7,15 @@ export default function PageNotFound() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-sky-50 via-white to-blue-100 flex items-center justify-center p-4">
       <div className="text-center max-w-md">
         <div className="mb-6">
           <AlertCircle className="h-24 w-24 mx-auto text-blue-400 opacity-80" />
         </div>
         
-        <h1 className="text-4xl font-bold text-white mb-2">404</h1>
-        <p className="text-2xl font-semibold text-slate-200 mb-4">Página no encontrada</p>
-        <p className="text-slate-400 mb-8">
+        <h1 className="text-4xl font-bold text-foreground mb-2">404</h1>
+        <p className="text-2xl font-semibold text-foreground mb-4">Página no encontrada</p>
+        <p className="text-muted-foreground mb-8">
           Lo sentimos, la página que buscas no existe o ha sido movida.
         </p>
         

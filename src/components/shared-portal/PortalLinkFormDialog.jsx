@@ -190,7 +190,7 @@ export default function PortalLinkFormDialog({ open, link, wholesalers, onSearch
           <Button type="button" variant="ghost" onClick={onClose} disabled={saving}>
             Cancelar
           </Button>
-          <Button type="button" onClick={submit} disabled={saving} className="bg-slate-900 text-white hover:bg-slate-800">
+          <Button type="button" onClick={submit} disabled={saving} className="bg-primary text-primary-foreground hover:bg-primary/90">
             {saving ? 'Guardando…' : link ? 'Guardar cambios' : 'Generar enlace'}
           </Button>
         </DialogFooter>

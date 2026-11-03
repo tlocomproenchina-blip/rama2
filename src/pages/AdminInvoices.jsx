@@ -982,7 +982,7 @@ export default function AdminInvoices({ user }) {
               {/* Columna lateral derecha: badges + acciones apiladas */}
               <div className="flex flex-row flex-wrap lg:flex-col gap-2 w-full lg:w-44 shrink-0 items-stretch content-start">
                 {invoice.locked && (
-                  <span className="inline-flex items-center justify-center gap-1 rounded-full bg-slate-800 px-2.5 py-1.5 text-center text-xs font-semibold whitespace-nowrap text-white">
+                  <span className="inline-flex items-center justify-center gap-1 rounded-full bg-primary px-2.5 py-1.5 text-center text-xs font-semibold whitespace-nowrap text-primary-foreground">
                     <Lock className="h-3 w-3" /> Inmutable
                   </span>
                 )}

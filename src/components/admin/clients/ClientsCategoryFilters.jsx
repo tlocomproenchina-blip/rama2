@@ -24,7 +24,7 @@ export default function ClientsCategoryFilters({
           aria-pressed={exclusiveKey === 'all'}
           size="sm"
           onClick={() => selectStatus('all')}
-          className={(exclusiveKey === 'all') ? 'bg-slate-900 text-white border-slate-900' : ''}
+          className={(exclusiveKey === 'all') ? 'bg-primary text-primary-foreground border-primary' : ''}
         >
           Todos ({counts.total || registeredCount})
         </Button>
@@ -103,7 +103,7 @@ export default function ClientsCategoryFilters({
           size="sm"
           onClick={() => selectPackage(packageFilter === 'without_packages' ? 'all' : 'without_packages')}
           className={(exclusiveKey === 'without_packages')
-            ? 'bg-slate-900 text-white border-slate-900'
+            ? 'bg-primary text-primary-foreground border-primary'
             : 'border-slate-200 text-slate-700 hover:bg-slate-50'}
         >
           <Package className="h-3 w-3 mr-1" /> Sin Paquetes ({counts.withoutPackages})
@@ -125,7 +125,7 @@ export default function ClientsCategoryFilters({
           size="sm"
           onClick={() => selectWhatsapp(whatsappFilter === 'without' ? 'all' : 'without')}
           className={(exclusiveKey === 'without_whatsapp')
-            ? 'bg-slate-900 text-white border-slate-900'
+            ? 'bg-primary text-primary-foreground border-primary'
             : 'border-slate-200 text-slate-700 hover:bg-slate-50'}
         >
           <Phone className="h-3 w-3 mr-1" /> Sin WhatsApp ({counts.withoutWhatsapp})

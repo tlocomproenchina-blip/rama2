@@ -119,20 +119,20 @@ export default function AdminDashboard({ user }) {
 
   return (
     <div className="space-y-6">
-      <section className="overflow-hidden rounded-[calc(var(--radius)+0.75rem)] border border-border/70 bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 text-white shadow-premium">
+      <section className="overflow-hidden rounded-[calc(var(--radius)+0.75rem)] border border-border/70 bg-gradient-to-br from-sky-50 via-white to-blue-100 text-foreground shadow-card">
         <div className="grid gap-6 p-6 md:p-8 lg:grid-cols-[1.4fr_0.9fr] lg:items-end">
           <div>
-            <Badge className="border-white/10 bg-white/10 text-white hover:bg-white/10">Dashboard administrativo</Badge>
+            <Badge className="border-primary/20 bg-card text-primary hover:bg-card">Dashboard administrativo</Badge>
             <h1 className="mt-4 text-3xl font-bold md:text-5xl">Centro operativo de TLEC Cargo</h1>
-            <p className="mt-3 max-w-2xl text-sm text-blue-100/90 md:text-base">
+            <p className="mt-3 max-w-2xl text-sm text-muted-foreground md:text-base">
               Un panel nuevo desde cero para ver clientes, paquetes, consolidaciones, ingresos y tareas pendientes en un solo lugar.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
-              <Button onClick={loadData} className="bg-white text-slate-900 hover:bg-white/90">
+              <Button onClick={loadData}>
                 <RefreshCw className="mr-2 h-4 w-4" /> Actualizar dashboard
               </Button>
               <Link to={createPageUrl('AdminPackages')}>
-                <Button variant="outline" className="border-white/20 bg-white/5 text-white hover:bg-white/10">
+                <Button variant="outline">
                   Ver operaciones <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
@@ -140,15 +140,15 @@ export default function AdminDashboard({ user }) {
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
-            <div className="rounded-3xl border border-white/10 bg-white/10 p-5 backdrop-blur">
-              <p className="text-xs uppercase tracking-[0.22em] text-blue-100/80">Ingresos cobrados</p>
+            <div className="rounded-3xl border border-border/70 bg-card/80 p-5 shadow-card">
+              <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">Ingresos cobrados</p>
               <p className="mt-3 text-3xl font-bold">${metrics.totalRevenue.toFixed(2)}</p>
-              <p className="mt-2 text-sm text-blue-100/80">Acumulado validado</p>
+              <p className="mt-2 text-sm text-muted-foreground">Acumulado validado</p>
             </div>
-            <div className="rounded-3xl border border-white/10 bg-white/10 p-5 backdrop-blur">
-              <p className="text-xs uppercase tracking-[0.22em] text-blue-100/80">Ingresos del mes</p>
+            <div className="rounded-3xl border border-border/70 bg-card/80 p-5 shadow-card">
+              <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">Ingresos del mes</p>
               <p className="mt-3 text-3xl font-bold">${metrics.monthRevenue.toFixed(2)}</p>
-              <p className="mt-2 text-sm text-blue-100/80">Validaciones del mes actual</p>
+              <p className="mt-2 text-sm text-muted-foreground">Validaciones del mes actual</p>
             </div>
           </div>
         </div>

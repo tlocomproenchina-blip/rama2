@@ -25,15 +25,15 @@ export default function BatteryBannerSettings({ appConfig, setAppConfig, onSave,
   };
 
   return (
-    <div className="p-4 md:p-6 bg-slate-800 rounded-xl border border-emerald-500/30 space-y-4">
+    <div className="p-4 md:p-6 bg-card rounded-xl border border-border space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-emerald-500/20 rounded-lg">
             <BatteryCharging className="h-5 w-5 text-emerald-400" />
           </div>
           <div>
-            <h3 className="font-semibold text-slate-100 text-lg">Banner de Permisología de Batería</h3>
-            <p className="text-sm text-slate-400">Anuncio destacado en la página de inicio sobre importación de baterías</p>
+            <h3 className="font-semibold text-foreground text-lg">Banner de Permisología de Batería</h3>
+            <p className="text-sm text-muted-foreground">Anuncio destacado en la página de inicio sobre importación de baterías</p>
           </div>
         </div>
         <Switch
@@ -46,7 +46,7 @@ export default function BatteryBannerSettings({ appConfig, setAppConfig, onSave,
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label className="text-slate-200">Fecha de inicio</Label>
+              <Label className="text-foreground">Fecha de inicio</Label>
               <Input
                 type="date"
                 value={appConfig.battery_banner_start_date || ''}
@@ -54,7 +54,7 @@ export default function BatteryBannerSettings({ appConfig, setAppConfig, onSave,
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-slate-200">Fecha de fin</Label>
+              <Label className="text-foreground">Fecha de fin</Label>
               <Input
                 type="date"
                 value={appConfig.battery_banner_end_date || ''}
@@ -62,12 +62,12 @@ export default function BatteryBannerSettings({ appConfig, setAppConfig, onSave,
               />
             </div>
           </div>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-muted-foreground">
             El banner solo se muestra entre estas fechas. Si el usuario lo cierra, no vuelve a aparecer (hasta que cambies el contenido).
           </p>
 
           <div className="space-y-2">
-            <Label className="text-slate-200">Título del banner</Label>
+            <Label className="text-foreground">Título del banner</Label>
             <Input
               value={appConfig.battery_banner_title || ''}
               onChange={(e) => update({ battery_banner_title: e.target.value })}
@@ -76,7 +76,7 @@ export default function BatteryBannerSettings({ appConfig, setAppConfig, onSave,
           </div>
 
           <div className="space-y-2">
-            <Label className="text-slate-200">Contenido (editor HTML)</Label>
+            <Label className="text-foreground">Contenido (editor HTML)</Label>
             <div className="rounded-lg overflow-hidden border border-slate-600 bg-white">
               <ReactQuill
                 theme="snow"
@@ -96,7 +96,7 @@ export default function BatteryBannerSettings({ appConfig, setAppConfig, onSave,
                 style={{ minHeight: '140px' }}
               />
             </div>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-muted-foreground">
               El contenido se muestra sobre fondo oscuro. Usa texto claro para mejor legibilidad.
             </p>
           </div>

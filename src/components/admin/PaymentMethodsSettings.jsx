@@ -190,27 +190,27 @@ export default function PaymentMethodsSettings({ config, setConfig, saving, onSa
     <div className="space-y-6">
       <BcvRateCard config={config} />
 
-      <Card className="rounded-2xl border-0 shadow-lg bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
+      <Card className="rounded-2xl border-0 shadow-lg bg-gradient-to-br from-sky-50 via-white to-blue-100 text-foreground">
         <CardHeader className="pb-3 px-4 pt-4 md:pb-4 md:px-6 md:pt-6">
           <CardTitle className="flex items-center gap-2 text-xl">
             <DollarSign className="h-5 w-5" />
             Panel de pagos
           </CardTitle>
-          <CardDescription className="text-slate-300">
+          <CardDescription className="text-muted-foreground">
             Organiza tus métodos en tarjetas plegables, activa solo los necesarios y deja instrucciones más claras para tu equipo y tus clientes.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-3 px-4 pb-4 md:grid-cols-3 md:px-6 md:pb-6">
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-            <p className="text-sm text-slate-300">Métodos activos</p>
+          <div className="rounded-2xl border border-border/70 bg-card/80 p-4">
+            <p className="text-sm text-muted-foreground">Métodos activos</p>
             <p className="mt-2 text-3xl font-semibold">{activeCount}</p>
           </div>
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-            <p className="text-sm text-slate-300">Cobro online</p>
+          <div className="rounded-2xl border border-border/70 bg-card/80 p-4">
+            <p className="text-sm text-muted-foreground">Cobro online</p>
             <p className="mt-2 text-base font-medium">PayPal</p>
           </div>
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-            <p className="text-sm text-slate-300">Recomendación</p>
+          <div className="rounded-2xl border border-border/70 bg-card/80 p-4">
+            <p className="text-sm text-muted-foreground">Recomendación</p>
             <p className="mt-2 text-base font-medium">Mantén visibles solo los métodos realmente operativos.</p>
           </div>
         </CardContent>

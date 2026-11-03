@@ -164,7 +164,7 @@ export default function PortalFilterPanel({ draft, onChange, onApply, onClear, w
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <Button type="submit" disabled={loading} className="h-11 bg-slate-900 px-6 text-white hover:bg-slate-800">
+          <Button type="submit" disabled={loading} className="h-11 bg-primary px-6 text-primary-foreground hover:bg-primary/90">
             {loading ? 'Consultando…' : 'Definir filtros'}
           </Button>
           <Button type="button" variant="ghost" onClick={onClear} disabled={loading} className="h-11">

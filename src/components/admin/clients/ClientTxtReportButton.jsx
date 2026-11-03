@@ -102,7 +102,7 @@ export default function ClientTxtReportButton({ onReportChanged }) {
         <Button
           onClick={handleGenerate}
           disabled={generating}
-          className="w-full sm:w-auto bg-slate-800 hover:bg-slate-900"
+          className="w-full sm:w-auto bg-primary hover:bg-primary/90"
           title="Genera un TXT con los clientes nuevos desde el último reporte"
         >
           {generating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <FileText className="h-4 w-4 mr-2" />}
