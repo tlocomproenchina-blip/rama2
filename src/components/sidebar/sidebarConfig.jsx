@@ -123,6 +123,7 @@ export const adminMenuItems = [
   { name: 'Seguimiento', page: 'ShipmentTracking', icon: Truck },
   { name: 'Calculadora', page: 'ShippingCalculator', icon: Calculator },
   { name: 'Tracking Asegurados', page: 'AdminInsured', icon: ShieldCheck },
+  { name: 'CRM de atención', page: 'AdminSupportCRM', icon: Headphones },
   { name: 'Asistente ATC', page: 'AdminSupportAssistant', icon: Headphones },
   { name: 'Supervisor', page: 'AdminSupportSupervisor', icon: ShieldCheck },
   { name: 'Tickets Soporte', page: 'AdminSupportTickets', icon: MessageCircle },

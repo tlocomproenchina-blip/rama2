@@ -1,0 +1,67 @@
+{
+  "name": "ClientTag",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Nombre de la etiqueta manual del equipo (ej: VIP, reclamo frecuente)"
+    },
+    "color": {
+      "type": "string",
+      "enum": [
+        "gray",
+        "blue",
+        "green",
+        "yellow",
+        "red",
+        "purple",
+        "pink"
+      ],
+      "enumColors": [
+        "gray",
+        "blue",
+        "green",
+        "yellow",
+        "red",
+        "purple",
+        "pink"
+      ],
+      "default": "blue",
+      "description": "Color con el que se muestra la etiqueta"
+    },
+    "created_by_email": {
+      "type": "string",
+      "description": "Email de quien cre\u00f3 la etiqueta"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Descripci\u00f3n opcional"
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

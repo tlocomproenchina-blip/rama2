@@ -1,0 +1,60 @@
+{
+  "name": "ClientTagAssignment",
+  "type": "object",
+  "properties": {
+    "client_email": {
+      "type": "string",
+      "description": "Email del cliente. Un solo registro por cliente."
+    },
+    "client_name": {
+      "type": "string",
+      "description": "Nombre del cliente (cache para mostrar)"
+    },
+    "shipping_mark": {
+      "type": "string",
+      "description": "Shipping Mark del cliente (cache para mostrar)"
+    },
+    "tags": {
+      "type": "array",
+      "default": [],
+      "description": "Nombres de las etiquetas manuales (ClientTag) que el equipo le puso al cliente",
+      "items": {
+        "type": "string"
+      }
+    },
+    "updated_by_email": {
+      "type": "string",
+      "description": "Email de quien cambi\u00f3 las etiquetas por \u00faltima vez"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Descripci\u00f3n opcional"
+    }
+  },
+  "required": [
+    "client_email"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

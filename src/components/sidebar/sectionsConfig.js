@@ -51,7 +51,7 @@ export const ADMIN_SECTIONS = [
     p('AdminCityAnalytics', 'Ciudades'), p('AdminBlog', 'Blog'),
   ] },
   { id: 'soporte', label: 'Soporte', icon: Headphones, pages: [
-    p('AdminSupportAssistant', 'Asistente ATC'), p('AdminSupportSupervisor', 'Supervisor'), p('AdminSupportTickets', 'Tickets'),
+    p('AdminSupportCRM', 'CRM'), p('AdminSupportAssistant', 'Asistente ATC'), p('AdminSupportSupervisor', 'Supervisor'), p('AdminSupportTickets', 'Tickets'),
     p('AdminSupportQuickMessages', 'Mensajes rápidos'), p('AdminAssistantKnowledge', 'Conocimiento del asistente'),
     p('AdminInternalMessages', 'Mensajería interna'), p('AdminFAQ', 'FAQ'), p('AdminKnowledgeBase', 'Base de conocimiento'),
   ], subPages: ['AdminSupport', 'AdminSupportClients'] },

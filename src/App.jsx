@@ -65,6 +65,7 @@ const AdminSupportCollections = lazy(() => import('./pages/AdminSupportCollectio
 const AdminAssistantKnowledge = lazy(() => import('./pages/AdminAssistantKnowledge'));
 const AdminSupportAssistant = lazy(() => import('./pages/AdminSupportAssistant'));
 const AdminSupportSupervisor = lazy(() => import('./pages/AdminSupportSupervisor'));
+const AdminSupportCRM = lazy(() => import('./pages/AdminSupportCRM'));
 const AdminSupportClients = lazy(() => import('./pages/AdminSupportClients'));
 const AdminClients = lazy(() => import('./pages/AdminClients'));
 const AdminInvoices = lazy(() => import('./pages/AdminInvoices'));
@@ -199,6 +200,7 @@ const AuthenticatedApp = () => {
       <Route path="/AdminAssistantKnowledge" element={lazyRoute(AdminAssistantKnowledge, "AdminAssistantKnowledge")} />
       <Route path="/AdminSupportAssistant" element={lazyRoute(AdminSupportAssistant, "AdminSupportAssistant")} />
       <Route path="/AdminSupportSupervisor" element={lazyRoute(AdminSupportSupervisor, "AdminSupportSupervisor")} />
+      <Route path="/AdminSupportCRM" element={lazyRoute(AdminSupportCRM, "AdminSupportCRM")} />
       <Route path="/AdminSupportClients" element={lazyRoute(AdminSupportClients, "AdminSupportClients")} />
       <Route path="/AdminClients" element={lazyRoute(AdminClients, "AdminClients")} />
       <Route path="/AdminInvoices" element={lazyRoute(AdminInvoices, "AdminInvoices")} />
