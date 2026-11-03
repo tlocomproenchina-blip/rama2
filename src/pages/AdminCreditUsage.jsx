@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Loader2, RefreshCw, Zap, AlertTriangle, Filter } from 'lucide-react';
 import { format } from 'date-fns';
+import RuntimeBaselineCard from '@/components/api/RuntimeBaselineCard';
 
 export default function AdminCreditUsage() {
   const [logs, setLogs] = useState([]);
@@ -107,6 +108,8 @@ export default function AdminCreditUsage() {
           Actualizar
         </Button>
       </div>
+
+      <RuntimeBaselineCard />
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

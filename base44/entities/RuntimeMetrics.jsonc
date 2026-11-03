@@ -12,7 +12,7 @@
     },
     "page_name": {
       "type": "string",
-      "description": "P\u00e1gina actual del cliente"
+      "description": "P\u00e1gina (ruta) en la que se hicieron las llamadas medidas"
     },
     "queue_length": {
       "type": "number",
@@ -57,8 +57,94 @@
     },
     "latency_ms_avg": {
       "type": "number",
-      "description": "Latencia promedio estimada (ms)",
+      "description": "Latencia promedio medida (ms)",
       "default": 0
+    },
+    "latency_ms_p95": {
+      "type": "number",
+      "description": "Latencia del 5% m\u00e1s lento de las llamadas (ms)",
+      "default": 0
+    },
+    "latency_ms_max": {
+      "type": "number",
+      "description": "Latencia m\u00e1xima medida (ms)",
+      "default": 0
+    },
+    "window_seconds": {
+      "type": "number",
+      "description": "Duraci\u00f3n de la ventana medida en segundos"
+    },
+    "total_calls": {
+      "type": "number",
+      "default": 0,
+      "description": "Llamadas al servidor hechas en la ventana"
+    },
+    "read_calls": {
+      "type": "number",
+      "default": 0,
+      "description": "Lecturas en la ventana"
+    },
+    "write_calls": {
+      "type": "number",
+      "default": 0,
+      "description": "Escrituras en la ventana"
+    },
+    "function_calls": {
+      "type": "number",
+      "default": 0,
+      "description": "Llamadas a funciones de servidor en la ventana"
+    },
+    "rate_limit_hits": {
+      "type": "number",
+      "default": 0,
+      "description": "Respuestas 429 (exceso de solicitudes) recibidas"
+    },
+    "retries": {
+      "type": "number",
+      "default": 0,
+      "description": "Reintentos autom\u00e1ticos hechos"
+    },
+    "timeouts": {
+      "type": "number",
+      "default": 0,
+      "description": "Llamadas que superaron el tiempo m\u00e1ximo de espera"
+    },
+    "error_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Llamadas que terminaron en error"
+    },
+    "peak_queue": {
+      "type": "number",
+      "default": 0,
+      "description": "Mayor cantidad de llamadas en espera durante la ventana"
+    },
+    "peak_concurrency": {
+      "type": "number",
+      "default": 0,
+      "description": "Mayor cantidad de llamadas simult\u00e1neas durante la ventana"
+    },
+    "top_operations": {
+      "type": "array",
+      "default": [],
+      "description": "Operaciones m\u00e1s frecuentes de la ventana con su latencia promedio y errores",
+      "items": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "count": {
+            "type": "number"
+          },
+          "avg_ms": {
+            "type": "number"
+          },
+          "errors": {
+            "type": "number"
+          }
+        }
+      }
     },
     "device_cores": {
       "type": "number",
@@ -79,5 +165,27 @@
     "queue_length",
     "active_reads",
     "active_writes"
-  ]
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
 }

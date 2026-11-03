@@ -47,6 +47,18 @@ class ApiQueueManager {
     this._lastAutoScaleAt = 0;
     this._startAutoScaler();
     this.OPERATION_TIMEOUT_MS = 20000; // 20s: falla rápido en vez de colgarse
+    // Las funciones de servidor (pagos, despachos, lotes) pueden tardar más que
+    // una lectura: cortarlas a los 20s hacía que el usuario repitiera una
+    // operación que en realidad seguía corriendo.
+    this.FUNCTION_TIMEOUT_MS = 90000;
+    // Tope de entradas en caché para que la memoria no crezca sin límite
+    this.MAX_CACHE_ENTRIES = 800;
+    // Medición por página (Etapa 0): se envía periódicamente a RuntimeMetrics
+    this.metricsByPage = new Map();
+    this.metricsWindowStart = Date.now();
+    // Registro de consumo de integraciones agrupado (un envío cada pocos segundos)
+    this.creditLogBuffer = [];
+    this.creditLogTimer = null;
     // Cuánto tiempo se conserva una copia "stale" para servir si la red falla
     this.STALE_MAX_AGE_MS = 15 * 60 * 1000;
     // Realtime + caché granular
@@ -217,19 +229,93 @@ class ApiQueueManager {
   }
 
   /**
-   * Ejecuta operación con retry y backoff exponencial
+   * Métricas de la página actual (se crean al primer uso)
    */
-  async executeWithRetry(operation, maxRetries = 5) {
+  _pageMetrics() {
+    const page = (typeof window !== 'undefined' && window.location?.pathname) || 'unknown';
+    let m = this.metricsByPage.get(page);
+    if (!m) {
+      m = { calls: 0, reads: 0, writes: 0, functions: 0, rateLimited: 0, retries: 0, timeouts: 0, errors: 0, latencies: [], maxLatency: 0, peakQueue: 0, peakConcurrency: 0, ops: new Map() };
+      this.metricsByPage.set(page, m);
+    }
+    return m;
+  }
+
+  _recordOp(item, ms, ok) {
+    try {
+      const m = this._pageMetrics();
+      m.calls++;
+      if (item.opType === 'read') m.reads++; else m.writes++;
+      if (String(item.label || '').startsWith('fn:')) m.functions++;
+      if (!ok) m.errors++;
+      if (m.latencies.length < 500) m.latencies.push(ms);
+      if (ms > m.maxLatency) m.maxLatency = ms;
+      const label = item.label || 'otro';
+      const op = m.ops.get(label) || { count: 0, totalMs: 0, errors: 0 };
+      op.count++; op.totalMs += ms; if (!ok) op.errors++;
+      m.ops.set(label, op);
+    } catch (_) {}
+  }
+
+  /**
+   * Devuelve las métricas acumuladas por página y reinicia la ventana
+   */
+  takeMetrics() {
+    const now = Date.now();
+    const windowSeconds = Math.round((now - this.metricsWindowStart) / 1000);
+    const rows = [];
+    this.metricsByPage.forEach((m, page) => {
+      if (!m.calls && !m.rateLimited && !m.timeouts) return;
+      const sorted = [...m.latencies].sort((a, b) => a - b);
+      const avg = sorted.length ? sorted.reduce((s, v) => s + v, 0) / sorted.length : 0;
+      const p95 = sorted.length ? sorted[Math.floor(0.95 * (sorted.length - 1))] : 0;
+      const topOps = Array.from(m.ops.entries())
+        .sort((a, b) => b[1].count - a[1].count)
+        .slice(0, 10)
+        .map(([label, o]) => ({ label, count: o.count, avg_ms: Math.round(o.totalMs / o.count), errors: o.errors }));
+      rows.push({
+        page_name: page,
+        window_seconds: windowSeconds,
+        total_calls: m.calls,
+        read_calls: m.reads,
+        write_calls: m.writes,
+        function_calls: m.functions,
+        rate_limit_hits: m.rateLimited,
+        retries: m.retries,
+        timeouts: m.timeouts,
+        error_count: m.errors,
+        latency_ms_avg: Math.round(avg),
+        latency_ms_p95: Math.round(p95),
+        latency_ms_max: Math.round(m.maxLatency),
+        peak_queue: m.peakQueue,
+        peak_concurrency: m.peakConcurrency,
+        top_operations: topOps,
+      });
+    });
+    this.metricsByPage = new Map();
+    this.metricsWindowStart = now;
+    return rows;
+  }
+
+  /**
+   * Ejecuta operación con retry y backoff exponencial.
+   * Los 429 se reintentan siempre (el servidor rechazó la llamada, no la ejecutó).
+   * Un timeout solo se reintenta en lecturas: una escritura que tardó puede
+   * haberse completado y repetirla duplicaría pagos, despachos o registros.
+   */
+  async executeWithRetry(operation, maxRetries = 5, item = {}) {
     const withTimeout = (promise, ms) => new Promise((resolve, reject) => {
       const timer = setTimeout(() => reject(new Error('TIMEOUT')), ms);
       promise.then((v) => { clearTimeout(timer); resolve(v); })
              .catch((e) => { clearTimeout(timer); reject(e); });
     });
+    const metrics = this._pageMetrics();
+    const timeoutMs = item.timeoutMs || this.OPERATION_TIMEOUT_MS || 45000;
 
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       try {
         // Ejecuta con timeout para evitar cuelgues indefinidos
-        const result = await withTimeout(Promise.resolve().then(operation), this.OPERATION_TIMEOUT_MS || 45000);
+        const result = await withTimeout(Promise.resolve().then(operation), timeoutMs);
         this.resetCircuitBreaker();
         return result;
       } catch (error) {
@@ -239,16 +325,23 @@ class ApiQueueManager {
                            error?.response?.status === 429;
         const retryAfter = error?.response?.headers?.['retry-after'] || error?.response?.headers?.['Retry-After'];
 
-        // Timeouts: solo 1 reintento rápido — nunca esperas largas que congelan la UI
         if (isTimeout) {
+          metrics.timeouts++;
+          if (item.opType === 'write') {
+            throw new Error('La operación está tardando más de lo normal. Revisa si ya se completó antes de repetirla.');
+          }
+          // Lecturas: solo 1 reintento rápido — nunca esperas largas que congelan la UI
           if (attempt < 1) {
+            metrics.retries++;
             await new Promise(r => setTimeout(r, 1500));
             continue;
           }
           throw new Error('La conexión tardó demasiado. Verifica tu internet.');
         }
 
+        if (isRateLimit) metrics.rateLimited++;
         if (isRateLimit && attempt < maxRetries - 1) {
+          metrics.retries++;
           this.registerRateLimitError();
           await this.exponentialBackoff(attempt, retryAfter);
           continue;
@@ -332,10 +425,22 @@ class ApiQueueManager {
   saveToCache(key, data) {
     const entity = String(key).split(':')[0];
     if (this.cacheDisabledFor.has(entity)) return; // no guardar para vistas críticas
+    // Reinsertar para que la entrada quede como la más reciente
+    this.cache.delete(key);
     this.cache.set(key, {
       data,
       timestamp: Date.now()
     });
+    // Tope de memoria: descarta el 10% más antiguo al superar el límite
+    if (this.cache.size > this.MAX_CACHE_ENTRIES) {
+      const drop = Math.ceil(this.MAX_CACHE_ENTRIES * 0.1);
+      const keys = this.cache.keys();
+      for (let i = 0; i < drop; i++) {
+        const k = keys.next().value;
+        if (k === undefined) break;
+        this.cache.delete(k);
+      }
+    }
   }
 
   invalidateEntityCache(entityName, methods = []) {
@@ -352,7 +457,7 @@ class ApiQueueManager {
   /**
    * Añade operación a la cola
    */
-  async enqueue(operation, priority = 'NORMAL', opType = 'read', dedupeKey) {
+  async enqueue(operation, priority = 'NORMAL', opType = 'read', dedupeKey, meta = {}) {
     // Wrap operation to ensure it always returns a promise (and benefits from timeout)
     const op = async () => await Promise.resolve().then(operation);
     // Dedupe: si hay una llamada idéntica en vuelo, reusar su promesa
@@ -368,6 +473,8 @@ class ApiQueueManager {
         priority,
         opType,
         dedupeKey,
+        label: meta.label || (dedupeKey ? String(dedupeKey).split(':').slice(0, 2).join('.') : ''),
+        timeoutMs: meta.timeoutMs,
         timestamp: Date.now()
       };
 
@@ -410,8 +517,15 @@ class ApiQueueManager {
 
         const item = this.queue.splice(idx, 1)[0];
         if (item.opType === 'read') this.activeReads++; else this.activeWrites++;
+        try {
+          const pm = this._pageMetrics();
+          const active = this.activeReads + this.activeWrites;
+          if (active > pm.peakConcurrency) pm.peakConcurrency = active;
+          if (this.queue.length > pm.peakQueue) pm.peakQueue = this.queue.length;
+        } catch (_) {}
 
         (async () => {
+          const startedAt = Date.now();
           try {
             // Circuit breaker check
             this.checkCircuitBreaker();
@@ -425,10 +539,12 @@ class ApiQueueManager {
               }
             }
 
-            const result = await this.executeWithRetry(item.operation);
+            const result = await this.executeWithRetry(item.operation, 5, item);
+            this._recordOp(item, Date.now() - startedAt, true);
             if (item.dedupeKey) this.inflight.delete(item.dedupeKey);
             item.resolve(result);
           } catch (error) {
+            this._recordOp(item, Date.now() - startedAt, false);
             if (item.dedupeKey) this.inflight.delete(item.dedupeKey);
             if (error.message?.startsWith('CIRCUIT_BREAKER_OPEN')) {
               const minutes = error.message.split(':')[1];
@@ -550,7 +666,7 @@ class ApiQueueManager {
 
         return await this.enqueue(async () => {
           return await base44Client.entities[entityName].create(data);
-        }, 'HIGH', 'write');
+        }, 'HIGH', 'write', undefined, { label: `${entityName}.create` });
       },
 
       update: async (id, data) => {
@@ -558,7 +674,7 @@ class ApiQueueManager {
 
         return await this.enqueue(async () => {
           return await base44Client.entities[entityName].update(id, data);
-        }, 'HIGH', 'write');
+        }, 'HIGH', 'write', undefined, { label: `${entityName}.update` });
       },
 
       delete: async (id) => {
@@ -566,7 +682,7 @@ class ApiQueueManager {
 
         return await this.enqueue(async () => {
           return await base44Client.entities[entityName].delete(id);
-        }, 'HIGH', 'write');
+        }, 'HIGH', 'write', undefined, { label: `${entityName}.delete` });
       },
 
       bulkCreate: async (dataArray) => {
@@ -574,7 +690,7 @@ class ApiQueueManager {
 
         return await this.enqueue(async () => {
           return await base44Client.entities[entityName].bulkCreate(dataArray);
-        }, 'HIGH', 'write');
+        }, 'HIGH', 'write', undefined, { label: `${entityName}.bulkCreate` });
       },
 
       schema: async () => {
@@ -665,7 +781,7 @@ class ApiQueueManager {
         const { priority = 'NORMAL', opType = 'write', dedupeKey } = options;
         return await this.enqueue(async () => {
           return await base44Client.functions.invoke(functionName, params);
-        }, priority, opType, dedupeKey);
+        }, priority, opType, dedupeKey, { label: `fn:${functionName}`, timeoutMs: this.FUNCTION_TIMEOUT_MS });
       }
     };
   }
@@ -693,7 +809,7 @@ class ApiQueueManager {
               let errorMessage = '';
               let result;
               try {
-                result = await self.enqueue(async () => await fn(params), 'NORMAL', opType);
+                result = await self.enqueue(async () => await fn(params), 'NORMAL', opType, undefined, { label: `int:${String(pkg)}.${name}`, timeoutMs: self.FUNCTION_TIMEOUT_MS });
                 return result;
               } catch (err) {
                 status = 'error';
@@ -722,8 +838,8 @@ class ApiQueueManager {
                   })();
 
                   const page = (typeof window !== 'undefined' && window.location?.pathname) || '';
-                  // Fire and forget — DO NOT await
-                  base44Client.functions.invoke('logCreditUsage', {
+                  // Se agrupa: un solo envío cada pocos segundos en vez de una llamada por uso
+                  self.queueCreditLog({
                     integration_name: name,
                     estimated_credits: 1,
                     caller_function: `integrations.${String(pkg)}.${name}`,
@@ -733,7 +849,7 @@ class ApiQueueManager {
                     error_message: errorMessage,
                     params_summary: paramsSummary,
                     duration_ms: duration
-                  }).catch(() => {});
+                  });
                 } catch (_) {}
               }
             };
@@ -741,6 +857,23 @@ class ApiQueueManager {
         });
       }
     });
+  }
+
+  /**
+   * Acumula registros de consumo de integraciones y los envía juntos
+   */
+  queueCreditLog(entry) {
+    this.creditLogBuffer.push(entry);
+    if (this.creditLogBuffer.length >= 20) { this.flushCreditLogs(); return; }
+    if (!this.creditLogTimer) this.creditLogTimer = setTimeout(() => this.flushCreditLogs(), 10000);
+  }
+
+  flushCreditLogs() {
+    if (this.creditLogTimer) { clearTimeout(this.creditLogTimer); this.creditLogTimer = null; }
+    if (!this.creditLogBuffer.length) return;
+    const entries = this.creditLogBuffer.splice(0, 50);
+    base44Client.functions.invoke('logCreditUsage', { entries }).catch(() => {});
+    if (this.creditLogBuffer.length) this.creditLogTimer = setTimeout(() => this.flushCreditLogs(), 1000);
   }
 
   /**
@@ -880,3 +1013,5 @@ export const getApiTuning = () => apiQueue.getTuning();
 export const resetCircuitBreaker = () => apiQueue.forceResetCircuitBreaker();
 export const enableRealtime = (entities) => apiQueue.enableRealtime(entities);
 export const disableCacheFor = (entities) => apiQueue.disableCacheFor(entities);
+export const takeApiMetrics = () => apiQueue.takeMetrics();
+export const flushCreditLogs = () => apiQueue.flushCreditLogs();

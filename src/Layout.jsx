@@ -84,7 +84,8 @@ export default function Layout({ children, currentPageName }) {
   // Precargar en segundo plano los módulos admin más usados (solo descarga JS, no datos)
   useEffect(() => {
     if (user?.role === 'admin') {
-      import('@/lib/idleChunkPrefetch').then((m) => m.prefetchAdminChunks()).catch(() => {});
+      import('@/lib/idleChunkPrefetch').then((m) => m.prefetchAdminChunks(user)).catch(() => {});
+      import('@/lib/runtimeMetricsReporter').then((m) => m.startRuntimeMetricsReporter(user)).catch(() => {});
     }
   }, [user?.role]);
 
