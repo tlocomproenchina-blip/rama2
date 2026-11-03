@@ -52,23 +52,32 @@ export default async function (req: Request): Promise<Response> {
     if (body.action === 'review') {
       const bulto = await svc.Bulto.get(String(body.bulto_id || ''));
       if (!bulto) return Response.json({ error: 'Caja no encontrada' }, { status: 404 });
-      const matches = body.result === 'recibida';
+      const matches = !body.has_incident;
       const container = String(body.container_number || '').trim().toUpperCase();
       const notes = String(body.notes || '').trim().slice(0, 1000);
       const now = new Date().toISOString();
       const clientName = bulto.client_snapshot?.full_name || '';
+      const contentPhoto = String(body.content_photo_uri || '');
+      const damagePhotos = (Array.isArray(body.damage_photo_uris) ? body.damage_photo_uris : []).filter(Boolean).slice(0, 10);
+      const type = ['abierto', 'faltante', 'danado'].includes(body.incident_type) ? body.incident_type : '';
       let incidentId = '';
 
+      if (!container) return Response.json({ error: 'Escribe el N° de contenedor.' }, { status: 400 });
+      if (!contentPhoto) return Response.json({ error: 'La foto del contenido es obligatoria.' }, { status: 400 });
+
       if (!matches) {
-        if (!body.photo_uri) return Response.json({ error: 'Agrega la foto de la incidencia.' }, { status: 400 });
+        if (!type) return Response.json({ error: 'Elige el tipo de problema.' }, { status: 400 });
         if (!notes) return Response.json({ error: 'Describe la diferencia encontrada.' }, { status: 400 });
-        if (!container) return Response.json({ error: 'Escribe el N° de contenedor.' }, { status: 400 });
+        if (!damagePhotos.length) return Response.json({ error: 'Agrega al menos una foto del daño.' }, { status: 400 });
         const inc = await svc.WarehouseIncident.create({
+          bulto_id: bulto.id,
+          incident_type: type,
+          photo_uris: damagePhotos,
           container_number: container,
           client_code: (bulto.shipping_mark || '').toUpperCase(),
           client_email: bulto.client_email,
           client_name: clientName,
-          photo_uri: body.photo_uri,
+          photo_uri: damagePhotos[0],
           notes: `[${bulto.label_code}] ${notes}`,
           reported_date: now,
           reported_by: user.email,
@@ -85,7 +94,10 @@ export default async function (req: Request): Promise<Response> {
         container_number: container,
         result: matches ? 'recibida' : 'recibida_con_incidencia',
         incident_id: incidentId,
-        notes,
+        notes: matches ? '' : notes,
+        content_photo_uri: contentPhoto,
+        incident_type: matches ? undefined : type,
+        damage_photo_uris: matches ? [] : damagePhotos,
         reviewed_date: now,
         reviewed_by: user.email,
         reviewed_by_name: user.full_name || '',

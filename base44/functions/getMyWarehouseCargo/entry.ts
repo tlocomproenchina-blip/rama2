@@ -51,13 +51,22 @@ export default async function (req: Request): Promise<Response> {
     if (bultoList.length) {
       const reviews = await base44.asServiceRole.entities.CajaInventoryReview.filter(
         { bulto_id: { $in: bultoList.map((b) => b.id) }, client_email: user.email }, '-reviewed_date', 500);
-      for (const r of reviews) if (!reviewByBulto[r.bulto_id]) reviewByBulto[r.bulto_id] = r;
+      // Solo las revisiones con incidencia son visibles para el cliente.
+      for (const r of reviews) {
+        if (r.result !== 'recibida_con_incidencia' || !r.incident_id) continue;
+        if (!reviewByBulto[r.bulto_id]) reviewByBulto[r.bulto_id] = r;
+      }
       for (const r of Object.values(reviewByBulto)) {
-        if (!r.incident_id) continue;
         const inc = await base44.asServiceRole.entities.WarehouseIncident.get(r.incident_id).catch(() => null);
-        if (inc?.client_email !== user.email || !inc.photo_uri) continue;
-        const signed = await base44.asServiceRole.integrations.Core.CreateFileSignedUrl({ file_uri: inc.photo_uri, expires_in: 3600 }).catch(() => null);
-        r._photo_url = signed?.signed_url || '';
+        if (inc?.client_email !== user.email) { delete reviewByBulto[r.bulto_id]; continue; }
+        const uris = (inc.photo_uris?.length ? inc.photo_uris : [inc.photo_uri]).filter(Boolean);
+        const urls = [];
+        for (const uri of uris) {
+          const signed = await base44.asServiceRole.integrations.Core.CreateFileSignedUrl({ file_uri: uri, expires_in: 3600 }).catch(() => null);
+          if (signed?.signed_url) urls.push(signed.signed_url);
+        }
+        r._photo_urls = urls;
+        r._type = inc.incident_type || r.incident_type || '';
       }
     }
 
@@ -86,8 +95,9 @@ export default async function (req: Request): Promise<Response> {
           result: reviewByBulto[b.id].result,
           date: reviewByBulto[b.id].reviewed_date,
           container_number: reviewByBulto[b.id].container_number || '',
-          notes: reviewByBulto[b.id].result === 'recibida_con_incidencia' ? reviewByBulto[b.id].notes : '',
-          photo_url: reviewByBulto[b.id]._photo_url || '',
+          notes: reviewByBulto[b.id].notes || '',
+          incident_type: reviewByBulto[b.id]._type || '',
+          photo_urls: reviewByBulto[b.id]._photo_urls || [],
         } : null,
       };
     });

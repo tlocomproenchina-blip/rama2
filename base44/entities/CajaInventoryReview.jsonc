@@ -43,6 +43,32 @@
       "maxLength": 1000,
       "description": "Detalle de la diferencia encontrada"
     },
+    "content_photo_uri": {
+      "type": "string",
+      "description": "Foto obligatoria del contenido (archivo privado). Solo uso interno."
+    },
+    "incident_type": {
+      "type": "string",
+      "enum": [
+        "abierto",
+        "faltante",
+        "danado"
+      ],
+      "enumColors": [
+        "yellow",
+        "red",
+        "purple"
+      ],
+      "description": "Tipo de problema cuando hay incidencia"
+    },
+    "damage_photo_uris": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "description": "Fotos privadas del da\u00f1o"
+    },
     "reviewed_date": {
       "type": "string",
       "format": "date-time"

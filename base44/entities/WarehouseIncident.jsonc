@@ -18,9 +18,35 @@
       "type": "string",
       "description": "Nombre del cliente al momento de registrar la incidencia"
     },
+    "bulto_id": {
+      "type": "string",
+      "description": "Caja o bulto revisado al que pertenece la incidencia"
+    },
+    "incident_type": {
+      "type": "string",
+      "enum": [
+        "abierto",
+        "faltante",
+        "danado"
+      ],
+      "enumColors": [
+        "yellow",
+        "red",
+        "purple"
+      ],
+      "description": "Tipo de problema"
+    },
     "photo_uri": {
       "type": "string",
-      "description": "Archivo privado de la foto del paquete abierto (file_uri devuelto por UploadPrivateFile). Se abre con un enlace firmado temporal."
+      "description": "Archivo privado de la foto principal (file_uri devuelto por UploadPrivateFile). Se abre con un enlace firmado temporal."
+    },
+    "photo_uris": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "description": "Todas las fotos privadas del da\u00f1o"
     },
     "notes": {
       "type": "string",
