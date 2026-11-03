@@ -2,7 +2,7 @@
   "name": "Conteos de Paquetes - Incremental",
   "description": "Ajusta incrementalmente los conteos globales de paquetes al crear, editar o eliminar un paquete, sin escaneo.",
   "trigger": {
-    "condition": "${ .trigger.event_type != \"update\" or (.trigger.changed_fields | index(\"status\") != null) }",
+    "condition": "${ .trigger.event_type != \"update\" or (.trigger.changed_fields | index(\"status\") != null) or (.trigger.changed_fields | index(\"received_date\") != null) }",
     "config": {
       "trigger_type": "entity",
       "events": [

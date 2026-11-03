@@ -4,9 +4,13 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
 // Llamado por el workflow "Conteos de Paquetes - Incremental".
 // No hace escaneo: usa $inc atómico sobre el registro único PackageCounts.
 Deno.serve(async (req) => {
+  // Medición: cuánto tarda cada parte (lectura del cuerpo, consulta y escritura del conteo)
+  const t0 = Date.now();
+  const timings: Record<string, number> = {};
   try {
     const base44 = createClientFromRequest(req);
     const body = await req.json().catch(() => ({}));
+    timings.parse_ms = Date.now() - t0;
     const {
       event_type,
       status,            // status actual (.trigger.data.status)
@@ -64,11 +68,15 @@ Deno.serve(async (req) => {
     }
 
     if (Object.keys(updates).length === 0) {
-      return Response.json({ success: true, skipped: true });
+      console.log(`[adjustPackageCounts] skipped event=${event_type} total_ms=${Date.now() - t0}`);
+      return Response.json({ success: true, skipped: true, timings: { total_ms: Date.now() - t0 } });
     }
 
     // Asegurar que el registro existe (lo crea el backfill, pero por seguridad)
+    const tRead = Date.now();
     const existing = await base44.asServiceRole.entities.PackageCounts.filter({ config_key: 'main' }, '-updated_date', 1);
+    timings.read_ms = Date.now() - tRead;
+    const tWrite = Date.now();
     if (!existing || existing.length === 0) {
       const init = {
         config_key: 'main',
@@ -87,9 +95,13 @@ Deno.serve(async (req) => {
       );
     }
 
-    return Response.json({ success: true, applied: updates });
+    timings.write_ms = Date.now() - tWrite;
+    timings.total_ms = Date.now() - t0;
+    console.log(`[adjustPackageCounts] event=${event_type} parse_ms=${timings.parse_ms} read_ms=${timings.read_ms} write_ms=${timings.write_ms} total_ms=${timings.total_ms}`);
+
+    return Response.json({ success: true, applied: updates, timings });
   } catch (error) {
-    console.error('adjustPackageCounts error:', error);
+    console.error(`adjustPackageCounts error after ${Date.now() - t0}ms:`, error);
     return Response.json({ error: error.message || 'Internal error' }, { status: 500 });
   }
 });
