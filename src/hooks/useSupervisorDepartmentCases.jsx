@@ -22,6 +22,12 @@ export default function useSupervisorDepartmentCases(user) {
 
   useEffect(() => { load(); }, [load]);
 
+  // En vivo: los cambios de departamento hechos desde el CRM u otro supervisor se ven al instante.
+  useEffect(() => base44.entities.SupportTicket.subscribe((event) => {
+    if (event.type !== 'update' || !event.data) return;
+    setCases((prev) => prev.map((c) => (c.id === event.id ? { ...c, ...event.data } : c)));
+  }), []);
+
   const moveCase = useCallback(async (caseId, dep) => {
     const patch = departmentPatch(dep);
     setCases((prev) => prev.map((c) => (c.id === caseId ? { ...c, ...patch } : c)));

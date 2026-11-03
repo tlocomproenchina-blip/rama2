@@ -63,6 +63,13 @@ export default function SupervisorEscalationsPanel({ user, initialTicketId = '' 
 
   useEffect(() => { load(); }, [load]);
 
+  // En vivo: el departamento de cada caso se actualiza cuando otro usuario lo cambia.
+  useEffect(() => base44.entities.SupportTicket.subscribe((event) => {
+    if (event.type !== 'update' || !event.data) return;
+    const patch = { department_id: event.data.department_id || '', department_name: event.data.department_name || '' };
+    setCases((prev) => prev.map((item) => (item.id === event.id ? { ...item, ...patch } : item)));
+  }), []);
+
   // Llegada desde la notificación: ?ticketId=... abre ese caso directamente.
   useEffect(() => {
     if (!initialTicketId || selected) return undefined;
@@ -170,6 +177,9 @@ export default function SupervisorEscalationsPanel({ user, initialTicketId = '' 
                     <Badge className={`${reviewed ? 'bg-emerald-100 text-emerald-700' : awaitingReply ? 'bg-amber-100 text-amber-700' : 'bg-sky-100 text-sky-700'} text-[10px]`}>
                       {reviewed ? 'Revisada por el ATC' : awaitingReply ? 'Pendiente' : 'Respondida · ATC por cerrar'}
                     </Badge>
+                    {ticket.department_name ? (
+                      <Badge className="bg-accent text-accent-foreground text-[10px]">{ticket.department_name}</Badge>
+                    ) : null}
                     {files > 0 ? (
                       <span className="flex items-center gap-0.5"><Paperclip className="h-3 w-3" /> {files}</span>
                     ) : null}

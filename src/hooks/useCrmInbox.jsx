@@ -19,6 +19,15 @@ export default function useCrmInbox() {
 
   useEffect(() => { load(); }, [load]);
 
+  // En vivo: si otro usuario (por ejemplo Supervisión) cambia el departamento de un caso, se refleja aquí.
+  useEffect(() => base44.entities.SupportTicket.subscribe((event) => {
+    if (event.type !== 'update' || !event.data) return;
+    const patch = departmentPatch(event.data.department_id ? { id: event.data.department_id, name: event.data.department_name } : null);
+    setData((prev) => (prev && prev.cases.some((c) => c.id === event.id)
+      ? { ...prev, cases: prev.cases.map((c) => (c.id === event.id ? { ...c, ...patch } : c)) }
+      : prev));
+  }), []);
+
   const markDone = useCallback(async (row, user) => {
     await base44.entities.SupportFollowUp.update(row.id, {
       status: 'hecho',

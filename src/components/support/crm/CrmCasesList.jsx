@@ -37,6 +37,7 @@ export default function CrmCasesList({ cases = [], profiles = {}, tagsByEmail = 
             )}
             <div className="mt-2 flex flex-wrap items-center gap-2">
               {c.escalated && <span className="flex items-center gap-1 text-[11px] text-violet-700"><ShieldCheck className="h-3 w-3" /> Supervisión</span>}
+              {c.department_name && <span className="rounded-full bg-accent px-2 py-0.5 text-[11px] font-medium text-accent-foreground">{c.department_name}</span>}
               <span className="text-[11px] text-muted-foreground">{ago(c.last_message?.timestamp || c.updated_date)}</span>
               <CrmTagBadges tags={tagsByEmail[c.client_email]} catalog={catalog} />
             </div>
