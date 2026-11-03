@@ -36,7 +36,8 @@ export async function processQueueItems(base44: any, items: any[], fromNameDefau
         to: item.recipient_email,
         subject: item.subject,
         body: item.body || '',
-        from_name: item.from_name || fromNameDefault
+        from_name: item.from_name || fromNameDefault,
+        provider: item.provider === 'base44' ? 'base44' : 'brevo'
       });
       if (!result.sent) {
         throw new Error(result.error || 'Envío fallido');

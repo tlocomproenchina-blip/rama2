@@ -62,6 +62,15 @@
       "default": "manual",
       "description": "Origen"
     },
+    "provider": {
+      "type": "string",
+      "enum": [
+        "brevo",
+        "base44"
+      ],
+      "default": "brevo",
+      "description": "Servicio con el que sale el correo: brevo (API de Brevo, pasa a Base44 si se agota la cuota diaria) o base44 (servicio de correo de Base44, usa cr\u00e9ditos de integraci\u00f3n)"
+    },
     "campaign_id": {
       "type": "string"
     },

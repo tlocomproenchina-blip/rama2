@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import EmailHistoryModal from '@/components/admin/EmailHistoryModal';
 import EmailAIAssistant from '@/components/admin/EmailAIAssistant';
+import EmailProviderSelect from '@/components/admin/email-campaigns/EmailProviderSelect';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { toast } from 'sonner';
@@ -64,6 +65,9 @@ export default function AdminEmailCampaigns({ user }) {
   const [queueStats, setQueueStats] = useState({ pending: 0, sent: 0, batchSize: 50, intervalMs: 60000 });
   const [sendBaseline, setSendBaseline] = useState(null);
   const [sendTotal, setSendTotal] = useState(0);
+  const [provider, setProvider] = useState('brevo');
+  // email del cliente → Shipping Mark anterior (migración de la serie 50000)
+  const [previousMarks, setPreviousMarks] = useState({});
 
   useEffect(() => {
     const id = setInterval(() => {
@@ -81,7 +85,8 @@ export default function AdminEmailCampaigns({ user }) {
         loadConfig(),
         loadClients(),
         loadEmailStats(),
-        loadTemplates()
+        loadTemplates(),
+        loadPreviousMarks()
       ]);
     };
     init();
@@ -126,6 +131,13 @@ export default function AdminEmailCampaigns({ user }) {
       conversionValue: logs.reduce((sum, l) => sum + (l.conversion_value || 0), 0)
     };
     setEmailStats(stats);
+  };
+
+  const loadPreviousMarks = async () => {
+    const rows = await base44.entities.ShippingMarkMigration.filter({ status: 'migrado' }, '-created_date', 2000);
+    const map = {};
+    rows.forEach((r) => { if (r.client_email) map[String(r.client_email).toLowerCase()] = r.old_mark; });
+    setPreviousMarks(map);
   };
 
   const loadTemplates = async () => {
@@ -191,9 +203,10 @@ export default function AdminEmailCampaigns({ user }) {
     if (targetType === 'with_whatsapp') return clients.filter(c => !!c.whatsapp);
     if (targetType === 'without_whatsapp') return clients.filter(c => !c.whatsapp);
 
+    if (targetType === 'migrated_mark') return clients.filter(c => !!previousMarks[String(c.email || '').toLowerCase()]);
     if (targetType === 'custom') return clients.filter(c => selectedClients.includes(c.id));
     return [];
-  }, [targetType, clients, selectedClients, packages]);
+  }, [targetType, clients, selectedClients, packages, previousMarks]);
 
   const toggleClient = (clientId) => {
     setSelectedClients(prev => 
@@ -290,14 +303,16 @@ export default function AdminEmailCampaigns({ user }) {
 
       // Preparar lote para cola backend
       const messages = getTargetClients.map((client) => {
-        const personalizedSubject = replaceEmailVariables(emailData.subject, client);
-        const personalizedBody = replaceEmailVariables(emailBody, client);
+        const extraData = { shipping_mark_anterior: previousMarks[String(client.email || '').toLowerCase()] || '' };
+        const personalizedSubject = replaceEmailVariables(emailData.subject, client, extraData);
+        const personalizedBody = replaceEmailVariables(emailBody, client, extraData);
         return {
           to: client.email,
           subject: personalizedSubject,
           body: personalizedBody,
           from_name: emailData.fromName,
-          source: 'campaign'
+          source: 'campaign',
+          provider
         };
       });
 
@@ -320,7 +335,7 @@ export default function AdminEmailCampaigns({ user }) {
         reference_id: '',
         area_name: 'Marketing',
         summary: `Envió email a ${messages.length} destinatarios`,
-        details: `Asunto: ${emailData.subject} · Segmento: ${targetType}`,
+        details: `Asunto: ${emailData.subject} · Segmento: ${targetType} · Envío: ${provider}`,
         changed_fields: ['subject', 'body', 'targetType'],
       });
       
@@ -573,6 +588,8 @@ export default function AdminEmailCampaigns({ user }) {
                 appName={config?.app_name || 'Logistics App'}
                 onApply={({ subject, body }) => setEmailData(prev => ({ ...prev, subject, body }))}
               />
+
+              <EmailProviderSelect value={provider} onChange={setProvider} />
 
               <div className="space-y-2">
                 <Label>Nombre del Remitente</Label>
@@ -871,6 +888,9 @@ export default function AdminEmailCampaigns({ user }) {
                     </SelectItem>
                     <SelectItem value="without_whatsapp">
                       Sin WhatsApp ({clients.filter(c => !c.whatsapp).length})
+                    </SelectItem>
+                    <SelectItem value="migrated_mark">
+                      Shipping Mark migrado ({clients.filter(c => !!previousMarks[String(c.email || '').toLowerCase()]).length})
                     </SelectItem>
                     <SelectItem value="custom">
                       Selección personalizada

@@ -28,6 +28,7 @@ Deno.serve(async (req) => {
         attempts: 0,
         scheduled_at: now,
         source: m.source || 'campaign',
+        provider: m.provider === 'base44' ? 'base44' : 'brevo',
         campaign_id: m.campaign_id || undefined,
         campaign_name: m.campaign_name || undefined
       }));
