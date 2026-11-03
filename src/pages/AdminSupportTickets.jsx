@@ -28,16 +28,16 @@ import AdminSupportTicketDetailDialog from '@/components/support/AdminSupportTic
 import AdminSupportBulkBar from '@/components/support/AdminSupportBulkBar';
 
 // La pantalla vive dentro del CRM (pestaña Tickets); la ruta propia redirige allí.
-export default function AdminSupportTickets({ user, embedded = false, onOpenCase }) {
+export default function AdminSupportTickets({ user, embedded = false, onOpenCase, crm }) {
   if (!embedded) {
     const params = new URLSearchParams(window.location.search);
     const ticketId = params.get('ticketId');
     return <Navigate to={`/AdminSupportCRM?tab=tickets${ticketId ? `&ticketId=${ticketId}` : ''}`} replace />;
   }
-  return <AdminSupportTicketsView user={user} onOpenCase={onOpenCase} />;
+  return <AdminSupportTicketsView user={user} onOpenCase={onOpenCase} crm={crm} />;
 }
 
-function AdminSupportTicketsView({ user, onOpenCase }) {
+function AdminSupportTicketsView({ user, onOpenCase, crm }) {
   const [tickets, setTickets] = useState([]);
   const [staffUsers, setStaffUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -536,6 +536,8 @@ function AdminSupportTicketsView({ user, onOpenCase }) {
 
   // Filter tickets
   const filteredTickets = useMemo(() => tickets.filter(ticket => {
+    // Dentro del CRM, el filtro por etiqueta / "solo míos" de la bandeja también aplica aquí.
+    if (crm?.filterActive && !crm.casesById[ticket.id]) return false;
     const searchLower = (search || '').toLowerCase();
     const tNum = (ticket.ticket_number || '').toLowerCase();
     const subj = (ticket.subject || '').toLowerCase();
@@ -571,6 +573,9 @@ function AdminSupportTicketsView({ user, onOpenCase }) {
 
     return searchMatch && statusMatch && priorityMatch && assignedMatch && readMatch && dateMatch;
   }).sort((a, b) => {
+    const aWaiting = crm?.casesById[a.id]?.waiting ? 1 : 0;
+    const bWaiting = crm?.casesById[b.id]?.waiting ? 1 : 0;
+    if (aWaiting !== bWaiting) return bWaiting - aWaiting;
     const aUpdated = new Date(a.updated_date || a.created_date || 0).getTime();
     const bUpdated = new Date(b.updated_date || b.created_date || 0).getTime();
     if (aUpdated !== bUpdated) return bUpdated - aUpdated;
@@ -584,7 +589,7 @@ function AdminSupportTicketsView({ user, onOpenCase }) {
     if (aTime !== bTime) return bTime - aTime;
 
     return new Date(b.created_date || 0).getTime() - new Date(a.created_date || 0).getTime();
-  }), [tickets, search, filterStatus, filterPriority, filterAssigned, filterRead, filterDate, manuallyUnreadTicketIds, openedTicketIds]);
+  }), [tickets, search, filterStatus, filterPriority, filterAssigned, filterRead, filterDate, manuallyUnreadTicketIds, openedTicketIds, crm]);
 
   const filteredKpiTickets = useMemo(() => {
     const now = new Date();
@@ -689,6 +694,7 @@ function AdminSupportTicketsView({ user, onOpenCase }) {
             handleStatusChange={handleStatusChange}
             handleMarkAsUnread={handleMarkAsUnread}
             handleSupervisorToggle={handleSupervisorToggle}
+            crm={crm}
           />
           {hasMore && (
             <div className="flex justify-center">

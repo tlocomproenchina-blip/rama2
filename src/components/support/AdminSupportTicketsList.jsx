@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Mail, MessageSquare, UserCheck, Bot, AlertTriangle, Clock, ShieldCheck } from 'lucide-react';
+import CrmTicketExtras from '@/components/support/crm/CrmTicketExtras';
 
 export default function AdminSupportTicketsList({
   filteredTickets,
@@ -25,7 +26,8 @@ export default function AdminSupportTicketsList({
   setSelectedAssignee,
   handleStatusChange,
   handleMarkAsUnread,
-  handleSupervisorToggle = () => {}
+  handleSupervisorToggle = () => {},
+  crm = null
 }) {
   if (filteredTickets.length === 0) {
     return (
@@ -150,6 +152,7 @@ export default function AdminSupportTicketsList({
                           </>
                         )}
                       </div>
+                      <CrmTicketExtras ticket={ticket} crm={crm} />
                     </div>
                   </div>
 
