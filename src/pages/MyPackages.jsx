@@ -5,22 +5,20 @@ import { base44 } from '@/components/api/ApiQueueManager';
 import { uploadImageNoCredits } from '@/lib/imgbbUpload';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Package, 
   Search, 
   Plus, 
   Plane, 
   Ship,
-  Shield,
   Truck,
   Image as ImageIcon,
   Loader2,
-  ExternalLink,
   Pencil,
   Trash2,
   Camera,
@@ -76,7 +74,7 @@ export default function MyPackages({ user }) {
   useEffect(() => {
     loadPackages(false);
     loadInsurancePayments();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [user?.email]);
 
   const loadInsurancePayments = async () => {

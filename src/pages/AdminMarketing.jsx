@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo, lazy, Suspense, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,11 +8,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import 'react-quill/dist/quill.snow.css';
 
 const ReactQuill = lazy(() => import('react-quill'));
-import { Plus, Loader2, Mail, Bell, Users, TrendingUp, Calendar, Send, Eye, MousePointer, DollarSign, Edit, Trash2, Paperclip, X, Image as ImageIcon, XCircle, AlertCircle } from 'lucide-react';
+import { Plus, Loader2, Mail, Bell, Users, TrendingUp, Calendar, Send, Eye, MousePointer, DollarSign, Edit, Trash2, Paperclip, X, Image as ImageIcon, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import EmailHistoryModal from '@/components/admin/EmailHistoryModal';
 import { replaceEmailVariables } from '@/components/EmailVariableReplacer';

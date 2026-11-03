@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { base44 } from '@/components/api/ApiQueueManager';
-import { Search, Hash, CreditCard, PackageCheck, ImageIcon } from 'lucide-react';
+import { Search, Hash, CreditCard, PackageCheck } from 'lucide-react';
 import useFileViewer from '@/hooks/useFileViewer';
 
 const providerLabels = {

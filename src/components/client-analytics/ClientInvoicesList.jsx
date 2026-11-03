@@ -45,13 +45,28 @@ export default function ClientInvoicesList({ invoices, payments = [], client, on
     return map;
   }, [payments]);
 
+  const approvedFor = (invoiceId) =>
+    (paymentsByInvoice.get(invoiceId) || [])
+      .filter((payment) => payment.status === 'aprobado')
+      .reduce((sum, payment) => sum + num(payment.amount), 0);
+
+  // Una factura marcada como pagada se considera saldada aunque no tenga abonos
+  // registrados (se marcó pagada a mano o antes de existir el registro de abonos).
+  const paidFor = (invoice) => {
+    const approved = approvedFor(invoice.id);
+    return invoice.status === 'pagada' ? Math.max(approved, invoicedAmount(invoice)) : approved;
+  };
+
   const totals = useMemo(() => {
     const active = (Array.isArray(invoices) ? invoices : []).filter((invoice) => invoice.status !== 'cancelada');
     const all = Array.isArray(payments) ? payments : [];
     const byStatus = (status) => all.filter((payment) => payment.status === status);
     const sum = (rows) => rows.reduce((acc, payment) => acc + num(payment.amount), 0);
     const billed = active.reduce((acc, invoice) => acc + invoicedAmount(invoice), 0);
-    const paid = sum(byStatus('aprobado'));
+    const paidWithoutRecords = active
+      .filter((invoice) => invoice.status === 'pagada')
+      .reduce((acc, invoice) => acc + Math.max(0, invoicedAmount(invoice) - approvedFor(invoice.id)), 0);
+    const paid = sum(byStatus('aprobado')) + paidWithoutRecords;
     return {
       billed,
       paid,
@@ -61,12 +76,7 @@ export default function ClientInvoicesList({ invoices, payments = [], client, on
       approvedCount: byStatus('aprobado').length,
       pendingCount: byStatus('pendiente').length,
     };
-  }, [invoices, payments]);
-
-  const paidFor = (invoiceId) =>
-    (paymentsByInvoice.get(invoiceId) || [])
-      .filter((payment) => payment.status === 'aprobado')
-      .reduce((sum, payment) => sum + num(payment.amount), 0);
+  }, [invoices, payments, paymentsByInvoice]);
 
   const handleWhatsApp = (invoice, e) => {
     e.stopPropagation();
@@ -95,7 +105,7 @@ export default function ClientInvoicesList({ invoices, payments = [], client, on
             const isOpen = expanded === invoice.id;
             const items = displayInvoiceItems(invoice);
             const invoicePayments = paymentsByInvoice.get(invoice.id) || [];
-            const paid = paidFor(invoice.id);
+            const paid = paidFor(invoice);
             const invoiced = invoicedAmount(invoice);
             const balance = Math.max(invoiced - paid, 0);
             const pendingCount = invoicePayments.filter((payment) => payment.status === 'pendiente').length;

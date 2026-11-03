@@ -91,7 +91,7 @@ export default function AdminClients({ user }) {
   // Recarga lista cada vez que cambian filtros / búsqueda (todo server-side ahora)
   useEffect(() => {
     loadClients(false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [debouncedSearch, exclusiveKey, stateFilter, fromDate, toDate, quickDate]);
 
   // Realtime directo sobre User desactivado para evitar errores de permisos en producción.

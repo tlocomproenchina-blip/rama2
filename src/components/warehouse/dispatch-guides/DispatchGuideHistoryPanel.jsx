@@ -26,7 +26,7 @@ export default function DispatchGuideHistoryPanel({ highlightId = '', reloadSign
   useEffect(() => {
     if (!reloadSignal) return;
     refresh();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [reloadSignal]);
 
   const handleUpdated = () => {

@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, Upload, X, FileText, ImageIcon, ChevronDown, Check, Search } from 'lucide-react';
+import { Loader2, X, FileText, ImageIcon, ChevronDown, Check, Search } from 'lucide-react';
 import { uploadImageNoCredits } from '@/lib/imgbbUpload';
 
 const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);

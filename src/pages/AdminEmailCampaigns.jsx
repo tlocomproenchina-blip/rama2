@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, lazy, Suspense, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -24,10 +24,8 @@ import {
   Paperclip,
   X,
   Image as ImageIcon,
-  Upload,
   History,
-  TrendingUp,
-  MousePointer
+  TrendingUp
 } from 'lucide-react';
 import EmailHistoryModal from '@/components/admin/EmailHistoryModal';
 import EmailAIAssistant from '@/components/admin/EmailAIAssistant';

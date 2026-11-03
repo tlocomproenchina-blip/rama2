@@ -48,6 +48,7 @@ export default function ClientAnalytics() {
   const [insurancePayments, setInsurancePayments] = useState([]);
   const [cbmIngresos, setCbmIngresos] = useState([]);
   const [dispatchOrders, setDispatchOrders] = useState([]);
+  const [dispatchError, setDispatchError] = useState(false);
   const [appConfig, setAppConfig] = useState(null);
   const [pricing, setPricing] = useState(null);
   const [stateConfigs, setStateConfigs] = useState([]);
@@ -91,27 +92,29 @@ export default function ClientAnalytics() {
       return;
     }
 
-    try {
-      setLoading(true);
-      const [consolidationList, invoiceList, paymentList, packageList, cbmList, dispatchList, insuranceList] = await Promise.all([
-        base44.entities.Consolidation.filter({ client_email: clientEmail }, '-created_date', 500),
-        base44.entities.Invoice.filter({ client_email: clientEmail }, '-created_date', 500),
-        base44.entities.InvoicePayment.filter({ client_email: clientEmail }, '-created_date', 500).catch(() => []),
-        base44.entities.Package.filter({ client_email: clientEmail }, '-created_date', 1000),
-        base44.entities.CbmIngreso.filter({ client_email: clientEmail }, '-fecha', 500),
-        base44.entities.DispatchOrder.filter({ client_email: clientEmail }, '-created_date', 500).catch(() => []),
-        base44.entities.InsurancePayment.filter({ client_email: clientEmail }, '-created_date', 500).catch(() => [])
-      ]);
-      setConsolidations(consolidationList || []);
-      setInvoices(invoiceList || []);
-      setInvoicePayments(paymentList || []);
-      setPackages(packageList || []);
-      setInsurancePayments(insuranceList || []);
-      setCbmIngresos(cbmList || []);
-      setDispatchOrders(dispatchList || []);
-    } catch {
-      toast.error('No se pudo cargar la analítica del cliente');
-    }
+    setLoading(true);
+    setDispatchError(false);
+    // Cada bloque carga por separado: si uno falla, los demás siguen mostrándose.
+    const failed = [];
+    const safe = (label, promise) => promise.catch(() => { failed.push(label); return null; });
+    const [consolidationList, invoiceList, paymentList, packageList, cbmList, dispatchList, insuranceList] = await Promise.all([
+      safe('consolidaciones', base44.entities.Consolidation.filter({ client_email: clientEmail }, '-created_date', 500)),
+      safe('facturas', base44.entities.Invoice.filter({ client_email: clientEmail }, '-created_date', 500)),
+      safe('abonos', base44.entities.InvoicePayment.filter({ client_email: clientEmail }, '-created_date', 500)),
+      safe('paquetes', base44.entities.Package.filter({ client_email: clientEmail }, '-created_date', 1000)),
+      safe('recibos', base44.entities.CbmIngreso.filter({ client_email: clientEmail }, '-fecha', 500)),
+      safe('órdenes de despacho', base44.entities.DispatchOrder.filter({ client_email: clientEmail }, '-created_date', 500)),
+      safe('seguros', base44.entities.InsurancePayment.filter({ client_email: clientEmail }, '-created_date', 500))
+    ]);
+    setConsolidations(consolidationList || []);
+    setInvoices(invoiceList || []);
+    setInvoicePayments(paymentList || []);
+    setPackages(packageList || []);
+    setInsurancePayments(insuranceList || []);
+    setCbmIngresos(cbmList || []);
+    setDispatchOrders(dispatchList || []);
+    setDispatchError(dispatchList === null);
+    if (failed.length) toast.error(`No se pudo cargar: ${failed.join(', ')}. Pulsa Actualizar para reintentar.`);
     setLoading(false);
   };
 
@@ -309,7 +312,16 @@ export default function ClientAnalytics() {
 
       {selectedClient && (
         <Card className="border-0 shadow-sm">
-          {dispatchOrders.length === 0 ? (
+          {loading && dispatchOrders.length === 0 ? (
+            <CardContent className="p-4 flex items-center gap-2 text-sm text-slate-500">
+              <Loader2 className="h-4 w-4 animate-spin" /> Cargando órdenes de despacho…
+            </CardContent>
+          ) : dispatchError ? (
+            <CardContent className="p-4 flex flex-wrap items-center justify-between gap-2">
+              <p className="text-sm text-rose-600">No se pudieron cargar las órdenes de despacho.</p>
+              <Button size="sm" variant="outline" onClick={() => loadData(selectedClient?.email)}>Reintentar</Button>
+            </CardContent>
+          ) : dispatchOrders.length === 0 ? (
             <CardContent className="p-4">
               <p className="text-sm text-slate-400 bg-slate-50 rounded-lg px-4 py-3">Este cliente no tiene órdenes de despacho registradas.</p>
             </CardContent>

@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import PostEditor from '@/components/blog/PostEditor';
 import { toast } from 'sonner';
-import { Plus, Pencil, Trash2, UploadCloud, Globe, FileText, Wand2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, Globe, FileText, Wand2 } from 'lucide-react';
 
 export default function AdminBlog({ user }) {
   const qc = useQueryClient();

@@ -28,7 +28,7 @@ export default function WhatsAppInput({ value, onChange, placeholder = '412 1234
     const parsed = splitPhoneNumber(value, code);
     if (parsed.code !== code) setCode(parsed.code);
     if (parsed.number !== number) setNumber(parsed.number);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [value]);
 
   useEffect(() => {

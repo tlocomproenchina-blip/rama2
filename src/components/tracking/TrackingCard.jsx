@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ChevronDown, Clock, Calendar, Plane, Ship, Package, MapPin, CheckCircle2, Edit2, Upload, DollarSign, Copy } from 'lucide-react';
-import { format, differenceInDays, parse } from 'date-fns';
+import { ChevronDown, Clock, Calendar, Plane, Ship, Package, MapPin, CheckCircle2, Edit2, Upload, Copy } from 'lucide-react';
+import { format, parse } from 'date-fns';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";

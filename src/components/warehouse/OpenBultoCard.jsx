@@ -3,7 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Boxes, Lock, Undo2, Package, Printer, Hash, Save, Loader2 } from 'lucide-react';
+import { Lock, Undo2, Printer, Hash, Save, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import PrintCountBadge from './PrintCountBadge';
 import ReprintDialog from './ReprintDialog';
@@ -30,7 +30,7 @@ export default function OpenBultoCard({ bulto, onClose, onRemoveLast, onOrderCha
     const text = (Array.isArray(bulto.cbm_order_numbers) ? bulto.cbm_order_numbers.filter(Boolean) : []).join(', ');
     setOrderText(text);
     setSavedOrderText(text);
-  }, [bulto.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [bulto.id]);  
 
   const orderDirty = orderText.trim() !== savedOrderText.trim();
 

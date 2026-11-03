@@ -5,7 +5,6 @@ import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { X, MessageCircle, Send, Loader2, User, Bot } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { toast } from 'sonner';
 
 export default function ChatbotAssistant({ user }) {
   const [isOpen, setIsOpen] = useState(false);

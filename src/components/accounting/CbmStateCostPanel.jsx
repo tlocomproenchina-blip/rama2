@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Loader2, MapPin, DollarSign, TrendingUp } from 'lucide-react';

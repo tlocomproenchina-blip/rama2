@@ -30,7 +30,7 @@ export default function GaCityTrendChart({ daily = [], topSlugs = [], days = 30 
       out.push(row);
     }
     return out;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [daily, topSlugs.join(','), days]);
 
   if (slugs.length === 0) return null;

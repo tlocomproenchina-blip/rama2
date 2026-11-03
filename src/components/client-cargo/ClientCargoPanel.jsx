@@ -12,7 +12,7 @@ export default function ClientCargoPanel({ client }) {
 
   useEffect(() => {
     if (client?.email) loadBultos();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [client?.email, client?.shipping_mark]);
 
   const loadBultos = async () => {

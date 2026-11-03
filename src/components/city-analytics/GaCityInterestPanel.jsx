@@ -42,7 +42,7 @@ export default function GaCityInterestPanel() {
 
   useEffect(() => {
     load(null, days);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, []);
 
   const maxViews = rows.reduce((m, r) => Math.max(m, r.pageviews), 0) || 1;

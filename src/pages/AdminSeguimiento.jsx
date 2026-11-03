@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import useAdminSeguimientoData from '@/hooks/useAdminSeguimientoData';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, History, Truck, Package, MapPin } from 'lucide-react';
+import { History, Truck, Package, MapPin } from 'lucide-react';
 import EstadoLogisticaBadge from '@/components/logistica/EstadoLogisticaBadge';
 import PageHero from '@/components/common/PageHero';
 

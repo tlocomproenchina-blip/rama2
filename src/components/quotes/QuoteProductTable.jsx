@@ -3,7 +3,7 @@ import { Trash2, Plus, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { formatCurrency, calcItemTotals } from '@/lib/quoteUtils';
+import { calcItemTotals } from '@/lib/quoteUtils';
 import QuoteImageUploader from './QuoteImageUploader';
 import PriceInput from './PriceInput';
 

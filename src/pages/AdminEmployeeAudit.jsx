@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Search, History, ShieldCheck, UserCheck, KeyRound } from 'lucide-react';
+import { Loader2, Search, History, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import PageHero from '@/components/common/PageHero';
 

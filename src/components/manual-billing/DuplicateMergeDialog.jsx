@@ -33,7 +33,7 @@ export default function DuplicateMergeDialog({ open, onOpenChange, groups, onDon
     setMerging(false);
     setAckDistinct(false);
     setSelected((groups || []).filter((g) => !g.blocked && g.same_cbm).map((g) => g.key));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [open]);
 
   const toggle = (key) => {

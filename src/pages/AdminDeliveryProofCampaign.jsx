@@ -94,7 +94,7 @@ export default function AdminDeliveryProofCampaign() {
     return () => {
       active = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, []);
 
   // La vista previa se rearma sola al editar el asunto, el texto o las imágenes.
@@ -113,7 +113,7 @@ export default function AdminDeliveryProofCampaign() {
       });
     }, 700);
     return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [draft, excludeNotified, group, selectedEmails]);
 
   const handleSave = async () => {

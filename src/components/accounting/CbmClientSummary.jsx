@@ -2,7 +2,7 @@ import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Users, Package } from 'lucide-react';
+import { Users } from 'lucide-react';
 
 export default function CbmClientSummary({ clientTotals, totalCbm, monthLabel }) {
   if (!clientTotals || clientTotals.length === 0) {

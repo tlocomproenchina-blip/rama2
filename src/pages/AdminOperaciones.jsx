@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import useAdminOperacionesData from '@/hooks/useAdminOperacionesData';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Package, Layers, CreditCard, Clock } from 'lucide-react';
+import { Package, Layers, CreditCard, Clock } from 'lucide-react';
 import PageHero from '@/components/common/PageHero';
 
 const quickLinks = [

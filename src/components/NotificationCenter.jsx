@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Bell, Loader2, Check, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';

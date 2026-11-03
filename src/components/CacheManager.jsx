@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 
 /**
  * Gestor de caché para reducir re-fetches excesivos

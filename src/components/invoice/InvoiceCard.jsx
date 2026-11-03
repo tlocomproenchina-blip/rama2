@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
-import { FileText, CreditCard, Calendar, DollarSign, ChevronDown, Wallet, Eye } from 'lucide-react';
+import { CreditCard, Calendar, DollarSign, ChevronDown, Wallet, Eye } from 'lucide-react';
 import { format } from 'date-fns';
 import InvoicePDFGenerator from './InvoicePDFGenerator';
 import InvoiceAbonosList from './InvoiceAbonosList';

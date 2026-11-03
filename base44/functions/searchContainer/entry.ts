@@ -134,7 +134,7 @@ Deno.serve(async (req) => {
           status: invoice.status || 'pendiente',
           total: num(invoice.total),
           paid_amount: num(invoice.paid_amount),
-          balance: Math.max(0, num(invoice.total) - num(invoice.paid_amount)),
+          balance: String(invoice.status || '') === 'pagada' ? 0 : Math.max(0, num(invoice.total) - num(invoice.paid_amount)),
           paid: isPaid(invoice),
           invoice_date: invoice.invoice_date || invoice.created_date || '',
           due_date: invoice.due_date || '',

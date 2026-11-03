@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Truck, CheckCircle2, Package as PackageIcon } from 'lucide-react';
+import { Truck, CheckCircle2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';

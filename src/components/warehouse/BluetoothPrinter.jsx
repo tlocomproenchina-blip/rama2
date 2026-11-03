@@ -1,6 +1,6 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Printer, Loader2, Bluetooth, BluetoothConnected, FileDown, AlertTriangle } from 'lucide-react';
+import { Printer, Loader2, BluetoothConnected, FileDown, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { buildBultoLabelPayload, concatUint8Arrays } from '@/lib/tspl';
 import { downloadBultoLabelsPdf } from '@/lib/bultoLabelPdf';

@@ -3,8 +3,6 @@ import { base44 } from '@/components/api/ApiQueueManager';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Button } from '@/components/ui/button';
-import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
-import { Loader2 } from 'lucide-react';
 import PremiumLoader from '@/components/common/PremiumLoader';
 
 // Above-the-fold sections

@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import useEntitySubscription from '@/hooks/useEntitySubscription';
 import { useNavigate } from 'react-router-dom';
-import { createPageUrl } from '@/utils';
 import { getNotificationUrl } from '@/lib/notificationTarget';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";

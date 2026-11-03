@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { FileText, ImageIcon, CheckCircle2, Eye, Pencil, Loader2 } from 'lucide-react';
+import { FileText, ImageIcon, CheckCircle2, Pencil } from 'lucide-react';
 import { format } from 'date-fns';
 import ProviderCreditForm from '@/components/provider-credits/ProviderCreditForm';
 

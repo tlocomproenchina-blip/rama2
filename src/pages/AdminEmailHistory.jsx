@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search, Loader2, Mail, RefreshCw, Inbox } from 'lucide-react';
-import { toast } from 'sonner';
 import PageHero from '@/components/common/PageHero';
 import EmailLogCard from '@/components/communications/EmailLogCard';
 import EmailQueuePendingPanel from '@/components/communications/EmailQueuePendingPanel';

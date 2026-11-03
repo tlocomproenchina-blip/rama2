@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
 import useCedulaClientEmails from '@/hooks/useCedulaClientEmails';
 import { useNavigate } from 'react-router-dom';
-import { createPageUrl } from '@/utils';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,7 +24,6 @@ import {
   DollarSign,
   Calendar,
   Box,
-  Plus,
   ArrowLeft,
   Shield,
   Undo

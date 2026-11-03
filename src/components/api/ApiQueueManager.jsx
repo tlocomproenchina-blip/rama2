@@ -1,5 +1,4 @@
 import { base44 as base44Client } from '@/api/base44Client';
-import { toast } from 'sonner';
 
 /**
  * API Queue Manager - Solución definitiva anti-rate-limit

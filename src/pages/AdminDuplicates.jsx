@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -13,7 +13,6 @@ import {
   Package, 
   CreditCard,
   ShieldAlert,
-  CheckCircle,
   Tag
 } from 'lucide-react';
 import { toast } from 'sonner';

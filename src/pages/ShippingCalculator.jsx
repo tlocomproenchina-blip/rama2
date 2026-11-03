@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calculator, Plane, Ship, Package, Loader2 } from 'lucide-react';
+import { Calculator, Plane, Ship, Loader2 } from 'lucide-react';
 import { normalizeStates, findStateByCodeOrName } from '@/components/utils/states';
 import ClientPageHero from '@/components/client-portal/ClientPageHero';
 import ClientSectionHeader from '@/components/client-portal/ClientSectionHeader';

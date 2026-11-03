@@ -10,7 +10,6 @@ import AdminDashboardSectionCard from '@/components/dashboard/AdminDashboardSect
 import AdminDashboardQuickLink from '@/components/dashboard/AdminDashboardQuickLink';
 import StatusBadge from '@/components/StatusBadge';
 import {
-  AlertCircle,
   ArrowRight,
   CheckCircle2,
   Clock,

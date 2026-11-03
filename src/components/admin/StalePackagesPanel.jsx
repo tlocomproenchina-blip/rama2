@@ -4,7 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Loader2, Clock, ChevronDown, ChevronUp, PackageOpen, Copy, Ticket, Mail } from 'lucide-react';
+import { Loader2, ChevronDown, ChevronUp, PackageOpen, Copy, Ticket, Mail } from 'lucide-react';
 import StaleTicketDialog from './StaleTicketDialog';
 import { toast } from 'sonner';
 import { getAll } from '@/lib/offlineDb';

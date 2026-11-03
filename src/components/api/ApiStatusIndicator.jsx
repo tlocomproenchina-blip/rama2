@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { getApiStatus, resetCircuitBreaker } from './ApiQueueManager';
+import { getApiStatus } from './ApiQueueManager';
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { AlertTriangle, CheckCircle, Clock, Shield, RefreshCw } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Clock, Shield } from 'lucide-react';
 
 /**
  * Indicador de estado del sistema API

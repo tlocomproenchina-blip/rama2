@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Wallet, Plus, Loader2, TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
-import { format } from 'date-fns';
 import PageHero from '@/components/common/PageHero';
 import ClientSearchBox from '@/components/manual-billing/ClientSearchBox';
 import ClientCreditRow from '@/components/client-credits/ClientCreditRow';

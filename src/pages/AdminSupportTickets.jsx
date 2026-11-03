@@ -1,14 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
 import { 
   MessageSquare, 
   Loader2, 
@@ -16,12 +9,7 @@ import {
   CheckCircle2,
   Clock,
   XCircle,
-  UserCheck,
-  Search,
-  Filter,
-  BarChart3,
-  User,
-  Plus
+  BarChart3
 } from 'lucide-react';
 import { toast } from 'sonner';
 import TicketAssignmentDialog from '@/components/support/TicketAssignmentDialog';

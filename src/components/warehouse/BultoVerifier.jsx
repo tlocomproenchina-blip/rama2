@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Search, Package, CheckCircle2, XCircle, ScanLine } from 'lucide-react';
+import { Loader2, Package, CheckCircle2, XCircle, ScanLine } from 'lucide-react';
 import { toast } from 'sonner';
 import BarcodeScannerModule from '@/components/warehouse/BarcodeScannerModule';
 

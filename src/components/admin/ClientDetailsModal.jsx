@@ -11,8 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { 
   Package, 
   Layers, 
-  DollarSign, 
-  User,
+  DollarSign,
   Loader2,
   Calendar,
   Eye,

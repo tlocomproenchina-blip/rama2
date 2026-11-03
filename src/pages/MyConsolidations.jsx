@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { 
@@ -9,7 +9,6 @@ import {
   Plane, 
   Ship,
   Calendar,
-  DollarSign,
   CreditCard,
   Loader2,
   ChevronDown,
@@ -17,8 +16,7 @@ import {
   Weight,
   Ruler,
   RefreshCw,
-  CheckCircle2,
-  Clock
+  CheckCircle2
 } from 'lucide-react';
 import StatusBadge from '@/components/StatusBadge';
 import PaymentModal from '@/components/PaymentModal';

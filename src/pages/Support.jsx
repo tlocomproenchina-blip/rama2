@@ -13,7 +13,6 @@ import {
   Clock,
   XCircle
 } from 'lucide-react';
-import { toast } from 'sonner';
 import TicketChat from '@/components/support/TicketChat';
 import { uploadSupportImages } from '@/components/support/supportUploadUtils';
 import ClientPageHero from '@/components/client-portal/ClientPageHero';

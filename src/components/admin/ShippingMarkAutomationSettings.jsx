@@ -30,7 +30,7 @@ export default function ShippingMarkAutomationSettings({ appConfig, setAppConfig
 
   useEffect(() => {
     if (enabled && !counter && !loading) loadCounter();
-  }, [enabled]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [enabled]);  
 
   const handleApplyStart = async () => {
     const parsed = parseInt(newStart, 10);

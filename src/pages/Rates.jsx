@@ -1,14 +1,10 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import ClientPageHero from '@/components/client-portal/ClientPageHero';
 import PortalMetricCard from '@/components/client-portal/PortalMetricCard';
 import ClientSectionHeader from '@/components/client-portal/ClientSectionHeader';
 import { base44 } from '@/api/base44Client';
 import { normalizeStates, findStateByCodeOrName } from '@/components/utils/states';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   Loader2,

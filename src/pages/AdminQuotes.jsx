@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, ArrowLeft, Copy, Check, Send, Plus, Trash2, FileText, Search, Package, Upload, Clipboard } from 'lucide-react';
+import { Loader2, ArrowLeft, Copy, Check, Send, Plus, Trash2, FileText, Search, Package } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { sendNotification } from '@/components/NotificationUtils';
 import { publicAppUrl } from '@/lib/publicLinks';

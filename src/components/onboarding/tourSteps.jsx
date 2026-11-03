@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Package, FileText, Layers, CreditCard, Truck,
-  Calculator, MessageCircle, HelpCircle, Users, Gift,
+  Calculator, MessageCircle, Users,
   Settings, BarChart3, Wallet, Mail, Tag, TrendingUp
 } from 'lucide-react';
 

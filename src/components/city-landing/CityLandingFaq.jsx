@@ -1,6 +1,5 @@
 import React, { useEffect } from 'react';
 import { ChevronDown } from 'lucide-react';
-import { CITY_LANDINGS } from '@/lib/cityLandings';
 
 // FAQ con datos estructurados JSON-LD (FAQPage schema) para rich snippets en Google.
 export default function CityLandingFaq({ city }) {

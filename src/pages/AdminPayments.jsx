@@ -3,7 +3,6 @@ import { base44 } from '@/components/api/ApiQueueManager';
 import useCedulaClientEmails from '@/hooks/useCedulaClientEmails';
 import { publicAppUrl } from '@/lib/publicLinks';
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
   CreditCard, 

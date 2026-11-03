@@ -179,7 +179,7 @@ export default function AdminAbonosValidation({ onRefresh, search = '' }) {
           const client = clients[p.client_email] || {};
           const total = Number(inv.total || 0);
           const paidAmount = Number(inv.paid_amount || 0);
-          const balance = Math.max(0, total - paidAmount);
+          const balance = inv.status === 'pagada' ? 0 : Math.max(0, total - paidAmount);
           const clientName = `${client.first_name || ''} ${client.last_name || ''}`.trim() || client.full_name || p.client_email;
 
           return (

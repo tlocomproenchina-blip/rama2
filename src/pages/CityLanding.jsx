@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { CITY_LANDINGS, getCityBySlug } from '@/lib/cityLandings';
+import { getCityBySlug } from '@/lib/cityLandings';
 import Inicio2Header from '@/components/inicio2/Inicio2Header';
 import Inicio2Footer from '@/components/inicio2/Inicio2Footer';
 import CityLandingHero from '@/components/city-landing/CityLandingHero';
@@ -12,7 +12,6 @@ import CityLandingFaq from '@/components/city-landing/CityLandingFaq';
 import CityLandingLinks from '@/components/city-landing/CityLandingLinks';
 import Inicio2Calculator from '@/components/inicio2/Inicio2Calculator';
 import { PUBLIC_BASE_URL, publicAppUrl } from '@/lib/publicLinks';
-import { Loader2 } from 'lucide-react';
 
 function setMetaTag(attr, key, content) {
   let el = document.head.querySelector(`meta[${attr}="${key}"]`);
@@ -166,7 +165,7 @@ export default function CityLanding({ user }) {
     }
 
     return () => cleanupSeo();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [city?.slug, user?.id]);
 
   if (!city) {

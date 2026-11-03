@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
-import { Smartphone, Activity, ScanLine, Clock, AlertTriangle, Loader2, Camera, X, MapPin } from 'lucide-react';
+import { Smartphone, Activity, ScanLine, Clock, AlertTriangle, Loader2, Camera, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';

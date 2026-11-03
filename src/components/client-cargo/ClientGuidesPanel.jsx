@@ -11,7 +11,7 @@ export default function ClientGuidesPanel({ client }) {
 
   useEffect(() => {
     if (client?.email) loadGuides();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [client?.email, client?.shipping_mark]);
 
   const loadGuides = async () => {

@@ -128,7 +128,7 @@ export default function WarehouseScanPack({ user }) {
       if (!cancelled) await pack.reloadUnits();
     })();
     return () => { cancelled = true; };
-  }, [cacheReady]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [cacheReady]);  
 
   // Cliente del lote en pantalla: el de la unidad activa o el último con el que se trabajó.
   useEffect(() => {

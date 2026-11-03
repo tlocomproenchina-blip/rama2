@@ -35,18 +35,21 @@ export default function SupervisorEscalationsPanel({ user, initialTicketId = '' 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      // Solo lo elevado a revisión que el ATC todavía no cerró.
-      const query = { escalated: true, atc_review_status: { $ne: 'revisado' } };
-      if (scope === 'mios' && user?.email) {
-        query.$or = [{ assigned_to: user.email }, { escalated_by: user.email }];
-      }
+      // Lo escalado que Supervisión aún no atendió, o cuya respuesta el ATC
+      // todavía no cerró. Un caso sin atender sigue visible aunque el ATC ya le
+      // haya escrito al cliente.
+      const query = {
+        escalated: true,
+        $or: [{ escalation_status: 'pendiente' }, { atc_review_status: { $ne: 'revisado' } }],
+      };
 
       const [rows, total] = await Promise.all([
         base44.entities.SupportTicket.filter(query, '-escalated_date', 50),
-        base44.entities.SupportTicket.count({ escalated: true, atc_review_status: { $ne: 'revisado' } }),
+        base44.entities.SupportTicket.count(query),
       ]);
 
-      setCases(rows || []);
+      const mine = (ticket) => ticket.assigned_to === user?.email || ticket.escalated_by === user?.email;
+      setCases(scope === 'mios' && user?.email ? (rows || []).filter(mine) : (rows || []));
       setPendingCount(total || 0);
     } catch {
       toast.error('No se pudieron cargar los casos escalados');

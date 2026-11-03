@@ -202,7 +202,7 @@ export default function AdminManualBilling({ user }) {
       shipping_amount: calcShippingForRow(r.cbm, r.fecha, r.cargo_type || cargoType).toFixed(2),
       rate_label: getRateLabel(r.fecha)
     })));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [finalRatePerCbm, rateHistory, stateShippingRate, cargoType]);
 
   const loadClientInvoices = async (selectedClient, options = {}) => {

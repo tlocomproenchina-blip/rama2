@@ -1,5 +1,4 @@
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 // Lista compacta y desplazable para cada bloque del historial del cliente.
 export default function AssistantHistoryList({ title, count, items, empty, renderItem }) {

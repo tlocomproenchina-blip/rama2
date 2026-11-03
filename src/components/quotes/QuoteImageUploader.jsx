@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2, Upload, Clipboard, X } from 'lucide-react';
+import { Loader2, Upload, Clipboard } from 'lucide-react';
 import { uploadImageNoCredits } from '@/lib/imgbbUpload';
 import ImageViewerModal from '@/components/common/ImageViewerModal';
 

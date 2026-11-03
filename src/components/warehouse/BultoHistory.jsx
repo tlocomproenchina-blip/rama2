@@ -19,7 +19,6 @@ import UnitKindFilter from './UnitKindFilter';
 import BultoOrderGroupCard from './BultoOrderGroupCard';
 import ReprintDialog from './ReprintDialog';
 import CombineSelectedDialog from './CombineSelectedDialog';
-import DismantleCajaDialog from './DismantleCajaDialog';
 
 const PAGE_SIZE = 50;
 const SERVER_BLOCK = 300;

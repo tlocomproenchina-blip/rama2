@@ -21,7 +21,6 @@ import {
   Plus,
   Copy,
   Loader2,
-  Building2,
   Edit2,
   Phone,
   DollarSign,
@@ -36,7 +35,7 @@ import {
 } from 'lucide-react';
 import StatusBadge from '@/components/StatusBadge';
 
-import { PackageSkeletonLoader, ListSkeletonLoader, StatsGridSkeletonLoader } from '@/components/SkeletonLoaders';
+import { StatsGridSkeletonLoader } from '@/components/SkeletonLoaders';
 
 // Lazy load non-critical widgets
 const ActiveConsolidationsWidget = lazy(() => import('@/components/dashboard/ActiveConsolidationsWidget'));
@@ -46,7 +45,6 @@ const EditProfileModal = lazy(() => import('@/components/EditProfileModal'));
 
 import { toast } from 'sonner';
 import { HeaderSkeletonLoader } from '@/components/SkeletonLoaders';
-import OptimizedImage from '@/components/OptimizedImage';
 import ClientPageHero from '@/components/client-portal/ClientPageHero';
 import PortalMetricCard from '@/components/client-portal/PortalMetricCard';
 import ClientSectionHeader from '@/components/client-portal/ClientSectionHeader';

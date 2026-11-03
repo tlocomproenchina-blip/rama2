@@ -304,7 +304,7 @@ export default function WarehouseDispatchHistory({ user }) {
       // Siempre refrescar del servidor en background
       refreshFromServer();
     })();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);  
 
   // Suscripción en tiempo real: actualiza la lista cuando cambian órdenes de despacho
   useEffect(() => {

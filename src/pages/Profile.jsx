@@ -14,7 +14,7 @@ import BillingAddressCard from '@/components/profile/BillingAddressCard';
 import WhatsAppInput from '@/components/common/WhatsAppInput';
 import ClientPageHero from '@/components/client-portal/ClientPageHero';
 import DarkModeToggleCard from '@/components/admin/DarkModeToggleCard';
-import { getDigits, sanitizeClientProfileData, sanitizeWhatsApp } from '@/lib/inputSanitizers';
+import { getDigits, sanitizeClientProfileData } from '@/lib/inputSanitizers';
 
 export default function Profile({ user, refreshUser }) {
   const [formData, setFormData] = useState({
