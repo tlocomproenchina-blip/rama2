@@ -45,6 +45,22 @@ export default async function (req: Request): Promise<Response> {
       }
     }
 
+    // Revisión de inventario al llegar: estado de recepción y, si hubo incidencia,
+    // su detalle con la foto por enlace firmado temporal.
+    const reviewByBulto: Record<string, any> = {};
+    if (bultoList.length) {
+      const reviews = await base44.asServiceRole.entities.CajaInventoryReview.filter(
+        { bulto_id: { $in: bultoList.map((b) => b.id) }, client_email: user.email }, '-reviewed_date', 500);
+      for (const r of reviews) if (!reviewByBulto[r.bulto_id]) reviewByBulto[r.bulto_id] = r;
+      for (const r of Object.values(reviewByBulto)) {
+        if (!r.incident_id) continue;
+        const inc = await base44.asServiceRole.entities.WarehouseIncident.get(r.incident_id).catch(() => null);
+        if (inc?.client_email !== user.email || !inc.photo_uri) continue;
+        const signed = await base44.asServiceRole.integrations.Core.CreateFileSignedUrl({ file_uri: inc.photo_uri, expires_in: 3600 }).catch(() => null);
+        r._photo_url = signed?.signed_url || '';
+      }
+    }
+
     const bultos = bultoList.map((b) => {
       const pkgIds = Array.isArray(b.package_ids) ? b.package_ids : [];
       const unregistered = Array.isArray(b.unregistered_codes) ? b.unregistered_codes : [];
@@ -66,6 +82,13 @@ export default async function (req: Request): Promise<Response> {
         unregistered_codes: unregistered.filter(Boolean),
         recognized_date: b.ve_recognized_date || null,
         created_date: b.created_date || null,
+        reception: reviewByBulto[b.id] ? {
+          result: reviewByBulto[b.id].result,
+          date: reviewByBulto[b.id].reviewed_date,
+          container_number: reviewByBulto[b.id].container_number || '',
+          notes: reviewByBulto[b.id].result === 'recibida_con_incidencia' ? reviewByBulto[b.id].notes : '',
+          photo_url: reviewByBulto[b.id]._photo_url || '',
+        } : null,
       };
     });
 

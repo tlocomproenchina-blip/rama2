@@ -1,0 +1,83 @@
+{
+  "name": "CajaInventoryReview",
+  "type": "object",
+  "properties": {
+    "bulto_id": {
+      "type": "string",
+      "description": "ID de la caja o bulto revisado"
+    },
+    "label_code": {
+      "type": "string",
+      "description": "Etiqueta de la caja o bulto"
+    },
+    "client_email": {
+      "type": "string",
+      "description": "Email del cliente due\u00f1o de la caja"
+    },
+    "client_name": {
+      "type": "string",
+      "description": "Nombre del cliente"
+    },
+    "container_number": {
+      "type": "string",
+      "description": "N\u00b0 de contenedor en el que lleg\u00f3"
+    },
+    "result": {
+      "type": "string",
+      "enum": [
+        "recibida",
+        "recibida_con_incidencia"
+      ],
+      "enumColors": [
+        "green",
+        "red"
+      ],
+      "description": "Resultado de la revisi\u00f3n del contenido"
+    },
+    "incident_id": {
+      "type": "string",
+      "description": "Incidencia (WarehouseIncident) registrada cuando el contenido no coincide"
+    },
+    "notes": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Detalle de la diferencia encontrada"
+    },
+    "reviewed_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "reviewed_by": {
+      "type": "string"
+    },
+    "reviewed_by_name": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "bulto_id",
+    "result"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

@@ -4,6 +4,7 @@ import PageHero from '@/components/common/PageHero';
 import { Button } from '@/components/ui/button';
 import { FileSpreadsheet, Loader2, PackageOpen } from 'lucide-react';
 import IncidentFormCard from '@/components/warehouse/incidents/IncidentFormCard';
+import InventoryReviewCard from '@/components/warehouse/incidents/InventoryReviewCard';
 import IncidentList from '@/components/warehouse/incidents/IncidentList';
 import { downloadWarehouseIncidents } from '@/lib/warehouseIncidentsExport';
 
@@ -56,6 +57,8 @@ export default function AdminWarehouseIncidents() {
           </Button>
         }
       />
+
+      <InventoryReviewCard onChanged={load} />
 
       <IncidentFormCard onSaved={load} />
 
