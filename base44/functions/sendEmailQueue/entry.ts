@@ -1,8 +1,8 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import { processQueueItems, queueFromName } from '../../shared/emailQueueProcess.ts';
 
-// Encola mensajes de campañas en EmailQueue.
-// El envío real lo hace processEmailQueue (automatización cada 15 min),
-// único punto del sistema que llama a Core.SendEmail.
+// Registra los mensajes de la campaña en EmailQueue y los envía de inmediato.
+// Los que fallen quedan 'pending' y la cola programada los reintenta.
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -24,7 +24,8 @@ Deno.serve(async (req) => {
         subject: m.subject,
         body: m.body || '',
         from_name: m.from_name || undefined,
-        status: 'pending',
+        // 'sending' para que la cola programada no los tome: se envían ya mismo abajo
+        status: 'sending',
         attempts: 0,
         scheduled_at: now,
         source: m.source || 'campaign',
@@ -37,9 +38,12 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Ningún mensaje válido' }, { status: 400 });
     }
 
-    await base44.asServiceRole.entities.EmailQueue.bulkCreate(records);
+    const created = await base44.asServiceRole.entities.EmailQueue.bulkCreate(records);
 
-    return Response.json({ success: true, queued: records.length });
+    const cfgs = await base44.asServiceRole.entities.AppConfig.filter({ config_key: 'main' });
+    const { sent, failed } = await processQueueItems(base44, created || [], queueFromName(cfgs?.[0]));
+
+    return Response.json({ success: true, queued: records.length, sent, failed });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

@@ -66,6 +66,7 @@ export default function AdminEmailCampaigns({ user }) {
   const [sendBaseline, setSendBaseline] = useState(null);
   const [sendTotal, setSendTotal] = useState(0);
   const [provider, setProvider] = useState('brevo');
+  const [sentProgress, setSentProgress] = useState(0);
   // email del cliente → Shipping Mark anterior (migración de la serie 50000)
   const [previousMarks, setPreviousMarks] = useState({});
 
@@ -316,17 +317,19 @@ export default function AdminEmailCampaigns({ user }) {
         };
       });
 
-      // Enviar al backend en lotes seguros
-      const chunkSize = 500;
+      // Envío inmediato en lotes pequeños para mostrar progreso
+      const chunkSize = 25;
+      setSentProgress(0);
       for (let i = 0; i < messages.length; i += chunkSize) {
         const chunk = messages.slice(i, i + chunkSize);
         const resp = await base44.functions.invoke('sendEmailQueue', { messages: chunk });
         if (resp?.status !== 200) {
-          throw new Error('Fallo al encolar emails');
+          throw new Error('Fallo al enviar emails');
         }
+        results.success += resp.data?.sent || 0;
+        results.failed += resp.data?.failed || 0;
+        setSentProgress(Math.min(i + chunkSize, messages.length));
       }
-
-      results.success = messages.length;
       await logActionAudit(base44, user, {
         target_email: '',
         target_name: `${messages.length} destinatarios`,
@@ -765,7 +768,7 @@ export default function AdminEmailCampaigns({ user }) {
                   className="flex-1 bg-blue-600 hover:bg-blue-700"
                 >
                   {sending ? (
-                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Enviando...</>
+                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Enviando {sentProgress} / {sendTotal}...</>
                   ) : (
                     <><Send className="h-4 w-4 mr-2" /> Enviar a {getTargetClients.length} destinatarios</>
                   )}
@@ -805,7 +808,7 @@ export default function AdminEmailCampaigns({ user }) {
                       <p className="text-emerald-700">✓ {sendResult.success} emails enviados exitosamente</p>
                       {sendResult.failed > 0 && (
                         <>
-                          <p className="text-red-700">✗ {sendResult.failed} emails fallidos</p>
+                          <p className="text-red-700">✗ {sendResult.failed} emails fallidos (se reintentan automáticamente)</p>
                           <details className="mt-2">
                             <summary className="cursor-pointer text-slate-600 hover:text-slate-800">Ver errores</summary>
                             <div className="mt-2 space-y-1 text-xs">
