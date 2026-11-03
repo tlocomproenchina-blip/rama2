@@ -104,6 +104,8 @@ export default async function (req) {
           priority: t.priority || 'media',
           status: t.status,
           escalated: !!t.escalated,
+          escalation_status: t.escalation_status || '',
+          supervisor_reply_date: t.supervisor_reply_date || '',
           assigned_to: t.assigned_to || '',
           department_id: t.department_id || '',
           department_name: t.department_name || '',

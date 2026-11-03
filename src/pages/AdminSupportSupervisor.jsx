@@ -3,9 +3,7 @@ import { Link } from 'react-router-dom';
 import { Headphones, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import PageHero from '@/components/common/PageHero';
-import SupervisorEscalationsPanel from '@/components/support/supervisor/SupervisorEscalationsPanel';
 import SupervisorDepartmentCrm from '@/components/support/supervisor/SupervisorDepartmentCrm';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 // Módulo del supervisor: los casos que el ATC escaló, con su expediente completo
 // (chat previo, adjuntos, datos y todo el historial del cliente) en una pantalla.
@@ -28,18 +26,7 @@ export default function AdminSupportSupervisor({ user }) {
         }
       />
 
-      <Tabs defaultValue="bandeja">
-        <TabsList>
-          <TabsTrigger value="bandeja">Bandeja de casos</TabsTrigger>
-          <TabsTrigger value="departamentos">CRM por departamento</TabsTrigger>
-        </TabsList>
-        <TabsContent value="bandeja">
-          <SupervisorEscalationsPanel user={user} initialTicketId={focusTicketId} />
-        </TabsContent>
-        <TabsContent value="departamentos">
-          <SupervisorDepartmentCrm user={user} />
-        </TabsContent>
-      </Tabs>
+      <SupervisorDepartmentCrm user={user} initialTicketId={focusTicketId} />
     </div>
   );
 }
