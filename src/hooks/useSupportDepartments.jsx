@@ -15,6 +15,9 @@ export default function useSupportDepartments(user) {
 
   useEffect(() => { load(); }, [load]);
 
+  // En vivo: un departamento creado o eliminado en otra pantalla aparece aquí también.
+  useEffect(() => base44.entities.SupportDepartment.subscribe(() => load()), [load]);
+
   const create = useCallback(async ({ name, color }) => {
     await base44.entities.SupportDepartment.create({
       name: name.trim(),
