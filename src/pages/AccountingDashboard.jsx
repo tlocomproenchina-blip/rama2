@@ -78,7 +78,12 @@ export default function AccountingDashboard({ user }) {
       const now = new Date();
       const receivableStatuses = ['pendiente', 'revision', 'vencida'];
       const receivableInvoices = (invoices || []).filter((invoice) => receivableStatuses.includes(invoice.status));
-      const overdueInvoices = (invoices || []).filter((invoice) => invoice.status === 'vencida');
+      // Ninguna factura pasa sola a 'vencida': se considera vencida la que sigue sin pagar
+      // y ya pasó su fecha de vencimiento.
+      const overdueInvoices = receivableInvoices.filter((invoice) =>
+        invoice.status === 'vencida' || (invoice.due_date && new Date(invoice.due_date) < now)
+      );
+      const balanceOf = (invoice) => Math.max(Number(invoice.total || 0) - Number(invoice.paid_amount || 0), 0);
       const paidThisMonth = (invoices || []).filter((invoice) => {
         const sourceDate = invoice.payment_date || invoice.invoice_date || invoice.updated_date || invoice.created_date;
         return sourceDate && invoice.status === 'pagada' && isSameMonth(new Date(sourceDate), now);
@@ -89,9 +94,9 @@ export default function AccountingDashboard({ user }) {
       });
 
       const receivables = [
-        { label: 'Pendientes', count: (invoices || []).filter((invoice) => invoice.status === 'pendiente').length, amount: sumAmounts(invoices, (invoice) => invoice.status === 'pendiente' ? invoice.total : 0) },
-        { label: 'En revisión', count: (invoices || []).filter((invoice) => invoice.status === 'revision').length, amount: sumAmounts(invoices, (invoice) => invoice.status === 'revision' ? invoice.total : 0) },
-        { label: 'Vencidas', count: overdueInvoices.length, amount: sumAmounts(overdueInvoices, (invoice) => invoice.total) },
+        { label: 'Pendientes', count: (invoices || []).filter((invoice) => invoice.status === 'pendiente').length, amount: sumAmounts(invoices, (invoice) => invoice.status === 'pendiente' ? balanceOf(invoice) : 0) },
+        { label: 'En revisión', count: (invoices || []).filter((invoice) => invoice.status === 'revision').length, amount: sumAmounts(invoices, (invoice) => invoice.status === 'revision' ? balanceOf(invoice) : 0) },
+        { label: 'Vencidas', count: overdueInvoices.length, amount: sumAmounts(overdueInvoices, balanceOf) },
       ];
 
       const { monthlyRevenue, providerPayments } = buildMonthlySeries(invoices || [], payables || []);
@@ -112,9 +117,9 @@ export default function AccountingDashboard({ user }) {
         setReport({
           metrics: {
             monthRevenue: sumAmounts(paidThisMonth, (invoice) => invoice.total),
-            receivablesAmount: sumAmounts(receivableInvoices, (invoice) => invoice.total),
+            receivablesAmount: sumAmounts(receivableInvoices, balanceOf),
             overdueCount: overdueInvoices.length,
-            overdueAmount: sumAmounts(overdueInvoices, (invoice) => invoice.total),
+            overdueAmount: sumAmounts(overdueInvoices, balanceOf),
             providerPaymentsMonth: sumAmounts(providerPaidThisMonth, (item) => item.amount_paid),
             billedCbm: sumAmounts(invoices, (invoice) => invoice.billed_cbm),
           },
