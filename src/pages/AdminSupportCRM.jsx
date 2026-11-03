@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import useSupportAssistant from '@/hooks/useSupportAssistant';
@@ -7,7 +7,6 @@ import useCrmClientSummary from '@/hooks/useCrmClientSummary';
 import useSupportDepartments from '@/hooks/useSupportDepartments';
 import AssistantSearchPanel from '@/components/support/assistant/AssistantSearchPanel';
 import AssistantEscalateDialog from '@/components/support/assistant/AssistantEscalateDialog';
-import AssistantSupervisorCases from '@/components/support/assistant/AssistantSupervisorCases';
 import AssistantOrphanPanel from '@/components/support/orphans/AssistantOrphanPanel';
 import CrmKpis from '@/components/support/crm/CrmKpis';
 import CrmInbox from '@/components/support/crm/CrmInbox';
@@ -16,13 +15,12 @@ import CrmAttendPanel from '@/components/support/crm/CrmAttendPanel';
 import CrmClientFile from '@/components/support/crm/CrmClientFile';
 import CrmCaseConversation from '@/components/support/crm/CrmCaseConversation';
 import CrmWorkspaceTabs from '@/components/support/crm/CrmWorkspaceTabs';
+import CrmCaseSupervision from '@/components/support/crm/CrmCaseSupervision';
 
-const AdminSupportTickets = lazy(() => import('./AdminSupportTickets'));
-const TABS = ['bandeja', 'tickets', 'supervision', 'huerfanos'];
-const loader = <p className="flex items-center gap-2 py-6 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Cargando…</p>;
+const TABS = ['bandeja', 'huerfanos'];
 
-// Espacio único de Soporte: bandeja del CRM, ficha del caso con conversación y
-// asistente ATC, tickets, respuestas de supervisión y paquetes huérfanos.
+// Espacio único de Soporte: la bandeja reúne casos, tickets y supervisión; cada
+// caso se abre en una ficha con conversación, respuesta del supervisor y asistente ATC.
 export default function AdminSupportCRM({ user }) {
   const assistant = useSupportAssistant();
   const inbox = useCrmInbox();
@@ -83,9 +81,8 @@ export default function AdminSupportCRM({ user }) {
     return result;
   };
 
-  // Respuesta interna del supervisor: se abre el caso y se carga en el asistente.
-  const loadSupervisorReply = async ({ ticket, client: caseClient, text }) => {
-    await openByEmail(ticket.client_email, ticket.id, caseClient);
+  // Respuesta interna del supervisor del caso abierto: se carga en el asistente.
+  const loadSupervisorReply = ({ ticket, text }) => {
     setAskOrigin('supervisor');
     setPrefill({
       text: `Respuesta del supervisor · caso ${ticket.ticket_number} (comunicación interna, no va al cliente):\n\n${text}\n\nDame la indicación de continuidad del caso y el mensaje para el cliente.`,
@@ -100,6 +97,7 @@ export default function AdminSupportCRM({ user }) {
         <div className="grid gap-4 lg:grid-cols-2">
           <div className="min-w-0 space-y-4">
             {caseId && <CrmCaseConversation ticketId={caseId} user={user} deps={deps} onMove={(id, dep) => inbox.moveCase(id, dep, user)} />}
+            {caseId && <CrmCaseSupervision ticketId={caseId} client={client} user={user} onLoadToAssistant={loadSupervisorReply} />}
             <CrmAttendPanel client={client} activeCase={activeCase} assistant={assistant} onEscalate={() => setEscalateOpen(true)} externalPrefill={prefill} askOrigin={askOrigin} />
           </div>
           <div className="min-w-0">
@@ -122,7 +120,7 @@ export default function AdminSupportCRM({ user }) {
     <div className="mx-auto w-full max-w-[1500px] space-y-4">
       <div>
         <h1 className="font-display text-2xl font-bold text-foreground">CRM de atención</h1>
-        <p className="text-sm text-muted-foreground">Todo Soporte en un solo lugar: casos, tickets, asistente ATC y respuestas de supervisión.</p>
+        <p className="text-sm text-muted-foreground">Todo Soporte en un solo lugar: abre cualquier caso y verás su conversación, la respuesta del supervisor y el asistente ATC.</p>
       </div>
       <CrmWorkspaceTabs value={tab} onChange={changeTab} />
       {opening && <p className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Abriendo cliente…</p>}
@@ -149,8 +147,6 @@ export default function AdminSupportCRM({ user }) {
           </div>
         </>
       )}
-      {tab === 'tickets' && <Suspense fallback={loader}><AdminSupportTickets user={user} embedded onOpenCase={(t) => openByEmail(t.client_email, t.id)} /></Suspense>}
-      {tab === 'supervision' && <AssistantSupervisorCases user={user} onLoadToAssistant={loadSupervisorReply} />}
       {tab === 'huerfanos' && <AssistantOrphanPanel />}
     </div>
   );

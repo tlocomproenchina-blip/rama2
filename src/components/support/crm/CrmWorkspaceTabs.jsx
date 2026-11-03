@@ -1,10 +1,8 @@
 import React from 'react';
-import { Inbox, MessageCircle, ShieldCheck, PackageX } from 'lucide-react';
+import { Inbox, PackageX } from 'lucide-react';
 
 const TABS = [
   { id: 'bandeja', label: 'Bandeja', icon: Inbox },
-  { id: 'tickets', label: 'Tickets', icon: MessageCircle },
-  { id: 'supervision', label: 'Respuestas de supervisión', icon: ShieldCheck },
   { id: 'huerfanos', label: 'Paquetes huérfanos', icon: PackageX },
 ];
 
