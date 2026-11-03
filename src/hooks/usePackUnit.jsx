@@ -264,7 +264,7 @@ export default function usePackUnit({
 
       const updated = await addPackageToUnit(unit, { pkg });
       await activateUnit(updated);
-      setLastScan({ pkg, client, already_received: alreadyReceived, auto_received: wasPreAlert });
+      setLastScan({ pkg, client, already_received: alreadyReceived, auto_received: wasPreAlert, unit: updated });
       toast.success(`Recibido y dentro de ${updated.label_code}`, { duration: 1500 });
       if (captureScanPhoto) captureScanPhoto(value, pkg).catch(() => {});
     } catch (e) {
@@ -315,7 +315,7 @@ export default function usePackUnit({
       if (!unit) return;
       const updated = await addPackageToUnit(unit, { pkg });
       await activateUnit(updated);
-      setLastScan({ pkg, client, already_received: false, auto_received: true });
+      setLastScan({ pkg, client, already_received: false, auto_received: true, unit: updated });
       toast.success(`Paquete manual asignado a ${client.full_name || client.email}`);
     } catch (e) {
       toast.error('Error al crear el paquete manual');

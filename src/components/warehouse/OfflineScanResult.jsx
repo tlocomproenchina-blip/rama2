@@ -25,7 +25,7 @@ export default function OfflineScanResult({ scanResult, client }) {
             <>
               <CheckCircle2 className="h-5 w-5 text-green-600 shrink-0" />
               <p className="font-semibold text-sm text-green-700">
-                {auto_received ? 'Recibido y agregado al bulto' : 'Agregado al bulto'}
+                {auto_received ? 'Recibido y empacado' : 'Empacado'}
               </p>
             </>
           )}
@@ -33,6 +33,16 @@ export default function OfflineScanResult({ scanResult, client }) {
             Offline
           </span>
         </div>
+
+        {/* Unidad donde quedó el paquete */}
+        {scanResult.unit?.label_code && (
+          <div className={`rounded-lg border px-3 py-2 ${scanResult.unit.is_caja ? 'border-violet-200 bg-violet-50' : 'border-amber-200 bg-amber-50'}`}>
+            <p className="text-[10px] uppercase tracking-wide text-slate-500">
+              {scanResult.unit.is_caja ? 'Quedó dentro de la caja consolidada' : 'Quedó en el bulto suelto'}
+            </p>
+            <p className="font-mono text-sm font-semibold text-slate-800 break-all">{scanResult.unit.label_code}</p>
+          </div>
+        )}
 
         {/* Tracking */}
         <div className="rounded-lg bg-white/80 border border-border px-3 py-2">

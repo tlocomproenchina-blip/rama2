@@ -7,6 +7,7 @@ import { Warehouse, Search, RefreshCw, Loader2, Boxes, FileText } from 'lucide-r
 import { toast } from 'sonner';
 import ClientPageHero from '@/components/client-portal/ClientPageHero';
 import ClientBultoCard from '@/components/client-portal/ClientBultoCard';
+import UnitKindFilter from '@/components/warehouse/UnitKindFilter';
 import ClientGuideCard from '@/components/client-portal/ClientGuideCard';
 import { ListSkeletonLoader } from '@/components/SkeletonLoaders';
 
@@ -20,6 +21,7 @@ export default function MyWarehouseMerchandise({ user }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
+  const [kind, setKind] = useState('all');
 
   const load = useCallback(async (silent = false) => {
     if (silent) setRefreshing(true); else setLoading(true);
@@ -46,14 +48,17 @@ export default function MyWarehouseMerchandise({ user }) {
   const query = search.trim().toLowerCase();
 
   const filteredBultos = useMemo(() => {
-    if (!query) return bultos;
-    return bultos.filter((b) =>
+    const byKind = bultos.filter((b) => kind === 'all' || (kind === 'caja' ? b.is_caja : !b.is_caja));
+    if (!query) return byKind;
+    return byKind.filter((b) =>
       matches(b.label_code, query) ||
       matches(b.status, query) ||
       (b.order_numbers || []).some((n) => matches(n, query)) ||
-      (b.trackings || []).some((t) => matches(t, query))
+      (b.trackings || []).some((t) => matches(t, query)) ||
+      (b.unregistered_codes || []).some((t) => matches(t, query)) ||
+      (b.packages || []).some((p) => matches(p.tracking, query) || matches(p.description, query))
     );
-  }, [bultos, query]);
+  }, [bultos, query, kind]);
 
   const filteredGuides = useMemo(() => {
     if (!query) return guides;
@@ -123,12 +128,13 @@ export default function MyWarehouseMerchandise({ user }) {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <Input
-              placeholder="Buscar por etiqueta, tracking, contenedor o N° de guía..."
+              placeholder="Buscar por tracking, descripción, etiqueta, contenedor o N° de guía..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-10 text-sm"
             />
           </div>
+          <div className="mt-3"><UnitKindFilter value={kind} onChange={setKind} /></div>
         </CardContent>
       </Card>
 

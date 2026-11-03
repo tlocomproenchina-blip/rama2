@@ -25,10 +25,24 @@ export default async function (req: Request): Promise<Response> {
       .filter((id) => id && !String(id).startsWith('local_'))
       .slice(0, 300);
     const cbmByPackage = {};
+    const pkgById = {};
     if (ids.length) {
       const pkgRes = await base44.asServiceRole.entities.Package.filter({ id: { $in: ids } }, '-created_date', 300);
       const pkgs = Array.isArray(pkgRes) ? pkgRes : (pkgRes?.items || []);
-      for (const p of pkgs) cbmByPackage[p.id] = Number(p.actual_cbm || 0);
+      for (const p of pkgs) {
+        cbmByPackage[p.id] = Number(p.actual_cbm || 0);
+        // Solo los paquetes del propio cliente se muestran con su detalle.
+        if (p.client_email === user.email) {
+          pkgById[p.id] = {
+            tracking: p.tracking_number || '',
+            description: p.description || '',
+            photo: (Array.isArray(p.package_image_urls) && p.package_image_urls[0]) || p.package_image_url || '',
+            received_date: p.received_date || null,
+            cbm: Number(p.actual_cbm || 0),
+            weight_kg: Number(p.actual_weight_kg || 0),
+          };
+        }
+      }
     }
 
     const bultos = bultoList.map((b) => {
@@ -48,6 +62,8 @@ export default async function (req: Request): Promise<Response> {
         cbm: Number(b.cargo_cbm || 0) || cbmFromPackages,
         order_numbers: Array.isArray(b.cbm_order_numbers) ? b.cbm_order_numbers : [],
         trackings: (Array.isArray(b.package_trackings) ? b.package_trackings : []).filter(Boolean),
+        packages: pkgIds.map((id) => pkgById[id]).filter(Boolean),
+        unregistered_codes: unregistered.filter(Boolean),
         recognized_date: b.ve_recognized_date || null,
         created_date: b.created_date || null,
       };

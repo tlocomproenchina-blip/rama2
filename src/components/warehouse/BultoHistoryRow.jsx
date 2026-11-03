@@ -1,4 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { Eye } from 'lucide-react';
+import { unitKindLabel } from '@/lib/unitKind';
+import BultoContentsDialog from './BultoContentsDialog';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Pencil, Trash2, Printer, CheckSquare, Square, CloudOff, Hash, PackageOpen } from 'lucide-react';
@@ -13,6 +16,7 @@ export default function BultoHistoryRow({
   // Solo las cajas consolidadas que siguen en el almacén se pueden desarmar.
   const canDismantle = !!onDismantle && b.is_caja && !b.is_local_pending
     && b.status !== 'despachado' && !b.billed_invoice_id;
+  const [contentsOpen, setContentsOpen] = useState(false);
   return (
     <Card className={`shadow-sm transition-all ${selectMode && selected ? 'ring-2 ring-blue-400 bg-blue-50/30' : ''}`}>
       <CardContent className="p-3">
@@ -35,7 +39,7 @@ export default function BultoHistoryRow({
             )}
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-semibold text-slate-800">Bulto {b.bulto_number}/{b.total_bultos}</span>
+                <span className={`font-semibold ${b.is_caja ? 'text-violet-700' : 'text-slate-800'}`}>{unitKindLabel(b)}</span>
                 <span className="text-xs font-mono text-slate-500 bg-muted px-1.5 py-0.5 rounded">{b.label_code}</span>
                 <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                   b.status === 'despachado' ? 'bg-green-100 text-green-700'
@@ -86,6 +90,9 @@ export default function BultoHistoryRow({
                   <PackageOpen className="h-3.5 w-3.5" /> Desarmar
                 </Button>
               )}
+              <Button variant="outline" size="sm" onClick={() => setContentsOpen(true)}>
+                <Eye className="h-3.5 w-3.5" /> Ver contenido
+              </Button>
               <Button variant="outline" size="sm" onClick={() => onPrint(b)}>
                 <Printer className="h-3.5 w-3.5" />
               </Button>
@@ -101,6 +108,7 @@ export default function BultoHistoryRow({
           )}
         </div>
       </CardContent>
+      <BultoContentsDialog bulto={b} open={contentsOpen} onClose={() => setContentsOpen(false)} />
     </Card>
   );
 }

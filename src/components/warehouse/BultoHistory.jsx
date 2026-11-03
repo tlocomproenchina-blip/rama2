@@ -15,6 +15,7 @@ import { useBultoCodeSearch } from '@/hooks/useBultoCodeSearch';
 import { matchesBultoCode, mergeBultos } from '@/lib/bultoSearch';
 import { groupBultosByOrder } from '@/lib/bultoOrderGroups';
 import BultoHistoryRow from './BultoHistoryRow';
+import UnitKindFilter from './UnitKindFilter';
 import BultoOrderGroupCard from './BultoOrderGroupCard';
 import ReprintDialog from './ReprintDialog';
 import CombineSelectedDialog from './CombineSelectedDialog';
@@ -33,6 +34,7 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
   const [expandedKeys, setExpandedKeys] = useState(new Set());
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
+  const [kind, setKind] = useState('all');
   const [page, setPage] = useState(0);
   const [total, setTotal] = useState(0);
   const [deleteTargets, setDeleteTargets] = useState([]);
@@ -115,8 +117,10 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
       const q = search.trim();
       const rx = q ? { $regex: q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' } : null;
       const serverQuery = rx
-        ? { $or: ['shipping_mark', 'client_email', 'label_code', 'client_snapshot.full_name', 'client_snapshot.cedula'].map((f) => ({ [f]: rx })) }
+        ? { $or: ['shipping_mark', 'client_email', 'label_code', 'client_snapshot.full_name', 'client_snapshot.cedula', 'package_trackings', 'unregistered_codes'].map((f) => ({ [f]: rx })) }
         : {};
+      if (kind === 'caja') serverQuery.is_caja = true;
+      if (kind === 'suelto') serverQuery.is_caja = { $ne: true };
       const serverBultos = await base44.entities.Bulto.filter(serverQuery, '-created_date', serverLimit);
       setHasOlder(serverBultos.length >= serverLimit);
 
@@ -140,7 +144,8 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
       // Fusionar: locales primero (más recientes en dispositivo), luego servidor
       const serverIds = new Set(serverBultos.map((b) => b.id));
       const localNotInServer = localPending.filter((b) => !serverIds.has(b.server_bulto_id) && !serverBultos.some((s) => s.label_code === b.label_code));
-      let filtered = [...localNotInServer, ...serverBultos];
+      let filtered = [...localNotInServer, ...serverBultos]
+        .filter((b) => kind === 'all' || (kind === 'caja' ? !!b.is_caja : !b.is_caja));
 
       if (search.trim()) {
         const q = search.trim().toLowerCase();
@@ -150,13 +155,18 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
           const name = (b.client_snapshot?.full_name || '').toLowerCase();
           const cedula = (b.client_snapshot?.cedula || '').toLowerCase();
           const label = (b.label_code || '').toLowerCase();
+          const codes = [...(b.package_trackings || []), ...(b.unregistered_codes || [])];
           return sm.includes(q) || email.includes(q) || name.includes(q) || cedula.includes(q)
-            || label.includes(q) || matchesBultoCode(b.label_code, search);
+            || label.includes(q) || matchesBultoCode(b.label_code, search)
+            || codes.some((t) => String(t).toLowerCase().includes(q));
         });
 
         // La coincidencia por el final del código la resuelve el servidor, así
         // aparece el bulto aunque no esté entre los últimos cargados.
-        if (codeMatches.length) filtered = mergeBultos(filtered, codeMatches);
+        if (codeMatches.length) {
+          const kindMatches = codeMatches.filter((b) => kind === 'all' || (kind === 'caja' ? !!b.is_caja : !b.is_caja));
+          filtered = mergeBultos(filtered, kindMatches);
+        }
       }
 
       setTotal(filtered.length);
@@ -175,7 +185,7 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
     } finally {
       setLoading(false);
     }
-  }, [search, page, refreshKey, codeMatches, serverLimit]);
+  }, [search, page, refreshKey, codeMatches, serverLimit, kind]);
 
   // Permiso de borrado: solo la cuenta autorizada ve las acciones de eliminar
   useEffect(() => {
@@ -187,7 +197,7 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
   useEffect(() => { load(); }, [load]);
 
   // Reset page al cambiar la búsqueda
-  useEffect(() => { setPage(0); }, [search]);
+  useEffect(() => { setPage(0); }, [search, kind]);
 
   const confirmDelete = async () => {
     if (!deleteTargets.length) return;
@@ -235,11 +245,12 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Buscar por shipping mark, email, nombre, cédula o los últimos caracteres del código…"
+                placeholder="Buscar por tracking, shipping mark, email, nombre, cédula o código…"
                 className="pl-10"
               />
             </div>
           </div>
+          <UnitKindFilter value={kind} onChange={setKind} />
           <div className="flex items-center justify-between gap-2">
             <p className="text-xs text-slate-500">{total} bulto(s) encontrado(s)</p>
             <Button
