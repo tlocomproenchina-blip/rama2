@@ -35,6 +35,7 @@ export default function ClientMenuVisibilityManager({ appConfig, setAppConfig })
       const merged = { ...nextConfig, ...(saved || {}) };
       setAppConfig(merged);
       cacheManager.set('app_config', merged, 3600000);
+      window.dispatchEvent(new CustomEvent('tlec-app-config-change', { detail: merged }));
       toast.success('Menú del cliente actualizado');
     } catch (e) {
       setAppConfig(prev);

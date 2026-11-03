@@ -54,6 +54,13 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
     loadConfig();
   }, [loadConfig]);
 
+  // Aplicar al instante los cambios de Visibilidad del Menú (Configuración).
+  useEffect(() => {
+    const onChange = (e) => { if (e.detail) setConfig(e.detail); };
+    window.addEventListener('tlec-app-config-change', onChange);
+    return () => window.removeEventListener('tlec-app-config-change', onChange);
+  }, []);
+
 
   const isAdmin = user?.role === 'admin';
   const [attFlags, attMarkSeen] = useAttentionFlags({ user });

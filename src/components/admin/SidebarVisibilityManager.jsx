@@ -36,6 +36,7 @@ export default function SidebarVisibilityManager({ appConfig, setAppConfig }) {
       const merged = { ...nextConfig, ...(saved || {}) };
       setAppConfig(merged);
       cacheManager.set('app_config', merged, 3600000);
+      window.dispatchEvent(new CustomEvent('tlec-app-config-change', { detail: merged }));
       toast.success('Menú actualizado');
     } catch (e) {
       setAppConfig(prev);
