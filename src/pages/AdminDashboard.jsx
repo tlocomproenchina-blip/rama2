@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { base44 } from '@/components/api/ApiQueueManager';
+import { base44 as sdk } from '@/api/base44Client';
 import { createPageUrl } from '@/utils';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -36,16 +37,24 @@ export default function AdminDashboard({ user }) {
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
-      const [packages, consolidations, users, invoices, supportTickets, notifications] = await Promise.all([
+      const now = new Date();
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+      const [packages, consolidations, users, invoices, supportTickets, notifications, totalAgg, monthAgg] = await Promise.all([
         base44.entities.Package.list('-created_date', 120),
         base44.entities.Consolidation.list('-created_date', 120),
         base44.functions.invoke('listAllUsers', { role: 'user', limit: 200 }).then(r => r?.data?.users || []),
         base44.entities.Invoice.list('-created_date', 120),
         base44.entities.SupportTicket.list('-updated_date', 80),
         user?.email ? base44.entities.Notification.filter({ user_email: user.email }, '-created_date', 20) : Promise.resolve([]),
+        sdk.entities.Invoice.aggregate({ query: { status: 'pagada' }, sum: ['total'] }),
+        sdk.entities.Invoice.aggregate({ query: { status: 'pagada', payment_date: { $gte: monthStart } }, sum: ['total'] }),
       ]);
 
-      setData({ packages, consolidations, users, invoices, supportTickets, notifications });
+      setData({
+        packages, consolidations, users, invoices, supportTickets, notifications,
+        totalRevenue: Number(totalAgg?.rows?.[0]?.sum_total || 0),
+        monthRevenue: Number(monthAgg?.rows?.[0]?.sum_total || 0),
+      });
     } catch (error) {
       console.error('Error loading admin dashboard:', error);
     } finally {
@@ -70,12 +79,8 @@ export default function AdminDashboard({ user }) {
     const pendingValidation = data.consolidations.filter((item) => item.payment_proof_url && !item.payment_validated).length;
     const openTickets = data.supportTickets.filter((item) => item.status === 'abierto').length;
     const overdueInvoices = data.invoices.filter((item) => item.status === 'pendiente' && item.due_date && new Date(item.due_date) < today).length;
-    const monthRevenue = data.consolidations
-      .filter((item) => item.payment_validated && item.payment_validation_date && new Date(item.payment_validation_date) >= monthStart)
-      .reduce((sum, item) => sum + Number(item.total_cost || 0), 0);
-    const totalRevenue = data.consolidations
-      .filter((item) => item.payment_validated)
-      .reduce((sum, item) => sum + Number(item.total_cost || 0), 0);
+    const monthRevenue = data.monthRevenue || 0;
+    const totalRevenue = data.totalRevenue || 0;
 
     return {
       activeClients,
