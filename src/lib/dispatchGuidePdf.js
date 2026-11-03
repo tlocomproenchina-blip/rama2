@@ -2,6 +2,11 @@
 // cliente, que lista el código de cada bulto con su casilla de verificación de
 // entrega, los totales por cliente y el total general al cierre.
 import { isUnregisteredLine, summarizeGuide } from './dispatchGuides';
+import { qrDataUrl } from './qrCode';
+
+// Contenido del QR de la guía. El escáner de despacho lo reconoce por el prefijo.
+export const GUIDE_QR_PREFIX = 'GUIA:';
+export const guideQrValue = (guideNumber) => `${GUIDE_QR_PREFIX}${guideNumber}`;
 
 const fmtDate = (value) => {
   if (!value) return '—';
@@ -81,6 +86,15 @@ export async function generateDispatchGuidePdf({
         doc.text('Documento armado sin conexión: algunos códigos o conteos pueden no estar confirmados.', left, 39);
       }
       y = 46;
+      if (guideNumber) {
+        // QR de la guía: al escanearlo en Despacho se despachan todas sus unidades.
+        doc.addImage(qrDataUrl(guideQrValue(guideNumber), { moduleSize: 8, margin: 1 }), 'PNG', 172, 34, 24, 24);
+        doc.setTextColor(71, 85, 105);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7);
+        doc.text('Escanear para despachar', 184, 61, { align: 'center' });
+        y = 68;
+      }
     } else {
       doc.setFillColor(37, 99, 235);
       doc.rect(0, 0, 210, 16, 'F');

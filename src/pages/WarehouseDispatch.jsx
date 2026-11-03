@@ -192,6 +192,21 @@ export default function WarehouseDispatch({ user }) {
     // Refresh inteligente antes de procesar el escaneo (reduce ventana de conflicto)
     refreshIfStale();
     try {
+      // QR de guía de despacho: despacha todas las unidades de la guía.
+      if (/^GUIA:/i.test(cleaned)) {
+        try {
+          const res = await base44.functions.invoke('dispatchGuideByQr', { code: cleaned });
+          const d = res?.data || res;
+          toast.success(
+            `Guía ${d.guide_number}: ${d.dispatched} despachada(s), ${d.already_dispatched} ya estaban despachadas de ${d.total_units}` +
+              (d.missing?.length ? ` · ${d.missing.length} no encontrada(s): ${d.missing.join(', ')}` : ''),
+            { duration: 6000 }
+          );
+        } catch (e) {
+          toast.error(e?.response?.data?.error || 'No se pudo despachar la guía');
+        }
+        return;
+      }
       // Foto automática del escaneo: el despacho de este código NO se ejecuta hasta
       // que su foto termine de subir. Si falla, queda en rojo con aviso y solo se
       // puede reintentar la subida (sin despachar sin foto).
