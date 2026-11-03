@@ -36,6 +36,7 @@ import { toast } from 'sonner';
 import ResourceInspector from '@/components/admin/ResourceInspector';
 import PaymentMethodsSettings from '@/components/admin/PaymentMethodsSettings';
 import ShippingMarkAutomationSettings from '@/components/admin/ShippingMarkAutomationSettings';
+import ShippingMarkMigrationCard from '@/components/admin/ShippingMarkMigrationCard';
 import ProviderCostsSettings from '@/components/admin/ProviderCostsSettings';
 import SidebarVisibilityManager from '@/components/admin/SidebarVisibilityManager';
 import ClientMenuVisibilityManager from '@/components/admin/ClientMenuVisibilityManager';
@@ -1516,6 +1517,7 @@ export default function AdminSettings({ user }) {
               </div>
 
               <ShippingMarkAutomationSettings appConfig={appConfig} setAppConfig={setAppConfig} />
+              <ShippingMarkMigrationCard />
 
               {/* Chatbot Configuration */}
                <div className="mt-8 p-4 md:p-6 bg-indigo-50 rounded-xl border border-indigo-200 space-y-4">

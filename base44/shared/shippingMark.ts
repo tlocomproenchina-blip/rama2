@@ -3,7 +3,7 @@
 // alta de clientes que llegan desde la app del mayorista.
 import { sendBrevoEmail } from './brevoEmail.ts';
 
-const START_NUMBER = 50000;
+const START_NUMBER = 5000;
 const COUNTER_KEY = 'main';
 const MAX_ATTEMPTS = 12;
 
