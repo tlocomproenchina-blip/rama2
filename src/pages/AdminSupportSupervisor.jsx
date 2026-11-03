@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import PageHero from '@/components/common/PageHero';
 import SupervisorEscalationsPanel from '@/components/support/supervisor/SupervisorEscalationsPanel';
 import PackageEditReviewPanel from '@/components/support/supervisor/PackageEditReviewPanel';
+import SupervisorDepartmentCrm from '@/components/support/supervisor/SupervisorDepartmentCrm';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 // Módulo del supervisor: los casos que el ATC escaló, con su expediente completo
 // (chat previo, adjuntos, datos y todo el historial del cliente) en una pantalla.
@@ -27,7 +29,18 @@ export default function AdminSupportSupervisor({ user }) {
         }
       />
 
-      <SupervisorEscalationsPanel user={user} initialTicketId={focusTicketId} />
+      <Tabs defaultValue="bandeja">
+        <TabsList>
+          <TabsTrigger value="bandeja">Bandeja de casos</TabsTrigger>
+          <TabsTrigger value="departamentos">CRM por departamento</TabsTrigger>
+        </TabsList>
+        <TabsContent value="bandeja">
+          <SupervisorEscalationsPanel user={user} initialTicketId={focusTicketId} />
+        </TabsContent>
+        <TabsContent value="departamentos">
+          <SupervisorDepartmentCrm user={user} />
+        </TabsContent>
+      </Tabs>
 
       <section className="space-y-3">
         <div>

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
+import { assignTicketDepartment, departmentPatch } from '@/lib/ticketDepartments';
 
 // Bandeja del CRM: indicadores, agenda y casos, filtrados en el servidor.
 export default function useCrmInbox() {
@@ -30,14 +31,10 @@ export default function useCrmInbox() {
 
   // Mueve un caso a un departamento (o lo deja sin departamento) desde el tablero.
   const moveCase = useCallback(async (caseId, dep, user) => {
-    const patch = { department_id: dep?.id || '', department_name: dep?.name || '' };
+    const patch = departmentPatch(dep);
     setData((prev) => (prev ? { ...prev, cases: prev.cases.map((c) => (c.id === caseId ? { ...c, ...patch } : c)) } : prev));
     try {
-      await base44.entities.SupportTicket.update(caseId, {
-        ...patch,
-        department_assigned_by: user?.email || '',
-        department_assigned_date: new Date().toISOString(),
-      });
+      await assignTicketDepartment(caseId, dep, user);
       toast.success(dep ? `Caso movido a ${dep.name}` : 'Caso sin departamento');
     } catch {
       toast.error('No se pudo mover el caso');
