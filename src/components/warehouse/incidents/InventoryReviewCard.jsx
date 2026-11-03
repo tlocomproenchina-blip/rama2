@@ -5,7 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ClipboardCheck, Loader2, Save } from 'lucide-react';
+import { ClipboardCheck, Loader2, Save, ScanLine } from 'lucide-react';
+import InventoryScanDialog from './InventoryScanDialog';
 import { toast } from 'sonner';
 import IncidentClientSearch from './IncidentClientSearch';
 import InventoryUnitRow from './InventoryUnitRow';
@@ -46,6 +47,23 @@ export default function InventoryReviewCard({ onChanged }) {
 
   useEffect(() => { setUnitId(''); load(); }, [load]);
 
+  // Al escanear una etiqueta de caja, se busca al cliente y luego se elige la caja sola.
+  const [scanOpen, setScanOpen] = useState(false);
+  const [scannedLabel, setScannedLabel] = useState('');
+  const onScanned = (raw) => {
+    const value = String(raw || '').trim().toUpperCase();
+    if (!value) return;
+    const isLabel = /-(B|C)\d+$/.test(value);
+    setScannedLabel(isLabel ? value : '');
+    setClient(null);
+    setCode(isLabel ? value.replace(/-(B|C)\d+$/, '') : value);
+  };
+  useEffect(() => {
+    if (!scannedLabel || !units.length) return;
+    const match = units.find((u) => String(u.label_code || '').toUpperCase() === scannedLabel);
+    if (match) { setUnitId(match.id); setScannedLabel(''); }
+  }, [units, scannedLabel]);
+
   const save = async () => {
     setError('');
     if (!client || !unitId) return setError('Elige el cliente y la caja que revisas.');
@@ -79,10 +97,16 @@ export default function InventoryReviewCard({ onChanged }) {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-1.5">
-          <Label>Cliente o paquete</Label>
+          <div className="flex items-center justify-between gap-2">
+            <Label>Cliente o paquete</Label>
+            <Button type="button" size="sm" variant="outline" onClick={() => setScanOpen(true)}>
+              <ScanLine className="h-4 w-4" /> Escanear
+            </Button>
+          </div>
           <IncidentClientSearch code={code} client={client} onCodeChange={setCode}
             onSelect={(item) => { setClient(item); setCode(item.shipping_mark || ''); }}
             onClear={() => setClient(null)} />
+          <InventoryScanDialog open={scanOpen} onOpenChange={setScanOpen} onDetected={onScanned} />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="inv-container">N° de contenedor</Label>
