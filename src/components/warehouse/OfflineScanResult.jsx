@@ -5,7 +5,7 @@ import { CheckCircle2, AlertCircle, Package as PackageIcon, User, MapPin, FileTe
 
 // Muestra el resultado instantáneo del lookup local (paquete + cliente + datos para etiqueta).
 // Aparece en <200ms tras escanear, sin spinners de carga.
-export default function OfflineScanResult({ scanResult, client, review }) {
+export default function OfflineScanResult({ scanResult, client, review, isOnline = true }) {
   if (!scanResult) return null;
 
   const { pkg, already_received, auto_received } = scanResult;
@@ -30,8 +30,8 @@ export default function OfflineScanResult({ scanResult, client, review }) {
               </p>
             </>
           )}
-          <span className="ml-auto text-[10px] font-medium uppercase tracking-wide text-slate-400">
-            Offline
+          <span className={`ml-auto text-[10px] font-medium uppercase tracking-wide ${isOnline ? 'text-green-600' : 'text-amber-600'}`}>
+            {isOnline ? 'En línea' : 'Sin conexión'}
           </span>
         </div>
 

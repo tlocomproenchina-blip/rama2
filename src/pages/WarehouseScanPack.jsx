@@ -424,6 +424,7 @@ export default function WarehouseScanPack({ user }) {
         <OfflineScanResult
           scanResult={pack.lastScan}
           client={pack.lastScan.client}
+          isOnline={isOnline}
           review={lastReview && String(lastReview.tracking).toUpperCase() === String(pack.lastScan.pkg?.tracking_number || '').toUpperCase() ? lastReview : null}
         />
       )}
