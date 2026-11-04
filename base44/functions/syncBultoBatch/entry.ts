@@ -1,6 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.49';
 import { markPackagesReceivedIfMissing } from '../../shared/bultoScan.ts';
 import { planCombinedSources, deleteCombinedSources } from '../../shared/combineSources.ts';
+import { isSameWork, reassignLabelCode, settleCreateRace } from '../../shared/labelConflict.ts';
 
 // Sincroniza un bulto cerrado (creado offline) con todos sus paquetes al servidor.
 // Recibe:
@@ -41,20 +42,33 @@ export default async function(req: Request): Promise<Response> {
       return Response.json({ error: 'label_code y client_email son requeridos' }, { status: 400 });
     }
 
-    // Idempotencia: si ya existe un bulto con este label_code, devolverlo sin recrear
-    const existing = await base44.asServiceRole.entities.Bulto.filter({ label_code }, '-created_date', 1);
-    if (existing?.[0]) {
-      return Response.json({
-        success: true,
-        bulto: existing[0],
-        already_exists: true,
-        synced: true,
-      });
-    }
-
-    // Validar que los package_ids existan (fueron creados offline o ya existían)
     const rawPackageIds: string[] = Array.isArray(package_ids) ? package_ids.filter(Boolean) : [];
     const rawTrackings: string[] = Array.isArray(package_trackings) ? package_trackings.filter(Boolean) : [];
+    const localUnitId = String(local_bulto_id || '').trim();
+    let labelCode = String(label_code).trim();
+    let bultoNumber = bulto_number;
+    let relabeled: any = null;
+
+    // Idempotencia: un reintento del mismo bulto devuelve el ya registrado. Si el código
+    // lo tiene OTRA unidad (otro operador), esa lo conserva y este bulto recibe uno nuevo.
+    const existing = await base44.asServiceRole.entities.Bulto.filter({ label_code: labelCode }, '-created_date', 1);
+    if (existing?.[0]) {
+      if (isSameWork(existing[0], localUnitId, rawTrackings)) {
+        return Response.json({
+          success: true,
+          bulto: existing[0],
+          already_exists: true,
+          synced: true,
+        });
+      }
+      const fresh = await reassignLabelCode(base44, labelCode, 'B');
+      if (!fresh) {
+        return Response.json({ error: `El código ${labelCode} ya está usado y no se pudo asignar uno nuevo. Reintenta.` }, { status: 500 });
+      }
+      relabeled = { from: labelCode, to: fresh.label_code, number: fresh.number };
+      labelCode = fresh.label_code;
+      bultoNumber = fresh.number;
+    }
     // Los ids del escaneo offline ('local_pkg_...') no existen como Package en el
     // servidor: sus códigos se guardan como 'sin registrar' para que el bulto no
     // quede con ids fantasma (rompían la edición del bulto).
@@ -107,12 +121,14 @@ export default async function(req: Request): Promise<Response> {
     ];
 
     // Crear el bulto en el servidor
-    const newBulto = await base44.asServiceRole.entities.Bulto.create({
-      label_code,
+    let newBulto = await base44.asServiceRole.entities.Bulto.create({
+      label_code: labelCode,
+      local_unit_id: localUnitId,
+      ...(relabeled ? { relabeled_from: relabeled.from } : {}),
       client_email,
       shipping_mark: shipping_mark || '',
-      bulto_number: bulto_number || 1,
-      total_bultos: total_bultos || bulto_number || 1,
+      bulto_number: bultoNumber || 1,
+      total_bultos: total_bultos || bultoNumber || 1,
       package_ids: mergedPackageIds,
       package_trackings: mergedTrackings,
       unregistered_codes: mergedUnregistered,
@@ -126,6 +142,13 @@ export default async function(req: Request): Promise<Response> {
       status: bultoStatus,
       created_by: created_by || user.email || '',
     });
+
+    // Otro bulto se registró con el mismo código en el mismo instante.
+    if (rawTrackings.length) {
+      const race = await settleCreateRace(base44, newBulto, 'B');
+      newBulto = race.record;
+      if (race.relabeled) relabeled = { ...race.relabeled, from: relabeled?.from || race.relabeled.from };
+    }
 
     // Los paquetes que entran al bulto quedan recibidos en el almacén (no 'despachado':
     // ese paso es manual en WarehouseDispatch). Los que ya tenían recepción registrada
@@ -145,6 +168,7 @@ export default async function(req: Request): Promise<Response> {
       bulto: newBulto,
       already_exists: false,
       synced: true,
+      relabeled,
       combined: {
         deleted: combinedDeleted.deleted,
         failed: combinedDeleted.failed,

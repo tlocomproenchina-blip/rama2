@@ -77,7 +77,10 @@ export default function WarehouseScanPack({ user }) {
 
   const {
     pendingBultos, isSyncing, isOnline, enqueueClosedBulto, enqueueCaja, enqueuePackageReception, retrySync,
-  } = useOfflineBultoSync();
+  } = useOfflineBultoSync({
+    // Bulto que recibió un código nuevo al registrarse: se imprimen sus etiquetas nuevas.
+    onRelabeled: (bulto) => { enqueuePrint(bulto); setHistoryRefreshKey((k) => k + 1); },
+  });
 
   // Adjunta la foto del escaneo al paquete local y reencola su recepción para que llegue
   // al servidor (idempotente por id). Los paquetes creados a mano en el dispositivo no se

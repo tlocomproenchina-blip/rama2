@@ -6,6 +6,14 @@
       "type": "string",
       "description": "C\u00f3digo escaneable de la etiqueta del bulto (shipping_mark-B##) o de la caja consolidada (shipping_mark-C##). Formato distinto al ShippingLabel (-L##) para evitar colisiones."
     },
+    "local_unit_id": {
+      "type": "string",
+      "description": "ID de la unidad armada en la Mesa de empaque que registr\u00f3 este c\u00f3digo. Distingue un reintento del mismo trabajo (se actualiza) de otra unidad que lleg\u00f3 con el mismo c\u00f3digo (recibe un c\u00f3digo nuevo)."
+    },
+    "relabeled_from": {
+      "type": "string",
+      "description": "C\u00f3digo con el que la unidad se cerr\u00f3 en el dispositivo y que ya estaba usado por otra unidad: se le asign\u00f3 uno nuevo al registrarla."
+    },
     "is_caja": {
       "type": "boolean",
       "default": false,

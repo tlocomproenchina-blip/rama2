@@ -14,6 +14,7 @@ import {
 } from '../../shared/bultoAbsorption.ts';
 import { syncBultoToAccounting } from '../../shared/veAccountingSync.ts';
 import { planCombinedSources, deleteCombinedSources } from '../../shared/combineSources.ts';
+import { isSameWork, reassignLabelCode, settleCreateRace } from '../../shared/labelConflict.ts';
 
 // Registra en el servidor una caja consolidada armada en el almacén de Venezuela.
 //
@@ -51,7 +52,9 @@ export default async function (req: Request): Promise<Response> {
     }
     const assignedBy = sessionUser?.email || `Dispositivo ${deviceId.slice(0, 8).toUpperCase()}`;
 
-    const labelCode = String(body.label_code || '').trim();
+    let labelCode = String(body.label_code || '').trim();
+    const localUnitId = String(body.local_unit_id || '').trim();
+    let relabeled: any = null;
     if (!labelCode) return Response.json({ error: 'Falta el código de la caja' }, { status: 400 });
     if (!/-C\d+$/i.test(labelCode)) {
       return Response.json({
@@ -86,7 +89,7 @@ export default async function (req: Request): Promise<Response> {
       .filter(Boolean);
 
     const codeMatch = labelCode.match(/-C(\d+)$/i);
-    const numberFromCode = codeMatch ? Number(codeMatch[1]) : null;
+    let numberFromCode = codeMatch ? Number(codeMatch[1]) : null;
     const markFromCode = labelCode.slice(0, labelCode.length - String(codeMatch?.[0] || '').length).trim();
 
     // Cliente: por email confirmado en pantalla o deducido del shipping mark del código.
@@ -201,7 +204,21 @@ export default async function (req: Request): Promise<Response> {
     const existingRows = await base44.asServiceRole.entities.Bulto
       .filter({ label_code: labelCode }, '-created_date', 1)
       .catch(() => []);
-    const existing: any = existingRows?.[0] || null;
+    let existing: any = existingRows?.[0] || null;
+
+    // El código ya lo tiene otra unidad (otro operador cerró una caja o bulto con el
+    // mismo código): esa conserva su código y esta caja recibe uno nuevo para que
+    // ninguna pierda su contenido.
+    if (existing && (existing.is_caja === false || !isSameWork(existing, localUnitId, scannedCodes))) {
+      const fresh = await reassignLabelCode(base44, labelCode, 'C');
+      if (!fresh) {
+        return Response.json({ error: `El código ${labelCode} ya está usado y no se pudo asignar uno nuevo. Reintenta.` }, { status: 500 });
+      }
+      relabeled = { from: labelCode, to: fresh.label_code, number: fresh.number };
+      labelCode = fresh.label_code;
+      numberFromCode = fresh.number;
+      existing = null;
+    }
 
     // Caja ya despachada: no se vuelve a armar.
     if (existing?.status === 'despachado') {
@@ -244,6 +261,8 @@ export default async function (req: Request): Promise<Response> {
     const payload: any = {
       label_code: labelCode,
       is_caja: true,
+      local_unit_id: existing?.local_unit_id || localUnitId,
+      ...(relabeled ? { relabeled_from: relabeled.from } : {}),
       client_email: clientEmail,
       shipping_mark: shippingMark,
       package_ids: plan.package_ids,
@@ -285,6 +304,10 @@ export default async function (req: Request): Promise<Response> {
           ? { recognition_photo_url: String(body.recognition_photo_url).trim() }
           : {}),
       });
+      // Otra caja se registró con el mismo código en el mismo instante.
+      const race = await settleCreateRace(base44, caja, 'C');
+      caja = race.record;
+      if (race.relabeled) relabeled = { ...race.relabeled, from: relabeled?.from || race.relabeled.from };
     }
 
     // El contenido ya está dentro de la caja: los bultos absorbidos se eliminan.
@@ -325,7 +348,9 @@ export default async function (req: Request): Promise<Response> {
         cbm_order_numbers: orderNumbers,
         client_snapshot: caja.client_snapshot || {},
         absorbed_bultos: absorptionHistory,
+        bulto_number: caja.bulto_number,
       },
+      relabeled,
       absorbed: {
         bultos: plan.absorbed,
         packages_moved: plan.packages_moved,

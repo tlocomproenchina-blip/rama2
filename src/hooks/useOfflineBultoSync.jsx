@@ -11,7 +11,11 @@ import { toast } from 'sonner';
 // - Idempotente por id (local_bulto_id o package_id).
 // - Expone: pendingBultos, enqueueClosedBulto, enqueuePackageReception, isSyncing.
 
-export function useOfflineBultoSync() {
+// onRelabeled(bulto): el código ya lo tenía otra unidad y el servidor le asignó uno
+// nuevo a este bulto; se usa para imprimir sus etiquetas con el código nuevo.
+export function useOfflineBultoSync({ onRelabeled } = {}) {
+  const onRelabeledRef = useRef(onRelabeled);
+  onRelabeledRef.current = onRelabeled;
   const [pendingBultos, setPendingBultos] = useState([]);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
@@ -119,6 +123,7 @@ export function useOfflineBultoSync() {
             // La caja consolidada se registra con su contenido: el servidor absorbe los
             // bultos pequeños escaneados dentro de ella y los elimina.
             const res = await base44.functions.invoke('syncCaja', {
+              local_unit_id: item.id,
               label_code: item.label_code,
               client_email: item.client_email,
               package_codes: item.package_codes || [],
@@ -156,6 +161,13 @@ export function useOfflineBultoSync() {
                 if (absorbed?.id) await del('bultos', absorbed.id);
               }
             } catch (_) {}
+
+            if (data.relabeled) {
+              toast.warning(
+                `El código ${data.relabeled.from} ya lo tenía otra unidad: esta caja quedó como ${data.relabeled.to}. Se imprimen sus etiquetas nuevas; descarta las anteriores.`,
+                { duration: 12000 }
+              );
+            }
 
             const warnings = data?.absorbed?.warnings || [];
             if (warnings.length) {
@@ -214,15 +226,25 @@ export function useOfflineBultoSync() {
               try {
                 const localBultos = await getAll('bultos');
                 const localBulto = localBultos.find((b) => (b.local_bulto_id || b.id) === item.id);
+                const relabeled = res?.data?.relabeled;
                 if (localBulto) {
                   // 'already_exists' significa que ese código ya estaba usado en el
                   // sistema: la etiqueta nueva no se registró y la pantalla lo avisa.
-                  await put('bultos', {
+                  const updated = {
                     ...localBulto,
+                    ...(relabeled ? { label_code: relabeled.to, bulto_number: relabeled.number } : {}),
                     server_bulto_id: serverBultoId,
                     synced: true,
                     sync_duplicate: !!res?.data?.already_exists,
-                  });
+                  };
+                  await put('bultos', updated);
+                  if (relabeled) onRelabeledRef.current?.(updated);
+                }
+                if (relabeled) {
+                  toast.warning(
+                    `El código ${relabeled.from} ya lo tenía otra unidad: este bulto quedó como ${relabeled.to}. Se imprimen sus etiquetas nuevas; descarta las anteriores.`,
+                    { duration: 12000 }
+                  );
                 }
               } catch (_) {}
             }
