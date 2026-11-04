@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import IncidentClientSearch from './IncidentClientSearch';
 import InventoryUnitRow from './InventoryUnitRow';
 import MultiPhotoPicker from './MultiPhotoPicker';
+import ScannedPackageDescription from './ScannedPackageDescription';
 import IncidentDetailsFields from './IncidentDetailsFields';
 
 const upload = async (file) => {
@@ -21,6 +22,7 @@ const upload = async (file) => {
 // Revisión única: cliente, contenedor, caja, foto del contenido y, si aplica, la incidencia.
 export default function InventoryReviewCard({ onChanged }) {
   const [code, setCode] = useState('');
+  const [tracking, setTracking] = useState('');
   const [client, setClient] = useState(null);
   const [container, setContainer] = useState('');
   const [units, setUnits] = useState([]);
@@ -104,8 +106,9 @@ export default function InventoryReviewCard({ onChanged }) {
             </Button>
           </div>
           <IncidentClientSearch code={code} client={client} onCodeChange={setCode}
-            onSelect={(item) => { setClient(item); setCode(item.shipping_mark || ''); }}
-            onClear={() => setClient(null)} />
+            onSelect={(item) => { setTracking(code); setClient(item); setCode(item.shipping_mark || ''); }}
+            onClear={() => { setClient(null); setTracking(''); }} />
+          <ScannedPackageDescription tracking={client ? tracking : code} />
           <InventoryScanDialog open={scanOpen} onOpenChange={setScanOpen} onDetected={onScanned} />
         </div>
         <div className="space-y-1.5">
