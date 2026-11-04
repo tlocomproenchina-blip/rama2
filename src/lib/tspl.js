@@ -11,6 +11,11 @@ const enc = new TextEncoder();
 // Label dimensions in dots (203 DPI: 8 dots/mm)
 const LABEL_W = 800;
 
+// Etiquetas troqueladas de 100×100 mm con separación de ~2 mm entre una y otra.
+// Con "GAP 0,0" la impresora avanza 100 mm a ciegas (papel continuo) y el error se
+// acumula etiqueta tras etiqueta; con la separación real se re-sincroniza en cada una.
+const LABEL_GAP = 'GAP 2 mm,0 mm';
+
 // Approximate character widths (dots) for built-in bitmap fonts before scaling
 const FONT_WIDTH = { '1': 8, '2': 16, '3': 24, '4': 32, '5': 40 };
 
@@ -152,7 +157,7 @@ export const buildBultoLabelPayload = (bulto, copies = 1) => {
 
   const lines = [];
   lines.push('SIZE 100 mm,100 mm');
-  lines.push('GAP 0,0');
+  lines.push(LABEL_GAP);
   lines.push('DIRECTION 1');
   lines.push('CLS');
 
@@ -284,7 +289,7 @@ export const buildContinuousLabelPayload = ({
   }
 
   // Centrado vertical: márgenes parejos arriba y abajo
-  const lines = ['SIZE 100 mm,100 mm', 'GAP 0,0', 'DIRECTION 1', 'CLS'];
+  const lines = ['SIZE 100 mm,100 mm', LABEL_GAP, 'DIRECTION 1', 'CLS'];
   let y = MARGIN + Math.max(0, Math.round((PRINTABLE_H - layout.height) / 2));
   for (const b of layout.blocks) {
     lines.push(...b.render(y));
