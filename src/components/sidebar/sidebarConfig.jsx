@@ -48,6 +48,7 @@ export const clientMenuItems = [
   { name: 'Mi Perfil', page: 'Profile', icon: Users },
   { name: 'Mis Referidos', page: 'MyReferrals', icon: Gift },
   { name: 'Mis Paquetes', page: 'MyPackages', icon: Package },
+  { name: 'Mis incidencias', page: 'MyIncidents', icon: PackageOpen },
   { name: 'Almacén Venezuela', page: 'MyWarehouseMerchandise', icon: Warehouse },
   { name: 'Mis CBM', page: 'MyCbm', icon: TrendingUp },
   { name: 'Pre-alerta', page: 'PreAlert', icon: FileText },
@@ -162,7 +163,7 @@ export const adminGroups = [
 
 export const clientGroups = [
   { label: 'PRINCIPAL', items: ['Dashboard'] },
-  { label: 'ENVÍOS', items: ['MyPackages', 'MyWarehouseMerchandise', 'MyCbm', 'PreAlert', 'RequestConsolidation'] },
+  { label: 'ENVÍOS', items: ['MyPackages', 'MyIncidents', 'MyWarehouseMerchandise', 'MyCbm', 'PreAlert', 'RequestConsolidation'] },
   { label: 'PAGOS', items: ['MyInvoices', 'AssistedPayment'] },
   { label: 'SEGUIMIENTO', items: ['ShipmentTracking', 'ShippingCalculator'] },
   { label: 'INFORMACIÓN', items: ['Rates', 'Contract'] },

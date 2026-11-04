@@ -97,6 +97,7 @@ const PublicDispatchGuides = lazy(() => import('./pages/PublicDispatchGuides'));
 const ProviderInvoices = lazy(() => import('./pages/ProviderInvoices'));
 const PublicProviderInvoice = lazy(() => import('./pages/PublicProviderInvoice'));
 const ProviderPortal = lazy(() => import('./pages/ProviderPortal'));
+const MyIncidents = lazy(() => import('./pages/MyIncidents'));
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -158,6 +159,7 @@ const AuthenticatedApp = () => {
         <Route path="/ClientPortal" element={lazyRoute(Pages.Dashboard, "Dashboard")} />
       )}
       <Route path="/MyWarehouseMerchandise" element={lazyRoute(MyWarehouseMerchandise, "MyWarehouseMerchandise")} />
+      <Route path="/MyIncidents" element={lazyRoute(MyIncidents, "MyIncidents")} />
       <Route path="/WarehouseReceive" element={lazyRoute(WarehouseReceive, "WarehouseReceive")} />
       <Route path="/WarehouseLocations" element={lazyRoute(WarehouseLocations, "WarehouseLocations")} />
       <Route path="/WarehouseDashboard" element={lazyRoute(WarehouseDashboard, "WarehouseDashboard")} />
