@@ -286,6 +286,7 @@ export default function usePackUnit({
     setPendingCode(null);
     await activateUnit(updated);
     toast.success(`Código ${code} agregado sin registrar`);
+    return updated;
   }, [activateUnit, pendingCode]);
 
   const startManualAssign = useCallback(() => {
@@ -318,6 +319,7 @@ export default function usePackUnit({
       await activateUnit(updated);
       setLastScan({ pkg, client, already_received: false, auto_received: true, unit: updated });
       toast.success(`Paquete manual asignado a ${client.full_name || client.email}`);
+      return updated;
     } catch (e) {
       toast.error('Error al crear el paquete manual');
       setManualAssign({ tracking });

@@ -222,7 +222,11 @@ export default function WarehouseScanPack({ user }) {
       const rows = await base44.entities.Package.filter({ tracking_number: raw }, '-created_date', 1).catch(() => []);
       pkg = rows?.[0] || null;
     }
-    if (!pkg) { pack.handleScan(raw); return; }
+    if (!pkg) {
+      const unit = await pack.handleScan(raw);
+      if (unit && !unit.is_caja) await pack.closeUnit();
+      return;
+    }
     const client = pkg.client_email ? await getClientByEmail(pkg.client_email).catch(() => null) : null;
     setReview({ code: raw, pkg, client });
   }, [review, refreshIfStale, pack, getClientByEmail]);
@@ -368,7 +372,11 @@ export default function WarehouseScanPack({ user }) {
         reason={pack.pendingCode?.reason}
         hasUnit={!!activeUnit}
         busy={pack.busy}
-        onAddUnregistered={pack.confirmUnregistered}
+        onAddUnregistered={async () => {
+          // Un bulto suelto lleva siempre un solo paquete: se cierra solo.
+          const unit = await pack.confirmUnregistered();
+          if (unit && !unit.is_caja) await pack.closeUnit();
+        }}
         onAssign={pack.startManualAssign}
         onDiscard={pack.discardPendingCode}
       />
@@ -377,7 +385,10 @@ export default function WarehouseScanPack({ user }) {
       {pack.manualAssign && (
         <ManualPackageAssign
           tracking={pack.manualAssign.tracking}
-          onAssigned={pack.handleManualAssign}
+          onAssigned={async (client) => {
+            const unit = await pack.handleManualAssign(client);
+            if (unit && !unit.is_caja) await pack.closeUnit();
+          }}
           onCancel={pack.cancelManualAssign}
         />
       )}
