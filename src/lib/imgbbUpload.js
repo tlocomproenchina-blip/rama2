@@ -1,4 +1,5 @@
 import { base44 } from '@/api/base44Client';
+import { IMAGE_QUALITY } from '@/lib/imageCompression';
 
 // Lee el archivo original como base64 (fallback seguro si la compresión falla)
 const readAsBase64 = (file) => new Promise((resolve, reject) => {
@@ -8,7 +9,7 @@ const readAsBase64 = (file) => new Promise((resolve, reject) => {
   reader.readAsDataURL(file);
 });
 
-// Comprime la imagen en el navegador (máx 1600px, JPEG 80%) para que la subida sea rápida.
+// Comprime la imagen en el navegador (mismas dimensiones, JPEG calidad equilibrada) para que la subida sea rápida.
 // Si algo falla o tarda demasiado, cae al archivo original en base64 (nunca se queda colgado).
 const compressImage = (file) => new Promise((resolve) => {
   let settled = false;
@@ -24,18 +25,13 @@ const compressImage = (file) => new Promise((resolve) => {
     clearTimeout(timer);
     URL.revokeObjectURL(url);
     try {
-      const maxDim = 1600;
-      let { width, height } = img;
-      if (width > maxDim || height > maxDim) {
-        const scale = maxDim / Math.max(width, height);
-        width = Math.round(width * scale);
-        height = Math.round(height * scale);
-      }
+      const width = img.naturalWidth;
+      const height = img.naturalHeight;
       const canvas = document.createElement('canvas');
       canvas.width = width;
       canvas.height = height;
       canvas.getContext('2d').drawImage(img, 0, 0, width, height);
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+      const dataUrl = canvas.toDataURL('image/jpeg', IMAGE_QUALITY);
       finish(dataUrl.split(',')[1]);
     } catch {
       fallback();

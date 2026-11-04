@@ -3,6 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { Camera, AlertCircle, Zap, ZapOff } from 'lucide-react';
 import { captureScanJob, fetchScanStatus, kickScanQueue, retryScanJob } from '@/lib/bodegaScanQueue';
 import BodegaScanStatusPanel from '@/components/warehouse/BodegaScanStatusPanel';
+import { IMAGE_QUALITY } from '@/lib/imageCompression';
 
 const TXT = {
   received: { zh: '已收货', es: 'Recibido' },
@@ -114,7 +115,7 @@ export default function BodegaScan() {
     canvas.height = h;
     const ctx = canvas.getContext('2d');
     ctx.drawImage(video, 0, 0, w, h);
-    return canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
+    return canvas.toDataURL('image/jpeg', IMAGE_QUALITY).split(',')[1];
   }, []);
 
   const showToast = useCallback((type, shippingMark, tracking) => {

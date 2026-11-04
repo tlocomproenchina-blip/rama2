@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Camera, Keyboard, Loader2, ScanLine, X } from 'lucide-react';
+import { IMAGE_QUALITY } from '@/lib/imageCompression';
 import { toast } from 'sonner';
 import { normalizeScannedCode as normalizeCode } from '@/lib/codeScan';
 
@@ -151,7 +152,7 @@ export default function BarcodeScannerModule({
     try {
       const canvas = captureFrame();
       if (!canvas) return;
-      const base64 = canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
+      const base64 = canvas.toDataURL('image/jpeg', IMAGE_QUALITY).split(',')[1];
       if (base64) onPhotoCaptured(code, base64);
     } catch (_) {}
   };

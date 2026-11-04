@@ -1,5 +1,6 @@
 import { base44 } from '@/api/base44Client';
 import { publicAppUrl } from '@/lib/publicLinks';
+import { compressImageFile } from '@/lib/imageCompression';
 
 // Cuando la pantalla se abre desde el enlace público del portal, cada llamada lleva su clave.
 let portalToken = null;
@@ -19,7 +20,8 @@ export function fileToBase64(file) {
   });
 }
 
-export async function uploadToBunny(file) {
+export async function uploadToBunny(original) {
+  const file = await compressImageFile(original);
   const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
   const base64 = await fileToBase64(file);
   const data = await piCall('upload', { base64, ext });
