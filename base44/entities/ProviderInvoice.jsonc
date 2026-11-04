@@ -1,0 +1,117 @@
+{
+  "name": "ProviderInvoice",
+  "type": "object",
+  "properties": {
+    "invoice_code": {
+      "type": "string",
+      "description": "C\u00f3digo de factura (contenedor)"
+    },
+    "client_email": {
+      "type": "string"
+    },
+    "client_name": {
+      "type": "string"
+    },
+    "shipping_mark": {
+      "type": "string"
+    },
+    "load_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de carga"
+    },
+    "flat_rate": {
+      "type": "number",
+      "description": "Tarifa plana aplicada al crear (copia)"
+    },
+    "cbm": {
+      "type": "number"
+    },
+    "other_expenses": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "other_total": {
+      "type": "number",
+      "default": 0
+    },
+    "total": {
+      "type": "number",
+      "description": "tarifa plana \u00d7 CBM + otros gastos"
+    },
+    "invoice_file_url": {
+      "type": "string",
+      "description": "Foto o PDF de la factura (Bunny)"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pendiente",
+        "pagada"
+      ],
+      "enumColors": [
+        "yellow",
+        "green"
+      ],
+      "default": "pendiente"
+    },
+    "payment_proof_url": {
+      "type": "string",
+      "description": "Comprobante de pago (Bunny)"
+    },
+    "paid_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "paid_by": {
+      "type": "string"
+    },
+    "public_token": {
+      "type": "string"
+    },
+    "created_by_email": {
+      "type": "string"
+    },
+    "created_by_name": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "invoice_code",
+    "shipping_mark",
+    "cbm"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

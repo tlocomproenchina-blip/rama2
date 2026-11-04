@@ -1,0 +1,38 @@
+{
+  "name": "ProviderInvoiceRate",
+  "type": "object",
+  "properties": {
+    "flat_rate": {
+      "type": "number",
+      "description": "Tarifa plana por CBM (USD)"
+    },
+    "set_by": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "flat_rate"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

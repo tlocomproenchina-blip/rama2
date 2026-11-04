@@ -14,7 +14,7 @@ export class BunnyUploadError extends Error {
   }
 }
 
-export async function uploadBase64ToBunny(imageBase64: string): Promise<string> {
+export async function uploadBase64ToBunny(imageBase64: string, ext = 'jpg'): Promise<string> {
   if (!imageBase64) throw new BunnyUploadError('image_base64 es requerido', 400);
 
   const storageKey = Deno.env.get('BUNNY_STORAGE_KEY');
@@ -39,7 +39,8 @@ export async function uploadBase64ToBunny(imageBase64: string): Promise<string> 
 
   const ts = Date.now();
   const rand = Math.random().toString(36).slice(2, 10);
-  const path = `tlec/${ts}-${rand}.jpg`;
+  const safeExt = /^[a-z0-9]{2,5}$/i.test(ext) ? ext.toLowerCase() : 'jpg';
+  const path = `tlec/${ts}-${rand}.${safeExt}`;
 
   const res = await fetch(`https://storage.bunnycdn.com/${storageZone}/${path}`, {
     method: 'PUT',

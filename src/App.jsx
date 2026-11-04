@@ -94,6 +94,8 @@ const CityLanding = lazy(() => import('./pages/CityLanding'));
 const AdminCityAnalytics = lazy(() => import('./pages/AdminCityAnalytics'));
 const MyWarehouseMerchandise = lazy(() => import('./pages/MyWarehouseMerchandise'));
 const PublicDispatchGuides = lazy(() => import('./pages/PublicDispatchGuides'));
+const ProviderInvoices = lazy(() => import('./pages/ProviderInvoices'));
+const PublicProviderInvoice = lazy(() => import('./pages/PublicProviderInvoice'));
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -240,6 +242,15 @@ const AuthenticatedApp = () => {
         element={
           <Suspense fallback={<RouteFallback />}>
             <PublicDispatchGuides />
+          </Suspense>
+        }
+      />
+      <Route path="/ProviderInvoices" element={lazyRoute(ProviderInvoices, "ProviderInvoices")} />
+      <Route
+        path="/FacturaProveedor/:token"
+        element={
+          <Suspense fallback={<RouteFallback />}>
+            <PublicProviderInvoice />
           </Suspense>
         }
       />
