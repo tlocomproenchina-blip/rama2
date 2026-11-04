@@ -42,7 +42,10 @@ export default function PackageReviewPanel({ review, unitLabel, client, onDone, 
         shipping_mark: pkg?.shipping_mark, unit_label: unitLabel, container_number: container,
         content_photo_uri, has_incident: hasIncident, incident_type: type, notes, damage_photo_uris,
       });
-      onDone(hasIncident);
+      onDone(hasIncident, {
+        tracking: pkg?.tracking_number || code, description: pkg?.description || '', container,
+        hasIncident, type, notes, contentUri: content_photo_uri, damageUris: damage_photo_uris,
+      });
     } catch (e) {
       setError(e?.response?.data?.error || e?.message || 'No se pudo guardar la revisión. Revisa tu conexión.');
       setSaving(false);
@@ -75,6 +78,9 @@ export default function PackageReviewPanel({ review, unitLabel, client, onDone, 
           <Label>Foto del contenido (obligatoria)</Label>
           <MultiPhotoPicker files={photos} onChange={setPhotos} max={1} hint="Fotografía el contenido del paquete. Uso interno." />
         </div>
+        <p className={`rounded-xl px-3 py-2 text-sm font-semibold ${hasIncident ? 'bg-rose-50 text-rose-700' : 'bg-emerald-50 text-emerald-700'}`}>
+          Estado: {hasIncident ? 'Con incidencia' : 'Sin incidencia'}
+        </p>
         <label className="flex items-center gap-2 rounded-xl border border-border p-3 text-sm font-medium">
           <Checkbox checked={hasIncident} onCheckedChange={(v) => setHasIncident(!!v)} /> Hay incidencia
         </label>

@@ -47,6 +47,7 @@ export default function WarehouseScanPack({ user }) {
   const [lotEmail, setLotEmail] = useState('');
   const [cajas, setCajas] = useState([]);
   const [review, setReview] = useState(null);
+  const [lastReview, setLastReview] = useState(null);
 
   const {
     handlePhotoCaptured, waitForPhoto, getPhotoStatus, retryPhoto,
@@ -194,7 +195,14 @@ export default function WarehouseScanPack({ user }) {
     const raw = String(value || '').trim();
     if (!raw) return;
     if (review) { toast.info('Termina la revisión del paquete en curso'); return; }
-    const pkg = /-(B|C|L)\d+$/i.test(raw) ? null : await findPackageByTracking(raw).catch(() => null);
+    const isLabel = /-(B|C|L)\d+$/i.test(raw);
+    let pkg = isLabel ? null : await findPackageByTracking(raw).catch(() => null);
+    // El paquete puede no estar aún en la copia local: se busca en el servidor
+    // para que la revisión no se salte.
+    if (!pkg && !isLabel) {
+      const rows = await base44.entities.Package.filter({ tracking_number: raw }, '-created_date', 1).catch(() => []);
+      pkg = rows?.[0] || null;
+    }
     if (!pkg) { pack.handleScan(raw); return; }
     const client = pkg.client_email ? await getClientByEmail(pkg.client_email).catch(() => null) : null;
     setReview({ code: raw, pkg, client });
@@ -304,9 +312,10 @@ export default function WarehouseScanPack({ user }) {
           unitLabel={activeUnit && activeUnit.client_email === review.pkg?.client_email ? activeUnit.label_code : ''}
           client={review.client}
           onCancel={() => setReview(null)}
-          onDone={(withIncident) => {
+          onDone={(withIncident, summary) => {
             const value = review.code;
             setReview(null);
+            setLastReview(summary);
             toast.success(withIncident ? 'Incidencia registrada. Paquete empacado.' : 'Revisión guardada. Paquete empacado.');
             pack.handleScan(value);
           }}
@@ -409,7 +418,11 @@ export default function WarehouseScanPack({ user }) {
 
       {/* Resultado del último escaneo (instantáneo, local) */}
       {pack.lastScan?.pkg && (
-        <OfflineScanResult scanResult={pack.lastScan} client={pack.lastScan.client} />
+        <OfflineScanResult
+          scanResult={pack.lastScan}
+          client={pack.lastScan.client}
+          review={lastReview && String(lastReview.tracking).toUpperCase() === String(pack.lastScan.pkg?.tracking_number || '').toUpperCase() ? lastReview : null}
+        />
       )}
 
       {/* Cola de impresión persistente */}

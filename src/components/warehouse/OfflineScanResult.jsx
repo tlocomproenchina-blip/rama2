@@ -1,10 +1,11 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
+import ReviewSummaryCard from '@/components/warehouse/ReviewSummaryCard';
 import { CheckCircle2, AlertCircle, Package as PackageIcon, User, MapPin, FileText } from 'lucide-react';
 
 // Muestra el resultado instantáneo del lookup local (paquete + cliente + datos para etiqueta).
 // Aparece en <200ms tras escanear, sin spinners de carga.
-export default function OfflineScanResult({ scanResult, client }) {
+export default function OfflineScanResult({ scanResult, client, review }) {
   if (!scanResult) return null;
 
   const { pkg, already_received, auto_received } = scanResult;
@@ -84,7 +85,9 @@ export default function OfflineScanResult({ scanResult, client }) {
         </div>
 
         {/* Descripción del paquete */}
-        {pkg?.description && (
+        <ReviewSummaryCard summary={review} />
+
+        {!review && pkg?.description && (
           <div className="flex items-start gap-2 pt-1 border-t border-border/60">
             <PackageIcon className="h-4 w-4 text-slate-400 shrink-0 mt-0.5" />
             <p className="text-xs text-slate-500 line-clamp-2">{pkg.description}</p>
