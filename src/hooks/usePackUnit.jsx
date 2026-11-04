@@ -15,7 +15,7 @@ import { combineUnitsLocally } from '@/lib/combineUnits';
 // cliente ya tenía abierta se retoma sola, sin abrir nada a mano.
 export default function usePackUnit({
   user, getNextNumber, getClientByEmail, enqueueClosedBulto, enqueueCaja, enqueuePackageReception,
-  enqueuePrint, captureScanPhoto, onHistoryChange,
+  enqueuePrint, captureScanPhoto, onHistoryChange, onUnitChange, onUnitRemoved,
 }) {
   const [destination, setDestination] = useState('caja');
   const [units, setUnits] = useState([]);
@@ -71,6 +71,8 @@ export default function usePackUnit({
   // --- Unidad activa ---
   const activateUnit = useCallback(async (unit) => {
     if (!unit) return null;
+    // Cada cambio de la unidad se comparte con el resto del equipo.
+    onUnitChange?.(unitsRef.current.find((u) => u.id === unit.id), unit);
     applyUnits((prev) =>
       prev.some((u) => u.id === unit.id)
         ? prev.map((u) => (u.id === unit.id ? unit : u))
@@ -85,13 +87,17 @@ export default function usePackUnit({
       setContents(await cajaContents(unit).catch(() => ({ package_count: 0, cbm: 0 })));
     }
     return unit;
-  }, [applyUnits, changeDestination]);
+  }, [applyUnits, changeDestination, onUnitChange]);
 
+  // Relee las unidades abiertas (también las que llegan de otros operadores) y
+  // actualiza el contenido de la caja activa.
   const reloadUnits = useCallback(async () => {
     const open = await loadOpenUnits();
     applyUnits(open);
-    if (!open.some((u) => u.id === activeUnitRef.current?.id)) {
-      selectUnit(open[0]?.id || null);
+    const current = open.find((u) => u.id === activeUnitRef.current?.id) || open[0] || null;
+    selectUnit(current?.id || null);
+    if (current?.is_caja) {
+      setContents(await cajaContents(current).catch(() => ({ package_count: 0, cbm: 0 })));
     }
     return open;
   }, [applyUnits, selectUnit]);
@@ -344,11 +350,12 @@ export default function usePackUnit({
     const updated = await absorbBultoIntoLocalCaja(active, source);
     // El bulto absorbido ya no se registra por separado al reconectar.
     await dropLocalBultoFromQueue(source);
+    if (source.status === 'activo' && !source.closed_at) onUnitRemoved?.(source, 'eliminada');
     applyUnits((prev) => prev.filter((u) => u.id !== source.id));
     setAbsorbPending(null);
     await activateUnit(updated);
     toast.success(`Bulto ${source.label_code || ''} absorbido dentro de la caja`);
-  }, [absorbPending, activateUnit, applyUnits]);
+  }, [absorbPending, activateUnit, applyUnits, onUnitRemoved]);
 
   const cancelAbsorb = useCallback(() => setAbsorbPending(null), []);
   const discardPendingCode = useCallback(() => setPendingCode(null), []);
@@ -373,10 +380,11 @@ export default function usePackUnit({
     if (!unit) return;
     const updated = { ...unit, cbm_order_numbers: orders };
     await saveUnit(updated);
+    onUnitChange?.(unit, updated);
     applyUnits((prev) => prev.map((u) => (u.id === updated.id ? updated : u)));
     activeUnitRef.current = updated;
     setOrdersText((orders || []).join(', '));
-  }, [applyUnits]);
+  }, [applyUnits, onUnitChange]);
 
   const removeLast = useCallback(async () => {
     const unit = activeUnitRef.current;
@@ -390,6 +398,7 @@ export default function usePackUnit({
         const empty = !(updated?.package_trackings || []).length && !(updated?.absorbed_bultos || []).length;
         if (empty) {
           await del('bultos', updated.id);
+          onUnitRemoved?.(updated, 'eliminada');
           applyUnits((prev) => prev.filter((u) => u.id !== updated.id));
           selectUnit(null);
           setContents({ package_count: 0, cbm: 0 });
@@ -416,6 +425,7 @@ export default function usePackUnit({
 
       if (!newIds.length) {
         await del('bultos', unit.id);
+        onUnitRemoved?.(unit, 'eliminada');
         applyUnits((prev) => prev.filter((u) => u.id !== unit.id));
         selectUnit(null);
         toast.success('Bulto vacío eliminado');
@@ -432,7 +442,7 @@ export default function usePackUnit({
     } catch (e) {
       toast.error('Error al quitar el paquete');
     }
-  }, [activateUnit, applyUnits, onHistoryChange, selectUnit]);
+  }, [activateUnit, applyUnits, onHistoryChange, onUnitRemoved, selectUnit]);
 
   // --- Combinar unidades abiertas en una sola unidad nueva ---
   // El contenido de las unidades elegidas pasa a la unidad nueva (con su propio código) y
@@ -467,6 +477,7 @@ export default function usePackUnit({
         ? await createLocalBulto({ client, number, user })
         : await createLocalCaja({ client, number, user });
       const combined = await combineUnitsLocally(created, sources, user?.email || '');
+      sources.forEach((s) => onUnitRemoved?.(s, 'eliminada'));
       applyUnits((prev) => [...prev.filter((u) => !ids.includes(u.id)), combined]);
       await activateUnit(combined);
       toast.success(`${sources.length} unidades combinadas en ${combined.label_code}`);
@@ -479,7 +490,7 @@ export default function usePackUnit({
       busyRef.current = false;
       setBusy(false);
     }
-  }, [activateUnit, applyUnits, getClientByEmail, getNextNumber, onHistoryChange, user]);
+  }, [activateUnit, applyUnits, getClientByEmail, getNextNumber, onHistoryChange, onUnitRemoved, user]);
 
   // --- Cerrar la unidad: bulto (etiqueta individual) o caja (etiquetas continuas) ---
   const closeUnit = useCallback(async (ordersOverride) => {
@@ -504,6 +515,7 @@ export default function usePackUnit({
       };
       try {
         await saveLocalCaja(closed);
+        onUnitRemoved?.(closed, 'cerrada');
         await enqueueCaja({
           local_bulto_id: closed.local_bulto_id || closed.id,
           label_code: closed.label_code,
@@ -545,6 +557,7 @@ export default function usePackUnit({
       cbm_order_numbers: cbmOrderNumbers,
     };
     await saveUnit(closed);
+    onUnitRemoved?.(closed, 'cerrada');
     applyUnits((prev) => prev.filter((u) => u.id !== unit.id));
     selectUnit(null);
 
@@ -572,7 +585,7 @@ export default function usePackUnit({
     });
 
     onHistoryChange?.();
-  }, [applyUnits, contents, deviceId, enqueueCaja, enqueueClosedBulto, enqueuePrint, onHistoryChange, ordersText, selectUnit, user]);
+  }, [applyUnits, contents, deviceId, enqueueCaja, enqueueClosedBulto, enqueuePrint, onHistoryChange, onUnitRemoved, ordersText, selectUnit, user]);
 
   return {
     destination,

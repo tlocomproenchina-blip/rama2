@@ -1,10 +1,11 @@
 import React from 'react';
-import { Clock, Loader2, Package, Wifi, WifiOff } from 'lucide-react';
+import { Clock, Loader2, Package, Users, Wifi, WifiOff } from 'lucide-react';
 
 // Línea de estado del almacén: conexión, última sincronización, bloque de números de
 // bulto reservado, pendientes de sincronizar y sincronización en curso.
 export default function PackStatusBar({
   isOnline, lastSync, numberBlock, reservingBlock, pendingCount, isSyncing,
+  sharedPending = 0, sharedSyncing = false,
 }) {
   return (
     <div
@@ -37,6 +38,15 @@ export default function PackStatusBar({
           <Clock className="h-3 w-3" /> {pendingCount} por sincronizar
         </span>
       )}
+
+      <span className="flex w-full items-center gap-1 text-xs font-medium">
+        {sharedSyncing ? <Loader2 className="h-3 w-3 animate-spin" /> : <Users className="h-3 w-3" />}
+        {sharedSyncing
+          ? 'Compartiendo cambios con el equipo…'
+          : sharedPending > 0
+            ? `${sharedPending} unidad(es) con cambios por compartir${isOnline ? '' : ' al reconectar'}`
+            : 'Cajas y bultos abiertos compartidos con el equipo'}
+      </span>
 
       {isSyncing && (
         <span className="ml-auto flex items-center gap-1 text-xs font-medium text-blue-600">

@@ -34,6 +34,7 @@ import { del, put, findPackageByTracking } from '@/lib/offlineDb';
 import PackageReviewPanel from '@/components/warehouse/PackageReviewPanel';
 import ReviewQueueCard from '@/components/warehouse/ReviewQueueCard';
 import useReviewQueue from '@/hooks/useReviewQueue';
+import useSharedPackUnits from '@/hooks/useSharedPackUnits';
 
 // Mesa única de empaque (offline-first): un solo escáner recibe el paquete y lo deja en la
 // unidad del cliente que indique el selector (bulto suelto o caja consolidada). La unidad
@@ -107,8 +108,14 @@ export default function WarehouseScanPack({ user }) {
     setFailedPhotos((prev) => (prev.some((f) => f.code === scannedCode) ? prev : [...prev, { code: scannedCode, pkg }]));
   }, [getPhotoStatus, waitForPhoto, attachScanPhoto]);
 
+  // Cajas y bultos en armado compartidos en línea con el resto del equipo.
+  const packRef = useRef(null);
+  const shared = useSharedPackUnits({ onRemoteChange: () => packRef.current?.reloadUnits() });
+
   const pack = usePackUnit({
     user,
+    onUnitChange: shared.pushChange,
+    onUnitRemoved: shared.pushStatus,
     getNextNumber,
     getClientByEmail,
     enqueueClosedBulto,
@@ -121,6 +128,7 @@ export default function WarehouseScanPack({ user }) {
       setLotKey((k) => k + 1);
     },
   });
+  packRef.current = pack;
 
   // Cargar unidades abiertas de IndexedDB (instantáneo) tras consolidar duplicados en el
   // servidor y refrescar el caché.
@@ -132,6 +140,7 @@ export default function WarehouseScanPack({ user }) {
         await base44.functions.invoke('consolidateOpenBultos', {});
         await refreshCache();
       } catch (_) {}
+      await shared.pullAll();
       if (!cancelled) await pack.reloadUnits();
     })();
     return () => { cancelled = true; };
@@ -311,6 +320,8 @@ export default function WarehouseScanPack({ user }) {
         reservingBlock={reservingBlock}
         pendingCount={pendingBultos.length}
         isSyncing={isSyncing}
+        sharedPending={shared.pending}
+        sharedSyncing={shared.syncing}
       />
 
       <PackDestinationSelector
