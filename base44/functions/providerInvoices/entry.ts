@@ -43,7 +43,7 @@ Deno.serve(async (req) => {
       return Response.json({ flat_rate: rate });
     }
     if (action === 'searchClients') {
-      return Response.json({ clients: await searchClientsByQuery(sr, body.query) });
+      return Response.json({ clients: await searchClientsByQuery(base44, body.query) });
     }
     if (action === 'upload') {
       const ext = String(body.ext || 'jpg');
