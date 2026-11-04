@@ -74,10 +74,18 @@ export default function InventoryReviewCard({ onChanged }) {
     if (hasIncident && (!type || !notes.trim())) return setError('Completa el tipo y el detalle de la incidencia.');
     setSaving(true);
     try {
+      const trk = String(tracking || '').trim();
+      if (hasIncident && trk) {
+        const chk = await base44.functions.invoke('cajaInventoryReview', { action: 'check_incident', tracking_number: trk, client_email: client.email });
+        if (chk.data?.exists) {
+          setError(`Esta incidencia ya fue registrada anteriormente para este cliente (tracking ${trk}).`);
+          return;
+        }
+      }
       const content_photo_uri = await upload(contentPhotos[0]);
       const damage_photo_uris = hasIncident ? [content_photo_uri, ...(await Promise.all(damagePhotos.map(upload)))] : [];
       await base44.functions.invoke('cajaInventoryReview', {
-        action: 'review', bulto_id: unitId, container_number: container, content_photo_uri,
+        action: 'review', bulto_id: unitId, tracking_number: String(tracking || '').trim(), container_number: container, content_photo_uri,
         has_incident: hasIncident, incident_type: type, notes, damage_photo_uris,
       });
       toast.success(hasIncident ? 'Revisión con incidencia guardada' : 'Revisión guardada');

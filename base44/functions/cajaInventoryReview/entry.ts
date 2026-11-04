@@ -49,6 +49,15 @@ export default async function (req: Request): Promise<Response> {
       });
     }
 
+    // ¿Ya existe una incidencia para este cliente + tracking?
+    if (body.action === 'check_incident') {
+      const tracking = String(body.tracking_number || '').trim();
+      const email = String(body.client_email || '').trim();
+      if (!tracking || !email) return Response.json({ exists: false });
+      const found = await svc.WarehouseIncident.filter({ tracking_number: tracking, client_email: email }, '-reported_date', 1);
+      return Response.json({ exists: !!found[0], incident: found[0] || null });
+    }
+
     // Revisión por paquete en la Mesa de empaque, antes de añadirlo a la unidad.
     if (body.action === 'package_review') {
       const key = String(body.review_key || '').trim();
@@ -74,6 +83,13 @@ export default async function (req: Request): Promise<Response> {
       if (!matches) {
         if (!type) return Response.json({ error: 'Elige el tipo de problema.' }, { status: 400 });
         if (!notes) return Response.json({ error: 'Describe la diferencia encontrada.' }, { status: 400 });
+        if (tracking && email) {
+          const dup = await svc.WarehouseIncident.filter({ tracking_number: tracking, client_email: email }, '-reported_date', 1);
+          if (dup[0]) {
+            const when = new Date(dup[0].reported_date || dup[0].created_date).toLocaleString('es-VE', { timeZone: 'America/Caracas' });
+            return Response.json({ error: `Esta incidencia ya fue registrada anteriormente (tracking ${tracking}, ${when}).`, duplicate_incident: true }, { status: 409 });
+          }
+        }
         const inc = await svc.WarehouseIncident.create({
           package_id: pkg?.id || '',
           tracking_number: tracking,
@@ -122,6 +138,7 @@ export default async function (req: Request): Promise<Response> {
       const notes = String(body.notes || '').trim().slice(0, 1000);
       const now = new Date().toISOString();
       const clientName = bulto.client_snapshot?.full_name || '';
+      const reviewTracking = String(body.tracking_number || '').trim();
       const contentPhoto = String(body.content_photo_uri || '');
       const damagePhotos = (Array.isArray(body.damage_photo_uris) ? body.damage_photo_uris : []).filter(Boolean).slice(0, 10);
       const type = ['abierto', 'faltante', 'danado'].includes(body.incident_type) ? body.incident_type : '';
@@ -134,8 +151,16 @@ export default async function (req: Request): Promise<Response> {
         if (!type) return Response.json({ error: 'Elige el tipo de problema.' }, { status: 400 });
         if (!notes) return Response.json({ error: 'Describe la diferencia encontrada.' }, { status: 400 });
         if (!damagePhotos.length) return Response.json({ error: 'Agrega al menos una foto del daño.' }, { status: 400 });
+        if (reviewTracking && bulto.client_email) {
+          const dup = await svc.WarehouseIncident.filter({ tracking_number: reviewTracking, client_email: bulto.client_email }, '-reported_date', 1);
+          if (dup[0]) {
+            const when = new Date(dup[0].reported_date || dup[0].created_date).toLocaleString('es-VE', { timeZone: 'America/Caracas' });
+            return Response.json({ error: `Esta incidencia ya fue registrada anteriormente (tracking ${reviewTracking}, ${when}).`, duplicate_incident: true }, { status: 409 });
+          }
+        }
         const inc = await svc.WarehouseIncident.create({
           bulto_id: bulto.id,
+          tracking_number: reviewTracking,
           incident_type: type,
           photo_uris: damagePhotos,
           container_number: container,
@@ -143,7 +168,7 @@ export default async function (req: Request): Promise<Response> {
           client_email: bulto.client_email,
           client_name: clientName,
           photo_uri: damagePhotos[0],
-          notes: `[${bulto.label_code}] ${notes}`,
+          notes: `[${reviewTracking || bulto.label_code}] ${notes}`,
           reported_date: now,
           reported_by: user.email,
           reported_by_name: user.full_name || '',

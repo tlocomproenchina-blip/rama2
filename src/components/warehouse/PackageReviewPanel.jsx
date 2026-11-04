@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { enqueueReview } from '@/lib/reviewQueue';
+import { base44 } from '@/api/base44Client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,6 +31,15 @@ export default function PackageReviewPanel({ review, unitLabel, client, onDone, 
     setSaving(true);
     const tracking = pkg?.tracking_number || code;
     const damagePhotos = hasIncident ? damage : [];
+    const email = pkg?.client_email || client?.email;
+    if (hasIncident && tracking && email) {
+      const chk = await base44.functions.invoke('cajaInventoryReview', { action: 'check_incident', tracking_number: tracking, client_email: email }).catch(() => null);
+      if (chk?.data?.exists) {
+        setError(`Esta incidencia ya fue registrada anteriormente para este cliente (tracking ${tracking}).`);
+        setSaving(false);
+        return;
+      }
+    }
     try {
       // Se guarda en el dispositivo y se sube en segundo plano: el empaque sigue al instante.
       await enqueueReview({
