@@ -10,6 +10,11 @@ export default function useSignedUri(uri) {
     let alive = true;
     setUrl('');
     if (!uri) return () => { alive = false; };
+    // Foto local de una revisión que todavía se está subiendo.
+    if (String(uri).startsWith('blob:')) {
+      setUrl(uri);
+      return () => { alive = false; };
+    }
 
     base44.integrations.Core.CreateFileSignedUrl({ file_uri: uri, expires_in: 3600 })
       .then((res) => {

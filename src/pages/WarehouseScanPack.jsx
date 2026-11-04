@@ -32,6 +32,8 @@ import usePackUnit from '@/hooks/usePackUnit';
 import { localCajasOfClient } from '@/lib/cajaLocal';
 import { del, put, findPackageByTracking } from '@/lib/offlineDb';
 import PackageReviewPanel from '@/components/warehouse/PackageReviewPanel';
+import ReviewQueueCard from '@/components/warehouse/ReviewQueueCard';
+import useReviewQueue from '@/hooks/useReviewQueue';
 
 // Mesa única de empaque (offline-first): un solo escáner recibe el paquete y lo deja en la
 // unidad del cliente que indique el selector (bulto suelto o caja consolidada). La unidad
@@ -49,6 +51,7 @@ export default function WarehouseScanPack({ user }) {
   const [cajas, setCajas] = useState([]);
   const [review, setReview] = useState(null);
   const [lastReview, setLastReview] = useState(null);
+  const reviewQueue = useReviewQueue();
 
   const {
     handlePhotoCaptured, waitForPhoto, getPhotoStatus, retryPhoto,
@@ -339,7 +342,7 @@ export default function WarehouseScanPack({ user }) {
             const value = review.code;
             setReview(null);
             setLastReview(summary);
-            toast.success(withIncident ? 'Incidencia registrada. Paquete empacado.' : 'Revisión guardada. Paquete empacado.');
+            toast.success(withIncident ? 'Incidencia guardada. Paquete empacado.' : 'Revisión guardada. Paquete empacado.');
             const unit = await pack.handleScan(value);
             // Bulto suelto revisado: se cierra solo para que pase al historial y a la
             // cola de impresión. Las cajas siguen abiertas para seguir consolidando.
@@ -347,6 +350,8 @@ export default function WarehouseScanPack({ user }) {
           }}
         />
       )}
+
+      <ReviewQueueCard items={reviewQueue.items} onRetry={reviewQueue.retry} />
 
       {pack.error && (
         <p className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">

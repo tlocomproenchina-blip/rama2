@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { base44 } from '@/api/base44Client';
+import { enqueueReview } from '@/lib/reviewQueue';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,11 +8,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { ClipboardCheck, FileText, Loader2, PackagePlus, X } from 'lucide-react';
 import MultiPhotoPicker from '@/components/warehouse/incidents/MultiPhotoPicker';
 import IncidentDetailsFields from '@/components/warehouse/incidents/IncidentDetailsFields';
-
-const upload = async (file) => {
-  const up = await base44.integrations.Core.UploadPrivateFile({ file });
-  return up?.file_uri || up?.data?.file_uri;
-};
 
 // Revisión obligatoria de cada paquete escaneado antes de añadirlo a la unidad activa.
 export default function PackageReviewPanel({ review, unitLabel, client, onDone, onCancel }) {
@@ -33,23 +28,30 @@ export default function PackageReviewPanel({ review, unitLabel, client, onDone, 
     if (!photos.length) return setError('La foto del contenido es obligatoria.');
     if (hasIncident && (!type || !notes.trim())) return setError('Completa el tipo y el detalle de la incidencia.');
     setSaving(true);
+    const tracking = pkg?.tracking_number || code;
+    const damagePhotos = hasIncident ? damage : [];
     try {
-      const content_photo_uri = await upload(photos[0]);
-      const damage_photo_uris = hasIncident ? [content_photo_uri, ...(await Promise.all(damage.map(upload)))] : [];
-      await base44.functions.invoke('cajaInventoryReview', {
-        action: 'package_review', review_key: keyRef.current, tracking_number: pkg?.tracking_number || code,
-        package_id: pkg?.id, client_email: pkg?.client_email || client?.email, client_name: client?.full_name || '',
-        shipping_mark: pkg?.shipping_mark, unit_label: unitLabel, container_number: container,
-        content_photo_uri, has_incident: hasIncident, incident_type: type, notes, damage_photo_uris,
-      });
-      onDone(hasIncident, {
-        tracking: pkg?.tracking_number || code, description: pkg?.description || '', container,
-        hasIncident, type, notes, contentUri: content_photo_uri, damageUris: damage_photo_uris,
+      // Se guarda en el dispositivo y se sube en segundo plano: el empaque sigue al instante.
+      await enqueueReview({
+        key: keyRef.current,
+        contentPhoto: photos[0],
+        damagePhotos,
+        payload: {
+          tracking_number: tracking, package_id: pkg?.id, client_email: pkg?.client_email || client?.email,
+          client_name: client?.full_name || '', shipping_mark: pkg?.shipping_mark, unit_label: unitLabel,
+          container_number: container, has_incident: hasIncident, incident_type: type, notes,
+        },
       });
     } catch (e) {
-      setError(e?.response?.data?.error || e?.message || 'No se pudo guardar la revisión. Revisa tu conexión.');
+      setError(e?.message || 'No se pudo guardar la revisión en el dispositivo.');
       setSaving(false);
+      return;
     }
+    const contentUri = URL.createObjectURL(photos[0]);
+    onDone(hasIncident, {
+      tracking, description: pkg?.description || '', container, hasIncident, type, notes,
+      contentUri, damageUris: hasIncident ? [contentUri, ...damagePhotos.map((f) => URL.createObjectURL(f))] : [],
+    });
   };
 
   return (
