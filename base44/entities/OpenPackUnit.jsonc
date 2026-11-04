@@ -1,0 +1,138 @@
+{
+  "name": "OpenPackUnit",
+  "type": "object",
+  "properties": {
+    "unit_id": {
+      "type": "string",
+      "description": "ID local compartido de la caja o bulto en armado (el mismo en todos los dispositivos)"
+    },
+    "label_code": {
+      "type": "string",
+      "description": "C\u00f3digo de etiqueta de la unidad (-B## o -C##)"
+    },
+    "is_caja": {
+      "type": "boolean",
+      "default": false
+    },
+    "client_email": {
+      "type": "string"
+    },
+    "shipping_mark": {
+      "type": "string"
+    },
+    "bulto_number": {
+      "type": "number"
+    },
+    "total_bultos": {
+      "type": "number"
+    },
+    "client_snapshot": {
+      "type": "object",
+      "description": "Datos del cliente al abrir la unidad"
+    },
+    "package_ids": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "string"
+      }
+    },
+    "package_trackings": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "string"
+      }
+    },
+    "unregistered_codes": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "string"
+      }
+    },
+    "absorbed_codes": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "string"
+      }
+    },
+    "combined_codes": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "string"
+      }
+    },
+    "cbm_order_numbers": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "string"
+      }
+    },
+    "absorbed_bultos": {
+      "type": "array",
+      "default": [],
+      "description": "Bultos absorbidos dentro de la caja",
+      "items": {
+        "type": "object"
+      }
+    },
+    "tombstones": {
+      "type": "object",
+      "description": "C\u00f3digos quitados a prop\u00f3sito por campo, para que la uni\u00f3n autom\u00e1tica no los vuelva a agregar"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "abierta",
+        "cerrada",
+        "eliminada"
+      ],
+      "enumColors": [
+        "blue",
+        "green",
+        "gray"
+      ],
+      "default": "abierta"
+    },
+    "created_by_email": {
+      "type": "string"
+    },
+    "updated_by": {
+      "type": "string",
+      "description": "\u00daltimo operador que modific\u00f3 la unidad"
+    },
+    "last_device_id": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "unit_id",
+    "label_code"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
