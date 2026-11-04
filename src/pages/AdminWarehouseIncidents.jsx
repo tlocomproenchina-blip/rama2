@@ -2,7 +2,8 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import PageHero from '@/components/common/PageHero';
 import { Button } from '@/components/ui/button';
-import { FileSpreadsheet, Loader2, PackageOpen } from 'lucide-react';
+import { FileSpreadsheet, Loader2, PackageOpen, ClipboardCheck, Camera } from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import InventoryReviewCard from '@/components/warehouse/incidents/InventoryReviewCard';
 import ReviewPhotoHistory from '@/components/warehouse/incidents/ReviewPhotoHistory';
 import IncidentList from '@/components/warehouse/incidents/IncidentList';
@@ -58,17 +59,29 @@ export default function AdminWarehouseIncidents() {
         }
       />
 
-      <InventoryReviewCard onChanged={load} />
+      <Tabs defaultValue="revision" className="space-y-4">
+        <TabsList className="h-auto w-full flex-wrap justify-start gap-1 p-1">
+          <TabsTrigger value="revision" className="gap-1.5"><ClipboardCheck className="h-4 w-4" /> Revisión de inventario</TabsTrigger>
+          <TabsTrigger value="incidencias" className="gap-1.5"><PackageOpen className="h-4 w-4" /> Incidencias</TabsTrigger>
+          <TabsTrigger value="fotos" className="gap-1.5"><Camera className="h-4 w-4" /> Fotos de revisiones</TabsTrigger>
+        </TabsList>
 
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-muted-foreground">Historial</h2>
-          <span className="text-xs text-muted-foreground">{incidents.length} incidencia(s)</span>
-        </div>
-        <IncidentList incidents={incidents} loading={loading} onChanged={load} />
-      </div>
+        <TabsContent value="revision">
+          <InventoryReviewCard onChanged={load} />
+        </TabsContent>
 
-      <ReviewPhotoHistory refreshKey={incidents} />
+        <TabsContent value="incidencias" className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-muted-foreground">Historial</h2>
+            <span className="text-xs text-muted-foreground">{incidents.length} incidencia(s)</span>
+          </div>
+          <IncidentList incidents={incidents} loading={loading} onChanged={load} />
+        </TabsContent>
+
+        <TabsContent value="fotos">
+          <ReviewPhotoHistory refreshKey={incidents} />
+        </TabsContent>
+      </Tabs>
 
     </div>
   );
