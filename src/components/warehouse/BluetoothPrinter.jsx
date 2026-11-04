@@ -1,10 +1,19 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Printer, Loader2, BluetoothConnected, FileDown, AlertTriangle } from 'lucide-react';
+import { Printer, Loader2, BluetoothConnected, Bluetooth, FileDown, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { buildBultoLabelPayload, concatUint8Arrays } from '@/lib/tspl';
 import { downloadBultoLabelsPdf } from '@/lib/bultoLabelPdf';
-import { resolvePrinterDevice, findWriteCharacteristic, connectAuthorizedPrinter } from '@/lib/bluetoothReconnect';
+import { connectAuthorizedPrinter, pickAndConnectPrinter } from '@/lib/bluetoothReconnect';
+
+const friendlyError = (e) => {
+  const msg = String(e?.message || '');
+  if (/no longer in range|out of range|gesture|NetworkError|GATT/i.test(msg) || e?.name === 'SecurityError') {
+    return 'El teléfono no logró enlazar la impresora. Toca "Buscar impresora" y elígela de la lista.';
+  }
+  if (e?.name === 'NotFoundError') return 'No se eligió ninguna impresora.';
+  return msg || 'Error al imprimir';
+};
 
 const CHUNK_SIZE = 180; // safe BLE write chunk
 const INTER_CHUNK_DELAY_MS = 80; // delay entre chunks para evitar desbordamiento del buffer
@@ -18,25 +27,25 @@ export default function BluetoothPrinter({ bultos = [], onPrinted, autoPrint = f
 
   const btSupported = typeof navigator !== 'undefined' && !!navigator.bluetooth;
 
-  const connect = async () => {
-    if (!btSupported) throw new Error('Bluetooth no soportado en este navegador');
-    setStatus('connecting');
-    setError('');
-
-    // En standby esto pide el dispositivo como siempre; con la reconexión
-    // activada reutiliza la impresora ya autorizada y evita el diálogo.
-    const { device } = await resolvePrinterDevice();
-
-    deviceRef.current = device;
-    const server = await device.gatt.connect();
-    serverRef.current = server;
-    const char = await findWriteCharacteristic(server);
-    if (!char) {
-      throw new Error('No se encontró una característica de escritura en la impresora');
-    }
-    characteristicRef.current = char;
+  const applySession = (session) => {
+    deviceRef.current = session.device;
+    serverRef.current = session.server;
+    characteristicRef.current = session.characteristic;
     setStatus('connected');
-    return char;
+  };
+
+  // Se llama directo desde el toque del botón para que Chrome abra el selector.
+  const handleRepair = async () => {
+    setError('');
+    setStatus('connecting');
+    try {
+      applySession(await pickAndConnectPrinter());
+    } catch (e) {
+      setStatus('error');
+      setError(friendlyError(e));
+      return;
+    }
+    handlePrint(false);
   };
 
   const writeData = async (data) => {
@@ -86,17 +95,14 @@ export default function BluetoothPrinter({ bultos = [], onPrinted, autoPrint = f
     try {
       // Connect if needed
       if (!characteristicRef.current || !deviceRef.current?.gatt?.connected) {
-        const silent = await connectAuthorizedPrinter();
-        if (silent) {
-          deviceRef.current = silent.device;
-          serverRef.current = silent.server;
-          characteristicRef.current = silent.characteristic;
-          setStatus('connected');
-        } else if (auto) {
-          return;
-        } else {
-          await connect();
+        setError('');
+        setStatus('connecting');
+        let session = await connectAuthorizedPrinter();
+        if (!session) {
+          if (auto) { setStatus('idle'); return; }
+          session = await pickAndConnectPrinter();
         }
+        applySession(session);
       }
       setStatus('printing');
 
@@ -113,9 +119,10 @@ export default function BluetoothPrinter({ bultos = [], onPrinted, autoPrint = f
       toast.success(label);
       onPrinted?.();
     } catch (e) {
+      characteristicRef.current = null;
       setStatus('error');
-      setError(e?.message || 'Error al imprimir');
-      toast.error(`No se pudo imprimir: ${e?.message || 'error Bluetooth'}`);
+      setError(friendlyError(e));
+      toast.error(`No se pudo imprimir: ${friendlyError(e)}`);
     }
   };
 
@@ -169,7 +176,13 @@ export default function BluetoothPrinter({ bultos = [], onPrinted, autoPrint = f
         </p>
       )}
       {status === 'error' && error && (
-        <p className="text-xs text-red-600">{error}</p>
+        <div className="flex flex-col gap-2">
+          <p className="text-xs text-red-600">{error}</p>
+          <Button variant="outline" size="sm" onClick={handleRepair} className="self-start">
+            <Bluetooth className="h-4 w-4" />
+            Buscar impresora
+          </Button>
+        </div>
       )}
     </div>
   );

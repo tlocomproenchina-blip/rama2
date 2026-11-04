@@ -104,17 +104,72 @@ export const resolvePrinterDevice = async () => {
   return { device, reused: false };
 };
 
+// Sesión compartida por toda la página: si la impresora ya quedó conectada en
+// otra tarjeta o antes de que el componente se volviera a montar, se reutiliza.
+let activeSession = null;
+export const getActiveSession = () =>
+  activeSession?.device?.gatt?.connected && activeSession.characteristic ? activeSession : null;
+export const setActiveSession = (s) => { activeSession = s; };
+
+// Tras recargar la página, Chrome Android entrega la impresora autorizada como
+// "fuera de alcance" hasta escuchar su señal. Se espera esa señal (máx. ms).
+const waitForAdvertisement = (device, ms = 6000) => new Promise((resolve) => {
+  if (typeof device.watchAdvertisements !== 'function') { resolve(false); return; }
+  const controller = new AbortController();
+  const done = (ok) => {
+    clearTimeout(timer);
+    device.removeEventListener('advertisementreceived', onAdv);
+    controller.abort();
+    resolve(ok);
+  };
+  const onAdv = () => done(true);
+  const timer = setTimeout(() => done(false), ms);
+  device.addEventListener('advertisementreceived', onAdv);
+  device.watchAdvertisements({ signal: controller.signal }).catch(() => done(false));
+});
+
+const connectDevice = async (device) => {
+  const server = device.gatt.connected ? device.gatt : await device.gatt.connect();
+  const characteristic = await findWriteCharacteristic(server);
+  if (!characteristic) throw new Error('No se encontró una característica de escritura en la impresora');
+  const session = { device, server, characteristic };
+  setActiveSession(session);
+  return session;
+};
+
 // Reconecta por GATT sin diálogo. Si el permiso no sirve o la impresora está
 // apagada, devuelve null para que quien llama caiga al flujo normal.
 export const connectAuthorizedPrinter = async () => {
+  const current = getActiveSession();
+  if (current) return current;
   const device = await findAuthorizedPrinter();
   if (!device) return null;
   try {
-    const server = device.gatt.connected ? device.gatt : await device.gatt.connect();
-    const characteristic = await findWriteCharacteristic(server);
-    if (!characteristic) return null;
-    return { device, server, characteristic };
+    return await connectDevice(device);
   } catch (_) {
-    return null;
+    // Esperar la señal de la impresora y reintentar una vez.
+    const heard = await waitForAdvertisement(device);
+    if (!heard) return null;
+    try {
+      return await connectDevice(device);
+    } catch (_) {
+      return null;
+    }
   }
+};
+
+// Abre el selector de Chrome para elegir (o volver a vincular) la impresora.
+// Debe llamarse directo desde un toque del usuario.
+export const pickAndConnectPrinter = async () => {
+  const device = await navigator.bluetooth.requestDevice({
+    filters: [
+      { services: [PRINTER_SERVICES[0]] },
+      { services: [PRINTER_SERVICES[1]] },
+      { namePrefix: 'POS' },
+      { namePrefix: 'ZJ' },
+      { namePrefix: 'Printer' },
+    ],
+    optionalServices: PRINTER_SERVICES,
+  });
+  return connectDevice(device);
 };
