@@ -1,4 +1,5 @@
 import { base44 } from '@/api/base44Client';
+import { publicAppUrl } from '@/lib/publicLinks';
 
 // Cuando la pantalla se abre desde el enlace público del portal, cada llamada lleva su clave.
 let portalToken = null;
@@ -25,6 +26,6 @@ export async function uploadToBunny(file) {
   return data.url;
 }
 
-export const portalUrl = (token) => `${window.location.origin}/PortalProveedor/${token}`;
-export const publicInvoiceUrl = (token) => `${window.location.origin}/FacturaProveedor/${token}`;
+export const portalUrl = (token) => publicAppUrl(`/PortalProveedor/${token}`);
+export const publicInvoiceUrl = (token) => publicAppUrl(`/FacturaProveedor/${token}`);
 export const money = (n) => `$${Number(n || 0).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
