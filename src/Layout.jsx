@@ -30,6 +30,7 @@ import InternalFloatingChat from '@/components/internal-messaging/InternalFloati
 import DemoModeBanner from '@/components/common/DemoModeBanner';
 import MobileBottomNav from '@/components/navigation/MobileBottomNav';
 import MobilePageTransition from '@/components/navigation/MobilePageTransition';
+import PushOptInBanner from '@/components/notifications/PushOptInBanner';
 
 // Lazy loaded onboarding tour
 const GuidedTour = lazy(() =>
@@ -461,6 +462,7 @@ export default function Layout({ children, currentPageName }) {
       )}
 
       {user?.role === 'user' && isApkApp && <MobileBottomNav />}
+      {user && <PushOptInBanner />}
 
       {user?.role === 'admin' && <InternalFloatingChat user={user} />}
 

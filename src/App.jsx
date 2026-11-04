@@ -265,9 +265,9 @@ const AuthenticatedApp = () => {
           </Suspense>
         }
       />
-      <Route path="/Quote/:token" element={<QuotePublic />} />
-      <Route path="/QuoteFeePayment" element={<QuoteFeePayment />} />
-      <Route path="/BodegaScan" element={<BodegaScan />} />
+      <Route path="/Quote/:token" element={<Suspense fallback={<RouteFallback />}><QuotePublic /></Suspense>} />
+      <Route path="/QuoteFeePayment" element={<Suspense fallback={<RouteFallback />}><QuoteFeePayment /></Suspense>} />
+      <Route path="/BodegaScan" element={<Suspense fallback={<RouteFallback />}><BodegaScan /></Suspense>} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );

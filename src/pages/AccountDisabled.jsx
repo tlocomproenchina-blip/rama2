@@ -21,7 +21,7 @@ export default function AccountDisabled({ user }) {
     }
 
     if (!user) {
-      navigate(createPageUrl('Home'));
+      navigate('/');
     }
   }, [user, navigate]);
 

@@ -8,7 +8,7 @@ export default function HomeHeader({ onLogin }) {
     <header className="sticky top-0 z-30 w-full bg-white/80 backdrop-blur-2xl border-b border-slate-200/50">
       <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
         {/* Logo */}
-        <Link to={createPageUrl('Home')} className="flex items-center gap-2">
+        <Link to="/" className="flex items-center gap-2">
           <span className="text-2xl font-black bg-gradient-to-r from-blue-600 to-blue-700 bg-clip-text text-transparent">TLEC</span>
           <span className="text-2xl font-black text-slate-900">CARGO</span>
         </Link>

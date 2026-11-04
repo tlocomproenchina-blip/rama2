@@ -8,7 +8,7 @@
 // Cuando se active: si Android/Chrome devuelve una impresora ya autorizada, se
 // reconecta por GATT sin diálogo; si no hay ninguna o falla, el flujo actual
 // pide el dispositivo como siempre.
-export const RECONNECT_ENABLED = false;
+export const RECONNECT_ENABLED = true;
 
 // Perfiles GATT usados por impresoras térmicas genéricas (POS-9250-L y similares).
 export const PRINTER_SERVICES = [

@@ -19,6 +19,7 @@ import UnitKindFilter from './UnitKindFilter';
 import BultoOrderGroupCard from './BultoOrderGroupCard';
 import ReprintDialog from './ReprintDialog';
 import CombineSelectedDialog from './CombineSelectedDialog';
+import DismantleCajaDialog from './DismantleCajaDialog';
 
 const PAGE_SIZE = 50;
 const SERVER_BLOCK = 300;
@@ -336,6 +337,7 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
                 onPrint={setPrintTarget}
                 onEdit={setEditTarget}
                 onDelete={(bulto) => setDeleteTargets([bulto])}
+                onDismantle={setDismantleTarget}
               />
             ) : (
               <BultoHistoryRow
@@ -348,6 +350,7 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
                 onPrint={setPrintTarget}
                 onEdit={setEditTarget}
                 onDelete={(bulto) => setDeleteTargets([bulto])}
+                onDismantle={setDismantleTarget}
               />
             )
           ))}
@@ -447,6 +450,13 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
       />
 
       {/* Confirmación de eliminación */}
+      {dismantleTarget && (
+        <DismantleCajaDialog
+          caja={dismantleTarget}
+          onClose={() => setDismantleTarget(null)}
+          onDone={() => { try { apiQueue.invalidateEntityCache('Bulto'); } catch (_) {} load(); }}
+        />
+      )}
       <Dialog open={deleteTargets.length > 0} onOpenChange={(o) => !o && setDeleteTargets([])}>
         <DialogContent className="max-w-md">
           <DialogHeader>

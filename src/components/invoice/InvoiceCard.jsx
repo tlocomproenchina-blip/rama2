@@ -197,7 +197,7 @@ function InvoiceCard({ invoice, user, onPay, onDownload, showPayButton = false, 
             <CollapsibleTrigger asChild>
               <Button variant="ghost" size="sm" className="w-full justify-between text-xs text-slate-600 hover:text-slate-800">
                 <span className="flex items-center gap-2">
-                  <Wallet className="h-3.5 w-3.5" /> Ver abonos
+                  <Wallet className="h-3.5 w-3.5" /> Ver pagos
                 </span>
                 <ChevronDown className={`h-3.5 w-3.5 transition-transform ${abonosOpen ? 'rotate-180' : ''}`} />
               </Button>

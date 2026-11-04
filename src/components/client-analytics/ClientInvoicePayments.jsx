@@ -57,7 +57,7 @@ export default function ClientInvoicePayments({ invoice, payments, onSaved }) {
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="flex items-center gap-1 text-xs font-semibold text-slate-600">
-          <Wallet className="h-3.5 w-3.5" /> Abonos / pagos del cliente ({list.length})
+          <Wallet className="h-3.5 w-3.5" /> Pagos del cliente ({list.length})
         </p>
         <div className="flex flex-wrap items-center gap-1.5">
           {chips.map((chip) => (
@@ -65,7 +65,7 @@ export default function ClientInvoicePayments({ invoice, payments, onSaved }) {
               {chip.label}
             </span>
           ))}
-          {canAbonar ? (
+          {false && canAbonar ? (
             <Button
               size="sm"
               className="h-7 gap-1.5 bg-emerald-600 px-2.5 text-xs text-white hover:bg-emerald-700"

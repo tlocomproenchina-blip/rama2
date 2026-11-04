@@ -289,7 +289,7 @@ export default function MyInvoices({ user }) {
                   setAbonoInvoice(inv);
                   setAbonoOpen(true);
                 }}
-                showAbonoButton={hasOtherMethodsConfigured}
+                showAbonoButton={false}
                 onRefresh={loadInvoices}
                 onOtherPay={(inv) => {
                   if (inv.status === 'pagada' || inv.status === 'revision') return;

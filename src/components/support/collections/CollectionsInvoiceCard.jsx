@@ -128,14 +128,14 @@ export default function CollectionsInvoiceCard({ invoice, aging }) {
         onClick={() => setShowAbonos((value) => !value)}
         className="mt-3 flex w-full items-center justify-between gap-2 border-t border-slate-100 pt-2 text-xs font-semibold text-slate-600 hover:text-slate-800"
       >
-        <span>Ver abonos ({abonos.length})</span>
+        <span>Ver pagos ({abonos.length})</span>
         {showAbonos ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
       </button>
 
       {showAbonos && (
         <div className="mt-1 space-y-1 text-xs">
           {abonos.length === 0 ? (
-            <p className="text-slate-400">Sin abonos registrados.</p>
+            <p className="text-slate-400">Sin pagos registrados.</p>
           ) : (
             abonos.map((abono, index) => (
               <div key={abono.charge_id || index} className="flex items-center justify-between gap-2 text-slate-600">

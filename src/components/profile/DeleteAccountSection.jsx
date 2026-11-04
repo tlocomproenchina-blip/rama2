@@ -40,7 +40,7 @@ export default function DeleteAccountSection({ user }) {
         throw new Error(response.data?.error || 'No se pudo eliminar la cuenta');
       }
       toast.success('Tu cuenta fue eliminada');
-      base44.auth.logout('/Home');
+      base44.auth.logout('/');
     } catch (error) {
       toast.error(error.message || 'No se pudo eliminar la cuenta');
       setDeleting(false);
