@@ -1,10 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Lock, Undo2, Printer, Hash, Save, Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
+import { Lock, Undo2, Printer } from 'lucide-react';
 import PrintCountBadge from './PrintCountBadge';
 import ReprintDialog from './ReprintDialog';
 import CloseBultoDialog from './CloseBultoDialog';
@@ -17,36 +14,6 @@ export default function OpenBultoCard({ bulto, onClose, onRemoveLast, onOrderCha
   const trackings = bulto.package_trackings || [];
   const count = bulto.package_ids?.length || trackings.length || 0;
   const cs = bulto.client_snapshot || {};
-
-  const existingOrders = Array.isArray(bulto.cbm_order_numbers) ? bulto.cbm_order_numbers.filter(Boolean) : [];
-
-  // N° de contenedor editable antes de cerrar el bulto (se guarda en el bulto y se
-  // refleja en la etiqueta; el diálogo de cierre hace la última revisión).
-  const [orderText, setOrderText] = useState(existingOrders.join(', '));
-  const [savedOrderText, setSavedOrderText] = useState(existingOrders.join(', '));
-  const [savingOrder, setSavingOrder] = useState(false);
-
-  useEffect(() => {
-    const text = (Array.isArray(bulto.cbm_order_numbers) ? bulto.cbm_order_numbers.filter(Boolean) : []).join(', ');
-    setOrderText(text);
-    setSavedOrderText(text);
-  }, [bulto.id]);  
-
-  const orderDirty = orderText.trim() !== savedOrderText.trim();
-
-  const handleSaveOrder = async () => {
-    const orders = orderText.split(',').map((s) => s.trim()).filter(Boolean);
-    setSavingOrder(true);
-    try {
-      await onOrderChange?.(orders);
-      setSavedOrderText(orders.join(', '));
-      toast.success('N° de contenedor guardado');
-    } catch (_) {
-      toast.error('No se pudo guardar el N° de contenedor');
-    } finally {
-      setSavingOrder(false);
-    }
-  };
 
   // El diálogo de cierre devuelve los contenedores ya revisados/editados (o null).
   const handleClose = (orders) => {
@@ -88,36 +55,6 @@ export default function OpenBultoCard({ bulto, onClose, onRemoveLast, onOrderCha
             </ul>
           </div>
         )}
-
-        {/* N° de contenedor: se puede ver y editar antes de cerrar el bulto */}
-        <div className="rounded-lg border border-border bg-muted/20 p-2.5 space-y-1.5">
-          <Label htmlFor="bulto-order" className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-            <Hash className="h-3.5 w-3.5" /> N° de contenedor
-          </Label>
-          <div className="flex items-center gap-2">
-            <Input
-              id="bulto-order"
-              value={orderText}
-              onChange={(e) => setOrderText(e.target.value)}
-              placeholder="Ej: 12345 (varias separadas por coma)"
-              className="h-9 text-sm font-mono"
-            />
-            <Button
-              size="sm"
-              onClick={handleSaveOrder}
-              disabled={!orderDirty || savingOrder}
-              className="shrink-0 bg-blue-600 hover:bg-blue-700"
-            >
-              {savingOrder ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-              Guardar
-            </Button>
-          </div>
-          <p className="text-[10px] text-slate-400">
-            {existingOrders.length > 0
-              ? 'Este es el contenedor detectado automáticamente. Corrígelo si hace falta: se imprime en la etiqueta al cerrar.'
-              : 'Ingrésala ahora o revísala al cerrar el bulto.'}
-          </p>
-        </div>
 
         <div className="flex flex-col gap-2">
           <Button onClick={() => setShowCloseDialog(true)} className="w-full bg-blue-600 hover:bg-blue-700">
