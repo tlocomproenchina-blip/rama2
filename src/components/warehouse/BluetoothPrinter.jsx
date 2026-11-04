@@ -16,6 +16,7 @@ const friendlyError = (e) => {
 };
 
 const CHUNK_SIZE = 180; // safe BLE write chunk
+const LABEL_COPIES = 3; // cada etiqueta de bulto sale por triplicado
 const INTER_CHUNK_DELAY_MS = 80; // delay entre chunks para evitar desbordamiento del buffer
 
 export default function BluetoothPrinter({ bultos = [], onPrinted, autoPrint = false, size = 'default', className = '' }) {
@@ -108,7 +109,7 @@ export default function BluetoothPrinter({ bultos = [], onPrinted, autoPrint = f
 
       // Build combined payload for all bultos (single Bluetooth session)
       // Cada etiqueta sale con su código QR
-      const payloads = bultos.map((b) => buildBultoLabelPayload(b));
+      const payloads = bultos.map((b) => buildBultoLabelPayload(b, LABEL_COPIES));
       const combined = concatUint8Arrays(payloads);
       await writeData(combined);
 

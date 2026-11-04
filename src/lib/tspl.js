@@ -74,7 +74,8 @@ const qrBlock = (code, { targetH = 190, maxCell = 10 } = {}) => {
 // bulto: { label_code, bulto_number, total_bultos, shipping_mark, client_snapshot, package_ids, package_trackings }
 // Todas las etiquetas llevan código QR, también al reimprimir.
 // Returns Uint8Array ready for Web Bluetooth writeValue.
-export const buildBultoLabelPayload = (bulto) => {
+// copies: cuántas copias idénticas imprime la impresora de esta etiqueta.
+export const buildBultoLabelPayload = (bulto, copies = 1) => {
   const cs = bulto.client_snapshot || {};
   const estado = (cs.state || 'SIN ESTADO').toUpperCase();
   const labelCode = bulto.label_code || '';
@@ -161,7 +162,7 @@ export const buildBultoLabelPayload = (bulto) => {
     y += b.h;
   }
 
-  lines.push('PRINT 1');
+  lines.push(`PRINT 1,${Math.max(1, copies)}`);
   lines.push('END');
 
   const tspl = lines.join('\r\n') + '\r\n';
