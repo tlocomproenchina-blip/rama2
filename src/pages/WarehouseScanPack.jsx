@@ -78,7 +78,7 @@ export default function WarehouseScanPack({ user }) {
   const {
     pendingBultos, isSyncing, isOnline, enqueueClosedBulto, enqueueCaja, enqueuePackageReception, retrySync,
   } = useOfflineBultoSync({
-    // Bulto que recibió un código nuevo al registrarse: se imprimen sus etiquetas nuevas.
+    // Bulto guardado en el servidor: se imprimen sus etiquetas con el código definitivo.
     onRelabeled: (bulto) => { enqueuePrint(bulto); setHistoryRefreshKey((k) => k + 1); },
   });
 

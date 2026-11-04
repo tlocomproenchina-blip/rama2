@@ -561,8 +561,8 @@ export default function usePackUnit({
     applyUnits((prev) => prev.filter((u) => u.id !== unit.id));
     selectUnit(null);
 
-    await enqueuePrint(closed);
-    toast.success(`Bulto ${unit.bulto_number} cerrado — encolado para impresión`);
+    // La etiqueta se imprime cuando el servidor confirma el guardado y devuelve el código definitivo.
+    toast.success(`Bulto ${unit.bulto_number} cerrado: se imprime al confirmarse el guardado`);
 
     await enqueueClosedBulto({
       local_bulto_id: closed.local_bulto_id || closed.id,

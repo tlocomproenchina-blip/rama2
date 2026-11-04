@@ -164,7 +164,7 @@ export function useOfflineBultoSync({ onRelabeled } = {}) {
 
             if (data.relabeled) {
               toast.warning(
-                `El código ${data.relabeled.from} ya lo tenía otra unidad: esta caja quedó como ${data.relabeled.to}. Se imprimen sus etiquetas nuevas; descarta las anteriores.`,
+                `El código ${data.relabeled.from} ya lo tenía otra unidad: esta caja quedó como ${data.relabeled.to}.`,
                 { duration: 12000 }
               );
             }
@@ -232,17 +232,19 @@ export function useOfflineBultoSync({ onRelabeled } = {}) {
                   // sistema: la etiqueta nueva no se registró y la pantalla lo avisa.
                   const updated = {
                     ...localBulto,
-                    ...(relabeled ? { label_code: relabeled.to, bulto_number: relabeled.number } : {}),
+                    // Código definitivo: el que quedó guardado en el servidor.
+                    label_code: res.data.bulto.label_code || localBulto.label_code,
+                    bulto_number: res.data.bulto.bulto_number || localBulto.bulto_number,
                     server_bulto_id: serverBultoId,
                     synced: true,
-                    sync_duplicate: !!res?.data?.already_exists,
                   };
                   await put('bultos', updated);
-                  if (relabeled) onRelabeledRef.current?.(updated);
+                  // Se imprime solo con el código definitivo ya guardado (y si aún no se imprimió).
+                  if (!(res?.data?.bulto?.print_count > 0)) onRelabeledRef.current?.(updated);
                 }
                 if (relabeled) {
                   toast.warning(
-                    `El código ${relabeled.from} ya lo tenía otra unidad: este bulto quedó como ${relabeled.to}. Se imprimen sus etiquetas nuevas; descarta las anteriores.`,
+                    `El código ${relabeled.from} ya lo tenía otra unidad: este bulto quedó como ${relabeled.to}.`,
                     { duration: 12000 }
                   );
                 }
