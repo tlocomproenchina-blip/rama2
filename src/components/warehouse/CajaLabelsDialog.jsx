@@ -15,6 +15,8 @@ import {
 import { localCajasOfClient, saveLocalCaja } from '@/lib/cajaLocal';
 import ContinuousLabelPreview from './dispatch-guides/ContinuousLabelPreview';
 
+const LABEL_COPIES = 3; // cada etiqueta de caja sale por triplicado, igual que los bultos
+
 // Etiquetas continuas del lote de un cliente: una tira numerada 1/N, 2/N… con los datos
 // del cliente y, en cada etiqueta, el código QR de su caja. Esa es la etiqueta que
 // se pega en la caja y la que se escanea al despachar para dar la salida definitiva.
@@ -80,7 +82,8 @@ export default function CajaLabelsDialog({ open, onOpenChange, clientEmail, onPr
     load();
   }, [open, load]);
 
-  const handlePrint = async () => {
+  // pick: abre el selector de Chrome (solo desde el toque del botón tras un error).
+  const handlePrint = async ({ pick = false } = {}) => {
     if (!cajas.length) return;
     if (!bluetoothSupported()) {
       toast.error('La impresión Bluetooth solo funciona en Android (Chrome/WebView)');
@@ -95,6 +98,7 @@ export default function CajaLabelsDialog({ open, onOpenChange, clientEmail, onPr
         index: caja.caja_number,
         total: caja.caja_total,
         barcodeCode: caja.label_code,
+        copies: LABEL_COPIES,
       })
     );
     const boundaries = [];
@@ -106,7 +110,7 @@ export default function CajaLabelsDialog({ open, onOpenChange, clientEmail, onPr
 
     try {
       setStatus(isPrinterConnected() ? 'printing' : 'connecting');
-      await ensurePrinterConnected();
+      await ensurePrinterConnected({ pick });
       setStatus('printing');
       await writePayload(concatUint8Arrays(payloads), (bytes) => {
         let done = 0;
@@ -224,13 +228,17 @@ export default function CajaLabelsDialog({ open, onOpenChange, clientEmail, onPr
                 {statusText()}
               </p>
 
-              <Button className="w-full gap-2" onClick={handlePrint} disabled={busy}>
+              <Button
+                className="w-full gap-2"
+                onClick={() => handlePrint({ pick: status === 'error' })}
+                disabled={busy}
+              >
                 {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Printer className="h-4 w-4" />}
                 {busy
                   ? 'Imprimiendo…'
                   : status === 'error'
-                    ? 'Reintentar impresión'
-                    : `Imprimir ${cajas.length} etiqueta(s)`}
+                    ? 'Buscar impresora e imprimir'
+                    : `Imprimir ${cajas.length} etiqueta(s) × ${LABEL_COPIES}`}
               </Button>
             </div>
           </>

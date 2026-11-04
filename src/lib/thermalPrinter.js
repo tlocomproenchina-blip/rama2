@@ -1,3 +1,7 @@
+import {
+  connectAuthorizedPrinter, getActiveSession, pickAndConnectPrinter, setActiveSession,
+} from '@/lib/bluetoothReconnect';
+
 // Impresión térmica Bluetooth (BLE) compartida: mantiene la sesión abierta entre
 // impresiones del mismo dispositivo y envía los datos por bloques de 180 bytes con
 // una pausa entre bloques para no desbordar el buffer de la impresora.
@@ -23,8 +27,12 @@ let session = { device: null, server: null, characteristic: null };
 export const bluetoothSupported = () =>
   typeof navigator !== 'undefined' && !!navigator.bluetooth;
 
-export const isPrinterConnected = () =>
-  !!session.device?.gatt?.connected && !!session.characteristic;
+export const isPrinterConnected = () => {
+  if (session.device?.gatt?.connected && session.characteristic) return true;
+  const shared = getActiveSession();
+  if (shared) session = { device: shared.device, server: shared.server, characteristic: shared.characteristic };
+  return !!shared;
+};
 
 const findWriteCharacteristic = async (server) => {
   for (const serviceUuid of PRINTER_SERVICES) {
@@ -49,10 +57,18 @@ const findWriteCharacteristic = async (server) => {
   return null;
 };
 
-// Conecta la impresora o reutiliza la sesión que ya está abierta.
-export const ensurePrinterConnected = async () => {
-  if (isPrinterConnected()) return session.characteristic;
+// Conecta la impresora o reutiliza la sesión que ya está abierta. Usa la misma sesión
+// compartida que las etiquetas de bulto y la impresora ya autorizada, así no vuelve a
+// abrir el selector de Chrome. pick: abre el selector a propósito (botón "Buscar").
+export const ensurePrinterConnected = async ({ pick = false } = {}) => {
+  if (!pick && isPrinterConnected()) return session.characteristic;
   if (!bluetoothSupported()) throw new Error('Bluetooth no soportado en este navegador');
+
+  const shared = pick ? await pickAndConnectPrinter() : await connectAuthorizedPrinter();
+  if (shared) {
+    session = { device: shared.device, server: shared.server, characteristic: shared.characteristic };
+    return session.characteristic;
+  }
 
   const device = await navigator.bluetooth.requestDevice({
     filters: [
@@ -71,6 +87,7 @@ export const ensurePrinterConnected = async () => {
     throw new Error('No se encontró una característica de escritura en la impresora');
   }
   session = { device, server, characteristic };
+  setActiveSession(session);
   return characteristic;
 };
 

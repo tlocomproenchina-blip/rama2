@@ -192,6 +192,7 @@ export const buildContinuousLabelPayload = ({
   barcodeCode = '',
   packageCount = 0,
   cbm = 0,
+  copies = 1,
 }) => {
   const cs = client || {};
   const counter = `${index}/${total}`;
@@ -297,7 +298,7 @@ export const buildContinuousLabelPayload = ({
     lines.push(...b.render(y));
     y += b.h;
   }
-  lines.push('PRINT 1');
+  lines.push(`PRINT 1,${Math.max(1, copies)}`);
   lines.push('END');
 
   return enc.encode(lines.join('\r\n') + '\r\n');
