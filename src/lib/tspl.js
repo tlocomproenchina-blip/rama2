@@ -14,7 +14,9 @@ const LABEL_W = 800;
 // Etiquetas troqueladas de 100×100 mm con separación de ~2 mm entre una y otra.
 // Con "GAP 0,0" la impresora avanza 100 mm a ciegas (papel continuo) y el error se
 // acumula etiqueta tras etiqueta; con la separación real se re-sincroniza en cada una.
-const LABEL_GAP = 'GAP 2 mm,0 mm';
+// Además se fija velocidad baja, sin desplazamientos y con sensor de separación activo,
+// para que cada etiqueta arranque en el mismo punto aunque se impriman muchas seguidas.
+const LABEL_GAP = ['GAP 2 mm,0 mm', 'SET GAP ON', 'SPEED 3', 'DENSITY 8', 'OFFSET 0 mm', 'SHIFT 0', 'REFERENCE 0,0', 'SET TEAR ON'].join('\r\n');
 
 // Approximate character widths (dots) for built-in bitmap fonts before scaling
 const FONT_WIDTH = { '1': 8, '2': 16, '3': 24, '4': 32, '5': 40 };
