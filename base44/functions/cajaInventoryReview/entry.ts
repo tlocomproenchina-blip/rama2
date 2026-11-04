@@ -68,6 +68,7 @@ export default async function (req: Request): Promise<Response> {
       const type = ['abierto', 'faltante', 'danado'].includes(body.incident_type) ? body.incident_type : '';
       const now = new Date().toISOString();
       const matches = !body.has_incident;
+      if (!container) return Response.json({ error: 'Escribe el N° de contenedor.' }, { status: 400 });
       if (!contentPhoto) return Response.json({ error: 'La foto del contenido es obligatoria.' }, { status: 400 });
       let incidentId = '';
       if (!matches) {
@@ -80,7 +81,7 @@ export default async function (req: Request): Promise<Response> {
           incident_type: type,
           photo_uris: damagePhotos.length ? damagePhotos : [contentPhoto],
           photo_uri: damagePhotos[0] || contentPhoto,
-          container_number: container || 'SIN CONTENEDOR',
+          container_number: container,
           client_code: String(pkg?.shipping_mark || body.shipping_mark || '').toUpperCase(),
           client_email: email,
           client_name: clientName,

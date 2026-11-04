@@ -29,6 +29,7 @@ export default function PackageReviewPanel({ review, unitLabel, client, onDone, 
 
   const save = async () => {
     setError('');
+    if (!container.trim()) return setError('Escribe el N° de contenedor.');
     if (!photos.length) return setError('La foto del contenido es obligatoria.');
     if (hasIncident && (!type || !notes.trim())) return setError('Completa el tipo y el detalle de la incidencia.');
     setSaving(true);
@@ -67,7 +68,7 @@ export default function PackageReviewPanel({ review, unitLabel, client, onDone, 
           <p className="text-xs text-muted-foreground">Va a: {unitLabel || 'unidad que se abra para el cliente'}</p>
         </div>
         <div className="space-y-1.5">
-          <Label>N° de contenedor (opcional)</Label>
+          <Label>N° de contenedor (obligatorio)</Label>
           <Input value={container} onChange={(e) => setContainer(e.target.value.toUpperCase())} placeholder="Ej: TLLU1234567" />
         </div>
         <div className="space-y-1.5">
