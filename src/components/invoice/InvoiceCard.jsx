@@ -236,18 +236,7 @@ function InvoiceCard({ invoice, user, onPay, onDownload, showPayButton = false, 
               className="flex-1"
             >
               <DollarSign className="h-4 w-4 mr-2" />
-              Pagar Consolidación
-            </Button>
-          )}
-
-          {showAbonoButton && invoice.status === 'pendiente' && (
-            <Button
-              onClick={() => onAbono?.(invoice)}
-              variant="outline"
-              className="flex-1"
-            >
-              <Wallet className="h-4 w-4 mr-2" />
-              Registrar Abono
+              Pagar Factura
             </Button>
           )}
           {/* Oculta acciones cuando está en revisión o pagada */}
