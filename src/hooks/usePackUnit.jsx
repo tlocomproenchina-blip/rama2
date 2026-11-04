@@ -313,9 +313,19 @@ export default function usePackUnit({
         is_local: true,
       };
       await put('packages', pkg);
-      const unit = await resolveUnit(client.email, client, destinationRef.current);
+      // Con una caja en armado, el paquete manual entra en la caja (la abierta si es del
+      // mismo cliente, o la caja de ese cliente): nunca se abre un bulto suelto aparte.
+      const active = activeUnitRef.current;
+      const intoCaja = !!active?.is_caja;
+      const unit = intoCaja && sameClient(active.client_email, client.email)
+        ? active
+        : await resolveUnit(client.email, client, intoCaja ? 'caja' : destinationRef.current);
       if (!unit) return;
-      const updated = await addPackageToUnit(unit, { pkg });
+      // En la caja va como código sin registrar: el paquete todavía no existe en el
+      // servidor y así la caja se sincroniza sin rechazarlo.
+      const updated = unit.is_caja
+        ? await addPackageToUnit(unit, { code: tracking })
+        : await addPackageToUnit(unit, { pkg });
       await activateUnit(updated);
       setLastScan({ pkg, client, already_received: false, auto_received: true, unit: updated });
       toast.success(`Paquete manual asignado a ${client.full_name || client.email}`);
