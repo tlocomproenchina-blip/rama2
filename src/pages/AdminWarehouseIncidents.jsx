@@ -4,6 +4,7 @@ import PageHero from '@/components/common/PageHero';
 import { Button } from '@/components/ui/button';
 import { FileSpreadsheet, Loader2, PackageOpen } from 'lucide-react';
 import InventoryReviewCard from '@/components/warehouse/incidents/InventoryReviewCard';
+import ReviewPhotoHistory from '@/components/warehouse/incidents/ReviewPhotoHistory';
 import IncidentList from '@/components/warehouse/incidents/IncidentList';
 import { downloadWarehouseIncidents } from '@/lib/warehouseIncidentsExport';
 
@@ -66,6 +67,9 @@ export default function AdminWarehouseIncidents() {
         </div>
         <IncidentList incidents={incidents} loading={loading} onChanged={load} />
       </div>
+
+      <ReviewPhotoHistory refreshKey={incidents} />
+
     </div>
   );
 }
