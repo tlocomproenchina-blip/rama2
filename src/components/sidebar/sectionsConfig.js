@@ -35,7 +35,7 @@ export const ADMIN_SECTIONS = [
   { id: 'finanzas', label: 'Finanzas', icon: Wallet, pages: [
     p('AdminInvoices', 'Facturas'), p('AdminManualBilling', 'Facturación manual'), p('AdminQuotes', 'Presupuestos'),
     p('AdminPayments', 'Validar pagos'), p('AdminAssistedPayments', 'Pagos asistidos'), p('AdminClientCredits', 'Saldo cliente'),
-    p('AdminPaymentAlerts', 'Alertas de pago'),
+    p('AdminPaymentAlerts', 'Alertas de pago'), p('ProviderInvoices', 'Facturas de proveedor'),
   ] },
   { id: 'proveedores', label: 'Proveedores', icon: Building2, pages: [
     p('AdminProviders', 'Proveedores'), p('AdminAccountsPayable', 'Cuentas por pagar'), p('AdminProviderPayments', 'Pagos'),
