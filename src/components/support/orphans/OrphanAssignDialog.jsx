@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertTriangle, Loader2, Search, UserCheck } from 'lucide-react';
 import useClientSearch from '@/hooks/useClientSearch';
+import OrphanLegacyMarkMatches from '@/components/admin/orphans/OrphanLegacyMarkMatches';
 import { useEnabledShippingTypes } from '@/components/ShippingTypeFilter';
 
 // Asignación de una carga sin titular a su cliente desde el panel del ATC. Si el
@@ -113,6 +114,11 @@ export default function OrphanAssignDialog({ orphan, open, onOpenChange, onAssig
                   ))}
                 </div>
               ) : null}
+
+              <OrphanLegacyMarkMatches
+                query={query}
+                onSelect={(item) => { setClient(item); setQuery(''); setResults([]); }}
+              />
 
               {query.trim().length >= 2 && !searching && results.length === 0 ? (
                 <p className="py-2 text-center text-xs text-muted-foreground">No se encontraron clientes con esa búsqueda.</p>
