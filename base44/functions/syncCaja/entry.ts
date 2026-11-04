@@ -245,7 +245,13 @@ export default async function (req: Request): Promise<Response> {
     // Conteo real de la caja: solo los paquetes registrados que quedaron dentro (los que
     // aportó cada bulto absorbido, sin repetir). Las etiquetas de los bultos fusionados y
     // los códigos que no son paquete no suman.
-    const packageCount = plan.package_ids.length;
+    // Conteo del operador: paquetes registrados + códigos manuales (sin registrar),
+    // cada uno una sola vez y sin contar etiquetas de bultos fusionados (-B## / -C##).
+    const registeredTrackings = new Set(plan.trackings.map((c: string) => String(c).trim().toUpperCase()));
+    const manualCodes = [...new Set(plan.unregistered_codes
+      .map((c: string) => String(c || '').trim().toUpperCase())
+      .filter((c: string) => c && !/-[BC]\d+$/.test(c) && !registeredTrackings.has(c)))];
+    const packageCount = plan.package_ids.length + manualCodes.length;
 
     // CBM y tipo de carga reales de lo que va dentro de la caja.
     const cbm = pkgs.reduce((sum, p) => sum + (Number(p.actual_cbm) || 0), 0);

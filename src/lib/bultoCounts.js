@@ -28,11 +28,6 @@ export function labelContentCodes(bulto) {
     .filter((code) => code && !isBultoLabel(code)))];
   const trackings = clean(bulto?.package_trackings);
   const unregistered = clean(bulto?.unregistered_codes);
-  if (bulto?.is_caja) {
-    // La caja cuenta solo los paquetes registrados: los códigos sin registrar no entran.
-    const unregisteredSet = new Set(unregistered.map((code) => code.toUpperCase()));
-    return trackings.filter((code) => !unregisteredSet.has(code.toUpperCase()));
-  }
   const shown = new Set(trackings.map((code) => code.toUpperCase()));
   return [...trackings, ...unregistered.filter((code) => !shown.has(code.toUpperCase()))];
 }
