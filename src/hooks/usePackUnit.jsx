@@ -267,6 +267,7 @@ export default function usePackUnit({
       setLastScan({ pkg, client, already_received: alreadyReceived, auto_received: wasPreAlert, unit: updated });
       toast.success(`Recibido y dentro de ${updated.label_code}`, { duration: 1500 });
       if (captureScanPhoto) captureScanPhoto(value, pkg).catch(() => {});
+      return updated;
     } catch (e) {
       console.error('Scan error:', e);
       setError('Error al procesar el escaneo');

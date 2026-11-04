@@ -82,7 +82,7 @@ export default function PrintQueueCard({ queue, onRemove, onClear, onPrintedAll 
         </ul>
 
         {/* Impresora: imprime todo el lote en una sola conexión Bluetooth */}
-        <BluetoothPrinter bultos={queue.map((q) => q.bulto_snapshot)} onPrinted={handlePrinted} />
+        <BluetoothPrinter bultos={queue.map((q) => q.bulto_snapshot)} onPrinted={handlePrinted} autoPrint />
 
         <p className="text-xs text-center text-slate-500 flex items-start gap-1">
           <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0 text-amber-500" />

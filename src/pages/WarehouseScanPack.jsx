@@ -312,12 +312,15 @@ export default function WarehouseScanPack({ user }) {
           unitLabel={activeUnit && activeUnit.client_email === review.pkg?.client_email ? activeUnit.label_code : ''}
           client={review.client}
           onCancel={() => setReview(null)}
-          onDone={(withIncident, summary) => {
+          onDone={async (withIncident, summary) => {
             const value = review.code;
             setReview(null);
             setLastReview(summary);
             toast.success(withIncident ? 'Incidencia registrada. Paquete empacado.' : 'Revisión guardada. Paquete empacado.');
-            pack.handleScan(value);
+            const unit = await pack.handleScan(value);
+            // Bulto suelto revisado: se cierra solo para que pase al historial y a la
+            // cola de impresión. Las cajas siguen abiertas para seguir consolidando.
+            if (unit && !unit.is_caja) await pack.closeUnit();
           }}
         />
       )}

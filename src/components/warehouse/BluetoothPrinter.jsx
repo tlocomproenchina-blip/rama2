@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Printer, Loader2, BluetoothConnected, FileDown, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
@@ -9,7 +9,7 @@ import { resolvePrinterDevice, findWriteCharacteristic, connectAuthorizedPrinter
 const CHUNK_SIZE = 180; // safe BLE write chunk
 const INTER_CHUNK_DELAY_MS = 80; // delay entre chunks para evitar desbordamiento del buffer
 
-export default function BluetoothPrinter({ bultos = [], onPrinted, size = 'default', className = '' }) {
+export default function BluetoothPrinter({ bultos = [], onPrinted, autoPrint = false, size = 'default', className = '' }) {
   const [status, setStatus] = useState('idle'); // idle | connecting | connected | printing | error
   const [error, setError] = useState('');
   const deviceRef = useRef(null);
@@ -76,9 +76,11 @@ export default function BluetoothPrinter({ bultos = [], onPrinted, size = 'defau
     }
   };
 
-  const handlePrint = async () => {
+  // auto = true: impresión automática al llegar etiquetas nuevas. Solo usa la
+  // impresora ya autorizada (sin diálogo); si no está disponible, queda el botón.
+  const handlePrint = async (auto = false) => {
     if (!bultos.length) {
-      toast.error('No hay bultos para imprimir');
+      if (!auto) toast.error('No hay bultos para imprimir');
       return;
     }
     try {
@@ -90,6 +92,8 @@ export default function BluetoothPrinter({ bultos = [], onPrinted, size = 'defau
           serverRef.current = silent.server;
           characteristicRef.current = silent.characteristic;
           setStatus('connected');
+        } else if (auto) {
+          return;
         } else {
           await connect();
         }
@@ -127,6 +131,14 @@ export default function BluetoothPrinter({ bultos = [], onPrinted, size = 'defau
   };
 
   const isBusy = status === 'connecting' || status === 'printing';
+
+  const autoKey = autoPrint ? bultos.map((b) => b?.label_code || b?.id).join('|') : '';
+  const lastAutoKeyRef = useRef('');
+  useEffect(() => {
+    if (!autoKey || !btSupported || isBusy || lastAutoKeyRef.current === autoKey) return;
+    lastAutoKeyRef.current = autoKey;
+    handlePrint(true);
+  }, [autoKey]);
   const label = bultos.length === 1
     ? `Imprimir Bulto ${bultos[0].bulto_number}/${bultos[0].total_bultos}`
     : bultos.length > 1
@@ -136,7 +148,7 @@ export default function BluetoothPrinter({ bultos = [], onPrinted, size = 'defau
   return (
     <div className={`flex flex-col gap-2 ${className}`}>
       <div className="flex flex-wrap gap-2">
-        <Button onClick={handlePrint} disabled={!bultos.length || isBusy || !btSupported} className="bg-blue-600 hover:bg-blue-700">
+        <Button onClick={() => handlePrint(false)} disabled={!bultos.length || isBusy || !btSupported} className="bg-blue-600 hover:bg-blue-700">
           {isBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : status === 'connected' ? <BluetoothConnected className="h-4 w-4" /> : <Printer className="h-4 w-4" />}
           {label}
         </Button>
