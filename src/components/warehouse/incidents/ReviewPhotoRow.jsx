@@ -17,7 +17,7 @@ export default function ReviewPhotoRow({ review, bulto }) {
   const client = review?.client_name || review?.client_email || bulto?.client_snapshot?.full_name || bulto?.client_email || bulto?.shipping_mark;
   const tracking = review?.tracking_number || (bulto?.package_trackings || []).slice(0, 3).join(', ');
   const date = review?.reviewed_date || review?.created_date ? fmt(review.reviewed_date || review.created_date) : '';
-  const photos = review ? [review.content_photo_uri, ...(review.damage_photo_uris || [])].filter(Boolean) : [];
+  const photos = review ? [...new Set([review.content_photo_uri, ...(review.damage_photo_uris || [])].filter(Boolean))] : [];
 
   return (
     <div className="flex flex-col gap-3 rounded-2xl border border-border/70 bg-card p-3 sm:flex-row sm:items-start">
