@@ -29,7 +29,7 @@ export default function ShippingMarkMigrationCard() {
     let stalled = 0;
     try {
       while (remaining > 0 && stalled < 3) {
-        const res = await invoke({ action: 'run', batch_size: 6 });
+        const res = await invoke({ action: 'run', batch_size: 10 });
         const ok = res.processed.filter((p) => p.status === 'migrado').length;
         count += res.processed.length;
         stalled = ok === 0 ? stalled + 1 : 0;

@@ -57,30 +57,66 @@ async function ensureCounterFloor(sr) {
   return last;
 }
 
-async function updateRelated(sr, oldMark, newMark, email, duplicated) {
-  const counts = {};
-  const errors = [];
-  for (let i = 0; i < RELATED.length; i += 6) {
-    const chunk = RELATED.slice(i, i + 6);
-    const results = await Promise.allSettled(chunk.map(async (name) => {
-      const query = duplicated ? { shipping_mark: oldMark, client_email: email } : { shipping_mark: oldMark };
-      let total = 0;
-      for (let round = 0; round < 50; round += 1) {
-        const res = await sr.entities[name].updateMany(query, { $set: { shipping_mark: newMark } });
-        total += res?.updated || 0;
-        if (!res?.has_more) break;
-      }
-      return [name, total];
-    }));
-    results.forEach((r, idx) => {
-      if (r.status === 'fulfilled') { if (r.value[1]) counts[r.value[0]] = r.value[1]; }
-      else errors.push(`${chunk[idx]}: ${r.reason?.message || r.reason}`);
-    });
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// Reintenta cuando el servidor responde "Rate limit exceeded ... Retry after Ns".
+async function withRetry(fn, tries = 4) {
+  for (let i = 0; ; i += 1) {
+    try {
+      return await fn();
+    } catch (err) {
+      const msg = String(err?.message || err);
+      const limited = err?.status === 429 || /rate limit/i.test(msg);
+      if (!limited || i >= tries - 1) throw err;
+      const secs = Number(msg.match(/retry after (\d+)/i)?.[1]) || 15;
+      await sleep((secs + 1) * 1000);
+    }
   }
-  return { counts, errors };
 }
 
-async function migrateOne(sr, state, user, record, admin) {
+// Actualiza todos los registros relacionados de la tanda completa: por cada tipo
+// de registro, una búsqueda con $in y una actualización masiva (no una por cliente).
+async function updateRelatedBatch(sr, jobs, markCount) {
+  const byMark = new Map();
+  for (const j of jobs) {
+    if (!byMark.has(j.oldMark)) byMark.set(j.oldMark, []);
+    byMark.get(j.oldMark).push(j);
+  }
+  const oldMarks = [...byMark.keys()];
+  const pick = (row) => {
+    const list = byMark.get(row.shipping_mark) || [];
+    if ((markCount.get(row.shipping_mark) || 0) > 1) {
+      const email = String(row.client_email || '').toLowerCase();
+      return list.find((j) => String(j.email || '').toLowerCase() === email) || null;
+    }
+    return list[0] || null;
+  };
+
+  for (const name of RELATED) {
+    try {
+      const seen = new Set();
+      for (let round = 0; round < 40; round += 1) {
+        const rows = await withRetry(() => sr.entities[name].filter({ shipping_mark: { $in: oldMarks } }, 'created_date', 500));
+        const updates = [];
+        for (const row of rows || []) {
+          if (seen.has(row.id)) continue;
+          seen.add(row.id);
+          const job = pick(row);
+          if (!job) continue;
+          updates.push({ id: row.id, shipping_mark: job.newMark });
+          job.counts[name] = (job.counts[name] || 0) + 1;
+        }
+        if (updates.length) await withRetry(() => sr.entities[name].bulkUpdate(updates));
+        if (!rows || rows.length < 500 || !updates.length) break;
+      }
+    } catch (err) {
+      for (const j of jobs) j.errors.push(`${name}: ${err?.message || err}`);
+    }
+  }
+}
+
+// Paso 1 por cliente: reservar número, guardar el registro y cambiar el usuario.
+async function prepareOne(sr, state, user, record) {
   const oldMark = record?.old_mark || user.shipping_mark;
   const prefix = parse(oldMark)?.prefix;
   let rec = record;
@@ -103,23 +139,13 @@ async function migrateOne(sr, state, user, record, admin) {
       new_number: num,
       status: 'pendiente',
     };
-    rec = rec ? await sr.entities.ShippingMarkMigration.update(rec.id, data) : await sr.entities.ShippingMarkMigration.create(data);
+    rec = await withRetry(() => (rec ? sr.entities.ShippingMarkMigration.update(rec.id, data) : sr.entities.ShippingMarkMigration.create(data)));
   }
 
   if (user.shipping_mark !== rec.new_mark) {
-    await sr.entities.User.update(user.id, { shipping_mark: rec.new_mark });
+    await withRetry(() => sr.entities.User.update(user.id, { shipping_mark: rec.new_mark }));
   }
-  const duplicated = (state.markCount.get(oldMark) || 0) > 1;
-  const { counts, errors } = await updateRelated(sr, oldMark, rec.new_mark, user.email, duplicated);
-  const done = {
-    status: errors.length ? 'error' : 'migrado',
-    related_updates: counts,
-    error: errors.join(' | ') || null,
-    migrated_date: new Date().toISOString(),
-    migrated_by: admin.email,
-  };
-  await sr.entities.ShippingMarkMigration.update(rec.id, done);
-  return { old_mark: oldMark, new_mark: rec.new_mark, ...done };
+  return { recId: rec.id, oldMark, newMark: rec.new_mark, email: user.email, counts: {}, errors: [] };
 }
 
 export default async function (req) {
@@ -162,14 +188,29 @@ export default async function (req) {
       ...state.unfinished.map((r) => ({ user: usersById.get(r.user_id), record: r })).filter((x) => x.user),
       ...state.candidates.map(({ u }) => ({ user: u, record: state.byUser.get(u.id) || null })),
     ];
-    const size = Math.min(Math.max(Number(batch_size) || 6, 1), 10);
+    const size = Math.min(Math.max(Number(batch_size) || 10, 1), 25);
     const processed = [];
+    const jobs = [];
     for (const item of queue.slice(0, size)) {
       try {
-        processed.push(await migrateOne(sr, state, item.user, item.record, admin));
+        jobs.push(await prepareOne(sr, state, item.user, item.record));
       } catch (err) {
         processed.push({ old_mark: item.user.shipping_mark, status: 'error', error: err.message });
       }
+    }
+    if (jobs.length) {
+      await updateRelatedBatch(sr, jobs, state.markCount);
+      const now = new Date().toISOString();
+      const results = jobs.map((j) => ({
+        id: j.recId,
+        status: j.errors.length ? 'error' : 'migrado',
+        related_updates: j.counts,
+        error: j.errors.join(' | ') || null,
+        migrated_date: now,
+        migrated_by: admin.email,
+      }));
+      await withRetry(() => sr.entities.ShippingMarkMigration.bulkUpdate(results));
+      jobs.forEach((j, i) => processed.push({ old_mark: j.oldMark, new_mark: j.newMark, ...results[i] }));
     }
     return Response.json({ processed, remaining: Math.max(queue.length - processed.length, 0) });
   } catch (error) {
