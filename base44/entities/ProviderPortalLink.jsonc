@@ -1,0 +1,44 @@
+{
+  "name": "ProviderPortalLink",
+  "type": "object",
+  "properties": {
+    "token": {
+      "type": "string",
+      "description": "Clave secreta del enlace p\u00fablico del portal de proveedores"
+    },
+    "active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Si el enlace sigue funcionando (se desactiva al regenerarlo)"
+    },
+    "created_by": {
+      "type": "string",
+      "description": "Email del administrador que gener\u00f3 el enlace"
+    }
+  },
+  "required": [
+    "token"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

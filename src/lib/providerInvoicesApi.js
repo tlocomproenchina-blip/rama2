@@ -1,7 +1,11 @@
 import { base44 } from '@/api/base44Client';
 
+// Cuando la pantalla se abre desde el enlace público del portal, cada llamada lleva su clave.
+let portalToken = null;
+export const setPortalToken = (t) => { portalToken = t || null; };
+
 export async function piCall(action, payload = {}) {
-  const res = await base44.functions.invoke('providerInvoices', { action, ...payload });
+  const res = await base44.functions.invoke('providerInvoices', { action, ...payload, ...(portalToken ? { portal_token: portalToken } : {}) });
   return res.data;
 }
 
@@ -21,5 +25,6 @@ export async function uploadToBunny(file) {
   return data.url;
 }
 
+export const portalUrl = (token) => `${window.location.origin}/PortalProveedor/${token}`;
 export const publicInvoiceUrl = (token) => `${window.location.origin}/FacturaProveedor/${token}`;
 export const money = (n) => `$${Number(n || 0).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;

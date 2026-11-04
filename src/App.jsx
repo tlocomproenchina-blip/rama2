@@ -96,6 +96,7 @@ const MyWarehouseMerchandise = lazy(() => import('./pages/MyWarehouseMerchandise
 const PublicDispatchGuides = lazy(() => import('./pages/PublicDispatchGuides'));
 const ProviderInvoices = lazy(() => import('./pages/ProviderInvoices'));
 const PublicProviderInvoice = lazy(() => import('./pages/PublicProviderInvoice'));
+const ProviderPortal = lazy(() => import('./pages/ProviderPortal'));
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -251,6 +252,14 @@ const AuthenticatedApp = () => {
         element={
           <Suspense fallback={<RouteFallback />}>
             <PublicProviderInvoice />
+          </Suspense>
+        }
+      />
+      <Route
+        path="/PortalProveedor/:token"
+        element={
+          <Suspense fallback={<RouteFallback />}>
+            <ProviderPortal />
           </Suspense>
         }
       />

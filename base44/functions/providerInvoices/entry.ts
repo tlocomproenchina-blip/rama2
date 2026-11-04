@@ -29,8 +29,29 @@ Deno.serve(async (req) => {
       return Response.json({ invoice: safe });
     }
 
-    const user = await base44.auth.me().catch(() => null);
-    if (!canUse(user)) return Response.json({ error: 'Sin acceso' }, { status: 403 });
+    let user = null;
+    if (body.portal_token) {
+      // Enlace público del portal: solo historial, búsqueda de clientes, carga de archivos y creación.
+      if (!['config', 'searchClients', 'upload', 'create', 'list'].includes(action) || String(body.portal_token).length < 20) {
+        return Response.json({ error: 'Sin acceso' }, { status: 403 });
+      }
+      const links = await sr.entities.ProviderPortalLink.filter({ token: String(body.portal_token), active: true }, '-created_date', 1);
+      if (!links?.[0]) return Response.json({ error: 'Enlace inválido' }, { status: 403 });
+      user = { email: 'portal-proveedor', full_name: 'Portal de proveedor', custom_role: 'proveedor' };
+    } else {
+      user = await base44.auth.me().catch(() => null);
+      if (!canUse(user)) return Response.json({ error: 'Sin acceso' }, { status: 403 });
+    }
+
+    if (action === 'getPortalLink' || action === 'regeneratePortalLink') {
+      if (!isFullAdmin(user)) return Response.json({ error: 'Solo el administrador' }, { status: 403 });
+      const existing = await sr.entities.ProviderPortalLink.filter({ active: true }, '-created_date', 1);
+      if (action === 'getPortalLink' && existing?.[0]) return Response.json({ token: existing[0].token });
+      if (existing?.[0]) await sr.entities.ProviderPortalLink.updateMany({ active: true }, { $set: { active: false } });
+      const token = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
+      await sr.entities.ProviderPortalLink.create({ token, active: true, created_by: user.email });
+      return Response.json({ token });
+    }
 
     if (action === 'config') {
       return Response.json({ flat_rate: await currentRate(sr), is_admin: isFullAdmin(user) });
@@ -43,7 +64,8 @@ Deno.serve(async (req) => {
       return Response.json({ flat_rate: rate });
     }
     if (action === 'searchClients') {
-      return Response.json({ clients: await searchClientsByQuery(base44, body.query) });
+      const clients = await searchClientsByQuery(base44, body.query);
+      return Response.json({ clients: clients.map((c: any) => ({ email: c.email, shipping_mark: c.shipping_mark, full_name: c.full_name })) });
     }
     if (action === 'upload') {
       const ext = String(body.ext || 'jpg');

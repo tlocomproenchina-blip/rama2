@@ -4,6 +4,7 @@ import { Loader2 } from 'lucide-react';
 import ProviderInvoiceForm from '@/components/provider-invoices/ProviderInvoiceForm';
 import ProviderInvoiceHistory from '@/components/provider-invoices/ProviderInvoiceHistory';
 import ProviderRateCard from '@/components/provider-invoices/ProviderRateCard';
+import ProviderPortalLinkCard from '@/components/provider-invoices/ProviderPortalLinkCard';
 import { piCall } from '@/lib/providerInvoicesApi';
 
 export default function ProviderInvoices() {
@@ -24,6 +25,7 @@ export default function ProviderInvoices() {
         <p className="text-muted-foreground">Total = tarifa plana × CBM + otros gastos</p>
       </div>
       {cfg.is_admin && <ProviderRateCard flatRate={cfg.flat_rate} onSaved={loadCfg} />}
+      {cfg.is_admin && <ProviderPortalLinkCard />}
       <Tabs defaultValue="historial">
         <TabsList><TabsTrigger value="historial">Historial</TabsTrigger><TabsTrigger value="nueva">Nueva factura</TabsTrigger></TabsList>
         <TabsContent value="historial"><ProviderInvoiceHistory isAdmin={cfg.is_admin} refreshKey={refreshKey} /></TabsContent>
