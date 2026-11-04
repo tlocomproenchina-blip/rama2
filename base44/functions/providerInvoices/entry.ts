@@ -5,7 +5,7 @@ import { searchClientsByQuery } from '../../shared/bultoScan.ts';
 // Facturas de proveedor. Acciones: config, setRate, searchClients, upload, create, list, markPaid, public.
 const isProvider = (u: any) => String(u?.custom_role || '').trim().toLowerCase() === 'proveedor';
 const canUse = (u: any) => u && (u.role === 'admin' || isProvider(u));
-const isFullAdmin = (u: any) => u?.role === 'admin' && !u?.custom_role;
+const isFullAdmin = (u: any) => u?.role === 'admin' && !isProvider(u);
 const round = (n: number) => Math.round(n * 100) / 100;
 
 async function currentRate(sr: any) {

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Link2, FileText, CheckCircle2, Loader2 } from 'lucide-react';
+import { Link2, ExternalLink, FileText, CheckCircle2, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import FileUploadField from './FileUploadField';
 import { piCall, money, publicInvoiceUrl } from '@/lib/providerInvoicesApi';
@@ -36,6 +36,7 @@ export default function ProviderInvoiceRow({ inv, isAdmin, onChanged }) {
       <div className="mt-3 flex flex-wrap items-center gap-2">
         {inv.invoice_file_url && <Button variant="outline" size="sm" asChild><a href={inv.invoice_file_url} target="_blank" rel="noreferrer"><FileText />Factura</a></Button>}
         {inv.payment_proof_url && !isAdmin && <Button variant="outline" size="sm" asChild><a href={inv.payment_proof_url} target="_blank" rel="noreferrer"><CheckCircle2 />Comprobante</a></Button>}
+        <Button variant="outline" size="sm" asChild><a href={publicInvoiceUrl(inv.public_token)} target="_blank" rel="noreferrer"><ExternalLink />Ver enlace público</a></Button>
         <Button variant="outline" size="sm" onClick={copy}><Link2 />Copiar enlace</Button>
       </div>
       {isAdmin && (
