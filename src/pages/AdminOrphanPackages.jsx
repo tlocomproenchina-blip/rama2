@@ -16,6 +16,7 @@ import moment from 'moment';
 import { useOfflineWriteQueue } from '@/hooks/useOfflineWriteQueue';
 import OfflineSyncBadge from '@/components/warehouse/OfflineSyncBadge';
 import OrphanWholesalerSelect from '@/components/admin/orphans/OrphanWholesalerSelect';
+import OrphanLegacyMarkMatches from '@/components/admin/orphans/OrphanLegacyMarkMatches';
 import OrphanWholesalerBadge from '@/components/admin/orphans/OrphanWholesalerBadge';
 import OrphanAiModelSelect from '@/components/admin/orphans/OrphanAiModelSelect';
 import OrphanTrackingEditDialog from '@/components/admin/orphans/OrphanTrackingEditDialog';
@@ -766,6 +767,12 @@ export default function AdminOrphanPackages({ user }) {
                         </button>
                       ))}
                     </div>
+                  )}
+                  {!searchingClients && clientResults.length === 0 && (
+                    <OrphanLegacyMarkMatches
+                      query={clientQuery}
+                      onSelect={(c) => { setSelectedClient(c); setClientQuery(''); setClientResults([]); }}
+                    />
                   )}
                   {clientQuery.length >= 2 && !searchingClients && clientResults.length === 0 && (
                     <p className="text-center text-xs text-slate-500 py-2">No se encontraron clientes</p>
