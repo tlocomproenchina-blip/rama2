@@ -22,6 +22,28 @@
       "type": "string",
       "description": "Caja o bulto revisado al que pertenece la incidencia"
     },
+    "package_id": {
+      "type": "string",
+      "description": "Paquete revisado en la Mesa de empaque"
+    },
+    "tracking_number": {
+      "type": "string",
+      "description": "Tracking del paquete con incidencia"
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "caja",
+        "mesa_empaque",
+        "manual"
+      ],
+      "enumColors": [
+        "blue",
+        "purple",
+        "gray"
+      ],
+      "description": "D\u00f3nde se registr\u00f3 la incidencia"
+    },
     "incident_type": {
       "type": "string",
       "enum": [

@@ -49,6 +49,70 @@ export default async function (req: Request): Promise<Response> {
       });
     }
 
+    // Revisión por paquete en la Mesa de empaque, antes de añadirlo a la unidad.
+    if (body.action === 'package_review') {
+      const key = String(body.review_key || '').trim();
+      if (!key) return Response.json({ error: 'Falta la clave de revisión' }, { status: 400 });
+      const prev = await svc.CajaInventoryReview.filter({ review_key: key }, '-reviewed_date', 1);
+      if (prev[0]) return Response.json({ success: true, review: prev[0], duplicate: true });
+
+      const tracking = String(body.tracking_number || '').trim();
+      const pkgId = String(body.package_id || '');
+      const pkg = pkgId && !pkgId.startsWith('local_') ? await svc.Package.get(pkgId).catch(() => null) : null;
+      const email = pkg?.client_email || String(body.client_email || '');
+      const clientName = String(body.client_name || '');
+      const container = String(body.container_number || '').trim().toUpperCase();
+      const notes = String(body.notes || '').trim().slice(0, 1000);
+      const contentPhoto = String(body.content_photo_uri || '');
+      const damagePhotos = (Array.isArray(body.damage_photo_uris) ? body.damage_photo_uris : []).filter(Boolean).slice(0, 10);
+      const type = ['abierto', 'faltante', 'danado'].includes(body.incident_type) ? body.incident_type : '';
+      const now = new Date().toISOString();
+      const matches = !body.has_incident;
+      if (!contentPhoto) return Response.json({ error: 'La foto del contenido es obligatoria.' }, { status: 400 });
+      let incidentId = '';
+      if (!matches) {
+        if (!type) return Response.json({ error: 'Elige el tipo de problema.' }, { status: 400 });
+        if (!notes) return Response.json({ error: 'Describe la diferencia encontrada.' }, { status: 400 });
+        const inc = await svc.WarehouseIncident.create({
+          package_id: pkg?.id || '',
+          tracking_number: tracking,
+          source: 'mesa_empaque',
+          incident_type: type,
+          photo_uris: damagePhotos.length ? damagePhotos : [contentPhoto],
+          photo_uri: damagePhotos[0] || contentPhoto,
+          container_number: container || 'SIN CONTENEDOR',
+          client_code: String(pkg?.shipping_mark || body.shipping_mark || '').toUpperCase(),
+          client_email: email,
+          client_name: clientName,
+          notes: `[${tracking}] ${notes}`,
+          reported_date: now,
+          reported_by: user.email,
+          reported_by_name: user.full_name || '',
+        });
+        incidentId = inc.id;
+      }
+      const review = await svc.CajaInventoryReview.create({
+        source: 'mesa_empaque',
+        review_key: key,
+        package_id: pkg?.id || '',
+        tracking_number: tracking,
+        label_code: String(body.unit_label || ''),
+        client_email: email,
+        client_name: clientName,
+        container_number: container,
+        result: matches ? 'recibida' : 'recibida_con_incidencia',
+        incident_id: incidentId,
+        notes: matches ? '' : notes,
+        content_photo_uri: contentPhoto,
+        incident_type: matches ? undefined : type,
+        damage_photo_uris: matches ? [] : damagePhotos,
+        reviewed_date: now,
+        reviewed_by: user.email,
+        reviewed_by_name: user.full_name || '',
+      });
+      return Response.json({ success: true, review });
+    }
+
     if (body.action === 'review') {
       const bulto = await svc.Bulto.get(String(body.bulto_id || ''));
       if (!bulto) return Response.json({ error: 'Caja no encontrada' }, { status: 404 });

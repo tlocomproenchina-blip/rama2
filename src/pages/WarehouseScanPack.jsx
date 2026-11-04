@@ -30,7 +30,8 @@ import { useBultoNumberBlock } from '@/hooks/useBultoNumberBlock';
 import { useOfflineBultoSync } from '@/hooks/useOfflineBultoSync';
 import usePackUnit from '@/hooks/usePackUnit';
 import { localCajasOfClient } from '@/lib/cajaLocal';
-import { del, put } from '@/lib/offlineDb';
+import { del, put, findPackageByTracking } from '@/lib/offlineDb';
+import PackageReviewPanel from '@/components/warehouse/PackageReviewPanel';
 
 // Mesa única de empaque (offline-first): un solo escáner recibe el paquete y lo deja en la
 // unidad del cliente que indique el selector (bulto suelto o caja consolidada). La unidad
@@ -45,6 +46,7 @@ export default function WarehouseScanPack({ user }) {
   const [lotKey, setLotKey] = useState(0);
   const [lotEmail, setLotEmail] = useState('');
   const [cajas, setCajas] = useState([]);
+  const [review, setReview] = useState(null);
 
   const {
     handlePhotoCaptured, waitForPhoto, getPhotoStatus, retryPhoto,
@@ -185,6 +187,19 @@ export default function WarehouseScanPack({ user }) {
     setHistoryRefreshKey((k) => k + 1);
   }, [removeFromQueue]);
 
+  // Cada tracking registrado pasa primero por la revisión; etiquetas y códigos no
+  // registrados siguen el flujo normal de empaque.
+  const handleDetected = useCallback(async (value) => {
+    refreshIfStale();
+    const raw = String(value || '').trim();
+    if (!raw) return;
+    if (review) { toast.info('Termina la revisión del paquete en curso'); return; }
+    const pkg = /-(B|C|L)\d+$/i.test(raw) ? null : await findPackageByTracking(raw).catch(() => null);
+    if (!pkg) { pack.handleScan(raw); return; }
+    const client = pkg.client_email ? await getClientByEmail(pkg.client_email).catch(() => null) : null;
+    setReview({ code: raw, pkg, client });
+  }, [review, refreshIfStale, pack, getClientByEmail]);
+
   // --- Estados de carga ---
   if (loadingAccess) {
     return (
@@ -277,10 +292,26 @@ export default function WarehouseScanPack({ user }) {
         actionLabel="Agregar"
         value={code}
         onValueChange={setCode}
-        onDetected={(value) => { refreshIfStale(); pack.handleScan(value); }}
+        onDetected={handleDetected}
         onPhotoCaptured={handlePhotoCaptured}
         continuous={true}
       />
+
+      {review && (
+        <PackageReviewPanel
+          key={review.code}
+          review={review}
+          unitLabel={activeUnit && activeUnit.client_email === review.pkg?.client_email ? activeUnit.label_code : ''}
+          client={review.client}
+          onCancel={() => setReview(null)}
+          onDone={(withIncident) => {
+            const value = review.code;
+            setReview(null);
+            toast.success(withIncident ? 'Incidencia registrada. Paquete empacado.' : 'Revisión guardada. Paquete empacado.');
+            pack.handleScan(value);
+          }}
+        />
+      )}
 
       {pack.error && (
         <p className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">

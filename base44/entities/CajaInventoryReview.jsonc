@@ -4,11 +4,36 @@
   "properties": {
     "bulto_id": {
       "type": "string",
-      "description": "ID de la caja o bulto revisado"
+      "description": "ID de la caja o bulto revisado (vac\u00edo en la revisi\u00f3n por paquete hecha antes de empacar)"
     },
     "label_code": {
       "type": "string",
       "description": "Etiqueta de la caja o bulto"
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "caja",
+        "mesa_empaque"
+      ],
+      "enumColors": [
+        "blue",
+        "purple"
+      ],
+      "default": "caja",
+      "description": "caja: revisi\u00f3n de la caja completa; mesa_empaque: revisi\u00f3n por paquete en la Mesa de empaque"
+    },
+    "package_id": {
+      "type": "string",
+      "description": "Paquete revisado (revisi\u00f3n por paquete)"
+    },
+    "tracking_number": {
+      "type": "string",
+      "description": "Tracking del paquete revisado"
+    },
+    "review_key": {
+      "type": "string",
+      "description": "Clave \u00fanica del intento de revisi\u00f3n para no duplicarla al reintentar"
     },
     "client_email": {
       "type": "string",
@@ -81,7 +106,6 @@
     }
   },
   "required": [
-    "bulto_id",
     "result"
   ],
   "rls": {
