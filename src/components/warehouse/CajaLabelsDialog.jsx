@@ -21,7 +21,7 @@ import ContinuousLabelPreview from './dispatch-guides/ContinuousLabelPreview';
 //
 // La numeración la fija el servidor (assignCajaLabels) para que el X/N impreso coincida
 // con el de la guía. Si no hay conexión, se numera en el dispositivo y se imprime igual.
-export default function CajaLabelsDialog({ open, onOpenChange, clientEmail, onPrinted }) {
+export default function CajaLabelsDialog({ open, onOpenChange, clientEmail, onPrinted, autoPrint = false, onAutoPrinted }) {
   const [client, setClient] = useState({});
   const [cajas, setCajas] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -29,6 +29,7 @@ export default function CajaLabelsDialog({ open, onOpenChange, clientEmail, onPr
   const [written, setWritten] = useState(0);
   const [error, setError] = useState('');
   const [offline, setOffline] = useState(false);
+  const [loaded, setLoaded] = useState(false);
 
   const load = useCallback(async () => {
     if (!clientEmail) return;
@@ -65,11 +66,15 @@ export default function CajaLabelsDialog({ open, onOpenChange, clientEmail, onPr
       }
     } finally {
       setLoading(false);
+      setLoaded(true);
     }
   }, [clientEmail]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      setLoaded(false);
+      return;
+    }
     setWritten(0);
     setStatus(isPrinterConnected() ? 'connected' : 'idle');
     load();
@@ -131,6 +136,13 @@ export default function CajaLabelsDialog({ open, onOpenChange, clientEmail, onPr
       toast.error(`No se pudo imprimir: ${e?.message || 'error Bluetooth'}`);
     }
   };
+
+  // Impresión automática al terminar de registrarse la caja: una sola vez por apertura.
+  useEffect(() => {
+    if (!open || !autoPrint || !loaded || loading || !cajas.length) return;
+    onAutoPrinted?.();
+    handlePrint();
+  }, [open, autoPrint, loaded, loading, cajas.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const busy = status === 'connecting' || status === 'printing';
   const first = cajas[0] || null;

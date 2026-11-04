@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -43,6 +43,7 @@ export default function WarehouseScanPack({ user }) {
   const [showHistory, setShowHistory] = useState(false);
   const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
   const [labelsOpen, setLabelsOpen] = useState(false);
+  const [autoPrintLabels, setAutoPrintLabels] = useState(false);
   const [lotKey, setLotKey] = useState(0);
   const [lotEmail, setLotEmail] = useState('');
   const [cajas, setCajas] = useState([]);
@@ -149,7 +150,25 @@ export default function WarehouseScanPack({ user }) {
       if (!cancelled) setCajas(list);
     })();
     return () => { cancelled = true; };
-  }, [lotEmail, lotKey]);
+  }, [lotEmail, lotKey, pendingBultos.length]);
+
+  // Cuando una caja cerrada termina de registrarse en el servidor, se imprime sola su
+  // tira de etiquetas continuas (ya con la numeración X/N definitiva).
+  const pendingCajasRef = useRef(new Map());
+  useEffect(() => {
+    const current = new Map(
+      pendingBultos.filter((p) => p.type === 'caja').map((p) => [p.id, p.client_email])
+    );
+    for (const [id, email] of pendingCajasRef.current) {
+      if (!current.has(id) && email) {
+        setLotEmail(email);
+        setAutoPrintLabels(true);
+        setLabelsOpen(true);
+        break;
+      }
+    }
+    pendingCajasRef.current = current;
+  }, [pendingBultos]);
 
   // --- Reintentar las fotos de escaneo que no subieron ---
   const handleRetryFailedPhotos = useCallback(async () => {
@@ -403,7 +422,9 @@ export default function WarehouseScanPack({ user }) {
 
       <CajaLabelsDialog
         open={labelsOpen}
-        onOpenChange={setLabelsOpen}
+        onOpenChange={(value) => { setLabelsOpen(value); if (!value) setAutoPrintLabels(false); }}
+        autoPrint={autoPrintLabels}
+        onAutoPrinted={() => setAutoPrintLabels(false)}
         clientEmail={lotEmail}
         onPrinted={() => setLotKey((key) => key + 1)}
       />
