@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
+import { copyUrlToBunny } from '../../shared/bunnyUpload.ts';
 import { slugify, estimateReadingTime, BLOG_JSON_SCHEMA, buildArticlePrompt, buildImagePrompt, pickRandomTopics } from '../../shared/blogSeo.ts';
 
 export default async function(req: Request): Promise<Response> {
@@ -26,7 +27,9 @@ export default async function(req: Request): Promise<Response> {
       const imageResult = await base44.asServiceRole.integrations.Core.GenerateImage({
         prompt: buildImagePrompt(result.title, result.image_prompt)
       });
-      return { result, imageUrl: imageResult.url, topic };
+      // La portada se guarda en Bunny, como todas las imágenes de la app.
+      const imageUrl = (await copyUrlToBunny(imageResult.url).catch(() => null)) || imageResult.url;
+      return { result, imageUrl, topic };
     }));
 
     const created = await Promise.all(articles.map(async ({ result, imageUrl }) => {

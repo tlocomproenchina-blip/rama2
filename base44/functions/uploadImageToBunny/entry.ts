@@ -8,12 +8,12 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
 
-    const { image_base64 } = await req.json();
+    const { image_base64, ext } = await req.json();
     if (!image_base64) {
       return Response.json({ error: 'image_base64 es requerido' }, { status: 400 });
     }
 
-    const url = await uploadBase64ToBunny(String(image_base64));
+    const url = await uploadBase64ToBunny(String(image_base64), String(ext || 'jpg'));
     return Response.json({ url });
   } catch (error: any) {
     const status = error instanceof BunnyUploadError ? error.status : 500;

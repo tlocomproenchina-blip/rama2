@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
+import { copyUrlToBunny } from '../../shared/bunnyUpload.ts';
 import { slugify, estimateReadingTime, BLOG_JSON_SCHEMA, buildArticlePrompt, buildImagePrompt, pickRandomTopics } from '../../shared/blogSeo.ts';
 
 export default async function(req: Request): Promise<Response> {
@@ -21,6 +22,9 @@ export default async function(req: Request): Promise<Response> {
       prompt: buildImagePrompt(result.title, result.image_prompt)
     });
 
+    // La portada se guarda en Bunny, como todas las imágenes de la app.
+    const coverUrl = (await copyUrlToBunny(imageResult.url).catch(() => null)) || imageResult.url;
+
     let slug = result.slug || slugify(result.title);
     const existing = await base44.entities.BlogPost.filter({ slug }, undefined, 1);
     if (existing.length > 0) slug = slug + '-' + Date.now().toString(36);
@@ -30,7 +34,7 @@ export default async function(req: Request): Promise<Response> {
       slug,
       excerpt: result.excerpt,
       content: result.content,
-      cover_image_url: imageResult.url,
+      cover_image_url: coverUrl,
       seo_title: result.seo_title || result.title,
       seo_description: result.seo_description,
       tags: result.tags || [],

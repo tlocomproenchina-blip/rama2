@@ -62,6 +62,8 @@ export default async function (req: Request): Promise<Response> {
         const uris = (inc.photo_uris?.length ? inc.photo_uris : [inc.photo_uri]).filter(Boolean);
         const urls = [];
         for (const uri of uris) {
+          // Las fotos en Bunny ya son un enlace directo.
+          if (/^https?:\/\//i.test(String(uri))) { urls.push(uri); continue; }
           const signed = await base44.asServiceRole.integrations.Core.CreateFileSignedUrl({ file_uri: uri, expires_in: 3600 }).catch(() => null);
           if (signed?.signed_url) urls.push(signed.signed_url);
         }
