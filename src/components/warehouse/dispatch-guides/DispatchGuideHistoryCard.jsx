@@ -117,9 +117,21 @@ export default function DispatchGuideHistoryCard({ guide, appName, highlighted =
                 ...clients.map((c) => c.shipping_mark || c.client?.shipping_mark),
               ].filter(Boolean))].join(', ') || '—'}
             </p>
-            {guide.invoice_number ? (
-              <p className="font-mono text-[11px] font-semibold text-emerald-700">Factura: {guide.invoice_number}</p>
-            ) : null}
+            {(() => {
+              const lines = clients.flatMap((c) => c.bultos || []);
+              const containers = [...new Set(lines.map((b) => b.order_number).filter(Boolean))];
+              const invoices = [...new Set([guide.invoice_number, ...lines.map((b) => b.invoice_number)].filter(Boolean))];
+              return (
+                <>
+                  {containers.length > 0 && (
+                    <p className="font-mono text-[11px] font-semibold text-slate-700 break-all">Contenedor: {containers.join(', ')}</p>
+                  )}
+                  {invoices.length > 0 && (
+                    <p className="font-mono text-[11px] font-semibold text-emerald-700 break-all">Factura: {invoices.join(', ')}</p>
+                  )}
+                </>
+              );
+            })()}
             <p className="text-[11px] text-slate-500">Emitida: {fmtDateTime(guide.emitted_date)}</p>
             {guide.auto_generated && guide.last_updated_date ? (
               <p className="text-[11px] text-slate-500">
