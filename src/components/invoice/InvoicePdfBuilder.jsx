@@ -11,6 +11,15 @@ const fmtDate = (d) => {
   }
 };
 
+// Vencimiento: siempre 7 días después de la emisión.
+const dueDate7 = (inv) => {
+  const base = inv.invoice_date || inv.created_date;
+  if (!base) return null;
+  const d = new Date(base);
+  d.setDate(d.getDate() + 7);
+  return d;
+};
+
 async function loadImageData(url) {
   try {
     const blob = await fetch(url).then((res) => res.blob());
@@ -76,7 +85,7 @@ export async function buildInvoicePdf(invoice, appConfig = {}, clientUser = null
   const metaRows = [
     ['Número de factura', invoice.invoice_number || ''],
     ['Fecha de emisión', fmtDate(invoice.invoice_date)],
-    ['Fecha de vencimiento', fmtDate(invoice.due_date)],
+    ['Fecha de vencimiento', fmtDate(dueDate7(invoice))],
   ];
   metaRows.forEach(([label, value]) => {
     doc.setFont('helvetica', 'bold');
@@ -142,8 +151,8 @@ export async function buildInvoicePdf(invoice, appConfig = {}, clientUser = null
   doc.setFontSize(15);
   doc.setTextColor(...colDark);
   const invoiceAmount = billableTotal(invoice);
-  const dueText = invoice.due_date
-    ? `${fmt(invoiceAmount)} con fecha de vencimiento del ${fmtDate(invoice.due_date)}`
+  const dueText = dueDate7(invoice)
+    ? `${fmt(invoiceAmount)} con fecha de vencimiento del ${fmtDate(dueDate7(invoice))}`
     : `${fmt(invoiceAmount)}`;
   doc.splitTextToSize(dueText, marginR - marginL).forEach((line) => {
     doc.text(line, marginL, y);
