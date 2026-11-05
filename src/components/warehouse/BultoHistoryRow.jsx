@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button';
 import { Pencil, Trash2, Printer, CheckSquare, Square, CloudOff, Hash, PackageOpen } from 'lucide-react';
 import { packageCountForDispatch } from '@/lib/bultoCounts';
 import PrintCountBadge from './PrintCountBadge';
-import BultoTrackingPhotos from './BultoTrackingPhotos';
 
 // Tarjeta de un bulto individual del historial: la usan los bultos sin N° de contenedor y los
 // bultos que se despliegan dentro de su grupo.
@@ -77,7 +76,6 @@ export default function BultoHistoryRow({
                   <span className="text-red-600 font-medium">Factura pendiente</span>
                 )}
               </div>
-              {!selectMode && <BultoTrackingPhotos bulto={b} />}
             </div>
           </div>
           {!selectMode && (
