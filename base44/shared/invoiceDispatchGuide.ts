@@ -74,7 +74,7 @@ export async function createInvoiceDispatchGuide(base44: any, { invoiceId, mode,
       const fromInvoice = own.filter((o: string) => orderKeys.has(norm(o)));
       return {
         label_code: normCode(bulto.label_code),
-        package_count: packageCountOfBulto(bulto),
+        package_count: packageCountOfBulto(bulto) || (bulto.is_caja ? 0 : 1),
         registered: true,
         date: emittedDate,
         order_number: (fromInvoice.length ? fromInvoice : own).join(', '),
@@ -168,7 +168,7 @@ function snapshotGuideRows(invoice: any, liveByCode: Map<string, any>, emittedDa
         const live = liveByCode.get(code);
         row = {
           label_code: code,
-          package_count: Number(b.package_count) || 0,
+          package_count: Number(b.package_count) || (b.is_caja ? 0 : 1),
           registered: true,
           date: emittedDate,
           orders: new Set<string>(),
