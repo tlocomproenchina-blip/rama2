@@ -115,6 +115,32 @@ export default function WarehouseScanPack({ user }) {
   const packRef = useRef(null);
   const shared = useSharedPackUnits({ onRemoteChange: () => packRef.current?.reloadUnits() });
 
+  // Bultos creados o modificados en otros dispositivos: refresca el historial al instante.
+  useEffect(() => {
+    let timer = null;
+    const unsubscribe = base44.entities.Bulto.subscribe(() => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        try { base44.invalidateEntityCache?.('Bulto'); } catch (_) {}
+        setHistoryRefreshKey((k) => k + 1);
+      }, 400);
+    });
+    return () => { clearTimeout(timer); unsubscribe?.(); };
+  }, []);
+
+  const [manualRefreshing, setManualRefreshing] = useState(false);
+  const manualRefresh = async () => {
+    setManualRefreshing(true);
+    try {
+      try { base44.invalidateEntityCache?.('Bulto'); } catch (_) {}
+      await shared.pullAll();
+      await packRef.current?.reloadUnits?.();
+      setHistoryRefreshKey((k) => k + 1);
+    } finally {
+      setManualRefreshing(false);
+    }
+  };
+
   const pack = usePackUnit({
     user,
     onUnitChange: shared.pushChange,
@@ -497,6 +523,10 @@ export default function WarehouseScanPack({ user }) {
       />
 
       {/* Historial de bultos y cajas */}
+      <Button onClick={manualRefresh} disabled={manualRefreshing} variant="outline" className="w-full">
+        <RefreshCw className={`h-4 w-4 ${manualRefreshing ? 'animate-spin' : ''}`} />
+        {manualRefreshing ? 'Actualizando…' : 'Actualizar unidades y bultos'}
+      </Button>
       <Card>
         <button
           onClick={() => setShowHistory((v) => !v)}
