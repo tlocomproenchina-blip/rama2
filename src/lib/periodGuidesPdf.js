@@ -2,6 +2,8 @@
 // página (número de guía, datos del cliente, cajas y bultos con su casilla de
 // verificación y las firmas de entrega). Se usa para imprimir de una vez todas las
 // guías generadas desde los períodos de facturas pagadas.
+import { qrDataUrl } from './qrCode';
+import { guideQrValue } from './dispatchGuidePdf';
 
 const fmtDate = (value) => {
   if (!value) return '—';
@@ -58,8 +60,16 @@ export async function generatePeriodGuidesPdf({
     doc.setFontSize(8.5);
     doc.text(`Emitida: ${fmtStamp(guide.emitted_date)}`, right, 18, { align: 'right' });
     if (periodLabel) doc.text(`Período pagado: ${periodLabel}`, right, 24, { align: 'right' });
-    doc.setTextColor(30, 41, 59);
     y = 38;
+    if (guide.guide_number) {
+      // QR de la guía: al escanearlo en Despacho se despachan todas sus unidades.
+      doc.addImage(qrDataUrl(guideQrValue(guide.guide_number), { moduleSize: 8, margin: 1 }), 'PNG', 172, 32, 24, 24);
+      doc.setTextColor(71, 85, 105);
+      doc.setFontSize(7);
+      doc.text('Escanear para despachar', 184, 59, { align: 'center' });
+      y = 66;
+    }
+    doc.setTextColor(30, 41, 59);
   };
 
   const continuationHeader = (guide) => {
