@@ -4,7 +4,8 @@ import { unitKindLabel } from '@/lib/unitKind';
 import BultoContentsDialog from './BultoContentsDialog';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Pencil, Trash2, Printer, CheckSquare, Square, CloudOff, Hash, PackageOpen } from 'lucide-react';
+import { Pencil, Trash2, Printer, CheckSquare, Square, CloudOff, Hash, PackageOpen, CalendarClock } from 'lucide-react';
+import { format } from 'date-fns';
 import { packageCountForDispatch } from '@/lib/bultoCounts';
 import PrintCountBadge from './PrintCountBadge';
 
@@ -77,6 +78,12 @@ export default function BultoHistoryRow({
                   <span className="text-red-600 font-medium">Factura pendiente</span>
                 )}
               </div>
+              {b.created_date && (
+                <div className="flex items-center gap-1 text-xs text-slate-500 mt-0.5">
+                  <CalendarClock className="h-3 w-3" />
+                  Creado: {format(new Date(b.created_date), 'dd/MM/yyyy hh:mm a')}
+                </div>
+              )}
             </div>
           </div>
           {!selectMode && (
