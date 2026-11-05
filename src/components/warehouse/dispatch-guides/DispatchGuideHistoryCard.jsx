@@ -111,6 +111,12 @@ export default function DispatchGuideHistoryCard({ guide, appName, highlighted =
                 </Badge>
               )}
             </div>
+            <p className="font-mono text-xs font-semibold text-blue-700 break-all">
+              Mark: {[...new Set([
+                ...(Array.isArray(guide.shipping_marks) ? guide.shipping_marks : []),
+                ...clients.map((c) => c.shipping_mark || c.client?.shipping_mark),
+              ].filter(Boolean))].join(', ') || '—'}
+            </p>
             {guide.invoice_number ? (
               <p className="font-mono text-[11px] font-semibold text-emerald-700">Factura: {guide.invoice_number}</p>
             ) : null}
