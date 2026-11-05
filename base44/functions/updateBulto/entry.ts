@@ -63,7 +63,11 @@ export default async function(req: Request): Promise<Response> {
       const resolvedTrackingsSet = new Set<string>(plan.trackings);
       const keptCodes: string[] = (Array.isArray(bulto.package_trackings) ? bulto.package_trackings : [])
         .filter((c: string) => c && !resolvedTrackingsSet.has(c));
-      const unregistered = [...new Set([...keptCodes, ...plan.unregistered_codes])]
+      // Si el admin editó a mano los códigos sin registrar, esa lista manda.
+      const manualCodes: string[] | null = Array.isArray(body.unregistered_codes)
+        ? [...new Set<string>(body.unregistered_codes.map((c: any) => String(c ?? '').trim()).filter(Boolean))]
+        : null;
+      const unregistered = (manualCodes ?? [...new Set([...keptCodes, ...plan.unregistered_codes])])
         .filter((c: string) => !resolvedTrackingsSet.has(c));
 
       update.package_ids = plan.package_ids;

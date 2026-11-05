@@ -10,6 +10,7 @@ import AccountingSyncNotice from '@/components/warehouse/AccountingSyncNotice';
 import AbsorbBultosConfirmDialog from '@/components/warehouse/AbsorbBultosConfirmDialog';
 import AbsorbedBultosHistory from '@/components/warehouse/AbsorbedBultosHistory';
 import { packageCountForDispatch } from '@/lib/bultoCounts';
+import UnregisteredCodesEditor from '@/components/warehouse/UnregisteredCodesEditor';
 
 // Modal de edición completa de un bulto: paquetes incluidos, snapshot del cliente y estado.
 export default function BultoEditModal({ bulto, open, onClose, onSaved }) {
@@ -39,6 +40,15 @@ export default function BultoEditModal({ bulto, open, onClose, onSaved }) {
   const [initialPackageCount, setInitialPackageCount] = useState(0);
   const [totalBultos, setTotalBultos] = useState('');
   const [clientBultos, setClientBultos] = useState([]);
+  const [manualCodes, setManualCodes] = useState([]);
+  const [codesChanged, setCodesChanged] = useState(false);
+
+  const changeManualCodes = (next) => {
+    setManualCodes(next);
+    setCodesChanged(true);
+    const registered = selectedIds.filter((id) => id && !String(id).startsWith('local_')).length;
+    setPackageCount(String(Math.max(1, registered + next.length)));
+  };
 
   useEffect(() => {
     if (!bulto) return;
@@ -69,6 +79,8 @@ export default function BultoEditModal({ bulto, open, onClose, onSaved }) {
     setInitialPackageCount(initialCount);
     setTotalBultos(String(bulto.total_bultos ?? ''));
     setClientBultos([]);
+    setManualCodes((bulto.unregistered_codes || []).filter(Boolean));
+    setCodesChanged(false);
 
     // Cargar paquetes recibidos del cliente + bultos hermanos para marcar ocupados
     (async () => {
@@ -180,6 +192,7 @@ export default function BultoEditModal({ bulto, open, onClose, onSaved }) {
         status,
         cbm_order_numbers: parsedOrders,
       };
+      if (codesChanged) payload.unregistered_codes = manualCodes;
       if (Number.isFinite(count) && count >= 1 && count !== initialPackageCount) {
         payload.cargo_package_count = count;
       }
@@ -245,10 +258,6 @@ export default function BultoEditModal({ bulto, open, onClose, onSaved }) {
     });
   }, [clientPackages, bultoPkgs, otherBultoPkgs]);
 
-  const unregisteredCodes = Array.isArray(bulto?.unregistered_codes)
-    ? bulto.unregistered_codes.filter(Boolean)
-    : [];
-
   const wantedTotal = Math.round(Number(totalBultos));
   const reducing = Number.isFinite(wantedTotal) && wantedTotal >= 1 && wantedTotal < clientBultos.length;
 
@@ -309,12 +318,7 @@ export default function BultoEditModal({ bulto, open, onClose, onSaved }) {
                   })}
                 </div>
               )}
-              {unregisteredCodes.length > 0 && (
-                <p className="mt-2 text-xs text-slate-500">
-                  Códigos sin registrar en el sistema ({unregisteredCodes.length}):{' '}
-                  <span className="font-mono break-all">{unregisteredCodes.join(', ')}</span>
-                </p>
-              )}
+              <UnregisteredCodesEditor codes={manualCodes} onChange={changeManualCodes} />
             </div>
 
             {/* Snapshot del cliente */}
