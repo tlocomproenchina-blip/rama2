@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Lock, Undo2, Printer } from 'lucide-react';
+import { Lock, Undo2, Printer, AlertTriangle } from 'lucide-react';
+import BultoIncidentDialog from './incidents/BultoIncidentDialog';
 import PrintCountBadge from './PrintCountBadge';
 import ReprintDialog from './ReprintDialog';
 import CloseBultoDialog from './CloseBultoDialog';
@@ -11,6 +12,7 @@ import CloseBultoDialog from './CloseBultoDialog';
 export default function OpenBultoCard({ bulto, onClose, onRemoveLast, onOrderChange }) {
   const [showReprint, setShowReprint] = useState(false);
   const [showCloseDialog, setShowCloseDialog] = useState(false);
+  const [showIncident, setShowIncident] = useState(false);
   const trackings = bulto.package_trackings || [];
   const count = bulto.package_ids?.length || trackings.length || 0;
   const cs = bulto.client_snapshot || {};
@@ -68,9 +70,13 @@ export default function OpenBultoCard({ bulto, onClose, onRemoveLast, onOrderCha
               <Printer className="h-4 w-4" /> {Number(bulto.print_count || 0) === 0 ? 'Imprimir' : 'Reimprimir'}
             </Button>
           </div>
+          <Button variant="outline" onClick={() => setShowIncident(true)} className="w-full border-red-200 text-red-600 hover:bg-red-50">
+            <AlertTriangle className="h-4 w-4" /> Registrar incidencia
+          </Button>
         </div>
       </CardContent>
       <ReprintDialog bulto={bulto} open={showReprint} onClose={() => setShowReprint(false)} />
+      <BultoIncidentDialog bulto={bulto} open={showIncident} onClose={() => setShowIncident(false)} />
       <CloseBultoDialog
         open={showCloseDialog}
         bulto={bulto}

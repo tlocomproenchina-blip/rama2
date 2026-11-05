@@ -130,6 +130,37 @@ export default async function (req: Request): Promise<Response> {
       return Response.json({ success: true, review });
     }
 
+    // Incidencia directa desde el bulto suelto de la Mesa de empaque.
+    if (body.action === 'unit_incident') {
+      const container = String(body.container_number || '').trim().toUpperCase();
+      const notes = String(body.notes || '').trim().slice(0, 900);
+      const photos = (Array.isArray(body.photo_uris) ? body.photo_uris : []).filter(Boolean).slice(0, 10);
+      const type = ['abierto', 'faltante', 'danado'].includes(body.incident_type) ? body.incident_type : '';
+      const label = String(body.label_code || '').trim();
+      if (!container) return Response.json({ error: 'Escribe el N° de contenedor.' }, { status: 400 });
+      if (!type) return Response.json({ error: 'Elige el tipo de problema.' }, { status: 400 });
+      if (!notes) return Response.json({ error: 'Describe la incidencia.' }, { status: 400 });
+      if (!photos.length) return Response.json({ error: 'Agrega al menos una foto.' }, { status: 400 });
+      const bultoId = String(body.bulto_id || '');
+      const bulto = bultoId ? await svc.Bulto.get(bultoId).catch(() => null) : null;
+      const inc = await svc.WarehouseIncident.create({
+        bulto_id: bulto?.id || '',
+        source: 'mesa_empaque',
+        incident_type: type,
+        photo_uri: photos[0],
+        photo_uris: photos,
+        container_number: container,
+        client_code: String(bulto?.shipping_mark || body.shipping_mark || '').toUpperCase(),
+        client_email: bulto?.client_email || String(body.client_email || ''),
+        client_name: bulto?.client_snapshot?.full_name || String(body.client_name || ''),
+        notes: `[${bulto?.label_code || label}] ${notes}`,
+        reported_date: new Date().toISOString(),
+        reported_by: user.email,
+        reported_by_name: user.full_name || '',
+      });
+      return Response.json({ success: true, incident: inc });
+    }
+
     if (body.action === 'review') {
       const bulto = await svc.Bulto.get(String(body.bulto_id || ''));
       if (!bulto) return Response.json({ error: 'Caja no encontrada' }, { status: 404 });
