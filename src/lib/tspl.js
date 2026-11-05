@@ -86,10 +86,14 @@ export const buildBultoLabelPayload = (bulto, copies = 1) => {
   const cs = bulto.client_snapshot || {};
   const estado = (cs.state || 'SIN ESTADO').toUpperCase();
   const labelCode = bulto.label_code || '';
-  const bultoNum = `BULTO ${bulto.bulto_number || 1}/${bulto.total_bultos || 1}`;
+  const bultoNum = bulto.is_caja
+    ? 'CAJA CONSOLIDADA'
+    : `BULTO ${bulto.bulto_number || 1}/${bulto.total_bultos || 1}`;
   // El número impreso es el conteo real del bulto o de la caja: el mismo que muestra la
   // ficha del almacén, sin sumar las etiquetas de los bultos ya fusionados dentro.
-  const pkgCount = realPackageCount(bulto);
+  // En la caja manda el conteo guardado (registrados + códigos manuales).
+  const savedCount = Number(bulto.cargo_package_count);
+  const pkgCount = savedCount > 0 ? savedCount : realPackageCount(bulto);
   const bultoPkg = `${bultoNum} - ${pkgCount} PAQUETES`;
 
   // Métricas verticales (dots @203dpi). Altura real de cada texto + respiro.

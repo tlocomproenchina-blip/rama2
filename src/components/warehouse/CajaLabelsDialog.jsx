@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Bluetooth, BluetoothConnected, Loader2, Printer } from 'lucide-react';
 import { toast } from 'sonner';
-import { buildContinuousLabelPayload, concatUint8Arrays } from '@/lib/tspl';
+import { buildBultoLabelPayload, concatUint8Arrays } from '@/lib/tspl';
 import {
   bluetoothSupported,
   ensurePrinterConnected,
@@ -63,6 +63,7 @@ export default function CajaLabelsDialog({ open, onOpenChange, clientEmail, onPr
             package_count:
               (caja.package_ids || []).length + (caja.unregistered_codes || []).length,
             cbm: Number(caja.cargo_cbm) || 0,
+            order_numbers: caja.cbm_order_numbers || [],
           }))
         );
       }
@@ -92,14 +93,15 @@ export default function CajaLabelsDialog({ open, onOpenChange, clientEmail, onPr
     setError('');
     setWritten(0);
 
+    // Misma etiqueta que el bulto: QR + código, estado y contenedor, conteo real y datos del cliente.
     const payloads = cajas.map((caja) =>
-      buildContinuousLabelPayload({
-        client,
-        index: caja.caja_number,
-        total: caja.caja_total,
-        barcodeCode: caja.label_code,
-        copies: LABEL_COPIES,
-      })
+      buildBultoLabelPayload({
+        is_caja: true,
+        label_code: caja.label_code,
+        client_snapshot: client,
+        cbm_order_numbers: caja.order_numbers || [],
+        cargo_package_count: caja.package_count,
+      }, LABEL_COPIES)
     );
     const boundaries = [];
     let accumulated = 0;
