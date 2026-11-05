@@ -11,12 +11,13 @@ const fmtDate = (d) => {
   }
 };
 
-// Vencimiento: siempre 7 días después de la emisión.
+// Vencimiento: emisión + días configurados en Ajustes > Facturas.
+let overdueDays = 7;
 const dueDate7 = (inv) => {
   const base = inv.invoice_date || inv.created_date;
   if (!base) return null;
   const d = new Date(base);
-  d.setDate(d.getDate() + 7);
+  d.setDate(d.getDate() + overdueDays);
   return d;
 };
 
@@ -40,6 +41,7 @@ async function loadImageData(url) {
  * @param {object|null} clientUser - usuario cliente (para nombre, dirección, teléfono)
  */
 export async function buildInvoicePdf(invoice, appConfig = {}, clientUser = null) {
+  overdueDays = Number(appConfig?.invoice_overdue_days) || 7;
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
