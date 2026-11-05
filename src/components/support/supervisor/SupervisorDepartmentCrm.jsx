@@ -1,26 +1,35 @@
 import React, { useEffect, useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { base44 } from '@/api/base44Client';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import useSupportDepartments from '@/hooks/useSupportDepartments';
+import useSupportAdmins from '@/hooks/useSupportAdmins';
 import useCrmInbox from '@/hooks/useCrmInbox';
-import { supervisionState } from '@/lib/supervisionState';
 import CrmDepartmentBoard from '@/components/support/crm/departments/CrmDepartmentBoard';
 import SupervisorCaseFile from './SupervisorCaseFile';
+import SupervisorMetrics from './SupervisorMetrics';
+import SupervisorCaseTray from './SupervisorCaseTray';
 
-// CRM del supervisor: el mismo tablero por departamento que ve el ATC. Los casos
-// escalados se marcan en rojo (pendiente) o verde (atendido) hasta que se cierran.
+// Módulo del supervisor: indicadores, bandeja con búsqueda y filtros, y el mismo
+// tablero por departamento que ve el ATC. Al abrir un caso se gestiona completo.
 export default function SupervisorDepartmentCrm({ user, initialTicketId = '' }) {
   const deps = useSupportDepartments(user);
+  const admins = useSupportAdmins();
   const inbox = useCrmInbox();
   const [selected, setSelected] = useState(null);
   const [opening, setOpening] = useState(false);
+  const [tab, setTab] = useState('bandeja');
 
   const openCase = async (_email, id) => {
     setOpening(true);
-    const ticket = await base44.entities.SupportTicket.get(id);
+    try {
+      setSelected(await base44.entities.SupportTicket.get(id));
+    } catch {
+      toast.error('No se pudo abrir el caso');
+    }
     setOpening(false);
-    setSelected(ticket);
   };
 
   // Llegada desde la notificación: ?ticketId=... abre ese caso directamente.
@@ -46,25 +55,46 @@ export default function SupervisorDepartmentCrm({ user, initialTicketId = '' }) 
     return <p className="flex items-center gap-2 py-6 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Cargando casos…</p>;
   }
 
-  const cases = inbox.data?.cases || [];
-  const pending = cases.filter((c) => supervisionState(c) === 'pendiente').length;
-  const attended = cases.filter((c) => supervisionState(c) === 'atendido').length;
+  if (!inbox.data) {
+    return (
+      <div className="flex items-center gap-3 py-6 text-sm text-muted-foreground">
+        No se pudieron cargar los casos.
+        <Button size="sm" variant="outline" onClick={inbox.reload}>Reintentar</Button>
+      </div>
+    );
+  }
+
+  const cases = inbox.data.cases || [];
 
   return (
-    <div className="space-y-3">
-      <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-        <span>{cases.length} casos abiertos</span>
-        <span className="flex items-center gap-1.5 font-medium text-red-700"><span className="h-2.5 w-2.5 rounded-full bg-red-500" /> {pending} pendientes</span>
-        <span className="flex items-center gap-1.5 font-medium text-emerald-700"><span className="h-2.5 w-2.5 rounded-full bg-emerald-500" /> {attended} atendidos</span>
-        {opening && <Loader2 className="h-4 w-4 animate-spin" />}
-      </p>
-      <CrmDepartmentBoard
-        cases={cases}
-        profiles={inbox.data?.profiles}
-        deps={deps}
-        onMove={(id, dep) => inbox.moveCase(id, dep, user)}
-        onOpen={openCase}
-      />
+    <div className="space-y-5">
+      <SupervisorMetrics cases={cases} departments={deps.departments} />
+      <Tabs value={tab} onValueChange={setTab} className="space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <TabsList>
+            <TabsTrigger value="bandeja">Bandeja de casos</TabsTrigger>
+            <TabsTrigger value="departamentos">Por departamento</TabsTrigger>
+          </TabsList>
+          <div className="flex items-center gap-2">
+            {opening && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+            <Button size="sm" variant="ghost" onClick={inbox.reload} disabled={inbox.loading}>
+              <RefreshCw className={`h-4 w-4 ${inbox.loading ? 'animate-spin' : ''}`} /> Actualizar
+            </Button>
+          </div>
+        </div>
+        <TabsContent value="bandeja">
+          <SupervisorCaseTray cases={cases} profiles={inbox.data.profiles} departments={deps.departments} admins={admins} onOpen={openCase} />
+        </TabsContent>
+        <TabsContent value="departamentos">
+          <CrmDepartmentBoard
+            cases={cases}
+            profiles={inbox.data.profiles}
+            deps={deps}
+            onMove={(id, dep) => inbox.moveCase(id, dep, user)}
+            onOpen={openCase}
+          />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

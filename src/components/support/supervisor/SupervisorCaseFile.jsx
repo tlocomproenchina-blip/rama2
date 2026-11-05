@@ -15,6 +15,7 @@ import SupportClientProfileCard from '@/components/support/client-file/SupportCl
 import ClientSupport360 from '@/components/support/client360/ClientSupport360';
 import SupervisorCaseAttachments from './SupervisorCaseAttachments';
 import PackageEditReviewPanel from './PackageEditReviewPanel';
+import SupervisorCaseAssignment from './SupervisorCaseAssignment';
 
 const PRIORITY = {
   baja: 'bg-slate-100 text-slate-600',
@@ -185,6 +186,8 @@ export default function SupervisorCaseFile({ ticket, user, onBack, onChange }) {
           </div>
         </CardContent>
       </Card>
+
+      <SupervisorCaseAssignment ticket={ticket} user={user} onChange={onChange} />
 
       {ticket.escalation_summary ? (
         <Card className="border-primary/25 bg-primary/5 shadow-card">

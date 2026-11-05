@@ -26,6 +26,8 @@ export default function useCrmInbox() {
     const patch = {
       ...departmentPatch(d.department_id ? { id: d.department_id, name: d.department_name } : null),
       escalated: !!d.escalated,
+      assigned_to: d.assigned_to || '',
+      priority: d.priority || 'media',
       escalation_status: d.escalation_status || '',
       supervisor_reply_date: d.supervisor_reply_date || '',
     };
