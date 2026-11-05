@@ -26,7 +26,7 @@
     "auto_generated": {
       "type": "boolean",
       "default": false,
-      "description": "Indica que la gu\u00eda se arm\u00f3 sola al escanear las cajas y bultos en Despacho por Escaneo (una gu\u00eda abierta por cliente) y no desde la emisi\u00f3n manual."
+      "description": "Indica que la gu\u00eda se arm\u00f3 sola (al escanear en Despacho por Escaneo o al quedar pagada su factura) y no desde la emisi\u00f3n manual."
     },
     "source": {
       "type": "string",
@@ -34,9 +34,22 @@
         "periodo_pagos",
         "escaneo",
         "lote_etiquetas",
-        "manual"
+        "manual",
+        "factura_pagada"
       ],
-      "description": "Origen de la gu\u00eda: periodo_pagos (generada desde el per\u00edodo de facturas pagadas), escaneo (abierta por el esc\u00e1ner de despacho), lote_etiquetas (emitida al imprimir el lote de etiquetas) o manual (emitida eligiendo a mano el cliente y sus bultos, sus \u00f3rdenes/env\u00edos o las \u00f3rdenes de una factura pagada)."
+      "description": "Origen de la gu\u00eda: periodo_pagos (generada desde el per\u00edodo de facturas pagadas), escaneo (abierta por el esc\u00e1ner de despacho), lote_etiquetas (emitida al imprimir el lote de etiquetas), manual (emitida eligiendo a mano el cliente y sus bultos, sus \u00f3rdenes/env\u00edos o las \u00f3rdenes de una factura pagada) o factura_pagada (generada con todos los bultos de una factura, sola al quedar pagada o con el bot\u00f3n Generar gu\u00eda de despacho)."
+    },
+    "invoice_id": {
+      "type": "string",
+      "description": "Factura de la que sali\u00f3 la gu\u00eda (source factura_pagada)"
+    },
+    "invoice_number": {
+      "type": "string",
+      "description": "N\u00b0 de la factura de la que sali\u00f3 la gu\u00eda (cache para mostrar y buscar)"
+    },
+    "request_key": {
+      "type": "string",
+      "description": "Clave \u00fanica de la pulsaci\u00f3n del bot\u00f3n Generar gu\u00eda de despacho: evita crear dos gu\u00edas si la misma solicitud se reintenta."
     },
     "period_key": {
       "type": "string",

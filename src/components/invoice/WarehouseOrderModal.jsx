@@ -5,6 +5,7 @@ import { ClipboardList, Printer, Download, RefreshCw, Loader2, PackageOpen } fro
 import { toast } from 'sonner';
 import { generateWarehouseOrder } from '@/lib/warehouseOrder';
 import { generateWarehouseOrderPdf } from '@/lib/warehouseOrderPdf';
+import GenerateInvoiceGuideButton from '@/components/invoice/GenerateInvoiceGuideButton';
 
 const fmtDateTime = (value) => {
   if (!value) return '—';
@@ -161,6 +162,7 @@ export default function WarehouseOrderModal({ open, onClose, invoice, appName, o
             <Printer className="h-4 w-4 mr-2" /> Imprimir
           </Button>
           <div className="flex flex-wrap gap-2">
+            <GenerateInvoiceGuideButton invoice={invoice} size="default" />
             <Button variant="outline" onClick={() => handleDocument('save')} disabled={!order || working}>
               <Download className="h-4 w-4 mr-2" /> Descargar PDF
             </Button>

@@ -1,0 +1,42 @@
+{
+  "name": "Gu\u00eda de despacho al pagar factura",
+  "description": "Cuando una factura pasa a pagada, genera sola una gu\u00eda de despacho nueva con todos sus bultos (una sola vez por factura).",
+  "trigger": {
+    "config": {
+      "trigger_type": "entity",
+      "entity_name": "Invoice",
+      "events": [
+        "create",
+        "update"
+      ]
+    },
+    "condition": "${ .trigger.data.status == \"pagada\" and ((.trigger.old_data.status // \"\") != \"pagada\") }"
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "guia_despacho_factura_pagada",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "generar_guia": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "generateInvoiceDispatchGuide",
+            "args": {
+              "invoice_id": "${ .trigger.entity_id }",
+              "mode": "auto"
+            }
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Generar gu\u00eda de despacho",
+            "description": "Todos los bultos de la factura"
+          }
+        }
+      }
+    ]
+  }
+}

@@ -25,6 +25,7 @@ import OverdueInvoicesReportButton from '@/components/invoice/overdue/OverdueInv
 import ContainersReportButton from '@/components/invoice/containers/ContainersReportButton';
 import { billableTotal } from '@/lib/storageLines';
 import WarehouseOrderModal from '@/components/invoice/WarehouseOrderModal';
+import GenerateInvoiceGuideButton from '@/components/invoice/GenerateInvoiceGuideButton';
 import { generateWarehouseOrder } from '@/lib/warehouseOrder';
 import WarehousePaidTable from '@/components/invoice/WarehousePaidTable';
 import WarehouseOrderMissingNotice from '@/components/invoice/WarehouseOrderMissingNotice';
@@ -1041,6 +1042,7 @@ export default function AdminInvoices({ user }) {
                     Orden de almacén
                   </Button>
                 )}
+                {invoice.status === 'pagada' && <GenerateInvoiceGuideButton invoice={invoice} />}
                 {invoice.consolidation_id && (
                   <Button
                     variant="outline"

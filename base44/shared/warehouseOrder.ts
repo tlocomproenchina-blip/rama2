@@ -97,6 +97,20 @@ export async function buildWarehouseOrder(base44: any, invoiceId: string, option
   // regenera a propósito (force).
   if (invoice.warehouse_order && !force) return { skipped: 'exists', order: invoice.warehouse_order };
 
+  const { bultos, orderKeys } = await findInvoiceBultos(base44, invoice);
+
+  if (!bultos.length) {
+    return { empty: true, bultos: 0, id: invoice.id, invoice_number: invoice.invoice_number || '' };
+  }
+
+  return await saveWarehouseOrder(base44, invoice, bultos, orderKeys, generatedBy);
+}
+
+// Todos los bultos vinculados a una factura (cada uno una sola vez), por
+// billed_invoice_id o por N° de contenedor. La usan la orden de almacén y la guía
+// de despacho de la factura pagada.
+export async function findInvoiceBultos(base44: any, invoice: any) {
+  const invoiceId = invoice.id;
   const receipts: any[] = await base44.asServiceRole.entities.CbmIngreso
     .filter({ billed_invoice_id: invoiceId }, '-fecha', 500)
     .catch(() => []);
@@ -138,10 +152,11 @@ export async function buildWarehouseOrder(base44: any, invoiceId: string, option
     });
   }
 
-  if (!bultos.length) {
-    return { empty: true, bultos: 0, id: invoice.id, invoice_number: invoice.invoice_number || '' };
-  }
+  return { bultos, orderKeys };
+}
 
+async function saveWarehouseOrder(base44: any, invoice: any, bultos: any[], orderKeys: Set<string>, generatedBy: string) {
+  const invoiceId = invoice.id;
   // Datos del cliente para el encabezado del documento.
   let clientName = '';
   let shippingMark = '';
