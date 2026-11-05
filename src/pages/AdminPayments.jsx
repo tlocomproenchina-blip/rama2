@@ -17,7 +17,6 @@ import { toast } from 'sonner';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import PaymentValidation from '@/components/admin/PaymentValidation';
 import InvoicePaymentValidation from '@/components/admin/InvoicePaymentValidation';
-import AdminAbonosValidation from '@/components/admin/AdminAbonosValidation';
 import PaymentHistory from '@/components/admin/PaymentHistory';
 import InsuranceValidation from '@/components/admin/InsuranceValidation';
 import BulkApproveButton from '@/components/admin/bulk-approval/BulkApproveButton';
@@ -63,12 +62,6 @@ export default function AdminPayments({ user }) {
       }
       return prev.filter((i) => i.id !== event.data.id);
     });
-  });
-
-  // Tiempo real: solo recargar cuando llega un abono NUEVO (create).
-  // Las aprobaciones/actualizaciones se manejan localmente sin recargar.
-  useEntitySubscription('InvoicePayment', (event) => {
-    if (event.type === 'create') loadData();
   });
 
   // Tiempo real: pagos de seguro
@@ -305,7 +298,6 @@ export default function AdminPayments({ user }) {
         <InsuranceValidation onRefresh={loadData} currentUser={user} />
       ) : statusFilter === 'pending' ? (
         <div className="space-y-6">
-          <AdminAbonosValidation onRefresh={loadData} search={search} />
           {filteredReviewInvoices.length > 0 && (
             <div className="space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">

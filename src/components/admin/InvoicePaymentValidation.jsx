@@ -42,7 +42,10 @@ export default function InvoicePaymentValidation({ invoices, clients, onRefresh,
       const data = res?.data || {};
       if (data.success && data.approved_count > 0) {
         setValidatedIds((prev) => [...prev, invoice.id]);
-        toast.success('Pago validado correctamente');
+        toast.success('Pago validado: factura pagada al 100%');
+        if (data.warehouse_pending?.length) {
+          toast.warning('La factura aún no tiene bultos vinculados: genera su orden de almacén desde Gestión de Facturas cuando estén listos.');
+        }
         // Informe TXT de la aprobación recién confirmada
         downloadPaymentReport(data);
       } else {

@@ -151,15 +151,21 @@ export async function approveReportedInvoicePayment(base44: any, invoiceId: stri
   const invoice = invs[0];
   if (invoice.status !== 'revision') fail(`La factura ya no está en revisión (${invoice.status})`, 400);
 
+  // Sin abonos: validar el pago reportado significa que la factura quedó pagada al 100%.
   const nowIso = new Date().toISOString();
   await base44.asServiceRole.entities.Invoice.update(invoiceId, {
     status: 'pagada',
+    paid_amount: Math.round(Number(invoice.total || 0) * 100) / 100,
     payment_date: nowIso,
     payment_method: invoice.payment_method || 'transferencia'
   });
 
-  // La factura quedó pagada: se arma y guarda su orden de almacén.
-  await buildWarehouseOrderOnPayment(base44, invoiceId, adminEmail);
+  // La factura quedó pagada: se arma y guarda su orden de almacén (nunca la duplica).
+  const warehouse: any = await buildWarehouseOrderOnPayment(base44, invoiceId, adminEmail);
+  const warehouseStatus = warehouse?.order ? 'creada'
+    : warehouse?.skipped === 'exists' ? 'existente'
+    : warehouse?.empty ? 'sin_bultos'
+    : 'error';
 
   await notifyClient(base44, {
     to: invoice.client_email,
@@ -183,6 +189,8 @@ export async function approveReportedInvoicePayment(base44: any, invoiceId: stri
 
   return {
     success: true,
+    invoice_number: invoice.invoice_number || '',
+    warehouse_order_status: warehouseStatus,
     report_entry: report?.entry || null,
     report_txt: report?.txt || '',
     report_filename: report?.filename || ''

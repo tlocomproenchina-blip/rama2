@@ -1,6 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 import {
-  approveAbonoPayment,
   approveReportedInvoicePayment,
   approveConsolidationPayment,
   approveInsurancePaymentRecord,
@@ -11,7 +10,8 @@ import { buildReportText, batchReportFileName, caracasDay } from '../../shared/p
 // Aprobación masiva (un clic) de pagos pendientes y seguros desde Validación de Pagos.
 // Recibe el tipo y los IDs visibles en pantalla y los aprueba uno por uno con la misma
 // lógica que la aprobación individual; si alguno falla, los demás se aprueban igual.
-// Tipos: abonos | facturas | consolidaciones | seguros
+// Tipos: facturas | consolidaciones | seguros (los abonos ya no existen: una factura
+// validada queda pagada al 100%).
 const MAX_IDS = 200;
 
 export default async function(req: Request): Promise<Response> {
@@ -29,7 +29,6 @@ export default async function(req: Request): Promise<Response> {
     const ids: string[] = Array.isArray(payload?.ids) ? payload.ids.filter(Boolean).map((id: any) => String(id)) : [];
 
     const handlers: Record<string, (base44: any, id: string, adminEmail: string) => Promise<any>> = {
-      abonos: approveAbonoPayment,
       facturas: approveReportedInvoicePayment,
       consolidaciones: approveConsolidationPayment,
       seguros: approveInsurancePaymentRecord
@@ -49,12 +48,17 @@ export default async function(req: Request): Promise<Response> {
     const approved: string[] = [];
     const failed: any[] = [];
     const reportEntries: any[] = [];
+    // Facturas pagadas cuya orden de almacén no se pudo armar (sin bultos o error).
+    const warehousePending: any[] = [];
 
     for (const id of ids) {
       try {
         const result: any = await handler(base44, id, user.email);
         approved.push(id);
         if (result?.report_entry) reportEntries.push(result.report_entry);
+        if (result?.warehouse_order_status === 'sin_bultos' || result?.warehouse_order_status === 'error') {
+          warehousePending.push({ id, invoice_number: result.invoice_number, status: result.warehouse_order_status });
+        }
       } catch (error) {
         failed.push({ id, error: errorMessage(error) });
       }
@@ -73,6 +77,7 @@ export default async function(req: Request): Promise<Response> {
       failed_count: failed.length,
       approved,
       failed,
+      warehouse_pending: warehousePending,
       reports_count: reportEntries.length,
       batch_txt: batchTxt,
       batch_filename: batchTxt ? batchReportFileName(day) : ''
