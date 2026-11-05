@@ -9,10 +9,13 @@ export default function DismantleResult({ result }) {
     <div className="space-y-3 text-sm">
       <div className="space-y-1.5">
         {restored.map((r) => (
-          <div key={r.id} className="flex items-center gap-2 rounded-lg bg-green-50 px-2.5 py-1.5 text-green-800">
+          <div key={r.id} className="flex flex-wrap items-center gap-2 rounded-lg bg-green-50 px-2.5 py-1.5 text-green-800">
             <CheckCircle2 className="h-4 w-4 shrink-0" />
             <span className="font-mono">{r.label_code}</span>
             <span className="text-xs">· {r.package_count} paq.</span>
+            <span className={`text-xs font-medium ${r.invoice_paid ? 'text-green-700' : 'text-red-600'}`}>
+              · {r.invoice_number ? `${r.invoice_number} ${r.invoice_paid ? 'pagada' : 'sin cobrar'}` : 'sin factura'}
+            </span>
             {r.original_label && r.original_label !== r.label_code && (
               <span className="text-xs">(antes {r.original_label})</span>
             )}

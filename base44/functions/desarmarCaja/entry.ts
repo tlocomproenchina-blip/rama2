@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 import { freeLabelCode } from '../../shared/bultoNumber.ts';
+import { loadClientInvoices, invoiceFieldsFor } from '../../shared/unitInvoiceMatch.ts';
 
 // Desarmar una unidad (caja consolidada o bulto suelto) que absorbió otros bultos.
 //
@@ -73,6 +74,8 @@ export default async function (req: Request): Promise<Response> {
     const usedCodes = new Set<string>();
     const restored: any[] = [];
     const failedEntries: any[] = [];
+    // Facturas del cliente: cada bulto restaurado conserva la que lo cubre (pagada o no).
+    const invoices = await loadClientInvoices(base44, clientEmail);
 
     for (const entry of absorbed) {
       const packageIds: string[] = [];
@@ -100,8 +103,16 @@ export default async function (req: Request): Promise<Response> {
         ? parentStatus
         : (text(entry.status) === 'en_almacen_ve' ? 'en_almacen_ve' : 'cerrado');
 
+      const invoiceFields = invoiceFieldsFor(invoices, {
+        labels: [preferred, label.label_code],
+        orders: uniq(entry.order_numbers || []),
+        trackings: uniq([...(entry.trackings || []), ...trackings, ...unregistered]),
+      });
+
       try {
         const bulto = await base44.asServiceRole.entities.Bulto.create({
+          ...invoiceFields,
+          ...(invoiceFields.billed_invoice_id ? { billed_date: parent.billed_date || new Date().toISOString() } : {}),
           label_code: label.label_code,
           is_caja: false,
           client_email: clientEmail,
@@ -127,6 +138,8 @@ export default async function (req: Request): Promise<Response> {
           label_code: bulto.label_code,
           original_label: preferred,
           package_count: packageIds.length + unregistered.length,
+          invoice_number: invoiceFields.invoice_number,
+          invoice_paid: invoiceFields.invoice_paid,
         });
       } catch (_) {
         failedEntries.push(entry);
