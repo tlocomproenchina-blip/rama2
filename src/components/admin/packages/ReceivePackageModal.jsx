@@ -18,7 +18,7 @@ export default function ReceivePackageModal({
         <DialogHeader>
           <DialogTitle>Confirmar Recepción o Rechazo</DialogTitle>
           <DialogDescription>
-            Puedes continuar con o sin foto del paquete.
+            Para confirmar la recepción es obligatorio subir al menos una foto.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
@@ -51,7 +51,7 @@ export default function ReceivePackageModal({
                   <div className="text-slate-500">
                     <ImageIcon className="h-8 w-8 mx-auto mb-2 text-slate-400" />
                     <p className="text-sm">Click para subir foto</p>
-                    <p className="text-xs mt-1 text-slate-500">Opcional</p>
+                    <p className="text-xs mt-1 text-rose-500">Obligatoria para recibir</p>
                   </div>
                 )}
               </label>

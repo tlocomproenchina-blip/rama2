@@ -189,6 +189,11 @@ export default function AdminPackages({ user }) {
 
   const handleReceive = async (nextStatus = 'recibido') => {
     if (!receiveModal) return;
+    const hasExisting = (receiveModal.package_image_urls?.length || 0) > 0 || !!receiveModal.package_image_url;
+    if (nextStatus === 'recibido' && !hasExisting && !(imageFiles?.length > 0)) {
+      toast.error('Debes subir al menos una foto de recepción para marcarlo como recibido');
+      return;
+    }
     setProcessing(true);
 
     try {
@@ -300,6 +305,15 @@ export default function AdminPackages({ user }) {
     if (newStatus === 'despachado') {
       toast.error('El estado "despachado" solo se asigna desde la herramienta de despacho (escáner).');
       return;
+    }
+    if (newStatus === 'recibido') {
+      const hasPhoto = (pkg.package_image_urls?.length || 0) > 0 || !!pkg.package_image_url;
+      if (!hasPhoto) {
+        toast.error('Sube la foto de recepción para marcarlo como recibido');
+        setImageFiles([]);
+        setReceiveModal(pkg);
+        return;
+      }
     }
     // Update optimista inmediato
     patchPackageInList(pkg.id, { status: newStatus });
