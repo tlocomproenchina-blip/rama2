@@ -1,25 +1,19 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
-import { CreditCard, Calendar, DollarSign, ChevronDown, Wallet, Eye } from 'lucide-react';
+import { CreditCard, Calendar, DollarSign, Eye } from 'lucide-react';
 import { format } from 'date-fns';
 import InvoicePDFGenerator from './InvoicePDFGenerator';
-import InvoiceAbonosList from './InvoiceAbonosList';
 import InvoiceCbmOrders from './InvoiceCbmOrders';
 import InvoiceCreditApply from './InvoiceCreditApply';
 import useFileViewer from '@/hooks/useFileViewer';
 import { getFileKind } from '@/components/common/FileViewerModal';
 import { isStorageInvoiceLine, billableTotal } from '@/lib/storageLines';
 
-function InvoiceCard({ invoice, user, onPay, onDownload, showPayButton = false, onOtherPay, showOtherMethodsButton = false, onPayPal, showPayPalButton = false, onAbono, showAbonoButton = false, extraActions = null, selectionControl = null, showInsuranceBreakdown = false, isAdmin = false, onRefresh }) {
-  const [abonosOpen, setAbonosOpen] = useState(false);
+function InvoiceCard({ invoice, user, onPay, onDownload, showPayButton = false, onOtherPay, showOtherMethodsButton = false, onPayPal, showPayPalButton = false, extraActions = null, selectionControl = null, showInsuranceBreakdown = false, isAdmin = false, onRefresh }) {
   const fileViewer = useFileViewer();
   const total = billableTotal(invoice);
-  const paidAmount = Number(invoice.paid_amount || 0);
-  const balance = Math.max(0, total - paidAmount);
-  const hasAbonos = paidAmount > 0 || invoice.status === 'pendiente';
   const assistedDetails = invoice.items?.find((item) => item?.details)?.details || {};
   const isAssistedPayment = assistedDetails.request_type === 'assisted_payment' || String(invoice.consolidation_tracking || '').startsWith('AP-') || String(invoice.notes || '').toLowerCase().includes('pago asistido');
   const providerLabel = {
@@ -172,41 +166,10 @@ function InvoiceCard({ invoice, user, onPay, onDownload, showPayButton = false, 
             <span>Total</span>
             <span>${total.toFixed(2)}</span>
           </div>
-          {paidAmount > 0 && (
-            <div className="mt-2 rounded-lg bg-slate-50 border border-slate-200 p-2 space-y-1 text-sm">
-              <div className="flex justify-between text-emerald-700">
-                <span>Abonos aprobados</span>
-                <span className="font-semibold">${paidAmount.toFixed(2)}</span>
-              </div>
-              {balance > 0 && invoice.status !== 'pagada' && (
-                <div className="flex justify-between text-amber-700">
-                  <span>Saldo pendiente</span>
-                  <span className="font-semibold">${balance.toFixed(2)}</span>
-                </div>
-              )}
-            </div>
-          )}
         </div>
 
         {/* CBM de cada contenedor y total de la factura */}
         <InvoiceCbmOrders invoice={invoice} />
-
-        {/* Sección colapsable de abonos */}
-        {hasAbonos && (
-          <Collapsible open={abonosOpen} onOpenChange={setAbonosOpen} className="mb-3">
-            <CollapsibleTrigger asChild>
-              <Button variant="ghost" size="sm" className="w-full justify-between text-xs text-slate-600 hover:text-slate-800">
-                <span className="flex items-center gap-2">
-                  <Wallet className="h-3.5 w-3.5" /> Ver pagos
-                </span>
-                <ChevronDown className={`h-3.5 w-3.5 transition-transform ${abonosOpen ? 'rotate-180' : ''}`} />
-              </Button>
-            </CollapsibleTrigger>
-            <CollapsibleContent className="mt-2">
-              <InvoiceAbonosList invoice={invoice} isAdmin={isAdmin} onRefresh={onRefresh} />
-            </CollapsibleContent>
-          </Collapsible>
-        )}
 
         <InvoiceCreditApply invoice={invoice} onApplied={onRefresh} />
 

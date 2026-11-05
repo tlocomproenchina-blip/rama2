@@ -3,7 +3,6 @@ import { base44 } from '@/components/api/ApiQueueManager';
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import InvoiceCard from '@/components/invoice/InvoiceCard';
-import AbonoModal from '@/components/invoice/AbonoModal';
 import useEntitySubscription from '@/hooks/useEntitySubscription';
 import PayPalInline from '@/components/payments/PayPalInline';
 import PaymentModal from '@/components/PaymentModal';
@@ -25,8 +24,6 @@ export default function MyInvoices({ user }) {
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [config, setConfig] = useState(null);
   const [paypalOpen, setPaypalOpen] = useState(false);
-  const [abonoOpen, setAbonoOpen] = useState(false);
-  const [abonoInvoice, setAbonoInvoice] = useState(null);
   const [highlightId, setHighlightId] = useState(null);
   const PAGE_SIZE = 100;
   const [hasMore, setHasMore] = useState(false);
@@ -67,11 +64,8 @@ export default function MyInvoices({ user }) {
 
   }, []);
 
-  // Tiempo real: refrescar facturas cuando cambian (abono aprobado, estado, etc.)
+  // Tiempo real: refrescar facturas cuando cambian (estado, pago validado, etc.)
   useEntitySubscription('Invoice', () => {
-    loadInvoices();
-  });
-  useEntitySubscription('InvoicePayment', () => {
     loadInvoices();
   });
 
@@ -284,12 +278,6 @@ export default function MyInvoices({ user }) {
                 showPayButton={false}
                 onPayPal={handlePayPal}
                 showPayPalButton={config?.payments_enable_paypal === true}
-                onAbono={(inv) => {
-                  if (inv.status === 'pagada' || inv.status === 'revision') return;
-                  setAbonoInvoice(inv);
-                  setAbonoOpen(true);
-                }}
-                showAbonoButton={false}
                 onRefresh={loadInvoices}
                 onOtherPay={(inv) => {
                   if (inv.status === 'pagada' || inv.status === 'revision') return;
@@ -320,17 +308,6 @@ export default function MyInvoices({ user }) {
           </div>
         </div>
       )}
-
-       {/* Modal de Abono (pago parcial) */}
-       <AbonoModal
-         open={abonoOpen}
-         onClose={() => setAbonoOpen(false)}
-         invoice={abonoInvoice}
-         onSubmitted={async () => {
-           setAbonoOpen(false);
-           await loadInvoices();
-         }}
-       />
 
         {/* Modal antiguo de pago sigue disponible para otros métodos */}
         <PaymentModal

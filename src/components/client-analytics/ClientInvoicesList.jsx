@@ -4,7 +4,6 @@ import { Badge } from '@/components/ui/badge';
 import { FileText, ChevronDown, ChevronRight, Receipt, MessageCircle } from 'lucide-react';
 import { buildWhatsAppUrl } from '@/lib/whatsappContact';
 import InvoicePDFGenerator from '@/components/invoice/InvoicePDFGenerator';
-import ClientInvoicePayments from '@/components/client-analytics/ClientInvoicePayments';
 import ClientPaymentsSummary from '@/components/client-analytics/ClientPaymentsSummary';
 import { displayInvoiceItems, billableTotal } from '@/lib/storageLines';
 
@@ -187,8 +186,6 @@ export default function ClientInvoicesList({ invoices, payments = [], client, on
                     {invoice.notes && (
                       <p className="text-xs text-slate-500 break-words">{invoice.notes}</p>
                     )}
-
-                    <ClientInvoicePayments invoice={invoice} payments={invoicePayments} onSaved={onPaymentSaved} />
 
                     <div className="flex flex-wrap items-center gap-2" onClick={(e) => e.stopPropagation()}>
                       <InvoicePDFGenerator invoice={invoice} />
