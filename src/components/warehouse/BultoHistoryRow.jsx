@@ -20,9 +20,9 @@ export default function BultoHistoryRow({
   return (
     <Card className={`shadow-sm transition-all ${selectMode && selected ? 'ring-2 ring-blue-400 bg-blue-50/30' : ''}`}>
       <CardContent className="p-3">
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div
-            className={`flex items-start gap-2 min-w-0 flex-1 ${selectMode ? 'cursor-pointer' : ''}`}
+            className={`flex items-start gap-2 min-w-0 w-full sm:flex-1 ${selectMode ? 'cursor-pointer' : ''}`}
             onClick={selectMode ? () => onToggleSelect(b.id) : undefined}
           >
             {selectMode && (
@@ -79,7 +79,7 @@ export default function BultoHistoryRow({
             </div>
           </div>
           {!selectMode && (
-            <div className="flex items-center gap-1.5 shrink-0">
+            <div className="flex w-full flex-wrap items-center gap-1.5 sm:w-auto sm:shrink-0 sm:justify-end">
               {canDismantle && (
                 <Button
                   variant="outline"
