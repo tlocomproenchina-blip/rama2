@@ -39,6 +39,17 @@ export const isDispatchDueReached = (dueDate: any, now: any = new Date()) => {
   return caracasDateKey(now) >= due;
 };
 
+// Entrega automática: una guía no entregada pasa a "entregada" al cumplir 7 días
+// desde su emisión (desde el inicio de ese día, hora de Caracas).
+export const AUTO_DELIVERY_DAYS = 7;
+
+export const isAutoDeliveryReached = (emitted: any, now: any = new Date()) => {
+  const emittedMs = new Date(emitted || 0).getTime();
+  if (!emittedMs) return false;
+  const dueKey = caracasDateKey(new Date(emittedMs + AUTO_DELIVERY_DAYS * 86400000));
+  return !!dueKey && caracasDateKey(now) >= dueKey;
+};
+
 export const isOrderNumberValue = (raw: any) => {
   const text = String(raw || '').trim();
   if (!text) return false;

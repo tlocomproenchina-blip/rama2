@@ -1,5 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.54';
 import {
+  AUTO_DELIVERY_DAYS,
+  isAutoDeliveryReached,
   isDispatchDueReached,
   markGuideDispatched,
   nextSaturdayDateKey,
@@ -44,10 +46,25 @@ export default async function (req: Request): Promise<Response> {
     let bultosMarked = 0;
     let containersMarked = 0;
     const processed: any[] = [];
+    const delivered: string[] = [];
 
     for (const guide of guides) {
       if (processed.length >= MAX_GUIDES_PER_RUN) break;
       reviewed += 1;
+
+      // Entrega automática a los 7 días de emitida.
+      if (guide?.dispatch_status !== 'entregada' && isAutoDeliveryReached(guide?.emitted_date, now)) {
+        delivered.push(guide.guide_number);
+        if (!dryRun) {
+          await svc.DispatchGuide.update(guide.id, {
+            dispatch_status: 'entregada',
+            delivered_date: now.toISOString(),
+            delivery_notes: guide.delivery_notes || `Marcada entregada automáticamente a los ${AUTO_DELIVERY_DAYS} días de su emisión.`,
+            delivery_updated_by: 'sistema',
+            delivery_updated_date: now.toISOString(),
+          }).catch(() => null);
+        }
+      }
 
       // Ya procesada: solo se vuelve a mirar si la guía recibió carga nueva después.
       if (guide?.dispatch_due_completed_date) {
@@ -98,6 +115,8 @@ export default async function (req: Request): Promise<Response> {
       guides_dispatched: processed.length,
       bultos_marked: bultosMarked,
       containers_marked: containersMarked,
+      guides_delivered: delivered.length,
+      delivered,
       processed,
     });
   } catch (error: any) {
