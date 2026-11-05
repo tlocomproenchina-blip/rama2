@@ -46,7 +46,7 @@ export default function DispatchGuideHistoryFilters({ filters, onChange, onRefre
             className="pl-10"
             value={filters.search}
             onChange={(e) => onChange({ ...filters, search: e.target.value })}
-            placeholder="Buscar guías emitidas…"
+            placeholder="Buscar por N° de guía, N° de factura o Shipping Mark…"
           />
         </div>
       </div>

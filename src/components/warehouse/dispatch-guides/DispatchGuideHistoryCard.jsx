@@ -111,6 +111,9 @@ export default function DispatchGuideHistoryCard({ guide, appName, highlighted =
                 </Badge>
               )}
             </div>
+            {guide.invoice_number ? (
+              <p className="font-mono text-[11px] font-semibold text-emerald-700">Factura: {guide.invoice_number}</p>
+            ) : null}
             <p className="text-[11px] text-slate-500">Emitida: {fmtDateTime(guide.emitted_date)}</p>
             {guide.auto_generated && guide.last_updated_date ? (
               <p className="text-[11px] text-slate-500">

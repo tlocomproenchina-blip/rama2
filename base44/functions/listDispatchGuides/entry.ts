@@ -53,6 +53,7 @@ export default async function (req: Request): Promise<Response> {
       const rx = { $regex: search, $options: 'i' };
       const or: any[] = [
         { guide_number: rx },
+        { invoice_number: rx },
         { client_names: rx },
         { shipping_marks: rx },
         { bulto_codes: rx },
