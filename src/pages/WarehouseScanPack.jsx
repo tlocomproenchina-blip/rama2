@@ -30,7 +30,7 @@ import { useBultoNumberBlock } from '@/hooks/useBultoNumberBlock';
 import { useOfflineBultoSync } from '@/hooks/useOfflineBultoSync';
 import usePackUnit from '@/hooks/usePackUnit';
 import { localCajasOfClient } from '@/lib/cajaLocal';
-import { del, put, findPackageByTracking } from '@/lib/offlineDb';
+import { del, put, bulkPut, findPackageByTracking } from '@/lib/offlineDb';
 import PackageReviewPanel from '@/components/warehouse/PackageReviewPanel';
 import ReviewQueueCard from '@/components/warehouse/ReviewQueueCard';
 import useReviewQueue from '@/hooks/useReviewQueue';
@@ -45,6 +45,7 @@ export default function WarehouseScanPack({ user }) {
   const [code, setCode] = useState('');
   const [showHistory, setShowHistory] = useState(false);
   const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
+  const [cajaRefreshKey, setCajaRefreshKey] = useState(0);
   const [labelsOpen, setLabelsOpen] = useState(false);
   const [autoPrintLabels, setAutoPrintLabels] = useState(false);
   const [lotKey, setLotKey] = useState(0);
@@ -118,7 +119,12 @@ export default function WarehouseScanPack({ user }) {
   // Bultos creados o modificados en otros dispositivos: refresca el historial al instante.
   useEffect(() => {
     let timer = null;
-    const unsubscribe = base44.entities.Bulto.subscribe(() => {
+    const unsubscribe = base44.entities.Bulto.subscribe((event) => {
+      // Cajas consolidadas: se guardan en el caché del dispositivo para que el lote se vea al instante.
+      if (event?.data?.is_caja || event?.type === 'delete') {
+        const op = event.type === 'delete' ? del('bultos', event.id) : put('bultos', event.data);
+        op.catch(() => {}).finally(() => setCajaRefreshKey((k) => k + 1));
+      }
       clearTimeout(timer);
       timer = setTimeout(() => {
         try { base44.invalidateEntityCache?.('Bulto'); } catch (_) {}
@@ -135,6 +141,11 @@ export default function WarehouseScanPack({ user }) {
       try { base44.invalidateEntityCache?.('Bulto'); } catch (_) {}
       await shared.pullAll();
       await packRef.current?.reloadUnits?.();
+      if (lotEmail) {
+        const serverCajas = await base44.entities.Bulto.filter({ client_email: lotEmail, is_caja: true }, '-created_date', 200).catch(() => []);
+        await bulkPut('bultos', serverCajas).catch(() => {});
+        setCajaRefreshKey((k) => k + 1);
+      }
       setHistoryRefreshKey((k) => k + 1);
     } finally {
       setManualRefreshing(false);
@@ -191,7 +202,7 @@ export default function WarehouseScanPack({ user }) {
       if (!cancelled) setCajas(list);
     })();
     return () => { cancelled = true; };
-  }, [lotEmail, lotKey, pendingBultos.length]);
+  }, [lotEmail, lotKey, pendingBultos.length, cajaRefreshKey]);
 
   // Cuando una caja cerrada termina de registrarse en el servidor, se imprime sola su
   // tira de etiquetas continuas (ya con la numeración X/N definitiva).
