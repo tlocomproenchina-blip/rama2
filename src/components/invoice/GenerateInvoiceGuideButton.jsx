@@ -22,6 +22,7 @@ export default function GenerateInvoiceGuideButton({ invoice, className = '', si
 
     if (data.guide) {
       toast.success(`Guía ${data.guide.guide_number} generada con ${Number(data.guide.totals?.bultos) || 0} bulto(s)`);
+      if (data.warning) toast.warning(data.warning, { duration: 10000 });
     } else if (data.empty) {
       toast.warning('Esta factura no tiene bultos asociados: no se generó la guía');
     } else {

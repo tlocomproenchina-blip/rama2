@@ -43,7 +43,7 @@ export async function createInvoiceDispatchGuide(base44: any, { invoiceId, mode,
   }
 
   const { bultos, orderKeys } = await findInvoiceBultos(base44, invoice);
-  if (!bultos.length) {
+  if (!bultos.length && !invoice.warehouse_order?.groups?.length) {
     return { empty: true, invoice_number: invoice.invoice_number || '' };
   }
 
@@ -59,7 +59,16 @@ export async function createInvoiceDispatchGuide(base44: any, { invoiceId, mode,
 
   const emittedDate = new Date().toISOString();
 
-  const rows = bultos
+  // La orden de almacén guardada es la fuente: sus bultos no cambian aunque luego se
+  // fusionen o editen. Si no hay orden guardada, se usan los bultos actuales.
+  const liveByCode = new Map(bultos.map((b: any) => [normCode(b.label_code), b]));
+  const snapshotRows = snapshotGuideRows(invoice, liveByCode, emittedDate);
+  const missing = snapshotRows ? snapshotRows.filter((r: any) => !liveByCode.has(r.label_code)) : [];
+  const warning = missing.length
+    ? `${missing.length} bulto(s) de la orden de almacén ya no existen por separado (se fusionaron en ${[...liveByCode.keys()].join(', ') || 'otro bulto'}). La guía usa los bultos de la orden.`
+    : '';
+
+  const rows = snapshotRows || bultos
     .map((bulto: any) => {
       const own = (Array.isArray(bulto.cbm_order_numbers) ? bulto.cbm_order_numbers : []).map(text).filter(Boolean);
       const fromInvoice = own.filter((o: string) => orderKeys.has(norm(o)));
@@ -141,5 +150,41 @@ export async function createInvoiceDispatchGuide(base44: any, { invoiceId, mode,
 
   await markScansWithGuide(base44, { codes: bultoCodes, guideId: guide.id, guideNumber, emittedDate }).catch(() => false);
 
-  return { guide, bultos: rows.length };
+  return { guide, bultos: rows.length, warning };
+}
+
+// Líneas de la guía desde la orden de almacén guardada: cada bulto una sola vez
+// (aunque aparezca en varios N° de contenedor), con sus contenedores unidos.
+function snapshotGuideRows(invoice: any, liveByCode: Map<string, any>, emittedDate: string) {
+  const groups = invoice?.warehouse_order?.groups;
+  if (!Array.isArray(groups) || !groups.length) return null;
+  const byCode = new Map<string, any>();
+  for (const group of groups) {
+    for (const b of Array.isArray(group?.bultos) ? group.bultos : []) {
+      const code = normCode(b?.label_code);
+      if (!code) continue;
+      let row = byCode.get(code);
+      if (!row) {
+        const live = liveByCode.get(code);
+        row = {
+          label_code: code,
+          package_count: Number(b.package_count) || 0,
+          registered: true,
+          date: emittedDate,
+          orders: new Set<string>(),
+          invoice_number: text(invoice.invoice_number),
+          scans: 0,
+          is_caja: !!b.is_caja,
+          caja_number: Number(b.caja_number) || 0,
+          caja_total: Number(b.caja_total) || 0,
+          cbm: Number(live?.cargo_cbm) || 0,
+        };
+        byCode.set(code, row);
+      }
+      const order = text(group.order_number);
+      if (order && !/^sin n/i.test(order)) row.orders.add(order);
+    }
+  }
+  const rows = [...byCode.values()].map(({ orders, ...row }) => ({ ...row, order_number: [...orders].join(', ') }));
+  return rows.length ? rows.sort((a, b) => a.label_code.localeCompare(b.label_code)) : null;
 }
