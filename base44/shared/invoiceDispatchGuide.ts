@@ -34,13 +34,9 @@ export async function createInvoiceDispatchGuide(base44: any, { invoiceId, mode,
   if (!invoice) return { status: 404, error: 'Factura no encontrada' };
   if (mode === 'auto' && invoice.status !== 'pagada') return { skipped: 'not_paid' };
 
-  if (mode === 'auto') {
-    const existing = await findExisting(base44, { invoice_id: invoiceId, source: 'factura_pagada' });
-    if (existing) return { guide: existing, existing: true };
-  } else if (requestKey) {
-    const existing = await findExisting(base44, { request_key: requestKey });
-    if (existing) return { guide: existing, existing: true };
-  }
+  // Una factura tiene una sola guía: si ya existe, se devuelve esa.
+  const existing = await findExisting(base44, { invoice_id: invoiceId });
+  if (existing) return { guide: existing, existing: true };
 
   const { bultos, orderKeys } = await findInvoiceBultos(base44, invoice);
   if (!bultos.length && !invoice.warehouse_order?.groups?.length) {
@@ -147,6 +143,16 @@ export async function createInvoiceDispatchGuide(base44: any, { invoiceId, mode,
     totals: { ...totals, clients: 1, bultos: rows.length, unregistered: 0 },
     dispatch_status: 'emitida',
   });
+
+  // Si otra solicitud simultánea creó una guía antes, se conserva la primera.
+  const all = await base44.asServiceRole.entities.DispatchGuide
+    .filter({ invoice_id: invoiceId }, 'created_date', 5)
+    .catch(() => []);
+  const first = all?.[0];
+  if (first && first.id !== guide.id) {
+    await base44.asServiceRole.entities.DispatchGuide.delete(guide.id).catch(() => null);
+    return { guide: first, existing: true };
+  }
 
   await markScansWithGuide(base44, { codes: bultoCodes, guideId: guide.id, guideNumber, emittedDate }).catch(() => false);
 

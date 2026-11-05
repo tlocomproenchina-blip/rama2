@@ -20,7 +20,9 @@ export default function GenerateInvoiceGuideButton({ invoice, className = '', si
     const data = res?.data || {};
     setWorking(false);
 
-    if (data.guide) {
+    if (data.guide && data.existing) {
+      toast.info(`Esta factura ya tiene la guía ${data.guide.guide_number}; se conserva la misma.`);
+    } else if (data.guide) {
       toast.success(`Guía ${data.guide.guide_number} generada con ${Number(data.guide.totals?.bultos) || 0} bulto(s)`);
       if (data.warning) toast.warning(data.warning, { duration: 10000 });
     } else if (data.empty) {
