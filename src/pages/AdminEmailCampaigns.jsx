@@ -111,8 +111,9 @@ export default function AdminEmailCampaigns({ user }) {
 
   const loadClients = async () => {
     // Paginado: sin esto el backend devuelve solo los primeros 200 registros
+    // Los clientes se leen desde el servidor: el navegador no tiene permiso para listar usuarios.
     const [users, pkgs] = await Promise.all([
-      fetchAllPaginated('User', { method: 'filter', query: { role: 'user' }, sort: '-created_date' }),
+      base44.functions.invoke('listAllUsers', { role: 'user', limit: 5000 }).then((r) => r?.data?.users || []),
       fetchAllPaginated('Package', { sort: '-created_date' })
     ]);
     setClients(users);
