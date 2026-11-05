@@ -37,7 +37,7 @@ async function drawLabel(doc, bulto) {
     : '';
   const nameCedula = [cs.full_name, cs.cedula ? `C.I. ${cs.cedula}` : ''].filter(Boolean).join(' - ');
   const cityState = [cs.city, cs.state].filter(Boolean).join(', ');
-  const bultoLine = `BULTO ${bulto.bulto_number}/${bulto.total_bultos} - ${pkgCount} PAQUETES`;
+  const bultoLine = `BULTO ${bulto.bulto_number} - ${pkgCount} PAQUETES`;
 
   let symbol = null;
   try {

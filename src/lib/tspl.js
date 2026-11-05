@@ -88,7 +88,7 @@ export const buildBultoLabelPayload = (bulto, copies = 1) => {
   const labelCode = bulto.label_code || '';
   const bultoNum = bulto.is_caja
     ? 'CAJA CONSOLIDADA'
-    : `BULTO ${bulto.bulto_number || 1}/${bulto.total_bultos || 1}`;
+    : `BULTO ${bulto.bulto_number || 1}`;
   // El número impreso es el conteo real del bulto o de la caja: el mismo que muestra la
   // ficha del almacén, sin sumar las etiquetas de los bultos ya fusionados dentro.
   // En la caja manda el conteo guardado (registrados + códigos manuales).

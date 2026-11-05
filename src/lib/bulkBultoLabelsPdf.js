@@ -61,7 +61,7 @@ export async function downloadCombinedBultoLabelsPdf({ bultos = [], nameHint = '
 
     doc.setFontSize(18);
     doc.setFont(undefined, 'bold');
-    doc.text(`BULTO ${bulto.bulto_number}/${bulto.total_bultos} - ${pkgCount} PAQUETES`, 50, y, { align: 'center' });
+    doc.text(`BULTO ${bulto.bulto_number} - ${pkgCount} PAQUETES`, 50, y, { align: 'center' });
     y += 7;
 
     doc.setLineWidth(0.3);
