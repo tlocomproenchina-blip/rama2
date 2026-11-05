@@ -155,6 +155,80 @@
         }
       }
     },
+    "dismantle_in_progress": {
+      "type": "boolean",
+      "default": false,
+      "description": "Bloqueo mientras se desarma la unidad: impide que dos pulsaciones restauren los mismos bultos dos veces."
+    },
+    "dismantle_history": {
+      "type": "array",
+      "default": [],
+      "description": "Registro de cada desarmado: contenido que ten\u00eda la unidad antes de desarmarla, unidades restauradas y las que no se pudieron recuperar.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "dismantled_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "dismantled_by": {
+            "type": "string"
+          },
+          "previous_status": {
+            "type": "string"
+          },
+          "previous_package_ids": {
+            "type": "array",
+            "default": [],
+            "items": {
+              "type": "string"
+            }
+          },
+          "previous_trackings": {
+            "type": "array",
+            "default": [],
+            "items": {
+              "type": "string"
+            }
+          },
+          "previous_unregistered_codes": {
+            "type": "array",
+            "default": [],
+            "items": {
+              "type": "string"
+            }
+          },
+          "previous_order_numbers": {
+            "type": "array",
+            "default": [],
+            "items": {
+              "type": "string"
+            }
+          },
+          "previous_absorbed_bultos": {
+            "type": "array",
+            "default": [],
+            "items": {
+              "type": "object"
+            }
+          },
+          "restored_labels": {
+            "type": "array",
+            "default": [],
+            "items": {
+              "type": "string"
+            }
+          },
+          "failed_labels": {
+            "type": "array",
+            "default": [],
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
     "cargo_cbm": {
       "type": "number",
       "description": "CBM oficial del bulto o de la caja consolidada, registrado o editado a mano por un admin desde 'Carga en almac\u00e9n' (Gesti\u00f3n de Facturas). Si est\u00e1 definido y es mayor a 0, manda sobre el CBM calculado y adem\u00e1s se escribi\u00f3 como volumen real (actual_cbm) de los paquetes del bulto."
@@ -326,10 +400,11 @@
         "activo",
         "cerrado",
         "en_almacen_ve",
-        "despachado"
+        "despachado",
+        "desarmado"
       ],
       "default": "activo",
-      "description": "Estado del bulto: activo (abierto, llen\u00e1ndose), cerrado (sellado, esperando despacho/impresi\u00f3n), en_almacen_ve (en almac\u00e9n de Venezuela, esperando despacho al cliente), despachado (entregado al transporte/cliente desde WarehouseDispatch)"
+      "description": "Estado del bulto: activo (abierto, llen\u00e1ndose), cerrado (sellado, esperando despacho/impresi\u00f3n), en_almacen_ve (en almac\u00e9n de Venezuela, esperando despacho al cliente), despachado (entregado al transporte/cliente desde WarehouseDispatch), desarmado (sus bultos se restauraron por separado; queda solo como registro hist\u00f3rico, sin contenido)"
     },
     "print_count": {
       "type": "number",

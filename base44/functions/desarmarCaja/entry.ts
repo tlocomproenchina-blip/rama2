@@ -1,95 +1,90 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 import { freeLabelCode } from '../../shared/bultoNumber.ts';
 
-// Desarmar una caja consolidada.
+// Desarmar una unidad (caja consolidada o bulto suelto) que absorbió otros bultos.
 //
-// Al fusionar unidades en el historial, la caja nueva guarda en absorbed_bultos el detalle
-// de cada unidad que quedó dentro (etiqueta, paquetes, N° de orden, estado). Desarmar lee
-// ese detalle y vuelve a crear cada unidad original con sus paquetes, para que el cliente
-// las tenga disponibles otra vez; al final la caja consolidada se elimina.
-//
-// Reglas:
-// - Solo administradores.
-// - No se desarma una caja facturada ni despachada (su carga ya salió del almacén).
-// - Se conserva la etiqueta original de cada bulto si sigue libre, para que lo que ya está
-//   pegado siga sirviendo; si choca con otro bulto se reserva una etiqueta nueva.
-// - Un paquete nunca queda en dos unidades restauradas.
+// Lee absorbed_bultos y vuelve a crear cada unidad original con sus paquetes. La unidad
+// original NO se borra: queda con su historial (dismantle_history) y:
+// - si ya no le queda contenido, pasa a estado "desarmado" (fuera de los conteos);
+// - si es un bulto suelto con paquetes propios, los conserva y sigue con su estado.
+// Si alguna unidad no se pudo restaurar, se queda dentro de la original para reintentar.
+// Se permite aunque esté despachada o facturada (el usuario confirma en pantalla).
 const text = (value: any) => String(value ?? '').trim();
 const uniq = (list: any[]) => [...new Set((list || []).map(text).filter(Boolean))];
 
 export default async function (req: Request): Promise<Response> {
+  const base44 = createClientFromRequest(req);
+  let lockedId = '';
   try {
-    const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
     if (user.role !== 'admin') {
-      return Response.json({ error: 'Solo administradores pueden desarmar cajas' }, { status: 403 });
+      return Response.json({ error: 'Solo administradores pueden desarmar unidades' }, { status: 403 });
     }
 
     const body = await req.json().catch(() => ({}));
     const bultoId = text(body.bulto_id);
-    if (!bultoId) return Response.json({ error: 'Falta la caja a desarmar.' }, { status: 400 });
+    if (!bultoId) return Response.json({ error: 'Falta la unidad a desarmar.' }, { status: 400 });
 
-    const caja = await base44.asServiceRole.entities.Bulto.get(bultoId).catch(() => null);
-    if (!caja?.id) return Response.json({ error: 'La caja ya no existe.' }, { status: 400 });
-    if (!caja.is_caja) {
-      return Response.json({ error: 'Solo se pueden desarmar cajas consolidadas.' }, { status: 400 });
+    const parent = await base44.asServiceRole.entities.Bulto.get(bultoId).catch(() => null);
+    if (!parent?.id) return Response.json({ error: 'La unidad ya no existe.' }, { status: 400 });
+    if (text(parent.status) === 'desarmado') {
+      return Response.json({ error: 'Esta unidad ya fue desarmada.' }, { status: 400 });
     }
-    if (text(caja.billed_invoice_id)) {
-      return Response.json({ error: 'La caja ya está facturada: no se puede desarmar.' }, { status: 400 });
-    }
-    if (text(caja.status) === 'despachado') {
-      return Response.json({ error: 'La caja ya fue despachada: no se puede desarmar.' }, { status: 400 });
-    }
-
-    const absorbed: any[] = Array.isArray(caja.absorbed_bultos) ? caja.absorbed_bultos : [];
+    const absorbed: any[] = Array.isArray(parent.absorbed_bultos) ? parent.absorbed_bultos : [];
     if (!absorbed.length) {
-      return Response.json({
-        error: 'Esta caja no tiene el detalle de sus bultos originales, así que no se puede desarmar.',
-      }, { status: 400 });
+      return Response.json({ error: 'Esta unidad no tiene bultos absorbidos para separar.' }, { status: 400 });
     }
 
-    // Paquete por tracking: es lo que permite devolver cada paquete a su bulto de origen.
-    const cajaPackageIds = uniq(caja.package_ids || []);
+    // Bloqueo: dos pulsaciones no pueden restaurar los mismos bultos dos veces.
+    const lock = await base44.asServiceRole.entities.Bulto.updateMany(
+      { id: parent.id, dismantle_in_progress: { $ne: true } },
+      { $set: { dismantle_in_progress: true } }
+    );
+    if (!(lock?.updated >= 1)) {
+      return Response.json({ error: 'Esta unidad ya se está desarmando. Espera unos segundos.' }, { status: 409 });
+    }
+    lockedId = parent.id;
+
+    const parentPackageIds = uniq(parent.package_ids || []);
+    const parentTrackings = uniq(parent.package_trackings || []);
+    const parentUnregistered = uniq(parent.unregistered_codes || []);
     const packages = (await Promise.all(
-      cajaPackageIds.map((id) => base44.asServiceRole.entities.Package.get(id).catch(() => null))
+      parentPackageIds.map((id) => base44.asServiceRole.entities.Package.get(id).catch(() => null))
     )).filter((p: any) => p) as any[];
     const packageByTracking = new Map<string, string>();
+    const trackingByPackage = new Map<string, string>();
     for (const pkg of packages) {
       const track = text(pkg.tracking_number);
       if (track && !packageByTracking.has(track)) packageByTracking.set(track, pkg.id);
+      if (track) trackingByPackage.set(pkg.id, track);
     }
-    // Respaldo posicional: el tracking guardado en la caja apunta a su paquete.
-    const cajaTrackings = caja.package_trackings || [];
-    cajaTrackings.forEach((code: any, index: number) => {
-      const id = text(cajaPackageIds[index]);
+    (parent.package_trackings || []).forEach((code: any, index: number) => {
+      const id = text(parentPackageIds[index]);
       const track = text(code);
       if (id && track && !packageByTracking.has(track)) packageByTracking.set(track, id);
+      if (id && track && !trackingByPackage.has(id)) trackingByPackage.set(id, track);
     });
 
-    const mark = text(caja.shipping_mark) || text(caja.client_snapshot?.shipping_mark);
-    const clientEmail = text(caja.client_email);
-    const cajaStatus = text(caja.status);
+    const mark = text(parent.shipping_mark) || text(parent.client_snapshot?.shipping_mark);
+    const clientEmail = text(parent.client_email);
+    const parentStatus = text(parent.status);
     const usedPackageIds = new Set<string>();
     const usedCodes = new Set<string>();
     const restored: any[] = [];
-    const failed: string[] = [];
+    const failedEntries: any[] = [];
 
     for (const entry of absorbed) {
-      const codes = uniq(entry.trackings || []);
       const packageIds: string[] = [];
       const trackings: string[] = [];
       const unregistered: string[] = [];
-
-      for (const code of codes) {
+      for (const code of uniq(entry.trackings || [])) {
         const packageId = packageByTracking.get(code);
         if (packageId) {
-          if (usedPackageIds.has(packageId)) continue;
-          usedPackageIds.add(packageId);
+          if (usedPackageIds.has(packageId) || packageIds.includes(packageId)) continue;
           packageIds.push(packageId);
           trackings.push(code);
-        } else if (!usedCodes.has(code)) {
-          usedCodes.add(code);
+        } else if (!usedCodes.has(code) && !unregistered.includes(code)) {
           unregistered.push(code);
         }
       }
@@ -97,14 +92,13 @@ export default async function (req: Request): Promise<Response> {
       const preferred = text(entry.label_code);
       const label = await freeLabelCode(base44, preferred);
       if (!label) {
-        failed.push(preferred || 'sin etiqueta');
+        failedEntries.push(entry);
         continue;
       }
 
-      const status =
-        text(entry.status) === 'en_almacen_ve' || cajaStatus === 'en_almacen_ve'
-          ? 'en_almacen_ve'
-          : 'cerrado';
+      const status = ['despachado', 'en_almacen_ve'].includes(parentStatus)
+        ? parentStatus
+        : (text(entry.status) === 'en_almacen_ve' ? 'en_almacen_ve' : 'cerrado');
 
       try {
         const bulto = await base44.asServiceRole.entities.Bulto.create({
@@ -113,64 +107,97 @@ export default async function (req: Request): Promise<Response> {
           client_email: clientEmail,
           shipping_mark: mark,
           bulto_number: label.number || Number(entry.bulto_number) || 0,
-          total_bultos: Number(caja.total_bultos) || 1,
+          total_bultos: Number(parent.total_bultos) || 1,
           package_ids: packageIds,
           package_trackings: trackings,
           unregistered_codes: unregistered,
           cbm_order_numbers: uniq(entry.order_numbers || []),
-          client_snapshot: caja.client_snapshot || {},
-          warehouse_id: text(caja.warehouse_id),
+          client_snapshot: parent.client_snapshot || {},
+          warehouse_id: text(parent.warehouse_id),
           status,
           print_count: entry.printed ? 1 : 0,
-          ve_recognized_date: caja.ve_recognized_date || undefined,
-          ve_recognized_by: text(caja.ve_recognized_by),
+          ve_recognized_date: parent.ve_recognized_date || undefined,
+          ve_recognized_by: text(parent.ve_recognized_by),
           created_by: user.email || '',
         });
+        packageIds.forEach((id) => usedPackageIds.add(id));
+        unregistered.forEach((c) => usedCodes.add(c));
         restored.push({
           id: bulto.id,
           label_code: bulto.label_code,
+          original_label: preferred,
           package_count: packageIds.length + unregistered.length,
         });
-      } catch (e: any) {
-        failed.push(preferred || 'sin etiqueta');
+      } catch (_) {
+        failedEntries.push(entry);
       }
     }
 
     if (!restored.length) {
+      await base44.asServiceRole.entities.Bulto.update(parent.id, { dismantle_in_progress: false });
+      lockedId = '';
       return Response.json({
-        error: 'No se pudo restaurar ningún bulto. La caja quedó como estaba.',
-        failed,
+        error: 'No se pudo restaurar ningún bulto. La unidad quedó como estaba.',
+        failed: failedEntries.map((e) => text(e.label_code) || 'sin etiqueta'),
       }, { status: 500 });
     }
 
-    // Paquetes que quedaron sin unidad (datos viejos): se devuelven al primer bulto
-    // restaurado para que ningún paquete se pierda al eliminar la caja.
-    const leftoverIds = cajaPackageIds.filter((id) => !usedPackageIds.has(id));
-    const leftoverCodes = uniq(caja.package_trackings || [])
-      .filter((code) => !usedCodes.has(code) && !packageByTracking.has(code));
-    if (leftoverIds.length || leftoverCodes.length) {
-      const target = restored[0];
-      const patched = await base44.asServiceRole.entities.Bulto.get(target.id).catch(() => null);
-      if (patched) {
-        const extraTrackings = leftoverIds
-          .map((id) => packages.find((p) => p.id === id)?.tracking_number)
-          .map(text)
-          .filter(Boolean);
+    // Lo que no se restauró sigue en la unidad original.
+    let remainingIds = parentPackageIds.filter((id) => !usedPackageIds.has(id));
+    let remainingUnregistered = parentUnregistered.filter((c) => !usedCodes.has(c));
+    const restoredTracks = new Set(
+      [...usedPackageIds].map((id) => trackingByPackage.get(id)).filter(Boolean) as string[]
+    );
+    let remainingTrackings = parentTrackings.filter((t) => !restoredTracks.has(t) && !usedCodes.has(t));
+
+    // Caja sin fallos: sus sobrantes (datos viejos) pasan al primer bulto restaurado.
+    if (parent.is_caja && !failedEntries.length && (remainingIds.length || remainingUnregistered.length)) {
+      const target = await base44.asServiceRole.entities.Bulto.get(restored[0].id).catch(() => null);
+      if (target) {
+        const extraTracks = remainingIds.map((id) => trackingByPackage.get(id)).filter(Boolean);
         await base44.asServiceRole.entities.Bulto.update(target.id, {
-          package_ids: uniq([...(patched.package_ids || []), ...leftoverIds]),
-          package_trackings: uniq([...(patched.package_trackings || []), ...extraTrackings]),
-          unregistered_codes: uniq([...(patched.unregistered_codes || []), ...leftoverCodes]),
-        }).catch(() => null);
+          package_ids: uniq([...(target.package_ids || []), ...remainingIds]),
+          package_trackings: uniq([...(target.package_trackings || []), ...extraTracks]),
+          unregistered_codes: uniq([...(target.unregistered_codes || []), ...remainingUnregistered]),
+        });
+        restored[0].package_count += remainingIds.length + remainingUnregistered.length;
+        remainingIds = [];
+        remainingUnregistered = [];
+        remainingTrackings = [];
       }
     }
 
-    // La caja ya no existe: sus bultos originales vuelven a estar disponibles.
-    await base44.asServiceRole.entities.Bulto.delete(caja.id);
+    const hasContent = remainingIds.length > 0 || remainingUnregistered.length > 0;
+    const fullyDismantled = !failedEntries.length && !hasContent;
+    const historyEntry = {
+      dismantled_at: new Date().toISOString(),
+      dismantled_by: user.email || '',
+      previous_status: parentStatus,
+      previous_package_ids: parentPackageIds,
+      previous_trackings: parentTrackings,
+      previous_unregistered_codes: parentUnregistered,
+      previous_order_numbers: uniq(parent.cbm_order_numbers || []),
+      previous_absorbed_bultos: absorbed,
+      restored_labels: restored.map((r) => r.label_code),
+      failed_labels: failedEntries.map((e) => text(e.label_code) || 'sin etiqueta'),
+    };
 
-    // Recuadra X/Y del cliente (sin tocar label_code: las etiquetas ya impresas siguen sirviendo).
+    await base44.asServiceRole.entities.Bulto.update(parent.id, {
+      package_ids: remainingIds,
+      package_trackings: uniq([...remainingTrackings, ...remainingUnregistered]),
+      unregistered_codes: remainingUnregistered,
+      absorbed_bultos: failedEntries,
+      cargo_package_count: null,
+      dismantle_history: [...(parent.dismantle_history || []), historyEntry],
+      dismantle_in_progress: false,
+      ...(fullyDismantled ? { status: 'desarmado' } : {}),
+    });
+    lockedId = '';
+
+    // Recuadra X/Y del cliente sin contar unidades desarmadas (sin tocar etiquetas).
     if (clientEmail) {
       const remaining = await base44.asServiceRole.entities.Bulto
-        .filter({ client_email: clientEmail }, 'bulto_number', 500)
+        .filter({ client_email: clientEmail, status: { $ne: 'desarmado' } }, 'bulto_number', 500)
         .catch(() => []);
       if (remaining?.length) {
         await base44.asServiceRole.entities.Bulto.bulkUpdate(
@@ -185,12 +212,17 @@ export default async function (req: Request): Promise<Response> {
 
     return Response.json({
       success: true,
-      caja_label: text(caja.label_code),
+      parent_label: text(parent.label_code),
+      parent_status: fullyDismantled ? 'desarmado' : parentStatus,
+      parent_keeps_packages: remainingIds.length + remainingUnregistered.length,
       restored_count: restored.length,
       restored,
-      failed,
+      failed: historyEntry.failed_labels,
     });
   } catch (error: any) {
-    return Response.json({ error: error?.message || 'No se pudo desarmar la caja' }, { status: 500 });
+    if (lockedId) {
+      await base44.asServiceRole.entities.Bulto.update(lockedId, { dismantle_in_progress: false }).catch(() => null);
+    }
+    return Response.json({ error: error?.message || 'No se pudo desarmar la unidad' }, { status: 500 });
   }
 }

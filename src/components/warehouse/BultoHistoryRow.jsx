@@ -13,9 +13,9 @@ import PrintCountBadge from './PrintCountBadge';
 export default function BultoHistoryRow({
   bulto: b, selectMode, selected, onToggleSelect, canDelete, onPrint, onEdit, onDelete, onDismantle,
 }) {
-  // Solo las cajas consolidadas que siguen en el almacén se pueden desarmar.
-  const canDismantle = !!onDismantle && b.is_caja && !b.is_local_pending
-    && b.status !== 'despachado' && !b.billed_invoice_id;
+  // Cualquier unidad con bultos absorbidos se puede desarmar (con confirmación).
+  const canDismantle = !!onDismantle && !b.is_local_pending && b.status !== 'desarmado'
+    && Array.isArray(b.absorbed_bultos) && b.absorbed_bultos.length > 0;
   const [contentsOpen, setContentsOpen] = useState(false);
   return (
     <Card className={`shadow-sm transition-all ${selectMode && selected ? 'ring-2 ring-blue-400 bg-blue-50/30' : ''}`}>
@@ -42,12 +42,13 @@ export default function BultoHistoryRow({
                 <span className={`font-semibold ${b.is_caja ? 'text-violet-700' : 'text-slate-800'}`}>{unitKindLabel(b)}</span>
                 <span className="text-xs font-mono text-slate-500 bg-muted px-1.5 py-0.5 rounded">{b.label_code}</span>
                 <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                  b.status === 'despachado' ? 'bg-green-100 text-green-700'
+                  b.status === 'desarmado' ? 'bg-muted text-muted-foreground line-through'
+                  : b.status === 'despachado' ? 'bg-green-100 text-green-700'
                   : b.status === 'en_almacen_ve' ? 'bg-amber-100 text-amber-700'
                   : b.status === 'cerrado' ? 'bg-slate-200 text-slate-600'
                   : 'bg-blue-100 text-blue-700'
                 }`}>
-                  {b.status === 'despachado' ? 'Despachado' : b.status === 'en_almacen_ve' ? 'En Almacén Venezuela' : b.status === 'cerrado' ? 'Cerrado' : 'Activo'}
+                  {b.status === 'desarmado' ? 'Desarmado' : b.status === 'despachado' ? 'Despachado' : b.status === 'en_almacen_ve' ? 'En Almacén Venezuela' : b.status === 'cerrado' ? 'Cerrado' : 'Activo'}
                 </span>
                 {b.is_local_pending && (
                   <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-amber-100 text-amber-700 flex items-center gap-1">
