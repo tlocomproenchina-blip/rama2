@@ -104,13 +104,13 @@ async function fetchBultosByOrder(base44: any, orderNumbers: string[]) {
       .filter({ cbm_order_numbers: { $in: part } }, '-created_date', 500)
       .catch(() => []);
     (rows || []).forEach((bulto: any) => {
-      (bulto?.cbm_order_numbers || []).forEach((raw: any) => {
-        const order = text(raw);
-        if (!isOrderNumber(order)) return;
-        const key = orderKeyOf(bulto?.client_email, order);
-        if (!map.has(key)) map.set(key, []);
-        (map.get(key) as any[]).push(bulto);
-      });
+      // Igual que el historial de bultos: cada bulto pertenece solo a su primer
+      // N° de contenedor, así no se cuenta en dos contenedores a la vez.
+      const order = (bulto?.cbm_order_numbers || []).map(text).find(isOrderNumber);
+      if (!order || !orderNumbers.includes(order)) return;
+      const key = orderKeyOf(bulto?.client_email, order);
+      if (!map.has(key)) map.set(key, []);
+      (map.get(key) as any[]).push(bulto);
     });
   }
   return map;
