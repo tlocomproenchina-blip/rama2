@@ -1,23 +1,4 @@
 {
-  "name": "Notificaciones de Almacenamiento Autom\u00e1ticas",
-  "description": "Env\u00eda autom\u00e1ticamente emails de almacenamiento a los 20, 30 y 45 d\u00edas desde la emisi\u00f3n de facturas no pagadas.",
-  "trigger": {
-    "condition": null,
-    "config": {
-      "trigger_type": "scheduled",
-      "events": [],
-      "schedule_mode": "recurring",
-      "cron_expression": "0 13 * * *",
-      "one_time_date": null,
-      "timezone": "UTC",
-      "interval_value": null,
-      "interval_unit": null,
-      "interval_anchor": null,
-      "ends_type": "never",
-      "ends_on_date": null,
-      "ends_after_count": null
-    }
-  },
   "definition": {
     "document": {
       "dsl": "1.0.0",
@@ -38,6 +19,25 @@
       }
     ]
   },
+  "name": "Notificaciones de Almacenamiento Autom\u00e1ticas",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "0 9 * * *",
+      "one_time_date": null,
+      "timezone": "America/Caracas",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "description": "Avisos de cobro seg\u00fan los T\u00e9rminos (secci\u00f3n VII): d\u00edas 5, 7, 8, 14, 20, 22, 25 y 26 desde la emisi\u00f3n de facturas impagas. Se detienen al pagar.",
   "x-base44-migrated-from-automation": {
     "legacy_payload_function": "sendStorageNotifications"
   }

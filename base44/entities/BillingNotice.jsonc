@@ -1,0 +1,102 @@
+{
+  "name": "BillingNotice",
+  "type": "object",
+  "properties": {
+    "invoice_id": {
+      "type": "string",
+      "description": "Factura a la que pertenece el aviso"
+    },
+    "invoice_number": {
+      "type": "string"
+    },
+    "client_email": {
+      "type": "string"
+    },
+    "stage": {
+      "type": "string",
+      "enum": [
+        "recordatorio_d5",
+        "vence_hoy_d7",
+        "vencida_d8",
+        "estado_cuenta_d14",
+        "aviso_formal_d20",
+        "plazo_adicional_d22",
+        "ultimo_dia_d25",
+        "disposicion_d26"
+      ],
+      "enumColors": [
+        "blue",
+        "blue",
+        "yellow",
+        "yellow",
+        "red",
+        "red",
+        "red",
+        "purple"
+      ],
+      "description": "Etapa del calendario de cobro de los t\u00e9rminos (secci\u00f3n VII)"
+    },
+    "day_number": {
+      "type": "number",
+      "description": "D\u00eda continuo desde la emisi\u00f3n de la factura al enviar"
+    },
+    "balance": {
+      "type": "number",
+      "description": "Saldo pendiente de la factura al enviar (USD)"
+    },
+    "storage_accrued": {
+      "type": "number",
+      "description": "Cargos de almacenamiento y custodia acumulados seg\u00fan los t\u00e9rminos (USD)"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "enviando",
+        "enviado",
+        "fallido"
+      ],
+      "enumColors": [
+        "gray",
+        "green",
+        "red"
+      ],
+      "default": "enviando"
+    },
+    "via": {
+      "type": "string"
+    },
+    "error": {
+      "type": "string"
+    },
+    "sent_date": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "invoice_id",
+    "stage"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

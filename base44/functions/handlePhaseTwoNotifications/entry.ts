@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.21';
 import { sendBrevoEmail } from '../../shared/brevoEmail.ts';
+import { buildBillingEmail, invoiceBalance } from '../../shared/billingNotices.ts';
 
 function normalize(value) {
   if (value === null || value === undefined) return '';
@@ -208,13 +209,30 @@ async function handleInvoiceNotification(base44, eventType, invoiceData, oldData
       total: invoiceData?.total,
     };
 
-    await sendEmail(base44, {
-      to: clientEmail,
-      templateName: 'Base - Factura Generada',
-      fallbackSubject: 'Nueva factura disponible: {invoice_number}',
-      fallbackBody: 'Hola {cliente_nombre}, se generó la factura {invoice_number} por un total de {total}.',
-      variables,
-    });
+    // Aviso de factura emitida con el calendario de pago de los Términos (sección VII).
+    const appConfig = await getAppConfig(base44);
+    if (clientEmail && appConfig.emails_enabled !== false) {
+      const email = buildBillingEmail('emitida', {
+        clientName,
+        invoiceNumber: String(invoiceNumber),
+        invoiceDate: invoiceData?.invoice_date || new Date().toISOString(),
+        day: 0,
+        balance: invoiceBalance(invoiceData),
+      });
+      const result = await sendBrevoEmail(base44, {
+        to: clientEmail,
+        subject: email.subject,
+        body: email.html,
+        from_name: appConfig.invoice_company_name || appConfig.app_name || 'TLEC CARGO',
+      }).catch((error) => ({ sent: false, error: error?.message }));
+      await createEmailLog(base44, {
+        to: clientEmail,
+        subject: email.subject,
+        body: email.html,
+        fromName: 'TLEC CARGO',
+        status: result?.sent ? 'sent' : 'failed',
+      });
+    }
 
     await createNotification(base44, {
       userEmail: clientEmail,
