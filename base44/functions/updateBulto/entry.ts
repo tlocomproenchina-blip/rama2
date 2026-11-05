@@ -7,6 +7,7 @@ import {
 } from '../../shared/bultoAbsorption.ts';
 import { markPackagesReceivedIfMissing } from '../../shared/bultoScan.ts';
 import { syncGuidesAfterBultoChange } from '../../shared/bultoCountSync.ts';
+import { checkBultoNumber, labelNumber, renameCodeInGuides } from '../../shared/bultoRenumber.ts';
 
 // Actualiza un bulto existente. Recibe: { bulto_id, package_ids?, client_snapshot?, status? }
 // - Valida que los package_ids sean del mismo cliente del bulto.
@@ -32,6 +33,17 @@ export default async function(req: Request): Promise<Response> {
 
     const update: any = {};
     let plan: any = null;
+
+    // --- Número de bulto (manual) ---
+    // Se valida antes que todo: si el número no está libre no se guarda ningún cambio.
+    let renumber: any = null;
+    if (body.bulto_number !== undefined && body.bulto_number !== null && body.bulto_number !== ''
+      && Math.round(Number(body.bulto_number)) !== labelNumber(bulto)) {
+      renumber = await checkBultoNumber(base44, bulto, body.bulto_number);
+      if (renumber.error) return Response.json({ error: renumber.error, field: 'bulto_number' }, { status: 400 });
+      if (!bulto.is_caja) update.bulto_number = renumber.number;
+      update.label_code = renumber.label_code;
+    }
 
     // --- Paquetes ---
     if (Array.isArray(body.package_ids)) {
@@ -173,6 +185,10 @@ export default async function(req: Request): Promise<Response> {
     }
 
     const updated = await base44.asServiceRole.entities.Bulto.update(bultoId, update);
+
+    if (renumber && renumber.label_code !== bulto.label_code) {
+      await renameCodeInGuides(base44, bulto.label_code, renumber.label_code, user.email || '').catch(() => 0);
+    }
 
     // El bulto viejo se elimina (o se le quita el paquete movido) cuando su contenido ya
     // está dentro de este bulto.

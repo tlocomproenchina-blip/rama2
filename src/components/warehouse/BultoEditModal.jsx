@@ -11,6 +11,7 @@ import AbsorbBultosConfirmDialog from '@/components/warehouse/AbsorbBultosConfir
 import AbsorbedBultosHistory from '@/components/warehouse/AbsorbedBultosHistory';
 import { packageCountForDispatch } from '@/lib/bultoCounts';
 import UnregisteredCodesEditor from '@/components/warehouse/UnregisteredCodesEditor';
+import BultoNumberField, { labelNumber } from '@/components/warehouse/BultoNumberField';
 
 // Modal de edición completa de un bulto: paquetes incluidos, snapshot del cliente y estado.
 export default function BultoEditModal({ bulto, open, onClose, onSaved }) {
@@ -39,6 +40,9 @@ export default function BultoEditModal({ bulto, open, onClose, onSaved }) {
   // de contabilidad ni la guía).
   const [initialPackageCount, setInitialPackageCount] = useState(0);
   const [totalBultos, setTotalBultos] = useState('');
+  const [bultoNumber, setBultoNumber] = useState('');
+  const [numberError, setNumberError] = useState('');
+  const [numberAvailable, setNumberAvailable] = useState(true);
   const [clientBultos, setClientBultos] = useState([]);
   const [manualCodes, setManualCodes] = useState([]);
   const [codesChanged, setCodesChanged] = useState(false);
@@ -78,6 +82,9 @@ export default function BultoEditModal({ bulto, open, onClose, onSaved }) {
     setPackageCount(String(initialCount));
     setInitialPackageCount(initialCount);
     setTotalBultos(String(bulto.total_bultos ?? ''));
+    setBultoNumber(String(labelNumber(bulto) || ''));
+    setNumberError('');
+    setNumberAvailable(true);
     setClientBultos([]);
     setManualCodes((bulto.unregistered_codes || []).filter(Boolean));
     setCodesChanged(false);
@@ -179,6 +186,10 @@ export default function BultoEditModal({ bulto, open, onClose, onSaved }) {
       toast.error('El bulto debe tener al menos un paquete');
       return;
     }
+    if (!numberAvailable) {
+      toast.error('El número de bulto no está disponible');
+      return;
+    }
     setSaving(true);
     try {
       const parsedOrders = orderNumbers.trim()
@@ -193,12 +204,15 @@ export default function BultoEditModal({ bulto, open, onClose, onSaved }) {
         cbm_order_numbers: parsedOrders,
       };
       if (codesChanged) payload.unregistered_codes = manualCodes;
+      const wantedNumber = Math.round(Number(bultoNumber));
+      if (bultoNumber !== '' && wantedNumber !== labelNumber(bulto)) payload.bulto_number = wantedNumber;
       if (Number.isFinite(count) && count >= 1 && count !== initialPackageCount) {
         payload.cargo_package_count = count;
       }
 
-      const res = await base44.functions.invoke('updateBulto', payload);
+      const res = await base44.functions.invoke('updateBulto', payload).catch((e) => ({ data: e?.response?.data || { error: 'Error al actualizar el bulto' } }));
       if (res?.data?.error) {
+        if (res.data.field === 'bulto_number') setNumberError(res.data.error);
         toast.error(res.data.error);
         return;
       }
@@ -384,6 +398,13 @@ export default function BultoEditModal({ bulto, open, onClose, onSaved }) {
             <div className="rounded-lg border border-border p-3 space-y-3">
               <p className="text-xs font-semibold text-slate-700">Cantidades para despacho</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <BultoNumberField
+                  bulto={bulto}
+                  value={bultoNumber}
+                  onChange={(v) => { setBultoNumber(v); setNumberError(''); }}
+                  error={numberError}
+                  onAvailability={setNumberAvailable}
+                />
                 <div>
                   <Label className="mb-1 block text-xs">Cantidad de paquetes en este bulto</Label>
                   <Input
@@ -437,7 +458,7 @@ export default function BultoEditModal({ bulto, open, onClose, onSaved }) {
 
         <DialogFooter className="flex-wrap gap-2 min-w-0">
           <Button variant="outline" onClick={onClose} disabled={saving}>Cancelar</Button>
-          <Button onClick={handleSave} disabled={saving || loadingPkgs} className="bg-blue-600 hover:bg-blue-700">
+          <Button onClick={handleSave} disabled={saving || loadingPkgs || !numberAvailable} className="bg-blue-600 hover:bg-blue-700">
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
             Guardar cambios
           </Button>
