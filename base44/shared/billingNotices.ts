@@ -118,7 +118,10 @@ function layout({ ctx, headline, subheadline, tone, paragraphs, cta, legal }: an
     row('Vencimiento', dateOfDay(ctx.invoiceDate, DUE_DAYS)),
     row('Día del calendario', ctx.day > 0 ? `Día ${ctx.day}` : 'Día de emisión'),
     row('Saldo de la factura', money(ctx.balance)),
-    ...(accrued > 0 ? [row('Almacenamiento y custodia acumulado', money(accrued))] : []),
+    ...(accrued > 0 ? [
+      row('Cargo único almacenamiento (día 8)', money(MIN_STORAGE_FEE)),
+      row(`Cargos diarios (${ctx.day - MIN_STORAGE_DAY} × USD ${DAILY_STORAGE_FEE})`, money(accrued - MIN_STORAGE_FEE)),
+    ] : []),
     row('Total a regularizar', money(ctx.balance + accrued), true),
   ].join('');
 

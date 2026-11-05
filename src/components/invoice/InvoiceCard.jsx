@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { CreditCard, Calendar, DollarSign, Eye } from 'lucide-react';
 import { format } from 'date-fns';
 import InvoicePDFGenerator from './InvoicePDFGenerator';
+import InvoiceStorageBalance from '@/components/invoice/InvoiceStorageBalance';
 import InvoiceCbmOrders from './InvoiceCbmOrders';
 import InvoiceCreditApply from './InvoiceCreditApply';
 import useFileViewer from '@/hooks/useFileViewer';
@@ -167,6 +168,8 @@ function InvoiceCard({ invoice, user, onPay, onDownload, showPayButton = false, 
             <span>${total.toFixed(2)}</span>
           </div>
         </div>
+
+        <InvoiceStorageBalance invoice={invoice} />
 
         {/* CBM de cada contenedor y total de la factura */}
         <InvoiceCbmOrders invoice={invoice} />
