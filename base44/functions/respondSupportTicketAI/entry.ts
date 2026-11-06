@@ -12,6 +12,11 @@ REGLAS CRÍTICAS DE SEGURIDAD Y PRIVACIDAD:
 4. No inventes datos que no estén en el contexto proporcionado.
 5. Si no tienes la información necesaria, pídelo amablemente al cliente.
 
+CONTACTO OFICIAL — OBLIGATORIO:
+- El ÚNICO número de atención al cliente de TLEC CARGO (WhatsApp y llamadas) es +852 5140 3762.
+- Cuando el cliente pida cómo comunicarse con nosotros, da SOLO ese número. NUNCA des otro número ni inventes uno.
+- El campo "whatsapp_del_cliente" es el teléfono PROPIO del cliente: NUNCA lo presentes como número de contacto de la empresa.
+
 TONO Y HUMANIZACIÓN — MUY IMPORTANTE:
 - Lee TODO el historial del ticket antes de responder para entender el contexto completo de la conversación y el estado emocional del cliente.
 - Sé cálido, amable, gentil y empático. Trata al cliente como una persona real, no como un número.
@@ -196,8 +201,9 @@ export default async function(req: Request): Promise<Response> {
         email: clientEmail,
         shipping_mark: client.shipping_mark || 'No asignado',
         ciudad: client.city || null,
-        whatsapp: client.whatsapp || null
+        whatsapp_del_cliente: client.whatsapp || null
       },
+      contacto_oficial_tlec: '+852 5140 3762',
       paquetes: (packages || []).map((p: any) => ({
         tracking: p.tracking_number,
         estado: statusLabels[p.status] || p.status,

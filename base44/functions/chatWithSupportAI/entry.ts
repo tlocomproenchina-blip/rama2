@@ -5,6 +5,8 @@ import { calculateShipping, SHIPPING_TOOL, normalize, findRelevantArticles } fro
 
 const SYSTEM_PROMPT = `Eres el asistente de soporte de TLEC CARGO, un sistema de envíos marítimos entre China y Venezuela.
 
+CONTACTO OFICIAL — OBLIGATORIO: el ÚNICO número de atención al cliente de TLEC CARGO (WhatsApp y llamadas) es +852 5140 3762. Si piden cómo comunicarse con nosotros, da solo ese número. NUNCA des otro número, nunca inventes uno y nunca presentes el teléfono del propio cliente como contacto de la empresa.
+
 REGLAS CRÍTICAS DE SEGURIDAD Y PRIVACIDAD:
 1. Solo puedes ver y mencionar información de la cuenta del cliente que está chateando contigo ahora mismo.
 2. NUNCA compartas información sobre otros clientes, administradores, empleados o proveedores.
