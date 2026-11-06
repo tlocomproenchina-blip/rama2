@@ -18,6 +18,7 @@ import { generateDispatchGuidePdf } from '@/lib/dispatchGuidePdf';
 import DispatchGuideDeliveryDialog from './DispatchGuideDeliveryDialog';
 import ContinuousLabelsDialog from './ContinuousLabelsDialog';
 import GuideBultoChips from './GuideBultoChips';
+import DeleteGuideButton from './DeleteGuideButton';
 
 const fmtDate = (value) => {
   if (!value) return '—';
@@ -192,6 +193,7 @@ export default function DispatchGuideHistoryCard({ guide, appName, highlighted =
             <PenLine className="h-4 w-4" />
             {delivered ? 'Corregir entrega' : 'Anotar entrega'}
           </Button>
+          <DeleteGuideButton guide={guide} onDeleted={onGuideUpdated} />
         </div>
 
         <button
