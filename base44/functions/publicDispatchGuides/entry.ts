@@ -230,8 +230,18 @@ export default async function (req: Request): Promise<Response> {
 
     filtered.sort((a, b) => ultimaFecha(b).localeCompare(ultimaFecha(a)) || a.name.localeCompare(b.name, 'es'));
 
+    // Bultos de cada guía (misma suma por línea que en Guías de Despacho).
+    const bultosPorGuia = new Map<string, number>();
+    for (const cliente of filtered) {
+      for (const row of (cliente.containers || [])) {
+        for (const [numero, count] of Object.entries(row.guide_bultos || {})) {
+          bultosPorGuia.set(numero, (bultosPorGuia.get(numero) || 0) + num(count));
+        }
+      }
+    }
+
     const guideOptions = [...new Set(filtered.flatMap((cliente: any) => cliente.guides || []))]
-      .map((numero: string) => ({ number: numero, emitted_date: fechasGuia.get(numero) || '' }))
+      .map((numero: string) => ({ number: numero, emitted_date: fechasGuia.get(numero) || '', bultos: bultosPorGuia.get(numero) || 0 }))
       .sort(
         (a: any, b: any) =>
           b.emitted_date.localeCompare(a.emitted_date) ||

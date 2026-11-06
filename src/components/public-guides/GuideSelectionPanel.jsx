@@ -9,6 +9,10 @@ import { cn } from '@/lib/utils';
 export default function GuideSelectionPanel({ guides = [], selected = [], onToggle, onClear }) {
   if (guides.length === 0) return null;
   const selectedSet = new Set(selected);
+  const selectedBultos = guides.reduce(
+    (sum, guide) => sum + (selectedSet.has(guide.number) ? Number(guide.bultos) || 0 : 0),
+    0
+  );
 
   return (
     <Card className="border-border p-3">
@@ -19,6 +23,11 @@ export default function GuideSelectionPanel({ guides = [], selected = [], onTogg
           <span className="font-normal text-muted-foreground">
             ({selected.length === 0 ? 'todas las guías' : `${selected.length} seleccionada${selected.length === 1 ? '' : 's'}`})
           </span>
+          {selected.length > 0 && (
+            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-bold text-primary">
+              {selectedBultos} bulto{selectedBultos === 1 ? '' : 's'}
+            </span>
+          )}
         </p>
         {selected.length > 0 && (
           <Button type="button" variant="ghost" size="sm" className="h-7 text-xs" onClick={onClear}>
