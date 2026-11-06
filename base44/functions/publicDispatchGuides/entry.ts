@@ -116,16 +116,18 @@ export default async function (req: Request): Promise<Response> {
           cliente.orders.add(container);
 
           if (!cliente.containers.has(container)) {
-            cliente.containers.set(container, { container, labels: new Set<string>(), unlabeled: 0, guides: new Set<string>() });
+            cliente.containers.set(container, { container, labels: new Set<string>(), lines: 0, perGuide: {}, guides: new Set<string>() });
           }
           const bucket = cliente.containers.get(container);
           const labelCode = key(line?.label_code);
           if (labelCode) {
             bucket.labels.add(labelCode);
             etiquetas.add(labelCode);
-          } else {
-            bucket.unlabeled += 1;
           }
+          // Igual que en Guías de Despacho: cada línea de cada guía suma un bulto.
+          bucket.lines += 1;
+          const guideKey = guideNumber || '—';
+          bucket.perGuide[guideKey] = (bucket.perGuide[guideKey] || 0) + 1;
           if (guideNumber) bucket.guides.add(guideNumber);
         }
       }
@@ -179,9 +181,10 @@ export default async function (req: Request): Promise<Response> {
           const descripciones = [...new Set(labels.map(descripcionDeBulto).filter(Boolean))].slice(0, 10);
           return {
             container: bucket.container,
-            bultos: labels.length + bucket.unlabeled,
+            bultos: bucket.lines,
             description: descripciones.join(' · '),
             guides: [...bucket.guides].sort(),
+            guide_bultos: bucket.perGuide,
           };
         })
         .sort((a, b) => String(a.container).localeCompare(String(b.container), 'es', { numeric: true }));

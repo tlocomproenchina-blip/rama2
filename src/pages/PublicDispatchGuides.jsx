@@ -113,7 +113,15 @@ export default function PublicDispatchGuides() {
     return list
       .map((client) => ({
         ...client,
-        containers: (client.containers || []).filter((row) => (row.guides || []).some((guide) => chosen.has(guide))),
+        containers: (client.containers || [])
+          .filter((row) => (row.guides || []).some((guide) => chosen.has(guide)))
+          // Suma los bultos de cada guía marcada, como en Guías de Despacho.
+          .map((row) => ({
+            ...row,
+            bultos: row.guide_bultos
+              ? Object.entries(row.guide_bultos).reduce((sum, [guide, count]) => sum + (chosen.has(guide) ? Number(count) || 0 : 0), 0)
+              : row.bultos,
+          })),
       }))
       .filter((client) => client.containers.length > 0);
   };
