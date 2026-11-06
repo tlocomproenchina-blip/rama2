@@ -7,9 +7,10 @@
 // descripción, también se muestra "Artículos varios".
 export function normalizeContainerDescription(description, bultos = 0) {
   const text = String(description || '')
-    .replace(/paquete\s+manual/gi, 'Artículos varios')
-    .replace(/pre-?alerta\s+r[áa]pida(\s*\(admin\))?/gi, 'Artículos varios');
-  if (!text.trim() && Number(bultos || 0) > 0) return 'Artículos varios';
+    .replace(/paquete\s+manual/gi, 'Artículos de uso personal')
+    .replace(/pre-?alerta\s+r[áa]pida(\s*\(admin\))?/gi, 'Artículos de uso personal')
+    .replace(/art[íi]culos\s+varios/gi, 'Artículos de uso personal');
+  if (!text.trim() && Number(bultos || 0) > 0) return 'Artículos de uso personal';
   return text;
 }
 

@@ -250,6 +250,24 @@ export default async function (req: Request): Promise<Response> {
 
     const page = filtered.slice(skip, skip + limit);
 
+    // Sin "Artículos varios": un contenedor sin descripción útil toma al azar una
+    // descripción de los trackings de la cuenta del cliente; si no tiene ninguna,
+    // "Artículos de uso personal".
+    const GENERIC = /paquete\s+manual|pre-?alerta\s+r[áa]pida|art[íi]culos\s+varios/i;
+    const util = (d: string) => (d && !GENERIC.test(d) ? d : '');
+    await Promise.all(page.map(async (cliente: any) => {
+      const vacios = cliente.containers.filter((row: any) => !util(row.description));
+      if (!vacios.length) return;
+      let opciones: string[] = [];
+      if (cliente.email) {
+        const paquetes = await svc.Package.filter({ client_email: cliente.email }, '-created_date', 300);
+        opciones = [...new Set((paquetes || []).map((p: any) => util(text(p.description))).filter(Boolean))] as string[];
+      }
+      for (const row of vacios) {
+        row.description = opciones.length ? opciones[randInt(opciones.length)] : 'Artículos de uso personal';
+      }
+    }));
+
     return Response.json({
       clients: page,
       guide_options: guideOptions,
