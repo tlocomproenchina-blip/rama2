@@ -179,7 +179,17 @@ export async function generateDispatchGuidePdf({
         doc.text(`${cajaTag}SIN BULTO · Orden ${bulto.order_number || '—'}`, 26, y);
       } else {
         doc.setFont('courier', 'bold');
-        doc.text(`${cajaTag}${bulto.label_code || '—'}`, 26, y);
+        const codeText = `${cajaTag}${bulto.label_code || '—'}`;
+        doc.text(codeText, 26, y);
+        // N° de contenedor / factura del ticket impreso del bulto
+        const refs = [bulto.order_number && `Cont. ${bulto.order_number}`, bulto.invoice_number && `Fact. ${bulto.invoice_number}`].filter(Boolean).join(' · ');
+        if (refs) {
+          const codeW = doc.getTextWidth(codeText);
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(7.5);
+          doc.text(refs, Math.min(26 + codeW + 2, 80), y, { maxWidth: 110 - Math.min(26 + codeW + 2, 80) });
+          doc.setFontSize(10);
+        }
       }
       doc.setFont('helvetica', 'normal');
       doc.text(String(bulto.package_count ?? 0), 112, y);
