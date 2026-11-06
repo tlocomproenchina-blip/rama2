@@ -6,6 +6,7 @@ import { ClipboardList, Loader2 } from 'lucide-react';
 import useDispatchGuideHistory from '@/hooks/useDispatchGuideHistory';
 import DispatchGuideHistoryFilters from './DispatchGuideHistoryFilters';
 import DispatchGuideHistoryCard from './DispatchGuideHistoryCard';
+import GuideBulkDeleteBar from './GuideBulkDeleteBar';
 
 // Historial de guías emitidas: filtros y paginación resueltos en el servidor,
 // con reimpresión y anotación de entrega por guía.
@@ -34,6 +35,13 @@ export default function DispatchGuideHistoryPanel({ highlightId = '', reloadSign
     onGuideUpdated?.();
   };
 
+  const [selectedIds, setSelectedIds] = useState([]);
+  const toggleSelect = (id) => setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  const handleDeleted = () => {
+    setSelectedIds([]);
+    handleUpdated();
+  };
+
   return (
     <Card>
       <CardContent className="space-y-4 p-4">
@@ -54,6 +62,13 @@ export default function DispatchGuideHistoryPanel({ highlightId = '', reloadSign
           </div>
         ) : (
           <div className="space-y-3">
+            <GuideBulkDeleteBar
+              guides={guides}
+              selectedIds={selectedIds}
+              onSelectAll={() => setSelectedIds(guides.map((g) => g.id))}
+              onClear={() => setSelectedIds([])}
+              onDeleted={handleDeleted}
+            />
             {guides.map((guide) => (
               <DispatchGuideHistoryCard
                 key={guide.id}
@@ -61,6 +76,8 @@ export default function DispatchGuideHistoryPanel({ highlightId = '', reloadSign
                 appName={appName}
                 highlighted={guide.id === highlightId}
                 onGuideUpdated={handleUpdated}
+                selected={selectedIds.includes(guide.id)}
+                onToggleSelect={() => toggleSelect(guide.id)}
               />
             ))}
             {hasMore && (

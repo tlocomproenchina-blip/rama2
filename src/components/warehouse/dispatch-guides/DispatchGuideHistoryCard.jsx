@@ -19,6 +19,7 @@ import DispatchGuideDeliveryDialog from './DispatchGuideDeliveryDialog';
 import ContinuousLabelsDialog from './ContinuousLabelsDialog';
 import GuideBultoChips from './GuideBultoChips';
 import DeleteGuideButton from './DeleteGuideButton';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const fmtDate = (value) => {
   if (!value) return '—';
@@ -50,7 +51,7 @@ const linesLabel = (client) => {
 
 // Una guía ya emitida: su número, sus totales, el desglose por cliente y las
 // acciones de reimprimir y anotar la entrega.
-export default function DispatchGuideHistoryCard({ guide, appName, highlighted = false, onGuideUpdated }) {
+export default function DispatchGuideHistoryCard({ guide, appName, highlighted = false, onGuideUpdated, selected = false, onToggleSelect }) {
   const [expanded, setExpanded] = useState(!!highlighted);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [labelsOpen, setLabelsOpen] = useState(false);
@@ -85,11 +86,14 @@ export default function DispatchGuideHistoryCard({ guide, appName, highlighted =
   };
 
   return (
-    <Card className={highlighted ? 'ring-2 ring-emerald-300' : ''}>
+    <Card className={highlighted ? 'ring-2 ring-emerald-300' : selected ? 'ring-2 ring-destructive/40' : ''}>
       <CardContent className="space-y-3 p-4">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-1.5">
+              {onToggleSelect && (
+                <Checkbox checked={selected} onCheckedChange={onToggleSelect} aria-label={`Seleccionar ${guide.guide_number}`} />
+              )}
               <p className="font-mono text-sm font-bold text-slate-800">{guide.guide_number}</p>
               {guide.auto_generated && (
                 <Badge variant="outline" className="border-blue-200 bg-blue-50 text-blue-700">
