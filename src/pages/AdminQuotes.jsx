@@ -385,7 +385,7 @@ function QuoteEditor({ quote, config, onBack, onUpdate, saving, setSaving, copie
 <p>Tu presupuesto ha sido procesado y ya está disponible para revisión.</p>
 <p><strong>Total: $${(totals.total_usd || 0).toFixed(2)} USD</strong></p>
 <p>Puedes verlo y aceptar el contrato en el siguiente enlace:</p>
-<p><a href="${publicUrl}" style="display:inline-block;padding:10px 20px;background:#2563eb;color:#fff;border-radius:8px;text-decoration:none;font-weight:600;">Ver Presupuesto</a></p>
+<p><a href="${publicUrl}" style="display:inline-block;padding:10px 20px;background:#F97316;color:#111827;border-radius:8px;text-decoration:none;font-weight:600;">Ver Presupuesto</a></p>
 <p style="margin-top:16px;color:#666;font-size:12px;">TLEC CARGO</p>`,
           title: '📋 Tu presupuesto está listo',
           message: `Tu presupuesto por $${(totals.total_usd || 0).toFixed(2)} USD está disponible. Revisa y acepta el contrato.`,

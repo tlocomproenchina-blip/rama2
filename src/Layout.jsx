@@ -408,7 +408,7 @@ export default function Layout({ children, currentPageName }) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto" />
+          <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" />
           <p className="mt-4 text-slate-600">Cargando...</p>
         </div>
       </div>
@@ -437,7 +437,7 @@ export default function Layout({ children, currentPageName }) {
           <h2 className="text-xl font-semibold text-slate-800">Cuenta desactivada</h2>
           <p className="text-slate-600 mt-1">Tu cuenta ha sido desactivada por el equipo de soporte. Si crees que es un error, por favor contáctanos.</p>
           <div className="mt-5">
-            <Button onClick={() => base44.auth.logout()} className="bg-blue-600 hover:bg-blue-700">Cerrar sesión</Button>
+            <Button onClick={() => base44.auth.logout()}>Cerrar sesión</Button>
           </div>
         </div>
       </div>

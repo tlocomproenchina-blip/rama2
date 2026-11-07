@@ -18,7 +18,7 @@ export default function ShippingCostBreakdownChart({ data }) {
             <Legend />
             <Bar dataKey="shipping" name="Envío" fill="#0f766e" radius={[6, 6, 0, 0]} />
             <Bar dataKey="insurance" name="Seguro" fill="#f59e0b" radius={[6, 6, 0, 0]} />
-            <Bar dataKey="total" name="Total" fill="#2563eb" radius={[6, 6, 0, 0]} />
+            <Bar dataKey="total" name="Total" fill="#F97316" radius={[6, 6, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </CardContent>

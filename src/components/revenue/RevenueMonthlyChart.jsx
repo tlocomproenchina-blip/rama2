@@ -77,7 +77,7 @@ export default function RevenueMonthlyChart({ data }) {
               <Bar dataKey="revenue" name="Cobrado" fill="url(#barRevenue)" radius={[6, 6, 0, 0]} barSize={20} />
               <Bar dataKey="pending" name="Pendiente" fill="url(#barPending)" radius={[6, 6, 0, 0]} barSize={20} />
               <Line type="monotone" dataKey="profit" name="Ganancia" stroke="#10b981" strokeWidth={2.5} dot={{ r: 3, fill: '#10b981' }} />
-              <Line type="monotone" dataKey="total" name="Total" stroke="#6366f1" strokeWidth={2} dot={{ r: 3, fill: '#6366f1' }} strokeDasharray="4 4" />
+              <Line type="monotone" dataKey="total" name="Total" stroke="#111827" strokeWidth={2} dot={{ r: 3, fill: '#111827' }} strokeDasharray="4 4" />
             </ComposedChart>
           </ResponsiveContainer>
         </CardContent>
@@ -93,8 +93,8 @@ export default function RevenueMonthlyChart({ data }) {
             <ComposedChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
               <defs>
                 <linearGradient id="barCbm" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.9} />
-                  <stop offset="100%" stopColor="#3b82f6" stopOpacity={0.5} />
+                  <stop offset="0%" stopColor="#F97316" stopOpacity={0.9} />
+                  <stop offset="100%" stopColor="#F97316" stopOpacity={0.5} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />

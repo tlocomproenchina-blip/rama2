@@ -15,7 +15,7 @@ export default function MonthlyRevenueChart({ data }) {
             <XAxis dataKey="label" tick={{ fontSize: 12 }} />
             <YAxis tick={{ fontSize: 12 }} />
             <Tooltip formatter={(value) => [`$${Number(value || 0).toFixed(2)}`, 'Ingresos']} />
-            <Line type="monotone" dataKey="amount" stroke="#2563eb" strokeWidth={3} dot={{ r: 4 }} />
+            <Line type="monotone" dataKey="amount" stroke="#F97316" strokeWidth={3} dot={{ r: 4 }} />
           </LineChart>
         </ResponsiveContainer>
       </CardContent>

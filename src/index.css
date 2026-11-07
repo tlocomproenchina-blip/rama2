@@ -439,3 +439,59 @@ ol[data-sonner-toaster],
 }
 
 /* Facturación Manual usa los mismos tokens y colores que el resto de la app. */
+
+/* ===== Paleta TLEC CARGO aplicada a colores fijos heredados =====
+   Muchas pantallas usan clases azules fijas como color de acción. Aquí se
+   remapean a la marca: acciones sólidas en naranja con texto grafito,
+   enlaces e íconos en naranja oscuro y degradados de cabecera en grafito.
+   Los tonos azules claros (50-200, textos 700-900) siguen siendo el color
+   semántico de información (#EFF6FF / #1D4ED8) y no se tocan. */
+.bg-blue-500, .bg-blue-600, .bg-blue-700,
+.bg-indigo-500, .bg-indigo-600, .bg-indigo-700,
+.bg-sky-600, .bg-sky-700 {
+  background-color: hsl(var(--primary)) !important;
+}
+.hover\:bg-blue-600:hover, .hover\:bg-blue-700:hover, .hover\:bg-blue-800:hover,
+.hover\:bg-indigo-700:hover, .hover\:bg-indigo-800:hover,
+.hover\:bg-sky-700:hover, .hover\:bg-sky-800:hover {
+  background-color: hsl(var(--primary-hover)) !important;
+}
+.bg-blue-500.text-white, .bg-blue-600.text-white, .bg-blue-700.text-white,
+.bg-indigo-500.text-white, .bg-indigo-600.text-white, .bg-indigo-700.text-white,
+.bg-sky-600.text-white, .bg-sky-700.text-white,
+.bg-blue-600 > .text-white, .bg-blue-600 > svg.text-white {
+  color: hsl(var(--primary-foreground)) !important;
+}
+
+.text-blue-500, .text-blue-600, .text-indigo-600,
+.hover\:text-blue-600:hover, .hover\:text-blue-700:hover, .hover\:text-blue-800:hover {
+  color: hsl(var(--link)) !important;
+}
+/* Dentro de avisos informativos el azul se mantiene como información */
+.bg-blue-50 .text-blue-600, .bg-blue-100 .text-blue-600,
+.bg-blue-50 .text-blue-500, .bg-blue-100 .text-blue-500,
+.border-blue-200 .text-blue-600, .border-blue-200 .text-blue-500,
+.bg-blue-50.text-blue-600, .bg-blue-100.text-blue-600,
+.bg-blue-50.text-blue-500, .bg-blue-100.text-blue-500 {
+  color: hsl(var(--info)) !important;
+}
+
+.border-blue-500, .border-blue-600, .border-indigo-500,
+.focus\:border-blue-500:focus, .hover\:border-blue-400:hover, .hover\:border-blue-500:hover {
+  border-color: hsl(var(--primary)) !important;
+}
+.ring-blue-400, .ring-blue-500, .ring-indigo-500,
+.focus\:ring-blue-500:focus, .focus-visible\:ring-blue-500:focus-visible, .focus\:ring-blue-400:focus {
+  --tw-ring-color: hsl(var(--ring) / 0.5) !important;
+}
+
+/* Degradados de cabecera azules → grafito (texto blanco con buen contraste) */
+.from-blue-500, .from-blue-600, .from-blue-700, .from-indigo-600 {
+  --tw-gradient-from: #111827 var(--tw-gradient-from-position) !important;
+}
+.to-blue-600, .to-blue-700, .to-blue-800, .to-indigo-600, .to-indigo-700 {
+  --tw-gradient-to: #1F2937 var(--tw-gradient-to-position) !important;
+}
+.via-blue-600, .via-indigo-600 {
+  --tw-gradient-stops: var(--tw-gradient-from), #1a2230 var(--tw-gradient-via-position), var(--tw-gradient-to) !important;
+}

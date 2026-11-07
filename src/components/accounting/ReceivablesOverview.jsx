@@ -2,7 +2,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts';
 
-const COLORS = ['#2563eb', '#f59e0b', '#ef4444'];
+const COLORS = ['#F97316', '#111827', '#B91C1C'];
 
 export default function ReceivablesOverview({ data, totalAmount }) {
   return (

@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, CartesianGrid, ResponsiveContainer } from 'recharts';
 import { LineChart as LineChartIcon } from 'lucide-react';
 
-const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#06b6d4'];
+const COLORS = ['#F97316', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#06b6d4'];
 
 // Tendencia diaria de visitas por ciudad (Google Analytics), top ciudades
 export default function GaCityTrendChart({ daily = [], topSlugs = [], days = 30 }) {

@@ -313,7 +313,7 @@ export default function TrackingShipmentCard({ consolidation, user, isPending = 
             <div className="flex items-center gap-3 rounded-2xl bg-slate-50 px-3 py-2">
               <div
                 className="grid h-11 w-11 place-items-center rounded-full"
-                style={{ backgroundImage: `conic-gradient(#2563eb ${progress}%, #e2e8f0 0)` }}
+                style={{ backgroundImage: `conic-gradient(#F97316 ${progress}%, #e2e8f0 0)` }}
               >
                 <div className="grid h-8 w-8 place-items-center rounded-full bg-white text-[10px] font-semibold text-slate-700">
                   {progress}%

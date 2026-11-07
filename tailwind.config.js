@@ -1,3 +1,5 @@
+const twColors = require('tailwindcss/colors');
+
 /** @type {import('tailwindcss').Config} */
 module.exports = {
     darkMode: ["class"],
@@ -18,6 +20,9 @@ module.exports = {
   			premium: '0 18px 50px -22px rgb(15 23 42 / 0.28)'
   		},
   		colors: {
+  			// Neutros de marca: los grises "slate" usados en toda la app pasan a la
+  			// escala gris oficial (#F9FAFB, #E5E7EB, #6B7280, #111827).
+  			slate: twColors.gray,
   			background: 'hsl(var(--background))',
   			foreground: 'hsl(var(--foreground))',
   			card: {
