@@ -48,6 +48,11 @@ module.exports = {
   				DEFAULT: 'hsl(var(--destructive))',
   				foreground: 'hsl(var(--destructive-foreground))'
   			},
+  			'primary-hover': 'hsl(var(--primary-hover))',
+  			link: 'hsl(var(--link))',
+  			success: { DEFAULT: 'hsl(var(--success))', bg: 'hsl(var(--success-bg))' },
+  			warning: { DEFAULT: 'hsl(var(--warning))', bg: 'hsl(var(--warning-bg))' },
+  			info: { DEFAULT: 'hsl(var(--info))', bg: 'hsl(var(--info-bg))' },
   			border: 'hsl(var(--border))',
   			input: 'hsl(var(--input))',
   			ring: 'hsl(var(--ring))',
