@@ -428,15 +428,14 @@ ol[data-sonner-toaster],
 @keyframes ficha-rise { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: none; } }
 .ficha-btn {
   display: inline-flex; align-items: center; gap: 8px; border-radius: 10px;
-  border: 1px solid #bfb596; background: #fbf8ef; color: #262a2b;
+  border: 1px solid hsl(var(--border)); background: hsl(var(--card)); color: hsl(var(--foreground));
   font-family: Inter, sans-serif; font-weight: 600; cursor: pointer;
   transition: background .2s, box-shadow .2s, color .2s;
 }
-.ficha-btn:hover { background: #efe8d3; box-shadow: 0 4px 12px rgba(38,42,43,.12); }
-.ficha-btn:active { background: #e6dec6; }
-.ficha-btn:focus-visible { outline: 2px solid #c8692a; outline-offset: 2px; }
-.ficha-btn.pri { background: #c8692a; border-color: #c8692a; color: #fff; }
-.ficha-btn.pri:hover { background: #b35a20; }
+.ficha-btn:hover { background: hsl(var(--accent)); color: hsl(var(--accent-foreground)); }
+.ficha-btn:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; }
+.ficha-btn.pri { background: hsl(var(--primary)); border-color: hsl(var(--primary)); color: hsl(var(--primary-foreground)); }
+.ficha-btn.pri:hover { background: hsl(var(--primary-hover)); color: hsl(var(--primary-foreground)); }
 .ficha-btn:disabled { opacity: .5; pointer-events: none; }
 
 /* Barra de carga animada para buscador de paquetes */

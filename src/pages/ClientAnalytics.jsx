@@ -218,7 +218,7 @@ export default function ClientAnalytics() {
   const dl = (name) => () => downloadSection(name, exportData, selectedClient);
 
   return (
-    <div className="max-w-7xl mx-auto rounded-[22px] bg-[#f6f1e4] pb-10 text-[#262a2b]">
+    <div className="max-w-7xl mx-auto pb-10 text-foreground">
       <FichaHero>
         <ClientAnalyticsSearch
           selectedClient={selectedClient}
@@ -228,13 +228,13 @@ export default function ClientAnalytics() {
 
       <div className="flex flex-col gap-8 px-3 md:px-8">
       {!selectedClient && (
-        <p className="-mt-6 relative rounded-[20px] border border-[#ddd4bb] bg-[#fbf8ef] p-10 text-center text-[#6b6a5b] shadow-[0_18px_44px_rgba(38,42,43,.14)]">
+        <p className="-mt-6 relative rounded-2xl border border-border bg-card p-10 text-center text-muted-foreground shadow-[0_18px_44px_rgba(38,42,43,.14)]">
           Selecciona un cliente en el buscador para ver su analítica.
         </p>
       )}
 
       {selectedClient && (
-        <div className="-mt-9 relative flex flex-col gap-5 rounded-[20px] border border-[#ddd4bb] bg-[#fbf8ef] p-5 md:px-8 md:py-7 shadow-[0_18px_44px_rgba(38,42,43,.14)] animate-[ficha-rise_.9s_.15s_cubic-bezier(.2,.7,.2,1)_both]">
+        <div className="-mt-9 relative flex flex-col gap-5 rounded-2xl border border-border bg-card p-5 md:px-8 md:py-7 shadow-[0_18px_44px_rgba(38,42,43,.14)] animate-[ficha-rise_.9s_.15s_cubic-bezier(.2,.7,.2,1)_both]">
           <ClientProfileCard client={selectedClient} />
           <div className="flex flex-wrap gap-2.5">
             <button className="ficha-btn pri h-[42px] px-[18px] text-sm" onClick={() => loadData(selectedClient?.email)} disabled={loading}>
@@ -321,7 +321,7 @@ export default function ClientAnalytics() {
 
       {selectedClient && (
         <FichaSection title="Consolidaciones y seguros" count={consolidations.length} defaultOpen={false} onDownload={() => { dl('Consolidaciones')(); dl('Seguros')(); }}>
-          <p className="text-sm text-[#6b6a5b]">{consolidations.length} consolidaciones · {insurancePayments.length} pagos de seguro. Descarga el detalle en Excel.</p>
+          <p className="text-sm text-muted-foreground">{consolidations.length} consolidaciones · {insurancePayments.length} pagos de seguro. Descarga el detalle en Excel.</p>
         </FichaSection>
       )}
 
@@ -367,7 +367,7 @@ export default function ClientAnalytics() {
       )}
 
       {selectedClient && analytics.shipmentCostHistory.length === 0 && !loading && (
-        <p className="m-0 rounded-[10px] bg-[#f1ecd9] px-4 py-3 text-sm text-[#6b6a5b]">Aún no hay suficientes datos para mostrar analítica histórica.</p>
+        <p className="m-0 rounded-[10px] bg-muted px-4 py-3 text-sm text-muted-foreground">Aún no hay suficientes datos para mostrar analítica histórica.</p>
       )}
       </div>
     </div>
