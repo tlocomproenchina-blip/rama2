@@ -51,6 +51,7 @@ import WholesalerConnectionCard from '@/components/admin/WholesalerConnectionCar
 import AiTicketSettingsCard from '@/components/admin/AiTicketSettingsCard';
 import DispatchOrderWhatsappSettingsCard from '@/components/admin/DispatchOrderWhatsappSettingsCard';
 import TermsNoticeCard from '@/components/admin/TermsNoticeCard';
+import DoorToDoorRateSettings from '@/components/admin/DoorToDoorRateSettings';
 
 const VENEZUELAN_STATES = [
   { code: 'zulia', name: 'Zulia' },
@@ -917,6 +918,9 @@ export default function AdminSettings({ user }) {
             </CardContent>
           </Card>
 
+          <div className="mt-6">
+            <DoorToDoorRateSettings />
+          </div>
         </TabsContent>
 
         {/* Tab Estados */}

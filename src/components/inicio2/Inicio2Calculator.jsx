@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { ChevronRight, Info, Loader2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import WarehousePickupChoice from '@/components/calculator/WarehousePickupChoice';
+import { loadDoorToDoorRate } from '@/lib/doorToDoorRate';
 
 const RECEPTION_FEE = 1;
 // Desde este peso (inclusive) el costo del envío marítimo se multiplica por 2.
@@ -16,13 +18,18 @@ export default function Inicio2Calculator({ defaultStateCode }) {
   const [peso, setPeso] = useState(5);
   const [loading, setLoading] = useState(true);
   const [result, setResult] = useState(null);
+  const [pickup, setPickup] = useState('si');
+  const [doorRate, setDoorRate] = useState(0);
+
   useEffect(() => {
     (async () => {
-      const [prc, sts] = await Promise.all([
+      const [prc, sts, door] = await Promise.all([
         base44.entities.PricingConfig.filter({ config_key: 'main' }),
         base44.entities.StateConfig.filter({ is_active: true }),
+        loadDoorToDoorRate(),
       ]);
       setPricing(prc[0] || null);
+      setDoorRate(door);
       const sorted = sts.sort((a, b) => (a.state_name || '').localeCompare(b.state_name || ''));
       setStates(sorted);
       const def = sorted.find((s) => s.state_code === (defaultStateCode || 'carabobo')) || sorted[0];
@@ -48,11 +55,14 @@ export default function Inicio2Calculator({ defaultStateCode }) {
     const multiplier = Number(peso) >= WEIGHT_DOUBLE_FROM_KG ? 2 : 1;
     const freight = cbm * rate * multiplier;
 
+    const doorCharge = pickup === 'no' ? doorRate * cbm : 0;
+
     setResult({
       cbm,
       rate: rate * multiplier,
-      total: freight + RECEPTION_FEE,
+      total: freight + RECEPTION_FEE + doorCharge,
       multiplier,
+      doorCharge,
     });
   };
 
@@ -125,6 +135,7 @@ export default function Inicio2Calculator({ defaultStateCode }) {
                 <span className="mt-1 flex shrink-0 items-center rounded-lg border border-slate-200 bg-slate-100 px-3 text-xs text-slate-500">Kilogramos (kg)</span>
               </div>
             </div>
+            <WarehousePickupChoice value={pickup} onChange={(v) => { setPickup(v); setResult(null); }} doorRate={doorRate} />
             <button
               onClick={handleCalc}
               className="flex w-full items-center justify-center gap-1 rounded-xl bg-zinc-900 px-6 py-3.5 text-sm font-bold text-white hover:bg-zinc-800"
@@ -140,6 +151,9 @@ export default function Inicio2Calculator({ defaultStateCode }) {
               <div className="flex justify-between"><span className="text-slate-500">Ruta de Envío:</span><span className="font-bold text-slate-900">🇨🇳 Guangdong → 🇻🇪 {stateCfg?.state_name || 'Venezuela'}</span></div>
               <div className="flex justify-between"><span className="text-slate-500">Tarifa Unitaria:</span><span className="font-bold text-slate-900">{result ? `$${result.rate.toFixed(2)} / CBM` : '—'}</span></div>
               <div className="flex justify-between"><span className="text-slate-500">Tiempo de Tránsito:</span><span className="font-bold text-sky-700">🚢 75 a 90 días</span></div>
+              {result?.doorCharge > 0 && (
+                <div className="flex justify-between gap-2"><span className="text-slate-500">Puerta a puerta:</span><span className="text-right font-bold text-slate-900">{`$${doorRate.toFixed(2)} × ${result.cbm.toFixed(4)} = $${result.doorCharge.toFixed(2)}`}</span></div>
+              )}
             </div>
             {result?.multiplier === 2 && (
               <div className="mt-4 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700">

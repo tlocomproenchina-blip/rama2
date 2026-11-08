@@ -10,6 +10,7 @@ import { normalizeStates, findStateByCodeOrName } from '@/components/utils/state
 import ClientPageHero from '@/components/client-portal/ClientPageHero';
 import ClientSectionHeader from '@/components/client-portal/ClientSectionHeader';
 import WarehousePickupChoice from '@/components/calculator/WarehousePickupChoice';
+import { loadDoorToDoorRate } from '@/lib/doorToDoorRate';
 
 export default function ShippingCalculator({ user, defaultStateCode, defaultShippingType }) {
   const [config, setConfig] = useState(null);
@@ -28,6 +29,7 @@ export default function ShippingCalculator({ user, defaultStateCode, defaultShip
   const [result, setResult] = useState(null);
   // Marítimo: 'si' retira en almacén, 'no' entrega puerta a puerta.
   const [pickupInWarehouse, setPickupInWarehouse] = useState(null);
+  const [doorRate, setDoorRate] = useState(0);
   // Desde este peso (inclusive) el costo del envío marítimo se multiplica por 2.
   const WEIGHT_DOUBLE_FROM_KG = 400;
 
@@ -36,11 +38,13 @@ export default function ShippingCalculator({ user, defaultStateCode, defaultShip
   }, []);
 
   const loadConfig = async () => {
-    const [configs, pricing, allStates] = await Promise.all([
+    const [configs, pricing, allStates, door] = await Promise.all([
       base44.entities.AppConfig.filter({ config_key: 'main' }),
       base44.entities.PricingConfig.filter({ config_key: 'main' }),
-      base44.entities.StateConfig.filter({ is_active: true })
+      base44.entities.StateConfig.filter({ is_active: true }),
+      loadDoorToDoorRate()
     ]);
+    setDoorRate(door);
 
     if (configs.length > 0) {
       setConfig(configs[0]);
@@ -144,9 +148,13 @@ export default function ShippingCalculator({ user, defaultStateCode, defaultShip
     const fob = parseFloat(fobValue) || 0;
     const insuranceCost = includeInsurance && fob > 0 ? fob * (config?.insurance_percentage / 100) : 0;
 
-    const totalCost = shippingCost + RECEPTION_FEE + insuranceCost;
+    // Puerta a puerta (marítimo): tarifa configurada por CBM × volumen facturable.
+    const doorCharge = shippingType === 'maritimo' && pickupInWarehouse === 'no' ? doorRate * billableWeight : 0;
+
+    const totalCost = shippingCost + RECEPTION_FEE + insuranceCost + doorCharge;
 
     setResult({
+    doorCharge,
     rateType,
     finalRate,
     volumetricWeight,
@@ -165,7 +173,7 @@ export default function ShippingCalculator({ user, defaultStateCode, defaultShip
 
   useEffect(() => {
     calculateShipping();
-  }, [shippingType, cargoCategory, includeInsurance, fobValue, inputMode, weight, dimensions.length, dimensions.width, dimensions.height, cbm, selectedState, pricingConfig, config, states]);
+  }, [shippingType, cargoCategory, includeInsurance, fobValue, inputMode, weight, dimensions.length, dimensions.width, dimensions.height, cbm, selectedState, pricingConfig, config, states, pickupInWarehouse, doorRate]);
 
   if (loading) {
     return (
@@ -329,7 +337,7 @@ export default function ShippingCalculator({ user, defaultStateCode, defaultShip
             )}
 
             {shippingType === 'maritimo' && (
-              <WarehousePickupChoice value={pickupInWarehouse} onChange={setPickupInWarehouse} />
+              <WarehousePickupChoice value={pickupInWarehouse} onChange={setPickupInWarehouse} doorRate={doorRate} />
             )}
 
             <div>
@@ -394,9 +402,9 @@ export default function ShippingCalculator({ user, defaultStateCode, defaultShip
                 </div>
                 {shippingType === 'maritimo' && pickupInWarehouse === 'no' && (
                   <div className="rounded-xl border border-primary/40 bg-accent p-4">
-                    <p className="text-sm font-medium text-accent-foreground">Entrega</p>
-                    <p className="mt-1 text-2xl font-bold text-foreground">Puerta a puerta</p>
-                    <p className="text-xs text-muted-foreground">Te lo llevamos hasta la puerta de tu casa</p>
+                    <p className="text-sm font-medium text-accent-foreground">Puerta a puerta</p>
+                    <p className="mt-1 text-2xl font-bold text-foreground">${result.doorCharge.toFixed(2)}</p>
+                    <p className="text-xs text-muted-foreground">{`${doorRate.toFixed(2)} × ${result.billableWeight.toFixed(4)} CBM · Te lo llevamos hasta la puerta de tu casa`}</p>
                   </div>
                 )}
                 {shippingType === 'maritimo' && pickupInWarehouse === 'si' && (
@@ -410,7 +418,7 @@ export default function ShippingCalculator({ user, defaultStateCode, defaultShip
                   <p className="text-sm font-medium text-emerald-800">Total estimado</p>
                   <p className="mt-1 text-2xl font-bold text-emerald-700">${result.totalCost.toFixed(2)}</p>
                   <p className="text-xs text-emerald-700">
-                    {`Envío $${result.shippingCost.toFixed(2)} + recepción $${result.receptionFee.toFixed(2)}${result.insuranceCost > 0 ? ` + seguro $${result.insuranceCost.toFixed(2)}` : ''}`}
+                    {`Envío $${result.shippingCost.toFixed(2)} + recepción $${result.receptionFee.toFixed(2)}${result.doorCharge > 0 ? ` + puerta a puerta $${result.doorCharge.toFixed(2)}` : ''}${result.insuranceCost > 0 ? ` + seguro $${result.insuranceCost.toFixed(2)}` : ''}`}
                   </p>
                 </div>
               </div>

@@ -1,0 +1,42 @@
+{
+  "name": "DoorToDoorConfig",
+  "type": "object",
+  "properties": {
+    "config_key": {
+      "type": "string",
+      "default": "main",
+      "description": "Clave \u00fanica de configuraci\u00f3n"
+    },
+    "rate_per_cbm": {
+      "type": "number",
+      "minimum": 0,
+      "default": 150,
+      "description": "Costo del env\u00edo puerta a puerta por CBM (USD) que usan las calculadoras cuando el cliente elige entrega puerta a puerta"
+    },
+    "updated_by": {
+      "type": "string",
+      "description": "Email del administrador que cambi\u00f3 la tarifa por \u00faltima vez"
+    }
+  },
+  "required": [
+    "config_key",
+    "rate_per_cbm"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

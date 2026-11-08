@@ -6,7 +6,7 @@ const OPTIONS = [
   { value: 'no', icon: Truck, title: 'No, entrega puerta a puerta', text: 'Te lo llevamos hasta la puerta de tu casa.' }
 ];
 
-export default function WarehousePickupChoice({ value, onChange }) {
+export default function WarehousePickupChoice({ value, onChange, doorRate }) {
   return (
     <div className="space-y-3 rounded-2xl border border-border/70 bg-muted/40 p-4">
       <div>
@@ -25,6 +25,9 @@ export default function WarehousePickupChoice({ value, onChange }) {
               <span className="min-w-0 flex-1 whitespace-normal">
                 <span className="block font-semibold text-foreground">{title}</span>
                 <span className="mt-0.5 block text-sm text-muted-foreground">{text}</span>
+                {v === 'no' && doorRate > 0 && (
+                  <span className="mt-1 block text-sm font-semibold text-accent-foreground">+${Number(doorRate).toFixed(2)} por CBM</span>
+                )}
               </span>
               {active && <Check className="absolute right-3 top-3 h-4 w-4 text-accent-foreground" />}
             </button>
