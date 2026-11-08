@@ -19,6 +19,7 @@ import { toast } from 'sonner';
 import EstadoLogisticaBadge from '@/components/logistica/EstadoLogisticaBadge';
 import SeguimientoRutaForm from '@/components/logistica/SeguimientoRutaForm';
 import PageHero from '@/components/common/PageHero';
+import ClienteBultosResumen from '@/components/logistica/ClienteBultosResumen';
 
 const emptyForm = {
   ruta_id: '',
@@ -232,6 +233,8 @@ export default function AdminSeguimientoRutas({ user }) {
         <Card className="border-0 shadow-lg"><CardContent className="p-5"><p className="text-sm text-slate-500">Entregadas</p><p className="mt-2 text-3xl font-bold text-slate-900">{stats.entregadas}</p></CardContent></Card>
         <Card className="border-0 shadow-lg"><CardContent className="p-5"><p className="text-sm text-slate-500">Incidencias</p><p className="mt-2 text-3xl font-bold text-slate-900">{stats.incidencias}</p></CardContent></Card>
       </div>
+
+      <ClienteBultosResumen cargas={rutaFilterId ? cargas.filter((c) => c.ruta_id === rutaFilterId) : cargas} />
 
       <Card className="border-0 shadow-lg">
         <CardHeader>
