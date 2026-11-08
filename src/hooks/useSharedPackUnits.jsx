@@ -1,18 +1,21 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { base44 } from '@/api/base44Client';
-import { loadOpenUnits } from '@/lib/packUnits';
+import { loadOpenUnits, sameClient } from '@/lib/packUnits';
 import {
   applyRemoteUnit, fetchOpenShared, flushQueue, isSharedUnit, pendingCount, queueUnitChange,
 } from '@/lib/sharedUnits';
 
-// Comparte las cajas y bultos en armado con el resto del equipo: envía cada cambio,
-// recibe en tiempo real los de los demás y reintenta lo pendiente al reconectar.
-export default function useSharedPackUnits({ onRemoteChange }) {
+// Guarda en línea las cajas y bultos que el operador está armando: envía cada cambio,
+// recibe los suyos hechos desde otro dispositivo y reintenta lo pendiente al reconectar.
+// Las unidades abiertas de otros operadores no entran en su mesa de trabajo.
+export default function useSharedPackUnits({ owner, onRemoteChange, onDuplicate }) {
   const [pending, setPending] = useState(pendingCount());
   const [syncing, setSyncing] = useState(false);
   const [lastShared, setLastShared] = useState(null);
   const onRemoteRef = useRef(onRemoteChange);
   onRemoteRef.current = onRemoteChange;
+  const onDuplicateRef = useRef(onDuplicate);
+  onDuplicateRef.current = onDuplicate;
   const flushingRef = useRef(false);
   const againRef = useRef(false);
 
@@ -29,8 +32,9 @@ export default function useSharedPackUnits({ onRemoteChange }) {
       do {
         againRef.current = false;
         if (!pendingCount()) break;
-        const changed = await flushQueue(deviceId);
+        const { changed, rejected } = await flushQueue(deviceId);
         setLastShared(new Date().toISOString());
+        if (rejected.length) onDuplicateRef.current?.(rejected);
         if (changed) onRemoteRef.current?.();
       } while (againRef.current);
     } catch (_) {
@@ -59,13 +63,14 @@ export default function useSharedPackUnits({ onRemoteChange }) {
     onRemoteRef.current?.();
   }, [flush]);
 
-  // Trae lo que el equipo tiene abierto y sube lo que este dispositivo tenga sin compartir.
+  // Trae las unidades abiertas del operador y sube las suyas que falten en el servidor.
   const pullAll = useCallback(async () => {
+    if (!owner) return;
     try {
-      const records = await fetchOpenShared();
+      const records = await fetchOpenShared(owner);
       for (const record of records) await applyRemoteUnit(record).catch(() => null);
       const known = new Set(records.map((r) => r.unit_id));
-      const local = await loadOpenUnits();
+      const local = await loadOpenUnits(owner);
       for (const unit of local) {
         if (!known.has(unit.id)) queueUnitChange(null, unit);
       }
@@ -73,11 +78,14 @@ export default function useSharedPackUnits({ onRemoteChange }) {
     } catch (_) {}
     setPending(pendingCount());
     flush();
-  }, [flush]);
+  }, [flush, owner]);
 
   useEffect(() => {
     const unsubscribe = base44.entities.OpenPackUnit.subscribe((event) => {
-      if (event?.data && event.type !== 'delete') applyRemote(event.data);
+      const data = event?.data;
+      if (!data || event.type === 'delete') return;
+      if (!sameClient(data.created_by_email, owner)) return;
+      applyRemote(data);
     });
     const onOnline = () => pullAll();
     window.addEventListener('online', onOnline);
@@ -87,7 +95,7 @@ export default function useSharedPackUnits({ onRemoteChange }) {
       window.removeEventListener('online', onOnline);
       clearInterval(timer);
     };
-  }, [applyRemote, flush, pullAll]);
+  }, [applyRemote, flush, pullAll, owner]);
 
   return { pending, syncing, lastShared, pushChange, pushStatus, pullAll };
 }

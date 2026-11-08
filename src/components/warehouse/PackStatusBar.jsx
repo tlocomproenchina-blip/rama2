@@ -28,7 +28,7 @@ export default function PackStatusBar({
       {numberBlock && (
         <span className="flex items-center gap-1 text-xs text-blue-700">
           <Package className="h-3.5 w-3.5 shrink-0" />
-          Números de bulto: {numberBlock.next_number}–{numberBlock.end}
+          Números reservados para este dispositivo: {numberBlock.next_number}–{numberBlock.end}
           {reservingBlock && <Loader2 className="h-3 w-3 animate-spin ml-1" />}
         </span>
       )}
@@ -42,10 +42,10 @@ export default function PackStatusBar({
       <span className="flex w-full items-center gap-1 text-xs font-medium">
         {sharedSyncing ? <Loader2 className="h-3 w-3 animate-spin" /> : <Users className="h-3 w-3" />}
         {sharedSyncing
-          ? 'Compartiendo cambios con el equipo…'
+          ? 'Guardando tus unidades en línea…'
           : sharedPending > 0
-            ? `${sharedPending} unidad(es) con cambios por compartir${isOnline ? '' : ' al reconectar'}`
-            : 'Cajas y bultos abiertos compartidos con el equipo'}
+            ? `${sharedPending} unidad(es) tuyas por guardar${isOnline ? '' : ' al reconectar'}`
+            : 'Tus unidades abiertas están guardadas · el historial se comparte con el equipo'}
       </span>
 
       {isSyncing && (

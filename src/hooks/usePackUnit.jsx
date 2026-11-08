@@ -9,14 +9,16 @@ import {
 } from '@/lib/cajaLocal';
 import { addPackageToUnit, createLocalBulto, findOpenUnit, loadOpenUnits, sameClient, saveUnit } from '@/lib/packUnits';
 import { combineUnitsLocally } from '@/lib/combineUnits';
+import { findLocalTrackingOwner } from '@/lib/trackingDuplicates';
 
 // Mesa única de empaque: un solo escáner recibe paquetes, arma bultos y arma la caja
 // consolidada. El selector decide el destino del próximo escaneo y la unidad que el
 // cliente ya tenía abierta se retoma sola, sin abrir nada a mano.
 export default function usePackUnit({
   user, getNextNumber, getClientByEmail, enqueueClosedBulto, enqueueCaja, enqueuePackageReception,
-  enqueuePrint, captureScanPhoto, onHistoryChange, onUnitChange, onUnitRemoved,
+  enqueuePrint, captureScanPhoto, onHistoryChange, onUnitChange, onUnitRemoved, onDuplicate,
 }) {
+  const owner = user?.email || '';
   const [destination, setDestination] = useState('caja');
   const [units, setUnits] = useState([]);
   const [activeUnitId, setActiveUnitId] = useState(null);
@@ -89,10 +91,10 @@ export default function usePackUnit({
     return unit;
   }, [applyUnits, changeDestination, onUnitChange]);
 
-  // Relee las unidades abiertas (también las que llegan de otros operadores) y
-  // actualiza el contenido de la caja activa.
+  // Relee las unidades abiertas del operador (también las que armó en otro dispositivo)
+  // y actualiza el contenido de la caja activa.
   const reloadUnits = useCallback(async () => {
-    const open = await loadOpenUnits();
+    const open = await loadOpenUnits(owner);
     applyUnits(open);
     const current = open.find((u) => u.id === activeUnitRef.current?.id) || open[0] || null;
     selectUnit(current?.id || null);
@@ -100,7 +102,7 @@ export default function usePackUnit({
       setContents(await cajaContents(current).catch(() => ({ package_count: 0, cbm: 0 })));
     }
     return open;
-  }, [applyUnits, selectUnit]);
+  }, [applyUnits, owner, selectUnit]);
 
   // --- Abrir / retomar unidades ---
   const openCajaByCode = useCallback(async (code) => {
@@ -152,7 +154,7 @@ export default function usePackUnit({
 
   // Unidad que recibe el escaneo: la abierta del cliente o una nueva con número reservado.
   const resolveUnit = useCallback(async (clientEmail, client, kind) => {
-    const existing = await findOpenUnit(clientEmail, kind);
+    const existing = await findOpenUnit(clientEmail, kind, owner);
     if (existing) return existing;
     const number = await getNextNumber();
     if (!number) {
@@ -163,7 +165,15 @@ export default function usePackUnit({
     return kind === 'caja'
       ? createLocalCaja({ client: base, number, user })
       : createLocalBulto({ client: base, number, user });
-  }, [getNextNumber, user]);
+  }, [getNextNumber, owner, user]);
+
+  // ¿El código ya está en una caja o bulto? Si está, se avisa en rojo y no se agrega.
+  const blockDuplicate = useCallback(async (code, packageId = '') => {
+    const found = await findLocalTrackingOwner({ code, packageId, activeUnit: activeUnitRef.current });
+    if (!found) return false;
+    onDuplicate?.(found);
+    return true;
+  }, [onDuplicate]);
 
   // --- Escaneo único: la misma lectura para bultos, cajas y paquetes ---
   const handleScan = useCallback(async (raw) => {
@@ -241,9 +251,11 @@ export default function usePackUnit({
 
       let pkg = await findLocalPackage(value);
       if (!pkg) {
+        if (await blockDuplicate(value)) return;
         setPendingCode({ code: value, reason: 'no está registrado en el sistema' });
         return;
       }
+      if (await blockDuplicate(pkg.tracking_number || value, pkg.id)) return;
 
       const client = pkg.client_email ? await getClientByEmail(pkg.client_email) : null;
       const alreadyReceived = pkg.status === 'recibido' || pkg.status === 'despachado';
@@ -281,7 +293,7 @@ export default function usePackUnit({
       busyRef.current = false;
       setBusy(false);
     }
-  }, [activateUnit, captureScanPhoto, enqueuePackageReception, getClientByEmail, openCajaByCode, resolveUnit, user]);
+  }, [activateUnit, blockDuplicate, captureScanPhoto, enqueuePackageReception, getClientByEmail, openCajaByCode, resolveUnit, user]);
 
   // --- Códigos sin registrar y asignación manual ---
   const confirmUnregistered = useCallback(async () => {

@@ -13,9 +13,20 @@ import { toast } from 'sonner';
 
 // onRelabeled(bulto): el código ya lo tenía otra unidad y el servidor le asignó uno
 // nuevo a este bulto; se usa para imprimir sus etiquetas con el código nuevo.
-export function useOfflineBultoSync({ onRelabeled } = {}) {
+// onDuplicate(list): trackings que el servidor no registró porque ya estaban en otra unidad.
+export function useOfflineBultoSync({ onRelabeled, onDuplicate } = {}) {
   const onRelabeledRef = useRef(onRelabeled);
   onRelabeledRef.current = onRelabeled;
+  const onDuplicateRef = useRef(onDuplicate);
+  onDuplicateRef.current = onDuplicate;
+
+  // Unidad cuyo contenido completo ya estaba registrado: no se registra ni se imprime.
+  const dropLocalUnit = async (item) => {
+    const localBultos = await getAll('bultos').catch(() => []);
+    for (const b of localBultos) {
+      if ((b.local_bulto_id || b.id) === item.id) await del('bultos', b.id).catch(() => null);
+    }
+  };
   const [pendingBultos, setPendingBultos] = useState([]);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
@@ -135,6 +146,13 @@ export function useOfflineBultoSync({ onRelabeled } = {}) {
               recognition_photo_url: item.recognition_photo_url || '',
             });
             const data = res?.data || res || {};
+            if (data?.duplicates?.length) onDuplicateRef.current?.(data.duplicates);
+            if (data?.duplicate_only) {
+              await dropLocalUnit(item);
+              await del('sync_queue', item.id);
+              setPendingBultos((prev) => prev.filter((p) => p.id !== item.id));
+              continue;
+            }
             if (!data?.caja) throw new Error(data?.error || 'No se pudo registrar la caja');
 
             // La caja local queda enlazada con el servidor y los bultos absorbidos se
@@ -213,6 +231,13 @@ export function useOfflineBultoSync({ onRelabeled } = {}) {
               created_by: item.created_by || '',
               closed_at: item.closed_at || new Date().toISOString(),
             });
+            if (res?.data?.duplicates?.length) onDuplicateRef.current?.(res.data.duplicates);
+            if (res?.data?.duplicate) {
+              await dropLocalUnit(item);
+              await del('sync_queue', item.id);
+              setPendingBultos((prev) => prev.filter((p) => p.id !== item.id));
+              continue;
+            }
             if (!res?.data?.success && !res?.data?.already_exists) {
               throw new Error(res?.data?.error || 'Error desconocido');
             }

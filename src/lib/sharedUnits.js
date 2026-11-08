@@ -1,11 +1,11 @@
-// Cajas y bultos en armado compartidos entre los operadores de la Mesa de empaque.
+// Cajas y bultos en armado de cada operador de la Mesa de empaque, guardados en línea.
 //
 // Cada cambio se guarda primero en el dispositivo (IndexedDB) y se anota aquí como
 // "lo agregado y lo quitado" por campo. Con conexión se envía enseguida; sin conexión
-// espera en localStorage y sale al reconectar. El servidor une el contenido de todos
-// los operadores (unión automática) y los demás equipos lo reciben en tiempo real.
+// espera en localStorage y sale al reconectar. El operador recupera sus unidades abiertas
+// en cualquier dispositivo; las de otros operadores no se mezclan con las suyas.
 import { base44 } from '@/api/base44Client';
-import { get, put, del } from '@/lib/offlineDb';
+import { get, put, del, findPackageByTracking } from '@/lib/offlineDb';
 
 export const LIST_FIELDS = [
   'package_ids', 'package_trackings', 'unregistered_codes',
@@ -133,10 +133,31 @@ export async function applyRemoteUnit(record) {
   return { changed: true, needsPush };
 }
 
+// Quita del borrador local los trackings que el servidor rechazó por estar en otra unidad.
+async function stripRejected(id, rejected) {
+  const local = await get('bultos', id).catch(() => null);
+  if (!local) return;
+  const codes = new Set(rejected.map((o) => text(o.code).toUpperCase()));
+  const ids = new Set();
+  for (const code of codes) {
+    const pkg = await findPackageByTracking(code).catch(() => null);
+    if (pkg?.id) ids.add(pkg.id);
+  }
+  const keep = (x) => !codes.has(text(x).toUpperCase());
+  await put('bultos', {
+    ...local,
+    package_trackings: (local.package_trackings || []).filter(keep),
+    unregistered_codes: (local.unregistered_codes || []).filter(keep),
+    package_ids: (local.package_ids || []).filter((x) => !ids.has(x)),
+  });
+}
+
 // Envía los cambios anotados. Se detiene en el primer fallo (sin conexión).
+// Devuelve si cambió algo y los trackings rechazados por duplicados.
 export async function flushQueue(deviceId) {
   const queue = readQueue();
   let changed = false;
+  const rejected = [];
   for (const [id, entry] of Object.entries(queue)) {
     const res = await base44.functions.invoke('syncOpenPackUnit', {
       unit: toPayload(entry.unit),
@@ -150,16 +171,22 @@ export async function flushQueue(deviceId) {
       delete current[id];
       writeQueue(current);
     }
+    const lost = res?.data?.rejected || [];
+    if (lost.length) {
+      await stripRejected(id, lost);
+      rejected.push(...lost);
+      changed = true;
+    }
     const record = res?.data?.record;
     if (record && entry.status === 'abierta') {
       if (await applyRemoteUnit(record)) changed = true;
     }
   }
-  return changed;
+  return { changed, rejected };
 }
 
-// Unidades abiertas que hoy están en el servidor.
-export async function fetchOpenShared() {
-  const res = await base44.entities.OpenPackUnit.filter({ status: 'abierta' }, '-updated_date', 200);
+// Unidades abiertas del operador que hoy están en el servidor.
+export async function fetchOpenShared(owner) {
+  const res = await base44.entities.OpenPackUnit.filter({ status: 'abierta', created_by_email: owner }, '-updated_date', 200);
   return Array.isArray(res) ? res : res?.items || [];
 }

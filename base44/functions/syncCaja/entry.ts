@@ -15,6 +15,7 @@ import {
 import { syncBultoToAccounting } from '../../shared/veAccountingSync.ts';
 import { planCombinedSources, deleteCombinedSources } from '../../shared/combineSources.ts';
 import { isSameWork, reassignLabelCode, settleCreateRace } from '../../shared/labelConflict.ts';
+import { findTrackingOwners, publicOwner } from '../../shared/trackingDuplicates.ts';
 
 // Registra en el servidor una caja consolidada armada en el almacén de Venezuela.
 //
@@ -110,6 +111,8 @@ export default async function (req: Request): Promise<Response> {
     const movedOrders: string[] = [];
     const absorbedTrackings: string[] = [];
     const warnings: string[] = [];
+    // Paquetes y códigos escaneados directamente (no los que traen los bultos absorbidos).
+    const directItems: { code: string; package_id?: string; scanned: string }[] = [];
 
     for (const code of scannedCodes) {
       const upper = code.toUpperCase();
@@ -151,6 +154,7 @@ export default async function (req: Request): Promise<Response> {
       if (!pkg) {
         if (unregisteredConfirmed.has(code)) {
           if (!unregistered.includes(code)) unregistered.push(code);
+          directItems.push({ code, scanned: code });
           continue;
         }
         return Response.json({ error: `Paquete no encontrado: ${code}` });
@@ -161,6 +165,7 @@ export default async function (req: Request): Promise<Response> {
         });
       }
       if (!packageIds.includes(pkg.id)) packageIds.push(pkg.id);
+      directItems.push({ code: String(pkg.tracking_number || code).trim(), package_id: pkg.id, scanned: code });
       // El código escaneado que ya es el tracking o la etiqueta de este paquete no es un
       // código "sin registrar": el paquete ya quedó dentro de la caja.
       const ownCodes = [String(pkg.tracking_number || '').trim(), String(pkg.label_code || '').trim()];
@@ -184,6 +189,32 @@ export default async function (req: Request): Promise<Response> {
       }
       movedOrders.push(...combined.order_numbers);
       warnings.push(...combined.warnings);
+    }
+
+    // Un tracking que ya está en otra caja o bulto no entra a esta caja: se avisa al
+    // dispositivo y la caja se registra con el resto de su contenido.
+    const duplicates = await findTrackingOwners(base44, directItems, {
+      excludeLabels: [labelCode, ...absorbCodes, ...combineCodes],
+      excludeLocalUnitId: localUnitId,
+      excludeOpenUnitId: localUnitId,
+    });
+    if (duplicates.length) {
+      const dupIds = new Set(duplicates.map((o: any) => o.package_id).filter(Boolean));
+      const dupCodes = new Set(duplicates.flatMap((o: any) => {
+        const item = directItems.find((i) => i.code === o.code);
+        return [String(o.code).toUpperCase(), String(item?.scanned || '').toUpperCase()];
+      }));
+      for (let i = packageIds.length - 1; i >= 0; i -= 1) if (dupIds.has(packageIds[i])) packageIds.splice(i, 1);
+      for (let i = unregistered.length - 1; i >= 0; i -= 1) {
+        if (dupCodes.has(String(unregistered[i]).toUpperCase())) unregistered.splice(i, 1);
+      }
+      if (!packageIds.length && !unregistered.length) {
+        return Response.json({
+          error: 'Todo el contenido de la caja ya estaba registrado en otra unidad.',
+          duplicate_only: true,
+          duplicates: duplicates.map(publicOwner),
+        });
+      }
     }
 
     // Los paquetes reales no se cuentan dos veces como "sin registrar".
@@ -357,6 +388,7 @@ export default async function (req: Request): Promise<Response> {
         bulto_number: caja.bulto_number,
       },
       relabeled,
+      duplicates: duplicates.map(publicOwner),
       absorbed: {
         bultos: plan.absorbed,
         packages_moved: plan.packages_moved,

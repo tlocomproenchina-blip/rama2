@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.54';
+import { findTrackingOwners, publicOwner } from '../../shared/trackingDuplicates.ts';
 
 // Guarda en línea una caja o bulto que se está armando en la Mesa de empaque y une su
 // contenido con lo que otros operadores ya guardaron (unión automática):
@@ -37,13 +38,38 @@ export default async function (req: Request): Promise<Response> {
       return Response.json({ record: existing });
     }
 
+    // Un tracking que ya está en otra caja o bulto no entra: se devuelve como rechazado
+    // para que el dispositivo lo quite y avise en rojo.
+    let rejected: any[] = [];
+    if (status === 'abierta') {
+      const addedCodes = uniq([...(added.package_trackings || []), ...(added.unregistered_codes || [])]);
+      if (addedCodes.length) {
+        rejected = await findTrackingOwners(base44, addedCodes.map((code) => ({ code })), {
+          excludeOpenUnitId: unitId,
+          excludeLocalUnitId: unitId,
+          excludeLabels: uniq([
+            labelCode,
+            ...(unit.absorbed_codes || []), ...(unit.combined_codes || []),
+            ...(added.absorbed_codes || []), ...(added.combined_codes || []),
+            ...(existing?.absorbed_codes || []), ...(existing?.combined_codes || []),
+          ]),
+        });
+      }
+    }
+    const rejectedCodes = new Set(rejected.map((o) => o.code.toUpperCase()));
+    const rejectedIds = new Set(rejected.flatMap((o) => o.package_ids || []));
+    const keep = (f: string) => (x: string) =>
+      f === 'package_ids' ? !rejectedIds.has(x) : !rejectedCodes.has(x.toUpperCase());
+
     const tombstones: Record<string, string[]> = { ...(existing?.tombstones || {}) };
     const data: Record<string, any> = {};
     for (const f of LIST_FIELDS) {
       const addedF = uniq(added[f]);
       const t = new Set(uniq(tombstones[f]).filter((x) => !addedF.includes(x)));
       uniq(removed[f]).forEach((x) => t.add(x));
-      data[f] = uniq([...(existing?.[f] || []), ...(unit[f] || []), ...addedF]).filter((x) => !t.has(x));
+      data[f] = uniq([...(existing?.[f] || []), ...(unit[f] || []), ...addedF])
+        .filter((x) => !t.has(x))
+        .filter(['package_ids', 'package_trackings', 'unregistered_codes'].includes(f) ? keep(f) : () => true);
       tombstones[f] = [...t].slice(-500);
     }
 
@@ -73,7 +99,10 @@ export default async function (req: Request): Promise<Response> {
       ? await entity.update(existing.id, data)
       : await entity.create({ unit_id: unitId, created_by_email: text(unit.created_by) || user.email, ...data });
 
-    return Response.json({ record: { ...(existing || {}), ...data, ...(record || {}), unit_id: unitId } });
+    return Response.json({
+      record: { ...(existing || {}), ...data, ...(record || {}), unit_id: unitId },
+      rejected: rejected.map(publicOwner),
+    });
   } catch (error) {
     return Response.json({ error: (error as Error).message }, { status: 500 });
   }

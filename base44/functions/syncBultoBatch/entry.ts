@@ -2,6 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.49';
 import { markPackagesReceivedIfMissing } from '../../shared/bultoScan.ts';
 import { planCombinedSources, deleteCombinedSources } from '../../shared/combineSources.ts';
 import { isSameWork, reassignLabelCode, settleCreateRace } from '../../shared/labelConflict.ts';
+import { findTrackingOwners, publicOwner, settleTrackingRace } from '../../shared/trackingDuplicates.ts';
 
 // Sincroniza un bulto cerrado (creado offline) con todos sus paquetes al servidor.
 // Recibe:
@@ -69,20 +70,33 @@ export default async function(req: Request): Promise<Response> {
       labelCode = fresh.label_code;
       bultoNumber = fresh.number;
     }
-    // Los ids del escaneo offline ('local_pkg_...') no existen como Package en el
-    // servidor: sus códigos se guardan como 'sin registrar' para que el bulto no
-    // quede con ids fantasma (rompían la edición del bulto).
-    const validPackageIds = rawPackageIds.filter((id) => !String(id).startsWith('local_'));
-    const validTrackings = rawTrackings;
-    const unregisteredFromLocal: string[] = rawPackageIds
-      .map((id, i) => (String(id).startsWith('local_') ? rawTrackings[i] || '' : ''))
-      .filter(Boolean);
-
     // Unidades combinadas en la mesa de empaque: su contenido pasa a este bulto nuevo y las
     // originales se eliminan recién cuando el bulto ya quedó creado.
     const combineCodes: string[] = Array.isArray(body.combine_codes)
       ? body.combine_codes.map((c: any) => String(c || '').trim()).filter(Boolean)
       : [];
+
+    // Trackings que ya están en otra caja o bulto: no se registran dos veces.
+    const dupOpts = { excludeLocalUnitId: localUnitId, excludeOpenUnitId: localUnitId, excludeLabels: combineCodes };
+    const duplicates = rawTrackings.length
+      ? await findTrackingOwners(base44, rawTrackings.map((code) => ({ code })), dupOpts)
+      : [];
+    const dupCodes = new Set(duplicates.map((o: any) => String(o.code).toUpperCase()));
+    const dupIds = new Set(duplicates.flatMap((o: any) => o.package_ids || []));
+    const keptTrackings = rawTrackings.filter((t) => !dupCodes.has(String(t).toUpperCase()));
+    const keptPackageIds = rawPackageIds.filter((id) => !dupIds.has(id));
+    if (rawTrackings.length && !keptTrackings.length && !combineCodes.length) {
+      return Response.json({ success: false, duplicate: true, duplicates: duplicates.map(publicOwner) });
+    }
+
+    // Los ids del escaneo offline ('local_pkg_...') no existen como Package en el
+    // servidor: sus códigos se guardan como 'sin registrar' para que el bulto no
+    // quede con ids fantasma (rompían la edición del bulto).
+    const validPackageIds = keptPackageIds.filter((id) => !String(id).startsWith('local_'));
+    const validTrackings = keptTrackings;
+    const unregisteredFromLocal: string[] = rawPackageIds
+      .map((id, i) => (String(id).startsWith('local_') ? rawTrackings[i] || '' : ''))
+      .filter((code) => code && !dupCodes.has(String(code).toUpperCase()));
     const combined = combineCodes.length
       ? await planCombinedSources(base44, {
           codes: combineCodes,
@@ -150,6 +164,17 @@ export default async function(req: Request): Promise<Response> {
       if (race.relabeled) relabeled = { ...race.relabeled, from: relabeled?.from || race.relabeled.from };
     }
 
+    // Otro operador registró el mismo tracking en el mismo instante: lo conserva el
+    // bulto que quedó primero.
+    if (keptTrackings.length) {
+      const settled = await settleTrackingRace(base44, newBulto, keptTrackings, dupOpts);
+      duplicates.push(...settled.lost);
+      if (settled.deleted) {
+        return Response.json({ success: false, duplicate: true, duplicates: duplicates.map(publicOwner) });
+      }
+      newBulto = settled.record;
+    }
+
     // Los paquetes que entran al bulto quedan recibidos en el almacén (no 'despachado':
     // ese paso es manual en WarehouseDispatch). Los que ya tenían recepción registrada
     // la conservan: no se vuelve a contar ni se mueve su fecha de recepción.
@@ -169,6 +194,7 @@ export default async function(req: Request): Promise<Response> {
       already_exists: false,
       synced: true,
       relabeled,
+      duplicates: duplicates.map(publicOwner),
       combined: {
         deleted: combinedDeleted.deleted,
         failed: combinedDeleted.failed,

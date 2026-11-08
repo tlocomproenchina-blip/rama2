@@ -11,17 +11,21 @@ const uniq = (list) => [...new Set((list || []).map(text).filter(Boolean))];
 export const sameClient = (a, b) =>
   !!text(a) && text(a).toLowerCase() === text(b).toLowerCase();
 
-// Bultos y cajas que se están armando en este dispositivo.
-export async function loadOpenUnits() {
+// Unidad del operador: la que inició él (las viejas sin operador quedan en el dispositivo).
+export const isOwnUnit = (unit, owner) =>
+  !text(owner) || !text(unit?.created_by) || sameClient(unit.created_by, owner);
+
+// Bultos y cajas que el operador está armando (los de otros operadores no se muestran).
+export async function loadOpenUnits(owner = '') {
   const all = await getAll('bultos').catch(() => []);
-  return all.filter((b) => b.status === 'activo' && !b.closed_at);
+  return all.filter((b) => b.status === 'activo' && !b.closed_at && isOwnUnit(b, owner));
 }
 
-// Unidad abierta del cliente del tipo pedido ('caja' | 'bulto'), si ya existe.
-export async function findOpenUnit(clientEmail, kind) {
+// Unidad abierta del operador para el cliente y tipo pedido ('caja' | 'bulto'), si existe.
+export async function findOpenUnit(clientEmail, kind, owner = '') {
   if (!text(clientEmail)) return null;
   const wantCaja = kind === 'caja';
-  const units = await loadOpenUnits();
+  const units = await loadOpenUnits(owner);
   return (
     units.find((u) => !!u.is_caja === wantCaja && sameClient(u.client_email, clientEmail)) || null
   );

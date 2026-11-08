@@ -35,6 +35,8 @@ import PackageReviewPanel from '@/components/warehouse/PackageReviewPanel';
 import ReviewQueueCard from '@/components/warehouse/ReviewQueueCard';
 import useReviewQueue from '@/hooks/useReviewQueue';
 import useSharedPackUnits from '@/hooks/useSharedPackUnits';
+import DuplicateTrackingAlert from '@/components/warehouse/DuplicateTrackingAlert';
+import { describeOwner, findLocalTrackingOwner, findServerTrackingOwner } from '@/lib/trackingDuplicates';
 
 // Mesa única de empaque (offline-first): un solo escáner recibe el paquete y lo deja en la
 // unidad del cliente que indique el selector (bulto suelto o caja consolidada). La unidad
@@ -54,6 +56,17 @@ export default function WarehouseScanPack({ user }) {
   const [review, setReview] = useState(null);
   const [lastReview, setLastReview] = useState(null);
   const reviewQueue = useReviewQueue();
+
+  // Trackings que ya estaban en otra caja o bulto: aviso rojo + vibración, sin agregarlos.
+  const [duplicates, setDuplicates] = useState([]);
+  const reportDuplicate = useCallback((found) => {
+    const list = (Array.isArray(found) ? found : [found]).filter(Boolean);
+    if (!list.length) return;
+    const at = Date.now();
+    setDuplicates((prev) => [...list.map((d) => ({ ...d, at })), ...prev].slice(0, 5));
+    toast.error(`${list[0].code} ${describeOwner(list[0])}`, { duration: 6000 });
+    try { navigator.vibrate?.([200, 100, 200]); } catch (_) {}
+  }, []);
 
   const {
     handlePhotoCaptured, waitForPhoto, getPhotoStatus, retryPhoto,
@@ -81,6 +94,7 @@ export default function WarehouseScanPack({ user }) {
   } = useOfflineBultoSync({
     // Bulto guardado en el servidor: se imprimen sus etiquetas con el código definitivo.
     onRelabeled: (bulto) => { enqueuePrint(bulto); setHistoryRefreshKey((k) => k + 1); },
+    onDuplicate: (list) => { reportDuplicate(list); setHistoryRefreshKey((k) => k + 1); },
   });
 
   // Adjunta la foto del escaneo al paquete local y reencola su recepción para que llegue
@@ -112,16 +126,21 @@ export default function WarehouseScanPack({ user }) {
     setFailedPhotos((prev) => (prev.some((f) => f.code === scannedCode) ? prev : [...prev, { code: scannedCode, pkg }]));
   }, [getPhotoStatus, waitForPhoto, attachScanPhoto]);
 
-  // Cajas y bultos en armado compartidos en línea con el resto del equipo.
+  // Cajas y bultos que arma este operador, guardados en línea (los recupera en otro equipo).
   const packRef = useRef(null);
-  const shared = useSharedPackUnits({ onRemoteChange: () => packRef.current?.reloadUnits() });
+  const shared = useSharedPackUnits({
+    owner: user?.email || '',
+    onRemoteChange: () => packRef.current?.reloadUnits(),
+    onDuplicate: reportDuplicate,
+  });
 
   // Bultos creados o modificados en otros dispositivos: refresca el historial al instante.
   useEffect(() => {
     let timer = null;
     const unsubscribe = base44.entities.Bulto.subscribe((event) => {
-      // Cajas consolidadas: se guardan en el caché del dispositivo para que el lote se vea al instante.
-      if (event?.data?.is_caja || event?.type === 'delete') {
+      // Cada unidad registrada entra al caché del dispositivo: así el lote de cajas se ve al
+      // instante y un tracking ya registrado se detecta sin esperar al servidor.
+      if (event?.data || event?.type === 'delete') {
         const op = event.type === 'delete' ? del('bultos', event.id) : put('bultos', event.data);
         op.catch(() => {}).finally(() => setCajaRefreshKey((k) => k + 1));
       }
@@ -156,6 +175,7 @@ export default function WarehouseScanPack({ user }) {
     user,
     onUnitChange: shared.pushChange,
     onUnitRemoved: shared.pushStatus,
+    onDuplicate: reportDuplicate,
     getNextNumber,
     getClientByEmail,
     enqueueClosedBulto,
@@ -170,16 +190,14 @@ export default function WarehouseScanPack({ user }) {
   });
   packRef.current = pack;
 
-  // Cargar unidades abiertas de IndexedDB (instantáneo) tras consolidar duplicados en el
-  // servidor y refrescar el caché.
+  // Unidades abiertas del operador: primero las del dispositivo (instantáneo) y luego las
+  // que dejó guardadas en línea. El caché del almacén ya se refresca solo al abrir la
+  // pantalla, así que aquí no se vuelve a descargar.
   useEffect(() => {
     if (!cacheReady) return undefined;
     let cancelled = false;
     (async () => {
-      try {
-        await base44.functions.invoke('consolidateOpenBultos', {});
-        await refreshCache();
-      } catch (_) {}
+      await pack.reloadUnits();
       await shared.pullAll();
       if (!cancelled) await pack.reloadUnits();
     })();
@@ -261,18 +279,30 @@ export default function WarehouseScanPack({ user }) {
 
   // Cada tracking registrado pasa primero por la revisión; etiquetas y códigos no
   // registrados siguen el flujo normal de empaque.
+  // Ya no se refresca todo el caché en cada escaneo (era lo que frenaba la mesa): lo
+  // que falte se consulta puntualmente en el servidor.
   const handleDetected = useCallback(async (value) => {
-    refreshIfStale();
     const raw = String(value || '').trim();
     if (!raw) return;
     if (review) { toast.info('Termina la revisión del paquete en curso'); return; }
     const isLabel = /-(B|C|L)\d+$/i.test(raw);
     let pkg = isLabel ? null : await findPackageByTracking(raw).catch(() => null);
-    // El paquete puede no estar aún en la copia local: se busca en el servidor
-    // para que la revisión no se salte.
-    if (!pkg && !isLabel) {
-      const rows = await base44.entities.Package.filter({ tracking_number: raw }, '-created_date', 1).catch(() => []);
-      pkg = rows?.[0] || null;
+    if (!isLabel) {
+      const code = pkg?.tracking_number || raw;
+      const local = await findLocalTrackingOwner({ code, packageId: pkg?.id, activeUnit: pack.activeUnit });
+      if (local) { reportDuplicate(local); return; }
+      // En paralelo: el paquete (si no está en la copia local) y el chequeo de duplicados
+      // del servidor, que conoce lo registrado por todos los operadores.
+      const [serverPkg, serverOwner] = await Promise.all([
+        pkg ? null : base44.entities.Package.filter({ tracking_number: raw }, '-created_date', 1)
+          .then((rows) => rows?.[0] || null).catch(() => null),
+        findServerTrackingOwner({ code, packageId: pkg?.id, ownUnitIds: pack.units.map((u) => u.id) }),
+      ]);
+      if (serverOwner) { reportDuplicate(serverOwner); return; }
+      if (!pkg && serverPkg) {
+        pkg = serverPkg;
+        await put('packages', serverPkg).catch(() => {});
+      }
     }
     if (!pkg) {
       const unit = await pack.handleScan(raw);
@@ -281,7 +311,7 @@ export default function WarehouseScanPack({ user }) {
     }
     const client = pkg.client_email ? await getClientByEmail(pkg.client_email).catch(() => null) : null;
     setReview({ code: raw, pkg, client });
-  }, [review, refreshIfStale, pack, getClientByEmail]);
+  }, [review, pack, getClientByEmail, reportDuplicate]);
 
   // --- Estados de carga ---
   if (loadingAccess) {
@@ -401,6 +431,8 @@ export default function WarehouseScanPack({ user }) {
           }}
         />
       )}
+
+      <DuplicateTrackingAlert items={duplicates} onDismiss={() => setDuplicates([])} />
 
       <ReviewQueueCard items={reviewQueue.items} onRetry={reviewQueue.retry} />
 
