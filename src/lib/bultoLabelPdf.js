@@ -1,4 +1,3 @@
-import { realPackageCount } from '@/lib/bultoCounts';
 import { labelSymbolImage } from '@/lib/labelSymbol';
 
 // Etiqueta de bulto en PDF para impresión térmica de 100 × 100 mm.
@@ -30,14 +29,13 @@ function fitSize(doc, text, maxWidth, maxSize, minSize, style = 'bold', family =
 
 async function drawLabel(doc, bulto) {
   const cs = bulto.client_snapshot || {};
-  const pkgCount = realPackageCount(bulto);
   const estado = String(cs.state || 'SIN ESTADO').toUpperCase();
   const orderNumbers = Array.isArray(bulto.cbm_order_numbers)
     ? bulto.cbm_order_numbers.filter(Boolean).join(', ')
     : '';
   const nameCedula = [cs.full_name, cs.cedula ? `C.I. ${cs.cedula}` : ''].filter(Boolean).join(' - ');
   const cityState = [cs.city, cs.state].filter(Boolean).join(', ');
-  const bultoLine = `BULTO ${bulto.bulto_number} - ${pkgCount} PAQUETES`;
+  const bultoLine = `BULTO ${bulto.bulto_number}`;
 
   let symbol = null;
   try {

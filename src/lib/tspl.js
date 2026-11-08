@@ -3,7 +3,6 @@
 // 100mm = 800 dots. Commands are ASCII text, one per line, terminated with \r\n.
 // Reference: TSPL/TSPL2 Programming Manual (TSC / Zijiang-compatible).
 
-import { realPackageCount } from '@/lib/bultoCounts';
 import { qrModuleCount } from '@/lib/qrCode';
 
 const enc = new TextEncoder();
@@ -89,12 +88,9 @@ export const buildBultoLabelPayload = (bulto, copies = 1) => {
   const bultoNum = bulto.is_caja
     ? 'CAJA CONSOLIDADA'
     : `BULTO ${bulto.bulto_number || 1}`;
-  // El número impreso es el conteo real del bulto o de la caja: el mismo que muestra la
-  // ficha del almacén, sin sumar las etiquetas de los bultos ya fusionados dentro.
-  // En la caja manda el conteo guardado (registrados + códigos manuales).
-  const savedCount = Number(bulto.cargo_package_count);
-  const pkgCount = savedCount > 0 ? savedCount : realPackageCount(bulto);
-  const bultoPkg = `${bultoNum} - ${pkgCount} PAQUETES`;
+  // La etiqueta no imprime la cantidad de paquetes: ese conteo es de uso interno
+  // y el cliente lo consulta en su perfil.
+  const bultoPkg = bultoNum;
 
   // Métricas verticales (dots @203dpi). Altura real de cada texto + respiro.
   const MARGIN = 20;
@@ -262,7 +258,6 @@ export const buildContinuousLabelPayload = ({
     // 5b. Paquetes y CBM de la caja que lleva la etiqueta: solo se imprime cuando el
     //     lote trae esos datos (etiquetas de un lote de cajas listas para despachar).
     const cajaInfo = [
-      Number(packageCount) > 0 ? `${Number(packageCount)} PAQUETES` : '',
       Number(cbm) > 0 ? `${Number(cbm).toFixed(3)} CBM` : '',
     ]
       .filter(Boolean)

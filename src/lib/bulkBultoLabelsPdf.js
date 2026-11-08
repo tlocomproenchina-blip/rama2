@@ -14,8 +14,6 @@ export async function downloadCombinedBultoLabelsPdf({ bultos = [], nameHint = '
     const bulto = bultos[idx];
     if (idx > 0) doc.addPage();
     const cs = bulto.client_snapshot || {};
-    const pkgCount = ((bulto.package_ids?.length || 0) + (bulto.unregistered_codes?.length || 0))
-      || (bulto.package_trackings?.length || 0);
     let y = 5;
 
     try {
@@ -61,7 +59,7 @@ export async function downloadCombinedBultoLabelsPdf({ bultos = [], nameHint = '
 
     doc.setFontSize(18);
     doc.setFont(undefined, 'bold');
-    doc.text(`BULTO ${bulto.bulto_number} - ${pkgCount} PAQUETES`, 50, y, { align: 'center' });
+    doc.text(`BULTO ${bulto.bulto_number}`, 50, y, { align: 'center' });
     y += 7;
 
     doc.setLineWidth(0.3);
