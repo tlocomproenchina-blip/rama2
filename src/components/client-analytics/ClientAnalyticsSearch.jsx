@@ -30,7 +30,7 @@ export default function ClientAnalyticsSearch({ selectedClient, onSelectClient, 
       </div>
 
       {results.length > 0 && (
-        <div className="absolute z-20 mt-2 w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
+        <div className="absolute z-50 mt-2 max-h-80 w-full overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-xl">
           {results.map((client) => (
             <button
               key={client.id}
