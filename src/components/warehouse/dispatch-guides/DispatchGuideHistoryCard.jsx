@@ -184,6 +184,7 @@ export default function DispatchGuideHistoryCard({ guide, appName, highlighted =
         <div className="space-y-0.5">
           {clients.map((client) => {
             const cbm = Number(client.totals?.cbm) || sumCbm(client.bultos);
+            if (!(cbm > 0)) return null;
             return (
               <p key={`vol-${client.client_key || client.client_email || client.client_name}`} className="text-xs font-semibold text-slate-800">
                 {clients.length > 1 ? `${client.shipping_mark || client.client?.shipping_mark || client.client_name || 'Cliente'}: ` : 'Volumen: '}
