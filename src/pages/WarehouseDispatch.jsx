@@ -5,8 +5,12 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
   Loader2, ScanLine, Truck, DoorOpen, User, Package as PackageIcon, Boxes,
-  CheckCircle2, AlertTriangle, CloudOff, Cloud, RefreshCw, Clock, WifiOff, ClipboardList,
+  CheckCircle2, AlertTriangle, CloudOff, Cloud, RefreshCw, Clock, WifiOff, ClipboardList, History,
 } from 'lucide-react';
+import TaskTabs from '@/components/common/TaskTabs';
+import TaskPanel from '@/components/common/TaskPanel';
+import EmptyTaskState from '@/components/common/EmptyTaskState';
+import useTaskTab from '@/hooks/useTaskTab';
 import { toast } from 'sonner';
 import BarcodeScannerModule from '@/components/warehouse/BarcodeScannerModule';
 import ScanPhotoFailureNotice from '@/components/warehouse/ScanPhotoFailureNotice';
@@ -26,6 +30,7 @@ import { put as idbPut, getAll as idbGetAll, bulkPut as idbBulkPut } from '@/lib
 // → al confirmar, marca despachado localmente y encola la salida para sincronizar
 // en segundo plano. El backend notifica al cliente "Transportista asignado".
 export default function WarehouseDispatch({ user }) {
+  const [tab, setTab] = useTaskTab(['escanear', 'manual', 'pendientes', 'historial']);
   const [code, setCode] = useState('');
   const [scanning, setScanning] = useState(false);
   const [lastResult, setLastResult] = useState(null);
@@ -478,6 +483,27 @@ export default function WarehouseDispatch({ user }) {
         </Button>
       </div>
 
+      <TaskTabs
+        idPrefix="dispatch"
+        label="Tareas de despacho"
+        active={tab}
+        onChange={setTab}
+        tabs={[
+          { key: 'escanear', label: 'Escanear', icon: ScanLine },
+          { key: 'manual', label: 'Manual', icon: Boxes },
+          { key: 'pendientes', label: 'Pendientes', icon: WifiOff, badge: pendingDispatches.length },
+          { key: 'historial', label: 'Historial', icon: History },
+        ]}
+      />
+
+      <TaskPanel tab="pendientes" active={tab} idPrefix="dispatch">
+      {pendingDispatches.length === 0 && (
+        <EmptyTaskState
+          icon={Cloud}
+          title="Todo sincronizado"
+          description="No hay salidas esperando conexión."
+        />
+      )}
       {/* Cola de salidas pendientes de sincronizar */}
       {pendingDispatches.length > 0 && (
         <Card className="border-amber-200 bg-amber-50/60">
@@ -513,7 +539,13 @@ export default function WarehouseDispatch({ user }) {
           </CardContent>
         </Card>
       )}
+      </TaskPanel>
 
+      <TaskPanel tab="manual" active={tab} idPrefix="dispatch">
+        <ManualBultoDispatchCard onDispatch={(bulto) => { handleBultoDispatch(bulto); setTab('escanear'); }} />
+      </TaskPanel>
+
+      <TaskPanel tab="escanear" active={tab} idPrefix="dispatch">
       <BarcodeScannerModule
         title="Escaneo de despacho"
         description="Escanea el código de la caja (-C##) o del bulto (-B##) para despachar todo su contenido, o el tracking/etiqueta de un paquete individual. La cámara toma una foto automática al leer el código y el despacho se ejecuta cuando esa foto termina de subir."
@@ -525,8 +557,6 @@ export default function WarehouseDispatch({ user }) {
         onPhotoCaptured={handlePhotoCaptured}
         continuous={true}
       />
-
-      <ManualBultoDispatchCard onDispatch={(bulto) => handleBultoDispatch(bulto)} />
 
       {scanning && (
         <Card>
@@ -586,7 +616,11 @@ export default function WarehouseDispatch({ user }) {
         </div>
       )}
 
-      <DispatchScanHistoryPanel />
+      </TaskPanel>
+
+      <TaskPanel tab="historial" active={tab} idPrefix="dispatch">
+        <DispatchScanHistoryPanel />
+      </TaskPanel>
 
       {/* Modal de aprobación de salida de almacén */}
       <DispatchApprovalModal

@@ -2,7 +2,12 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ChevronDown, ChevronUp, History, Loader2, RefreshCw, ScanLine } from 'lucide-react';
+import { CloudUpload, History, Layers, Loader2, Printer, RefreshCw, ScanLine } from 'lucide-react';
+import TaskTabs from '@/components/common/TaskTabs';
+import TaskPanel from '@/components/common/TaskPanel';
+import EmptyTaskState from '@/components/common/EmptyTaskState';
+import useTaskTab from '@/hooks/useTaskTab';
+import PrintQueueShortcut from '@/components/warehouse/PrintQueueShortcut';
 import { toast } from 'sonner';
 import BarcodeScannerModule from '@/components/warehouse/BarcodeScannerModule';
 import useWarehouseAccess from '@/hooks/useWarehouseAccess';
@@ -46,7 +51,7 @@ const SERVER_LOOKUP_MS = 2500;
 export default function WarehouseScanPack({ user }) {
   const { allowed, loading: loadingAccess } = useWarehouseAccess(user, 'WarehouseScanPack');
   const [code, setCode] = useState('');
-  const [showHistory, setShowHistory] = useState(false);
+  const [tab, setTab] = useTaskTab(['empacar', 'etiquetas', 'lote', 'sincronizar', 'historial']);
   const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
   const [cajaRefreshKey, setCajaRefreshKey] = useState(0);
   const [labelsOpen, setLabelsOpen] = useState(false);
@@ -337,9 +342,7 @@ export default function WarehouseScanPack({ user }) {
           <ScanLine className="h-6 w-6 text-blue-600" /> Mesa de empaque
         </h1>
         <p className="text-sm text-slate-500 mt-1">
-          Escanea el tracking o la etiqueta: el paquete se marca como recibido y entra en la unidad
-          que elijas (bulto suelto o caja consolidada). Al cerrar la unidad, queda lista para
-          despachar en la pantalla de Despacho.
+          Escanea el tracking o la etiqueta y el paquete entra en el bulto o la caja que elijas.
         </p>
       </div>
 
@@ -353,6 +356,23 @@ export default function WarehouseScanPack({ user }) {
         sharedPending={shared.pending}
         sharedSyncing={shared.syncing}
       />
+
+      <TaskTabs
+        idPrefix="pack"
+        label="Tareas de la mesa de empaque"
+        active={tab}
+        onChange={setTab}
+        tabs={[
+          { key: 'empacar', label: 'Empacar', icon: ScanLine },
+          { key: 'etiquetas', label: 'Etiquetas', icon: Printer, badge: printQueue.length },
+          { key: 'lote', label: 'En lote', icon: Layers },
+          { key: 'sincronizar', label: 'Sincronizar', icon: CloudUpload, badge: pendingBultos.length + reviewQueue.items.length },
+          { key: 'historial', label: 'Historial', icon: History },
+        ]}
+      />
+
+      <TaskPanel tab="empacar" active={tab} idPrefix="pack">
+      <PrintQueueShortcut count={printQueue.length} onOpen={() => setTab('etiquetas')} />
 
       <PackDestinationSelector
         value={pack.destination}
@@ -393,8 +413,6 @@ export default function WarehouseScanPack({ user }) {
       )}
 
       <DuplicateTrackingAlert items={duplicates} onDismiss={() => setDuplicates([])} />
-
-      <ReviewQueueCard items={reviewQueue.items} onRetry={reviewQueue.retry} />
 
       {pack.error && (
         <p className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
@@ -464,8 +482,36 @@ export default function WarehouseScanPack({ user }) {
         onSelect={pack.selectUnit}
       />
 
-      {/* Cajas del cliente que esperan etiqueta continua y despacho */}
-      <CajaLotList cajas={cajas} onPrintLabels={() => setLabelsOpen(true)} />
+      {/* Resultado del último escaneo (instantáneo, local) */}
+      {pack.lastScan?.pkg && (
+        <OfflineScanResult
+          scanResult={pack.lastScan}
+          client={pack.lastScan.client}
+          isOnline={isOnline}
+          review={lastReview && String(lastReview.tracking).toUpperCase() === String(pack.lastScan.pkg?.tracking_number || '').toUpperCase() ? lastReview : null}
+        />
+      )}
+      </TaskPanel>
+
+      <TaskPanel tab="etiquetas" active={tab} idPrefix="pack">
+        {/* Cola de impresión persistente */}
+        <PrintQueueCard
+          queue={printQueue}
+          onRemove={removeFromQueue}
+          onClear={clearPrintQueue}
+          onPrintedAll={removeFromQueueMany}
+          onLogPrints={enqueuePrintLogs}
+        />
+        {/* Cajas del cliente que esperan etiqueta continua y despacho */}
+        <CajaLotList cajas={cajas} onPrintLabels={() => setLabelsOpen(true)} />
+        {!printQueue.length && !cajas.length && (
+          <EmptyTaskState
+            icon={Printer}
+            title="No hay etiquetas pendientes"
+            description="Las unidades que cierres aparecerán aquí para imprimir su etiqueta."
+          />
+        )}
+      </TaskPanel>
 
       <CajaLabelsDialog
         open={labelsOpen}
@@ -477,69 +523,53 @@ export default function WarehouseScanPack({ user }) {
         onPrinted={() => setLotKey((key) => key + 1)}
       />
 
-      {/* Crear bultos en lote (vacíos, solo etiquetas) */}
-      <BulkBultoCreator
-        getNextNumber={getNextNumber}
-        user={user}
-        onCreated={handleBulkCreated}
-        enqueueClosedBulto={enqueueClosedBulto}
-        pendingBultos={pendingBultos}
-        retrySync={retrySync}
-        onDiscardBulto={handleDiscardBulto}
-      />
-
-      {/* Resultado del último escaneo (instantáneo, local) */}
-      {pack.lastScan?.pkg && (
-        <OfflineScanResult
-          scanResult={pack.lastScan}
-          client={pack.lastScan.client}
-          isOnline={isOnline}
-          review={lastReview && String(lastReview.tracking).toUpperCase() === String(pack.lastScan.pkg?.tracking_number || '').toUpperCase() ? lastReview : null}
+      <TaskPanel tab="lote" active={tab} idPrefix="pack">
+        {/* Crear bultos en lote (vacíos, solo etiquetas) */}
+        <BulkBultoCreator
+          getNextNumber={getNextNumber}
+          user={user}
+          onCreated={handleBulkCreated}
+          enqueueClosedBulto={enqueueClosedBulto}
+          pendingBultos={pendingBultos}
+          retrySync={retrySync}
+          onDiscardBulto={handleDiscardBulto}
         />
-      )}
+      </TaskPanel>
 
-      {/* Cola de impresión persistente */}
-      <PrintQueueCard
-        queue={printQueue}
-        onRemove={removeFromQueue}
-        onClear={clearPrintQueue}
-        onPrintedAll={removeFromQueueMany}
-        onLogPrints={enqueuePrintLogs}
-      />
+      <TaskPanel tab="sincronizar" active={tab} idPrefix="pack">
+        {/* Unidades pendientes de sincronizar */}
+        <PackPendingSyncCard
+          items={pendingBultos}
+          isSyncing={isSyncing}
+          isOnline={isOnline}
+          onRetry={retrySync}
+        />
+        <ReviewQueueCard items={reviewQueue.items} onRetry={reviewQueue.retry} />
+        {!pendingBultos.length && !reviewQueue.items.length && (
+          <EmptyTaskState
+            icon={CloudUpload}
+            title="Todo sincronizado"
+            description="No hay unidades ni revisiones esperando conexión."
+          />
+        )}
+        <Button onClick={manualRefresh} disabled={manualRefreshing} variant="outline" className="w-full">
+          <RefreshCw className={`h-4 w-4 ${manualRefreshing ? 'animate-spin' : ''}`} />
+          {manualRefreshing ? 'Actualizando…' : 'Actualizar unidades y bultos'}
+        </Button>
+      </TaskPanel>
 
-      {/* Unidades pendientes de sincronizar */}
-      <PackPendingSyncCard
-        items={pendingBultos}
-        isSyncing={isSyncing}
-        isOnline={isOnline}
-        onRetry={retrySync}
-      />
-
-      {/* Historial de bultos y cajas */}
-      <Button onClick={manualRefresh} disabled={manualRefreshing} variant="outline" className="w-full">
-        <RefreshCw className={`h-4 w-4 ${manualRefreshing ? 'animate-spin' : ''}`} />
-        {manualRefreshing ? 'Actualizando…' : 'Actualizar unidades y bultos'}
-      </Button>
-      <Card>
-        <button
-          onClick={() => setShowHistory((v) => !v)}
-          className="w-full flex items-center justify-between gap-2 p-4 text-left"
-        >
-          <div className="flex items-center gap-2">
-            <History className="h-5 w-5 text-blue-600" />
+      <TaskPanel tab="historial" active={tab} idPrefix="pack">
+        {/* Historial de bultos y cajas */}
+        <Card>
+          <CardContent className="space-y-3 p-4">
             <div>
               <p className="font-semibold text-slate-800 text-sm">Historial de bultos y cajas</p>
               <p className="text-xs text-slate-500">Ver, reimprimir, editar o eliminar lo registrado</p>
             </div>
-          </div>
-          {showHistory ? <ChevronUp className="h-5 w-5 text-slate-400" /> : <ChevronDown className="h-5 w-5 text-slate-400" />}
-        </button>
-        {showHistory && (
-          <CardContent className="pt-0">
             <BultoHistory refreshKey={historyRefreshKey} />
           </CardContent>
-        )}
-      </Card>
+        </Card>
+      </TaskPanel>
 
       <AbsorbBultosConfirmDialog
         open={!!pack.absorbPending}
