@@ -1,4 +1,6 @@
 {
+  "description": "Avisos de cobro seg\u00fan los T\u00e9rminos (secci\u00f3n VII): cada d\u00eda a las 08:00 de Caracas, las facturas impagas que est\u00e1n exactamente en el d\u00eda 5, 7, 8, 14, 20, 22, 25 o 26 desde su emisi\u00f3n reciben el correo y la notificaci\u00f3n de esa etapa, una sola vez. Se detienen al pagar.",
+  "name": "Notificaciones de Almacenamiento Autom\u00e1ticas",
   "definition": {
     "document": {
       "dsl": "1.0.0",
@@ -14,19 +16,22 @@
             "function_name": "sendStorageNotifications",
             "args": {}
           },
-          "then": "end"
+          "then": "end",
+          "x-base44": {
+            "title": "Enviar avisos de cobro del d\u00eda",
+            "description": "Correo y notificaci\u00f3n por etapa"
+          }
         }
       }
     ]
   },
-  "name": "Notificaciones de Almacenamiento Autom\u00e1ticas",
   "trigger": {
     "condition": null,
     "config": {
       "trigger_type": "scheduled",
       "events": [],
       "schedule_mode": "recurring",
-      "cron_expression": "0 9 * * *",
+      "cron_expression": "0 8 * * *",
       "one_time_date": null,
       "timezone": "America/Caracas",
       "interval_value": null,
@@ -37,7 +42,6 @@
       "ends_after_count": null
     }
   },
-  "description": "Avisos de cobro seg\u00fan los T\u00e9rminos (secci\u00f3n VII): d\u00edas 5, 7, 8, 14, 20, 22, 25 y 26 desde la emisi\u00f3n de facturas impagas. Se detienen al pagar.",
   "x-base44-migrated-from-automation": {
     "legacy_payload_function": "sendStorageNotifications"
   }

@@ -3,8 +3,8 @@
 // Almacenamiento Automáticas".
 //
 // - Cada factura impaga recibe el aviso de la etapa en que está (día 5, 7, 8, 14,
-//   20, 22, 25 y 26 desde la emisión). Cada etapa se envía una sola vez
-//   (BillingNotice), y si una etapa se pasó por más de 2 días no se envía tarde.
+//   20, 22, 25 y 26 desde la emisión), solo en el día exacto de la etapa.
+//   Cada etapa se envía una sola vez (BillingNotice).
 // - Los avisos se detienen cuando la factura se paga, se cancela, tiene un pago en
 //   revisión o queda sin saldo.
 // - No modifica las facturas.
@@ -22,13 +22,10 @@ import {
 } from '../../shared/billingNotices.ts';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-const CATCH_UP_DAYS = 2;
 
+// Solo el día exacto de cada etapa (hora de Caracas): un aviso nunca sale tarde.
 function dueStage(day: number) {
-  const reached = STAGES.filter((s) => s.day <= day);
-  const stage = reached[reached.length - 1];
-  if (!stage || day - stage.day > CATCH_UP_DAYS) return null;
-  return stage;
+  return STAGES.find((s) => s.day === day) || null;
 }
 
 async function clientNames(base44: any, emails: string[]) {
