@@ -424,6 +424,21 @@ ol[data-sonner-toaster],
   z-index: 9999 !important;
 }
 
+/* Ficha integral de cliente (Analítica de clientes) */
+@keyframes ficha-rise { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: none; } }
+.ficha-btn {
+  display: inline-flex; align-items: center; gap: 8px; border-radius: 10px;
+  border: 1px solid #bfb596; background: #fbf8ef; color: #262a2b;
+  font-family: Inter, sans-serif; font-weight: 600; cursor: pointer;
+  transition: background .2s, box-shadow .2s, color .2s;
+}
+.ficha-btn:hover { background: #efe8d3; box-shadow: 0 4px 12px rgba(38,42,43,.12); }
+.ficha-btn:active { background: #e6dec6; }
+.ficha-btn:focus-visible { outline: 2px solid #c8692a; outline-offset: 2px; }
+.ficha-btn.pri { background: #c8692a; border-color: #c8692a; color: #fff; }
+.ficha-btn.pri:hover { background: #b35a20; }
+.ficha-btn:disabled { opacity: .5; pointer-events: none; }
+
 /* Barra de carga animada para buscador de paquetes */
 @keyframes loading-bar {
   0% { transform: translateX(-100%); }

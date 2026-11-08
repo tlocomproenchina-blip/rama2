@@ -3,7 +3,10 @@ import { useSearchParams } from 'react-router-dom';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, DollarSign, Package, Boxes, TrendingUp } from 'lucide-react';
+import { Loader2, DollarSign, Package, Boxes, TrendingUp, RefreshCw, FileSpreadsheet } from 'lucide-react';
+import FichaHero from '@/components/client-analytics/FichaHero';
+import FichaSection from '@/components/client-analytics/FichaSection';
+import { downloadSection, downloadFullReport } from '@/lib/clientReportExport';
 import { toast } from 'sonner';
 import AnalyticsSummaryCards from '@/components/client-analytics/AnalyticsSummaryCards';
 import MonthlySpendChart from '@/components/client-analytics/MonthlySpendChart';
@@ -211,32 +214,38 @@ export default function ClientAnalytics() {
     return <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin text-blue-600" /></div>;
   }
 
+  const exportData = { packages, invoices, payments: invoicePayments, consolidations, cbmIngresos, dispatchOrders, insurancePayments };
+  const dl = (name) => () => downloadSection(name, exportData, selectedClient);
+
   return (
-    <div className="space-y-8 max-w-7xl mx-auto">
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-800">Analítica de clientes</h1>
-          <p className="text-slate-500">Busca un cliente y visualiza su gasto, costos de envío y desempeño de consolidaciones.</p>
-        </div>
-        <Button variant="outline" onClick={() => loadData(selectedClient?.email)} disabled={!selectedClient || loading}>
-          {loading ? 'Actualizando...' : 'Actualizar'}
-        </Button>
-      </div>
+    <div className="max-w-7xl mx-auto rounded-[22px] bg-[#f6f1e4] pb-10 text-[#262a2b]">
+      <FichaHero>
+        <ClientAnalyticsSearch
+          selectedClient={selectedClient}
+          onSelectClient={setSelectedClient}
+        />
+      </FichaHero>
 
-      <ClientAnalyticsSearch
-        selectedClient={selectedClient}
-        onSelectClient={setSelectedClient}
-      />
-
+      <div className="flex flex-col gap-8 px-3 md:px-8">
       {!selectedClient && (
-        <Card className="border-0 shadow-md">
-          <CardContent className="p-10 text-center text-slate-500">
-            Selecciona un cliente en el buscador para ver su analítica.
-          </CardContent>
-        </Card>
+        <p className="-mt-6 relative rounded-[20px] border border-[#ddd4bb] bg-[#fbf8ef] p-10 text-center text-[#6b6a5b] shadow-[0_18px_44px_rgba(38,42,43,.14)]">
+          Selecciona un cliente en el buscador para ver su analítica.
+        </p>
       )}
 
-      {selectedClient && <ClientProfileCard client={selectedClient} />}
+      {selectedClient && (
+        <div className="-mt-9 relative flex flex-col gap-5 rounded-[20px] border border-[#ddd4bb] bg-[#fbf8ef] p-5 md:px-8 md:py-7 shadow-[0_18px_44px_rgba(38,42,43,.14)] animate-[ficha-rise_.9s_.15s_cubic-bezier(.2,.7,.2,1)_both]">
+          <ClientProfileCard client={selectedClient} />
+          <div className="flex flex-wrap gap-2.5">
+            <button className="ficha-btn pri h-[42px] px-[18px] text-sm" onClick={() => loadData(selectedClient?.email)} disabled={loading}>
+              <RefreshCw className="h-4 w-4" /> {loading ? 'Actualizando...' : 'Actualizar'}
+            </button>
+            <button className="ficha-btn h-[42px] px-[18px] text-sm" onClick={() => downloadFullReport(exportData, selectedClient)} disabled={loading}>
+              <FileSpreadsheet className="h-4 w-4" /> Reporte completo (Excel)
+            </button>
+          </div>
+        </div>
+      )}
 
       {selectedClient && (
         <ClientStateRatesCard
@@ -288,6 +297,7 @@ export default function ClientAnalytics() {
       {selectedClient && <ShippingCostBreakdownChart data={analytics.shipmentCostHistory} />}
 
       {selectedClient && (
+        <FichaSection title="Historial CBM" count={cbmIngresos.length} onDownload={dl('Recibos CBM')}>
         <ClientCbmHistory
           ingresos={cbmIngresos}
           totalCbm={cbmIngresos.reduce((s, i) => s + Number(i.cbm || 0), 0)}
@@ -295,23 +305,33 @@ export default function ClientAnalytics() {
           dispatchOrders={dispatchOrders}
           onRefresh={() => loadData(selectedClient?.email)}
         />
+        </FichaSection>
       )}
 
       {selectedClient && (
+        <FichaSection title="Facturas y abonos" count={invoices.length} onDownload={() => { dl('Facturas')(); dl('Abonos')(); }}>
         <ClientInvoicesList
           invoices={invoices}
           payments={invoicePayments}
           client={selectedClient}
           onPaymentSaved={refreshFinancials}
         />
+        </FichaSection>
       )}
 
-      {selectedClient && <ClientCargoPanel client={selectedClient} />}
+      {selectedClient && (
+        <FichaSection title="Consolidaciones y seguros" count={consolidations.length} defaultOpen={false} onDownload={() => { dl('Consolidaciones')(); dl('Seguros')(); }}>
+          <p className="text-sm text-[#6b6a5b]">{consolidations.length} consolidaciones · {insurancePayments.length} pagos de seguro. Descarga el detalle en Excel.</p>
+        </FichaSection>
+      )}
 
-      {selectedClient && <ClientGuidesPanel client={selectedClient} />}
+      {selectedClient && <FichaSection title="Bultos y cajas en almacén"><ClientCargoPanel client={selectedClient} /></FichaSection>}
+
+      {selectedClient && <FichaSection title="Guías de despacho"><ClientGuidesPanel client={selectedClient} /></FichaSection>}
 
       {selectedClient && (
-        <Card className="border-0 shadow-sm">
+        <FichaSection title="Órdenes de despacho" count={dispatchOrders.length} onDownload={dl('Órdenes despacho')}>
+        <Card className="border-0 shadow-none bg-transparent">
           {loading && dispatchOrders.length === 0 ? (
             <CardContent className="p-4 flex items-center gap-2 text-sm text-slate-500">
               <Loader2 className="h-4 w-4 animate-spin" /> Cargando órdenes de despacho…
@@ -329,9 +349,11 @@ export default function ClientAnalytics() {
             <Client360DispatchOrders orders={dispatchOrders} />
           )}
         </Card>
+        </FichaSection>
       )}
 
       {selectedClient && (
+        <FichaSection title="Paquetes" count={packages.length} onDownload={dl('Paquetes')}>
         <ClientPackagesTable
           packages={packages}
           client={selectedClient}
@@ -341,13 +363,13 @@ export default function ClientAnalytics() {
             setPackages((prev) => prev.map((p) => p.id === pkgId ? { ...p, ...patch } : p));
           }}
         />
+        </FichaSection>
       )}
 
       {selectedClient && analytics.shipmentCostHistory.length === 0 && !loading && (
-        <Card className="border-0 shadow-md">
-          <CardContent className="p-10 text-center text-slate-500">Aún no hay suficientes datos para mostrar analítica histórica.</CardContent>
-        </Card>
+        <p className="m-0 rounded-[10px] bg-[#f1ecd9] px-4 py-3 text-sm text-[#6b6a5b]">Aún no hay suficientes datos para mostrar analítica histórica.</p>
       )}
+      </div>
     </div>
   );
 }
