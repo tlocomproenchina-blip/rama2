@@ -5,7 +5,7 @@ import { loadDoorToDoorRate } from '@/lib/doorToDoorRate';
 import { deliveryChoiceFields } from '@/lib/invoiceDeliveryChoice';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, ReceiptText, RotateCcw, AlertTriangle, Package, ChevronDown, Boxes } from 'lucide-react';
+import { Loader2, ReceiptText, RotateCcw, AlertTriangle, Boxes } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import ClientSearchBox from '@/components/manual-billing/ClientSearchBox';
@@ -21,7 +21,7 @@ import BilledReceiptsSection from '@/components/manual-billing/BilledReceiptsSec
 import InvoicedReceiptsSection from '@/components/manual-billing/InvoicedReceiptsSection';
 import usePendingBillingClients from '@/hooks/usePendingBillingClients';
 import ClientPendingLoad from '@/components/manual-billing/ClientPendingLoad';
-import MobileBillingSummary from '@/components/manual-billing/MobileBillingSummary';
+import MobileBillingTabs from '@/components/manual-billing/MobileBillingTabs';
 
 const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 
@@ -63,8 +63,9 @@ export default function AdminManualBilling({ user }) {
   const clientEmailRef = useRef('');
   // Panel de carga pendiente: clientes con bultos sin factura vigente
   const pending = usePendingBillingClients();
-  // En móvil el panel arranca plegado para no empujar la facturación fuera de pantalla
-  const [showPending, setShowPending] = useState(false);
+  // En móvil y tablet cada sección va en su propia pestaña
+  const [mobileTab, setMobileTab] = useState('cliente');
+  const mobileVis = (...keys) => (keys.includes(mobileTab) ? 'block' : 'hidden xl:block');
   // Contenedores marcados a mano como ya facturados: no se borran, se agrupan aparte
   const [markedReceipts, setMarkedReceipts] = useState([]);
   const [markingReceiptId, setMarkingReceiptId] = useState(null);
@@ -399,6 +400,7 @@ export default function AdminManualBilling({ user }) {
 
   // Cliente elegido en el panel: se cargan sus registros igual que con el buscador
   const selectPendingClient = (pendingClient) => {
+    setMobileTab('cliente');
     loadClientInvoices({
       email: pendingClient.client_email,
       full_name: pendingClient.client_name,
@@ -1032,7 +1034,7 @@ export default function AdminManualBilling({ user }) {
   );
 
   return (
-    <div className="-m-4 min-h-[70dvh] space-y-5 overflow-x-hidden p-4 pb-28 md:-m-6 md:p-6 lg:-m-8 lg:p-8 xl:pb-8">
+    <div className="-m-4 min-h-[70dvh] space-y-5 overflow-x-clip p-4 pb-8 md:-m-6 md:p-6 lg:-m-8 lg:p-8">
       <motion.div
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
@@ -1072,24 +1074,21 @@ export default function AdminManualBilling({ user }) {
         </div>
       </motion.div>
 
-      {/* Móvil y tablet: la carga pendiente se despliega sobre el expediente */}
-      <Button
-        variant="outline"
-        className="w-full justify-between xl:hidden"
-        onClick={() => setShowPending((v) => !v)}
-      >
-        <span className="inline-flex items-center gap-2">
-          <Package className="h-4 w-4" /> Carga pendiente ({pendingQueue.length} cliente(s))
-        </span>
-        <ChevronDown className={`h-4 w-4 transition-transform ${showPending ? 'rotate-180' : ''}`} />
-      </Button>
+      <MobileBillingTabs
+        active={mobileTab}
+        onChange={(tab) => { setMobileTab(tab); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+        pendingCount={pendingQueue.length}
+        receiptsCount={rows.length}
+        total={total}
+        hasClient={!!client}
+      />
 
       <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-[19rem_minmax(0,1fr)_22rem]">
         <motion.aside
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35, ease: 'easeOut', delay: 0.05 }}
-          className={showPending ? 'block' : 'hidden xl:sticky xl:top-20 xl:block'}
+          className={`${mobileVis('pendiente')} xl:sticky xl:top-20`}
         >
           <PendingBillingPanel
             clients={pending.clients}
@@ -1105,9 +1104,9 @@ export default function AdminManualBilling({ user }) {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35, ease: 'easeOut', delay: 0.12 }}
-          className="min-w-0 space-y-4"
+          className={`min-w-0 space-y-4 ${mobileVis('cliente', 'recibos')}`}
         >
-          <div className="rounded-2xl border border-border bg-card p-4">
+          <div className={`rounded-2xl border border-border bg-card p-4 ${mobileVis('cliente')}`}>
             <ClientSearchBox onSelect={loadClientInvoices} />
           </div>
 
@@ -1127,7 +1126,8 @@ export default function AdminManualBilling({ user }) {
         </div>
       ) : (
         <div className="space-y-4">
-            <ClientInfoCard client={client} onClear={() => { setClient(null); setRows([]); setDupGroups([]); setAutoSummary(null); }} />
+          <div className={`space-y-4 ${mobileVis('cliente')}`}>
+            <ClientInfoCard client={client} onClear={() => { setClient(null); setRows([]); setDupGroups([]); setAutoSummary(null); setMobileTab('cliente'); }} />
             <ClientStateRatesCard
               client={client}
               stateConfigs={stateConfigs}
@@ -1146,6 +1146,12 @@ export default function AdminManualBilling({ user }) {
               />
             )}
 
+            <Button className="w-full xl:hidden" onClick={() => { setMobileTab('recibos'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
+              Ver recibos por facturar ({rows.length})
+            </Button>
+          </div>
+
+          <div className={`space-y-4 ${mobileVis('recibos')}`}>
             <p className="pt-1 font-display text-xs font-semibold uppercase tracking-[0.2em] text-primary">
               Recibos registrados por facturar
             </p>
@@ -1195,6 +1201,11 @@ export default function AdminManualBilling({ user }) {
             />
 
             <InvoicedReceiptsSection receipts={invoicedReceipts} />
+
+            <Button className="w-full xl:hidden" onClick={() => { setMobileTab('resumen'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
+              <ReceiptText className="h-4 w-4 mr-2" /> Ir al resumen (${total.toFixed(2)})
+            </Button>
+          </div>
         </div>
       )}
 
@@ -1204,17 +1215,11 @@ export default function AdminManualBilling({ user }) {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35, ease: 'easeOut', delay: 0.19 }}
-          className="hidden xl:sticky xl:top-20 xl:block"
+          className={`${client ? mobileVis('resumen') : 'hidden xl:block'} min-w-0 xl:sticky xl:top-20`}
         >
           {billingSummary}
         </motion.aside>
       </div>
-
-      {client && (
-        <MobileBillingSummary total={total}>
-          {billingSummary}
-        </MobileBillingSummary>
-      )}
 
       <DuplicateMergeDialog
         open={showMergeDialog}
