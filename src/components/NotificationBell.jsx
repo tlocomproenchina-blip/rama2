@@ -51,8 +51,7 @@ export default function NotificationBell({ user }) {
   const loadNotifications = useCallback(async () => {
     if (!user?.email) return;
     try {
-      const res = await base44.functions.invoke('getMyNotifications', {});
-      const notifs = (res?.data?.notifications) || [];
+      const notifs = await fetchMyNotifications({ force: true });
 
       const dedupedMap = new Map();
       for (const notif of notifs) {

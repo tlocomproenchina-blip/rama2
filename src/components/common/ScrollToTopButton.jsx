@@ -24,13 +24,11 @@ export default function ScrollToTopButton() {
     window.addEventListener('scroll', check, { passive: true });
     window.addEventListener('resize', check, { passive: true });
     check();
-    const interval = setInterval(check, 1000);
 
     return () => {
       document.removeEventListener('scroll', check, { capture: true });
       window.removeEventListener('scroll', check);
       window.removeEventListener('resize', check);
-      clearInterval(interval);
     };
   }, []);
 

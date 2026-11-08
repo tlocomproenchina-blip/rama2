@@ -132,7 +132,8 @@ export default function useAttentionFlags({ user }) {
     };
 
     run();
-    const id = setInterval(run, 30000);
+    // Respaldo cada 60 s solo con la pestaña visible; los cambios llegan en vivo por eventos.
+    const id = setInterval(() => { if (!document.hidden) run(); }, 60000);
     window.addEventListener('entity:event', handleEntityEvent);
 
     return () => {

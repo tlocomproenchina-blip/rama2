@@ -1,5 +1,6 @@
 import React from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
+import { fetchMyNotifications } from '@/lib/myNotificationsFeed';
 
 // Mapea páginas del sidebar a tipos de notificación que les corresponden.
 // Cuando hay notificaciones no leídas de ese tipo, se muestra el punto rojo.
@@ -31,8 +32,7 @@ export default function useNotificationFlags({ user }) {
       return;
     }
     try {
-      const res = await base44.functions.invoke('getMyNotifications', {});
-      const notifs = (res?.data?.notifications) || [];
+      const notifs = await fetchMyNotifications();
       const unreadTypes = new Set(
         (notifs || []).filter((n) => !n.read).map((n) => n.type).filter(Boolean)
       );
@@ -53,7 +53,8 @@ export default function useNotificationFlags({ user }) {
       if (evt?.detail?.entity === 'Notification') run();
     };
     run();
-    const id = setInterval(run, 30000);
+    // Respaldo cada 60 s solo con la pestaña visible; los cambios llegan en vivo por eventos.
+    const id = setInterval(() => { if (!document.hidden) run(); }, 60000);
     window.addEventListener('entity:event', handleEntityEvent);
     return () => {
       mounted = false;

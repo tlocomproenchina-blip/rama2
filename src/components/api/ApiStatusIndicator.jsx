@@ -21,7 +21,8 @@ export default function ApiStatusIndicator() {
     };
 
     updateStatus();
-    const interval = setInterval(updateStatus, 2000);
+    // Lectura local (sin red); cada 5 s basta para avisar del corte.
+    const interval = setInterval(() => { if (!document.hidden) updateStatus(); }, 5000);
 
     return () => clearInterval(interval);
   }, []);
