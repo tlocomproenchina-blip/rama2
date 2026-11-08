@@ -4,6 +4,7 @@
 import { isUnregisteredLine, summarizeGuide } from './dispatchGuides';
 import { qrDataUrl } from './qrCode';
 import { clientRefsOf, palletCountFor, palletSequence, palletsTotalOf } from './guidePallets';
+import { sumCbm, volumeLabel } from './guideVolume';
 
 // Contenido del QR de la guía. El escáner de despacho lo reconoce por el prefijo.
 export const GUIDE_QR_PREFIX = 'GUIA:';
@@ -38,6 +39,7 @@ export async function generateDispatchGuidePdf({
   // Paletas físicas (lo que cuenta el transporte): solo aparecen si se anotaron.
   const palletsTotal = palletsTotalOf(pallets);
   const palletLabel = palletsTotal ? `${palletsTotal} paleta(s) · ` : '';
+  const totalCbm = list.reduce((sum, entry) => sum + sumCbm(entry.bultos), 0);
   const now = emittedAt ? new Date(emittedAt) : new Date();
   const left = 14;
   const right = 196;
@@ -222,7 +224,7 @@ export async function generateDispatchGuidePdf({
 
     // El chofer solo necesita contar bultos: el resumen del cliente muestra ese número
     // y nada más, en grande, sin paquetes ni órdenes que confundan el conteo.
-    if (y > 256) startPage(false);
+    if (y > 250) startPage(false);
     const clientBultos = bultos.filter((b) => b.label_code).length;
     const clientUnregistered = bultos.filter(isUnregisteredLine).length;
     // Paletas del cliente: el transporte cuenta paletas (mark + X/N escrito en cada
@@ -246,6 +248,9 @@ export async function generateDispatchGuidePdf({
     doc.setFontSize(17);
     doc.text(`${clientPallets ? 'Contenido cliente' : 'Total cliente'}: ${clientBultos} bulto(s)`, right, y, { align: 'right' });
     y += 5.5;
+    doc.setFontSize(10.5);
+    doc.text(`Volumen: ${volumeLabel(sumCbm(bultos))}`, right, y, { align: 'right' });
+    y += 5;
     if (clientUnregistered) {
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(8.5);
@@ -277,7 +282,10 @@ export async function generateDispatchGuidePdf({
     doc.text(`+ ${unregistered} carga(s) sin bulto registrado`, right, y + 7, { align: 'right' });
   }
   doc.setTextColor(30, 41, 59);
-  y += 22;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(12);
+  doc.text(`Volumen total: ${volumeLabel(totalCbm)}`, right, y + (unregistered ? 13 : 10), { align: 'right' });
+  y += 28;
 
   // Notas de la guía (las que se escriben al anotar la entrega): salen impresas.
   const noteLines = notes ? doc.splitTextToSize(String(notes).trim(), right - left - 4) : [];
