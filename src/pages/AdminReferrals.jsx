@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { base44 } from "@/components/api/ApiQueueManager";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,7 +48,8 @@ export default function AdminReferrals() {
         const [u, r, c, s] = await Promise.all([
           base44.functions.invoke('listAllUsers', { role: 'user', limit: 5000 }).then(r => r?.data?.users || []),
           base44.entities.ReferralCbmReward.filter({}, '-created_date', 1000),
-          base44.entities.CreditsLedger.filter({}, '-created_date', 2000),
+          // Solo se usan los créditos aplicados y revertidos
+          base44.entities.CreditsLedger.filter({ status: { $in: ['applied', 'reversed'] } }, '-created_date', 2000),
           base44.entities.ReferralSettings.filter({ config_key: 'main' })
         ]);
         setUsers(u || []);

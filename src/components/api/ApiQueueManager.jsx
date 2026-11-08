@@ -443,7 +443,9 @@ class ApiQueueManager {
   }
 
   invalidateEntityCache(entityName, methods = []) {
-    const targets = methods.length ? methods : ['list', 'filter', 'get', 'schema'];
+    const base = methods.length ? methods : ['list', 'filter', 'get', 'schema'];
+    // Cualquier escritura deja viejos los conteos y totales
+    const targets = [...base, 'count', 'aggregate'];
     Array.from(this.cache.keys())
       .filter((key) => key.startsWith(`${entityName}:`) && targets.some((method) => key.startsWith(`${entityName}:${method}`)))
       .forEach((key) => this.cache.delete(key));
@@ -682,6 +684,29 @@ class ApiQueueManager {
         return await this.enqueue(async () => {
           return await base44Client.entities[entityName].delete(id);
         }, 'HIGH', 'write', undefined, { label: `${entityName}.delete` });
+      },
+
+      // Conteos y totales calculados en el servidor (con cola, caché y reintentos)
+      count: async (query = {}) => {
+        const cacheKey = this.getCacheKey(entityName, 'count', { query });
+        const cached = this.getFromCache(cacheKey);
+        if (cached !== null && cached !== undefined) return cached;
+        const result = await this.enqueue(async () => {
+          return await base44Client.entities[entityName].count(query);
+        }, 'NORMAL', 'read', cacheKey);
+        this.saveToCache(cacheKey, result);
+        return result;
+      },
+
+      aggregate: async (params = {}) => {
+        const cacheKey = this.getCacheKey(entityName, 'aggregate', params);
+        const cached = this.getFromCache(cacheKey);
+        if (cached) return cached;
+        const result = await this.enqueue(async () => {
+          return await base44Client.entities[entityName].aggregate(params);
+        }, 'NORMAL', 'read', cacheKey);
+        this.saveToCache(cacheKey, result);
+        return result;
       },
 
       bulkCreate: async (dataArray) => {

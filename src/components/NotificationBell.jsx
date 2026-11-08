@@ -3,6 +3,7 @@ import { base44 } from '@/api/base44Client';
 import useEntitySubscription from '@/hooks/useEntitySubscription';
 import { useNavigate } from 'react-router-dom';
 import { getNotificationUrl } from '@/lib/notificationTarget';
+import { fetchMyNotifications } from '@/lib/myNotificationsFeed';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {

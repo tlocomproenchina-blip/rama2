@@ -36,11 +36,11 @@ import { toast } from 'sonner';
 import { replaceEmailVariables } from '@/components/EmailVariableReplacer';
 import { getEmailQueueStats } from '@/components/NotificationUtils';
 import { logActionAudit } from '@/lib/actionAudit';
-import { fetchAllPaginated } from '@/lib/fetchAllPaginated';
+const ACTIVE_PACKAGE_STATUSES = ['recibido', 'consolidado', 'en_transito'];
 
 export default function AdminEmailCampaigns({ user }) {
   const [clients, setClients] = useState([]);
-  const [packages, setPackages] = useState([]);
+  const [packages, setPackages] = useState({ any: new Set(), active: new Set() });
   const [config, setConfig] = useState(null);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
@@ -112,12 +112,16 @@ export default function AdminEmailCampaigns({ user }) {
   const loadClients = async () => {
     // Paginado: sin esto el backend devuelve solo los primeros 200 registros
     // Los clientes se leen desde el servidor: el navegador no tiene permiso para listar usuarios.
-    const [users, pkgs] = await Promise.all([
+    // Quién tiene paquetes se calcula en el servidor (totales por cliente),
+    // sin descargar todos los paquetes al navegador.
+    const [users, anyRes, activeRes] = await Promise.all([
       base44.functions.invoke('listAllUsers', { role: 'user', limit: 5000 }).then((r) => r?.data?.users || []),
-      fetchAllPaginated('Package', { sort: '-created_date' })
+      base44.entities.Package.aggregate({ groupBy: 'client_email' }),
+      base44.entities.Package.aggregate({ query: { status: { $in: ACTIVE_PACKAGE_STATUSES } }, groupBy: 'client_email' })
     ]);
+    const toSet = (res) => new Set((res?.rows || []).map((r) => r.client_email).filter(Boolean));
     setClients(users);
-    setPackages(pkgs);
+    setPackages({ any: toSet(anyRes), active: toSet(activeRes) });
     setLoading(false);
   };
 
@@ -192,11 +196,8 @@ export default function AdminEmailCampaigns({ user }) {
     if (targetType === 'inactive') return clients.filter(c => c.is_active === false);
 
     if (targetType === 'with_packages' || targetType === 'without_packages' || targetType === 'with_active_packages') {
-      const activeStatuses = ['recibido', 'consolidado', 'en_transito'];
-      const clientsWithAnyPackages = new Set(packages.map(pkg => pkg.client_email));
-      const clientsWithActivePackages = new Set(
-        packages.filter(pkg => activeStatuses.includes(pkg.status)).map(pkg => pkg.client_email)
-      );
+      const clientsWithAnyPackages = packages.any;
+      const clientsWithActivePackages = packages.active;
       if (targetType === 'with_packages') return clients.filter(c => clientsWithAnyPackages.has(c.email));
       if (targetType === 'without_packages') return clients.filter(c => !clientsWithAnyPackages.has(c.email));
       return clients.filter(c => clientsWithActivePackages.has(c.email));

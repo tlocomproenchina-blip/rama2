@@ -14,6 +14,8 @@ import { generateDispatchOrderPdf } from '@/lib/dispatchOrderPdf';
 import StateFilter from '@/components/common/StateFilter';
 import { getAll as idbGetAll, bulkPut as idbBulkPut, clearStore as idbClearStore } from '@/lib/offlineDb';
 
+const PAGE_SIZE = 100;
+
 export default function WarehouseDispatchHistory({ user }) {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -42,6 +44,8 @@ export default function WarehouseDispatchHistory({ user }) {
   const [employees, setEmployees] = useState([]);
   const [showDuplicateReceipts, setShowDuplicateReceipts] = useState(false);
   const [backfilling, setBackfilling] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   // El filtro por creador es exclusivo del administrador general
   const canFilterByCreator = user?.role === 'admin';
@@ -224,12 +228,49 @@ export default function WarehouseDispatchHistory({ user }) {
     } catch (_) {}
   }, []);
 
+  // Completa el N° de recibo de los items que no lo tienen (una sola consulta por lote)
+  const withReceipts = useCallback(async (list) => {
+    const trackings = [];
+    list.forEach((o) => (o.items || []).forEach((item) => {
+      if (item.tracking_number && !item.consolidation_tracking) trackings.push(item.tracking_number);
+    }));
+    if (!trackings.length) return list;
+    const res = await base44.functions.invoke('getDispatchReceiptsMap', { tracking_numbers: trackings });
+    const receiptMap = res?.data?.map || res?.map || {};
+    return list.map((o) => (!Array.isArray(o.items) ? o : {
+      ...o,
+      items: o.items.map((item) => (item.consolidation_tracking
+        ? item
+        : { ...item, consolidation_tracking: receiptMap[item.tracking_number] || '' })),
+    }));
+  }, []);
+
+  // Carga la siguiente página de órdenes y la suma a la lista
+  const loadMore = async () => {
+    setLoadingMore(true);
+    try {
+      const rows = (await base44.entities.DispatchOrder.filter({}, '-created_date', PAGE_SIZE, orders.length)) || [];
+      setHasMore(rows.length === PAGE_SIZE);
+      const known = new Set(orders.map((o) => o.id));
+      const fresh = await withReceipts(rows.filter((o) => !known.has(o.id))).catch(() => rows);
+      const combined = [...orders, ...fresh];
+      setOrders(combined);
+      try { await idbBulkPut('dispatch_orders', fresh.map((o) => ({ ...o, id: o.id }))); } catch (_) {}
+      enrichReceiptTotals(combined);
+      enrichInvoiceInfo(combined);
+    } catch (_) {
+      toast.error('No se pudieron cargar más órdenes');
+    }
+    setLoadingMore(false);
+  };
+
   // Refrescar desde el servidor en segundo plano (no bloqueante)
   const refreshFromServer = useCallback(async () => {
     setServerRefreshing(true);
     try {
-      const rows = await base44.entities.DispatchOrder.list('-created_date', 100);
+      const rows = await base44.entities.DispatchOrder.list('-created_date', PAGE_SIZE);
       const ordersList = rows || [];
+      setHasMore(ordersList.length === PAGE_SIZE);
 
       // Guardar en caché local
       try {
@@ -243,39 +284,17 @@ export default function WarehouseDispatchHistory({ user }) {
       setLoading(false);
 
       // Enriquecer items con consolidation_tracking (recibo) si no lo tienen
-      const trackingsToLookup = [];
-      ordersList.forEach((o) => {
-        (o.items || []).forEach((item) => {
-          if (item.tracking_number && !item.consolidation_tracking) {
-            trackingsToLookup.push(item.tracking_number);
-          }
-        });
-      });
-
       let enrichedList = ordersList;
-      if (trackingsToLookup.length > 0) {
-        try {
-          const res = await base44.functions.invoke('getDispatchReceiptsMap', { tracking_numbers: trackingsToLookup });
-          const receiptMap = res?.data?.map || res?.map || {};
-          enrichedList = ordersList.map((o) => {
-            if (!Array.isArray(o.items)) return o;
-            return {
-              ...o,
-              items: o.items.map((item) => (
-                item.consolidation_tracking
-                  ? item
-                  : { ...item, consolidation_tracking: receiptMap[item.tracking_number] || '' }
-              )),
-            };
-          });
+      try {
+        enrichedList = await withReceipts(ordersList);
+        if (enrichedList !== ordersList) {
           setOrders(enrichedList);
           // Actualizar caché con items enriquecidos
           try {
-            const enrichedWithIds = enrichedList.map((o) => ({ ...o, id: o.id }));
-            await idbBulkPut('dispatch_orders', enrichedWithIds);
+            await idbBulkPut('dispatch_orders', enrichedList.map((o) => ({ ...o, id: o.id })));
           } catch (_) {}
-        } catch (_) {}
-      }
+        }
+      } catch (_) {}
 
       // Totales esperados por recibo e info de facturación/pago (solo si hay conexión)
       enrichReceiptTotals(enrichedList);
@@ -290,7 +309,7 @@ export default function WarehouseDispatchHistory({ user }) {
     } finally {
       setServerRefreshing(false);
     }
-  }, [enrichReceiptTotals, enrichInvoiceInfo, orders.length, loading]);
+  }, [enrichReceiptTotals, enrichInvoiceInfo, withReceipts, orders.length, loading]);
 
   // Al montar: leer caché al instante, luego refrescar del servidor en background
   useEffect(() => {
@@ -886,6 +905,15 @@ export default function WarehouseDispatchHistory({ user }) {
               onSelectToggle={toggleSelect}
             />
           ))}
+        </div>
+      )}
+
+      {!loading && hasMore && !fromCache && (
+        <div className="flex justify-center">
+          <Button variant="outline" onClick={loadMore} disabled={loadingMore}>
+            {loadingMore && <Loader2 className="h-4 w-4 animate-spin" />}
+            Cargar más órdenes
+          </Button>
         </div>
       )}
 
