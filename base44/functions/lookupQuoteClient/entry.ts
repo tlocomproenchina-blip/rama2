@@ -18,10 +18,12 @@ export default async function(req) {
     }
 
     const u = users[0];
+    // El nombre del cliente solo se entrega a administración.
+    const caller = await base44.auth.me().catch(() => null);
     return Response.json({
       found: true,
       shipping_mark: u.shipping_mark || null,
-      full_name: u.full_name || null,
+      full_name: caller?.role === 'admin' ? (u.full_name || null) : null,
       is_active: u.is_active !== false
     });
   } catch (error) {

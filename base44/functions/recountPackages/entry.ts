@@ -6,6 +6,8 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
+    const caller = await base44.auth.me().catch(() => null);
+    if (caller?.role !== 'admin') return Response.json({ error: 'Forbidden' }, { status: 403 });
 
     const staleThreshold = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
     const acc = {

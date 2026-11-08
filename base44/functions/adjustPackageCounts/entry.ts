@@ -9,6 +9,8 @@ Deno.serve(async (req) => {
   const timings: Record<string, number> = {};
   try {
     const base44 = createClientFromRequest(req);
+    const caller = await base44.auth.me().catch(() => null);
+    if (caller?.role !== 'admin') return Response.json({ error: 'Forbidden' }, { status: 403 });
     const body = await req.json().catch(() => ({}));
     timings.parse_ms = Date.now() - t0;
     const {

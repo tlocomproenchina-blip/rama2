@@ -8,9 +8,16 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
 
-    const { image_base64, ext } = await req.json();
+    const { image_base64, ext, device_id } = await req.json().catch(() => ({}));
     if (!image_base64) {
       return Response.json({ error: 'image_base64 es requerido' }, { status: 400 });
+    }
+
+    // Solo usuarios con sesión o los dispositivos del almacén (enlace de trabajo
+    // sin sesión, que siempre envía su device_id) pueden subir.
+    const caller = await base44.auth.me().catch(() => null);
+    if (!caller && !String(device_id || '').trim()) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const url = await uploadBase64ToBunny(String(image_base64), String(ext || 'jpg'));

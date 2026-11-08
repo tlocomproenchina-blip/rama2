@@ -26,8 +26,22 @@ function openDb() {
         }
       });
     };
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
+    req.onsuccess = () => {
+      const db = req.result;
+      // Otra pestaña con una versión más nueva de la app necesita actualizar la base:
+      // se cierra esta conexión para no bloquearla y se reabre en el próximo uso.
+      db.onversionchange = () => { db.close(); dbPromise = null; };
+      resolve(db);
+    };
+    req.onerror = () => {
+      dbPromise = null;
+      // Esta pestaña tiene una versión vieja de la app: se recarga una vez para tomar la nueva.
+      if (req.error?.name === 'VersionError' && !sessionStorage.getItem('offlinedb_reloaded')) {
+        sessionStorage.setItem('offlinedb_reloaded', '1');
+        window.location.reload();
+      }
+      reject(req.error);
+    };
   });
   return dbPromise;
 }

@@ -19,6 +19,10 @@ export default async function (req: Request): Promise<Response> {
     const invs = await base44.asServiceRole.entities.Invoice.filter({ id: invoiceId });
     if (!invs || invs.length === 0) return Response.json({ error: 'Factura no encontrada' }, { status: 404 });
     const invoice = invs[0];
+    const ownsInvoice = String(invoice.client_email || '').toLowerCase() === String(user.email || '').toLowerCase();
+    if (user.role !== 'admin' && !ownsInvoice) {
+      return Response.json({ error: 'No tienes acceso a esta factura' }, { status: 403 });
+    }
 
     const manualRecibos = Array.isArray(invoice.manual_recibos) ? invoice.manual_recibos : [];
     const costBreakdown = invoice.cost_breakdown || null;

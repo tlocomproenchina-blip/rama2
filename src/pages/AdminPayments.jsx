@@ -25,6 +25,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import PaymentReportDownloadButton from '@/components/admin/PaymentReportDownloadButton';
 import PaymentReportDateExport from '@/components/admin/PaymentReportDateExport';
 
+const HISTORY_PAGE = 200;
+
 export default function AdminPayments({ user }) {
   const [consolidations, setConsolidations] = useState([]);
   const [reviewInvoices, setReviewInvoices] = useState([]);
@@ -34,10 +36,14 @@ export default function AdminPayments({ user }) {
   // Cédula escrita en el buscador → correos de los clientes que la tienen.
   const cedulaEmails = useCedulaClientEmails(search);
   const [statusFilter, setStatusFilter] = useState('pending');
+  // Carga progresiva del historial y totales calculados en el servidor.
+  const [pageCount, setPageCount] = useState(1);
+  const [hasMoreCons, setHasMoreCons] = useState(false);
+  const [stats, setStats] = useState({ pending: 0, validated: 0, collected: 0 });
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [pageCount]);
 
   // Tiempo real: cambios en consolidaciones se reflejan al instante en todas las pantallas
   useEntitySubscription('Consolidation', (event) => {
@@ -71,10 +77,22 @@ export default function AdminPayments({ user }) {
 
   const loadData = async () => {
     try {
-      const [cons, invs] = await Promise.all([
-        base44.entities.Consolidation.list('-created_date'),
-        base44.entities.Invoice.filter({ status: 'revision' }, '-invoice_date', 200)
+      const limit = HISTORY_PAGE * pageCount;
+      const [pendingCons, recentCons, invs, pendingCount, validatedCount, collected] = await Promise.all([
+        base44.entities.Consolidation.filter({ status: 'pago_pendiente_validacion' }, '-created_date', 500),
+        base44.entities.Consolidation.filter({ status: { $ne: 'pago_pendiente_validacion' } }, '-created_date', limit),
+        base44.entities.Invoice.filter({ status: 'revision' }, '-invoice_date', 200),
+        base44.entities.Consolidation.count({ status: 'pago_pendiente_validacion' }),
+        base44.entities.Consolidation.count({ payment_validated: true }),
+        base44.entities.Consolidation.aggregate({ query: { payment_validated: true }, sum: ['payment_amount'] }),
       ]);
+      const cons = [...pendingCons, ...recentCons];
+      setHasMoreCons(recentCons.length === limit);
+      setStats({
+        pending: pendingCount || 0,
+        validated: validatedCount || 0,
+        collected: Number(collected?.rows?.[0]?.sum_payment_amount || 0),
+      });
       setConsolidations(cons);
       setReviewInvoices(invs);
 
@@ -222,7 +240,7 @@ export default function AdminPayments({ user }) {
               <div>
                 <p className="text-sm text-slate-500">Pendientes</p>
                 <p className="text-3xl font-bold text-slate-800">
-                  {consolidations.filter(c => c.status === 'pago_pendiente_validacion').length + reviewInvoices.length}
+                  {stats.pending + reviewInvoices.length}
                 </p>
               </div>
               <div className="p-3 bg-yellow-100 rounded-xl">
@@ -238,7 +256,7 @@ export default function AdminPayments({ user }) {
               <div>
                 <p className="text-sm text-slate-500">Validados</p>
                 <p className="text-3xl font-bold text-slate-800">
-                  {consolidations.filter(c => c.payment_validated).length}
+                  {stats.validated}
                 </p>
               </div>
               <div className="p-3 bg-emerald-100 rounded-xl">
@@ -254,7 +272,7 @@ export default function AdminPayments({ user }) {
               <div>
                 <p className="text-sm text-slate-500">Total Recaudado</p>
                 <p className="text-3xl font-bold text-slate-800">
-                  ${consolidations.filter(c => c.payment_validated).reduce((sum, c) => sum + (c.payment_amount || 0), 0).toFixed(2)}
+                  ${stats.collected.toFixed(2)}
                 </p>
               </div>
               <div className="p-3 bg-blue-100 rounded-xl">
@@ -338,6 +356,17 @@ export default function AdminPayments({ user }) {
                 onRefresh={loadData}
                 currentUser={user}
               />
+              {hasMoreCons && statusFilter !== 'pending' && (
+                <div className="flex justify-center pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setPageCount((n) => n + 1)}
+                    className="rounded-xl border border-border bg-card px-4 py-2 text-sm font-semibold text-foreground hover:bg-accent"
+                  >
+                    Cargar más consolidaciones
+                  </button>
+                </div>
+              )}
             </div>
           )}
           {filteredReviewInvoices.length === 0 && filteredCons.filter(c => c.status === 'pago_pendiente_validacion').length === 0 && (

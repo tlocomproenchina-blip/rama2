@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 import { sendBrevoEmail } from '../../shared/brevoEmail.ts';
+import { sendDeniedReason } from '../../shared/sendPermission.ts';
 
 // Backend function que envía emails y registra el log usando asServiceRole.
 // Esto evita que el envío dependa de la cola/circuit breaker del navegador del cliente.
@@ -27,6 +28,9 @@ Deno.serve(async (req) => {
     if (!to || !subject) {
       return Response.json({ error: 'Missing to/subject' }, { status: 400 });
     }
+
+    const denied = await sendDeniedReason(base44, user, [to, in_app?.user_email]);
+    if (denied) return Response.json({ error: denied }, { status: 403 });
 
     // Resolver from_name desde AppConfig si no viene
     let resolvedFromName = from_name;

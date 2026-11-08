@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import { sendDeniedReason } from '../../shared/sendPermission.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -16,6 +17,9 @@ Deno.serve(async (req) => {
     if (!userEmail || !title) {
       return Response.json({ error: 'Missing required fields' }, { status: 400 });
     }
+
+    const denied = await sendDeniedReason(base44, caller, [userEmail]);
+    if (denied) return Response.json({ error: denied }, { status: 403 });
 
     // Obtener usuario con suscripción
     const users = await base44.asServiceRole.entities.User.filter({ email: userEmail });

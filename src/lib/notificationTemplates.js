@@ -148,8 +148,9 @@ export async function ensureBaseNotificationTemplates() {
     const existingNames = new Set((existingTemplates || []).map((template) => template.name));
     const missingTemplates = BASE_NOTIFICATION_TEMPLATES.filter((template) => !existingNames.has(template.name));
 
+    // Solo administración puede crear plantillas; para el resto se usa el texto de respaldo.
     if (missingTemplates.length > 0) {
-      await Promise.all(
+      await Promise.allSettled(
         missingTemplates.map((template) => base44.entities.EmailTemplate.create({
           ...template,
           attachments: [],
@@ -190,7 +191,8 @@ export async function renderEmailTemplate({
 export async function markTemplateAsUsed(template) {
   if (!template?.id) return;
 
+  // El contador solo lo actualiza administración; para clientes se omite sin error.
   await base44.entities.EmailTemplate.update(template.id, {
     usage_count: Number(template.usage_count || 0) + 1,
-  });
+  }).catch(() => {});
 }

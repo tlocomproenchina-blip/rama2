@@ -34,6 +34,14 @@ export default async function(req: Request): Promise<Response> {
     // Proyección compartida: solo lo que muestran las pantallas de escaneo.
     const bulto = bultoScanProjection(found);
 
+    // Sin sesión de administración (enlace de trabajo del almacén) no se
+    // entregan los datos personales del cliente: solo nombre y ciudad.
+    const caller = await base44.auth.me().catch(() => null);
+    if (caller?.role !== 'admin') {
+      bulto.client_email = '';
+      bulto.client_snapshot = { ...bulto.client_snapshot, cedula: '', whatsapp: '', address: '' };
+    }
+
     return Response.json({
       bulto,
       invoice_paid: latestInvoice?.status === 'pagada',

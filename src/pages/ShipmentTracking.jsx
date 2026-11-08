@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { format, parse } from 'date-fns';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+
+const PAGE_SIZE = 100;
 import { CheckCircle2, Loader2, MapPin, Package, Save, Truck, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { base44 } from '@/components/api/ApiQueueManager';
@@ -17,7 +19,10 @@ import ClientSectionHeader from '@/components/client-portal/ClientSectionHeader'
 
 export default function ShipmentTracking({ user }) {
   const queryClient = useQueryClient();
-  const trackingQueryKey = ['shipmentTracking', user?.role, user?.email];
+  // Carga progresiva: se piden al servidor PAGE_SIZE consolidaciones más cada vez.
+  const [pageCount, setPageCount] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const trackingQueryKey = ['shipmentTracking', user?.role, user?.email, pageCount];
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterType, setFilterType] = useState('all');
@@ -29,26 +34,29 @@ export default function ShipmentTracking({ user }) {
   const [savingDate, setSavingDate] = useState(false);
 
   const loadData = async () => {
-    const [cons, invoices] = await Promise.all([
-      base44.entities.Consolidation.list('-created_date'),
-      base44.entities.Invoice.list('-created_date')
-    ]);
+    const limit = PAGE_SIZE * pageCount;
+    // Cada cliente solo consulta sus propias consolidaciones; administración, todas.
+    const query = user?.role === 'admin' ? {} : { client_email: user?.email };
+    const cons = await base44.entities.Consolidation.filter(query, '-created_date', limit);
+    setHasMore((cons || []).length === limit);
+
+    const ids = (cons || []).map((item) => item.id);
+    const invoices = ids.length
+      ? await base44.entities.Invoice.filter({ consolidation_id: { $in: ids } }, '-created_date', ids.length * 3)
+      : [];
 
     const invoicedConsolidationIds = new Set(
       (invoices || []).map((invoice) => invoice.consolidation_id).filter(Boolean)
     );
 
-    return cons.filter((item) => {
-      const belongsToUser = user?.role === 'admin' || item.client_email === user?.email;
-      return belongsToUser && invoicedConsolidationIds.has(item.id);
-    });
+    return (cons || []).filter((item) => invoicedConsolidationIds.has(item.id));
   };
 
   const { data: consolidations = [], isLoading: loading } = useQuery({
     queryKey: trackingQueryKey,
     queryFn: loadData,
     enabled: !!user,
-    initialData: [],
+    placeholderData: keepPreviousData,
   });
 
   const statusMutation = useMutation({
@@ -288,6 +296,14 @@ export default function ShipmentTracking({ user }) {
               onDataChanged={() => queryClient.invalidateQueries({ queryKey: trackingQueryKey })}
             />
           ))}
+        </div>
+      )}
+
+      {hasMore && (
+        <div className="flex justify-center">
+          <Button variant="outline" onClick={() => setPageCount((n) => n + 1)}>
+            Cargar más consolidaciones
+          </Button>
         </div>
       )}
 

@@ -37,7 +37,8 @@ export default function useScannedPhotoUploader() {
     if (!base64) return null;
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
       try {
-        const { data } = await base44.functions.invoke('uploadImageToBunny', { image_base64: base64 });
+        const device_id = localStorage.getItem('bodega_device_id') || '';
+        const { data } = await base44.functions.invoke('uploadImageToBunny', { image_base64: base64, device_id });
         if (data?.url) {
           setStatus(code, { status: 'ready', url: data.url });
           return data.url;

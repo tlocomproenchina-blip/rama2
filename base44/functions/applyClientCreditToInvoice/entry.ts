@@ -25,6 +25,10 @@ export default async function(req) {
       return Response.json({ error: 'invoice_id o client_email requerido' }, { status: 400 });
     }
 
+    if (user.role !== 'admin' && String(targetEmail).toLowerCase() !== String(user.email || '').toLowerCase()) {
+      return Response.json({ error: 'Solo puedes aplicar créditos a tus propias facturas' }, { status: 403 });
+    }
+
     const result = await applyCreditsToUnpaidInvoices(base44, targetEmail);
 
     return Response.json({
