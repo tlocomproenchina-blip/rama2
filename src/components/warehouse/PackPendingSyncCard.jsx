@@ -28,7 +28,7 @@ export default function PackPendingSyncCard({ items = [], isSyncing, isOnline, o
             <li key={item.id} className="flex items-center gap-2 text-xs">
               {item.sync_status === 'syncing' ? (
                 <Loader2 className="h-3 w-3 shrink-0 animate-spin text-blue-500" />
-              ) : item.sync_status === 'error' ? (
+              ) : item.sync_status === 'error' || item.sync_status === 'conflict' ? (
                 <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-red-500" />
               ) : (
                 <span className="h-2 w-2 shrink-0 rounded-full bg-amber-400 animate-pulse" />
@@ -48,8 +48,10 @@ export default function PackPendingSyncCard({ items = [], isSyncing, isOnline, o
                   caja
                 </span>
               )}
-              {item.sync_status === 'error' && (
-                <span className="text-[10px] text-red-400 truncate ml-auto">{item.error_message}</span>
+              {(item.sync_status === 'error' || item.sync_status === 'conflict') && (
+                <span className="text-[10px] text-red-400 truncate ml-auto">
+                  {item.sync_status === 'conflict' ? 'Requiere revisión: ' : ''}{item.error_message}
+                </span>
               )}
             </li>
           ))}

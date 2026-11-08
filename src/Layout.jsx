@@ -31,6 +31,7 @@ import DemoModeBanner from '@/components/common/DemoModeBanner';
 import MobileBottomNav from '@/components/navigation/MobileBottomNav';
 import MobilePageTransition from '@/components/navigation/MobilePageTransition';
 import PushOptInBanner from '@/components/notifications/PushOptInBanner';
+import SyncCenterButton from '@/components/store-forward/SyncCenterButton';
 
 // Lazy loaded onboarding tour
 const GuidedTour = lazy(() =>
@@ -504,6 +505,7 @@ export default function Layout({ children, currentPageName }) {
             <Suspense fallback={null}>
               <TourTriggerButton onClick={() => setShowTour(true)} />
             </Suspense>
+            {isAdminPanel && <SyncCenterButton />}
             <div className="rounded-[1.25rem] border border-border/80 bg-card/85 px-2 py-1 shadow-card backdrop-blur">
               <NotificationBell user={user} />
             </div>
@@ -528,6 +530,7 @@ export default function Layout({ children, currentPageName }) {
                 <p className="truncate text-[11px] text-slate-500">{currentPageName || 'Panel'}</p>
               </div>
               <div className="flex items-center justify-end gap-1.5">
+                {isAdminPanel && <SyncCenterButton />}
                 <Suspense fallback={null}>
                   <TourTriggerButton onClick={() => setShowTour(true)} />
                 </Suspense>

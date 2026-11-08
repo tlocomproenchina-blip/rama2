@@ -9,6 +9,7 @@ import { base44 } from '@/api/base44Client';
 import { getAll, put, del, findPackageByLabelCode, findPackageByTracking } from '@/lib/offlineDb';
 import { buildCajaCode, isCajaCode } from '@/lib/cajaCodes';
 import { realPackageCount } from '@/lib/bultoCounts';
+import { settleItems } from '@/lib/storeForward/engine';
 
 const text = (value) => String(value ?? '').trim();
 const uniq = (list) => [...new Set((list || []).map(text).filter(Boolean))];
@@ -221,12 +222,9 @@ export async function dropLocalBultoFromQueue(source) {
   if (!source) return;
   if (!(source.is_local || String(source.id || '').startsWith('local_'))) return;
   const ids = new Set([text(source.id), text(source.local_bulto_id)].filter(Boolean));
-  const queue = await getAll('sync_queue').catch(() => []);
-  for (const item of queue) {
-    if (ids.has(text(item.id)) || ids.has(text(item.local_bulto_id))) {
-      await del('sync_queue', item.id).catch(() => null);
-    }
-  }
+  // También sus impresiones pendientes: ya no hay bulto propio al que registrarlas.
+  await settleItems((item) => ids.has(text(item.id)) || ids.has(text(item.local_bulto_id))
+    || (item.type === 'print_log' && ids.has(text(item.bulto_local_id))), 'absorbed');
   await del('bultos', source.id).catch(() => null);
 }
 

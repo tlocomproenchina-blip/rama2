@@ -43,7 +43,8 @@ export default function BulkOrderAssignDialog({ bultos = [], open, onClose, onDo
           await put('bultos', { ...b, cbm_order_numbers: orders });
           const queue = await getAll('sync_queue');
           const item = queue.find((q) => q.id === b.id);
-          if (item) await put('sync_queue', { ...item, cbm_order_numbers: orders });
+          // Nueva versión del evento: si ya iba en camino, se vuelve a enviar con los N° de orden.
+          if (item) await put('sync_queue', { ...item, cbm_order_numbers: orders, rev: (item.rev || 0) + 1 });
         } else {
           const res = await base44.functions.invoke('updateBulto', {
             bulto_id: b.id,

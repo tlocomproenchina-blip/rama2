@@ -206,6 +206,15 @@ export async function discardItem(id) {
   notify();
 }
 
+// Cierra sin enviar los eventos que ya no corresponden (p. ej. un bulto absorbido en una
+// caja: su contenido viaja dentro de ella). Queda registrado en los acuses.
+export async function settleItems(match, result) {
+  for (const q of await listQueue()) {
+    if (match(q)) await ack(q, result);
+  }
+  notify();
+}
+
 async function pruneAcks() {
   const limit = Date.now() - ACK_DAYS * 86400000;
   for (const a of await listAcks()) {

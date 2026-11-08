@@ -527,11 +527,12 @@ export default function WarehouseDispatch({ user }) {
                   </div>
                   <Badge variant="outline" className={
                     item.sync_status === 'syncing' ? 'border-blue-200 text-blue-700 bg-blue-50' :
-                    item.sync_status === 'error' ? 'border-rose-200 text-rose-700 bg-rose-50' :
+                    item.sync_status === 'error' || item.sync_status === 'conflict' ? 'border-rose-200 text-rose-700 bg-rose-50' :
                     'border-amber-200 text-amber-700 bg-amber-50'
                   }>
-                    {item.sync_status === 'syncing' ? 'Sincronizando' :
-                     item.sync_status === 'error' ? 'Error' : 'Pendiente'}
+                    {item.sync_status === 'syncing' ? 'Enviando' :
+                     item.sync_status === 'conflict' ? 'Requiere revisión' :
+                     item.sync_status === 'error' ? 'Reintentará solo' : 'Guardado en el teléfono'}
                   </Badge>
                 </div>
               ))}

@@ -27,6 +27,7 @@ export const STATUS_LABELS = {
   ok: 'Sincronizado',
   duplicate: 'Ya estaba registrado',
   discarded: 'Descartado',
+  absorbed: 'Absorbido en una caja',
 };
 
 export const kindLabel = (kind) => KIND_LABELS[kind] || 'Operación';
