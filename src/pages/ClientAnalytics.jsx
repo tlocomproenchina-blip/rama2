@@ -3,15 +3,15 @@ import { useSearchParams } from 'react-router-dom';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, DollarSign, Package, Boxes, TrendingUp, RefreshCw, FileSpreadsheet } from 'lucide-react';
+import { Loader2, DollarSign, Package, Boxes, TrendingUp, RefreshCw, FileSpreadsheet, Wallet } from 'lucide-react';
 import FichaHero from '@/components/client-analytics/FichaHero';
 import FichaSection from '@/components/client-analytics/FichaSection';
 import { downloadSection, downloadFullReport } from '@/lib/clientReportExport';
 import { toast } from 'sonner';
 import AnalyticsSummaryCards from '@/components/client-analytics/AnalyticsSummaryCards';
 import MonthlySpendChart from '@/components/client-analytics/MonthlySpendChart';
-import ShippingCostBreakdownChart from '@/components/client-analytics/ShippingCostBreakdownChart';
-import ConsolidationEfficiencyChart from '@/components/client-analytics/ConsolidationEfficiencyChart';
+import ListLimitNotice from '@/components/client-analytics/ListLimitNotice';
+import { computeClientMetrics } from '@/lib/clientAnalyticsMetrics';
 import ClientAnalyticsSearch from '@/components/client-analytics/ClientAnalyticsSearch';
 import ClientProfileCard from '@/components/client-analytics/ClientProfileCard';
 import ClientStateRatesCard from '@/components/manual-billing/ClientStateRatesCard';
@@ -21,22 +21,7 @@ import ClientInvoicesList from '@/components/client-analytics/ClientInvoicesList
 import ClientCargoPanel from '@/components/client-cargo/ClientCargoPanel';
 import ClientGuidesPanel from '@/components/client-cargo/ClientGuidesPanel';
 import Client360DispatchOrders from '@/components/support/client360/Client360DispatchOrders';
-import { billableTotal } from '@/lib/storageLines';
 
-function getLastMonths(count) {
-  const now = new Date();
-  return Array.from({ length: count }, (_, index) => {
-    const date = new Date(now.getFullYear(), now.getMonth() - (count - 1 - index), 1);
-    return {
-      key: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`,
-      label: date.toLocaleDateString('es-VE', { month: 'short', year: '2-digit' })
-    };
-  });
-}
-
-function normalizePercent(value) {
-  return Math.max(0, Math.min(100, Number(value || 0)));
-}
 
 export default function ClientAnalytics() {
   const [loading, setLoading] = useState(false);
@@ -163,52 +148,18 @@ export default function ClientAnalytics() {
     loadData(selectedClient?.email);
   }, [selectedClient?.email]);
 
-  const analytics = useMemo(() => {
-    const months = getLastMonths(6);
-    const monthlySpendMap = new Map(months.map((item) => [item.key, { ...item, amount: 0 }]));
-    invoices.filter((invoice) => invoice.status !== 'cancelada').forEach((invoice) => {
-      const date = new Date(invoice.invoice_date || invoice.created_date);
-      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-      if (monthlySpendMap.has(key)) monthlySpendMap.get(key).amount += billableTotal(invoice);
-    });
+  const metrics = useMemo(
+    () => computeClientMetrics({ invoices, payments: invoicePayments, cbmIngresos, packages }),
+    [invoices, invoicePayments, cbmIngresos, packages]
+  );
 
-    const shipmentCostHistory = consolidations.slice(0, 8).reverse().map((item, index) => ({
-      label: item.consolidation_tracking || `Cons. ${index + 1}`,
-      shipping: Number(item.shipping_cost || 0),
-      insurance: Number(item.insurance_cost || 0),
-      total: Number(item.total_cost || 0)
-    }));
+  const cappedSections = [
+    [packages, 1000, 'Paquetes'], [invoices, 500, 'Facturas'], [invoicePayments, 500, 'Abonos'],
+    [cbmIngresos, 500, 'Recibos CBM'], [dispatchOrders, 500, 'Órdenes de despacho'],
+    [consolidations, 500, 'Consolidaciones'], [insurancePayments, 500, 'Seguros']
+  ].filter(([list, limit]) => list.length >= limit).map(([, , label]) => label);
 
-    const totalConsolidations = consolidations.length;
-    const deliveredConsolidations = consolidations.filter((item) => item.status === 'entregado').length;
-    const payableConsolidations = consolidations.filter((item) => Number(item.total_cost || 0) > 0);
-    const insuredConsolidations = consolidations.filter((item) => Number(item.insurance_cost || 0) > 0).length;
-
-    const totalSpend = invoices.filter((invoice) => invoice.status !== 'cancelada').reduce((sum, invoice) => sum + billableTotal(invoice), 0);
-    const monthlyAverage = totalConsolidations ? totalSpend / Math.max(months.length, 1) : 0;
-    const averageShipmentCost = payableConsolidations.length ? payableConsolidations.reduce((sum, item) => sum + Number(item.total_cost || 0), 0) / payableConsolidations.length : 0;
-    const billableWeights = consolidations.filter((item) => Number(item.billable_weight || 0) > 0);
-    const averageBillableWeight = billableWeights.length ? billableWeights.reduce((sum, item) => sum + Number(item.billable_weight || 0), 0) / billableWeights.length : 0;
-
-    const efficiencyData = [
-      { metric: 'Entrega', value: normalizePercent(totalConsolidations ? (deliveredConsolidations / totalConsolidations) * 100 : 0) },
-      { metric: 'Seguro', value: normalizePercent(totalConsolidations ? (insuredConsolidations / totalConsolidations) * 100 : 0) },
-      { metric: 'Costo promedio', value: normalizePercent(averageShipmentCost ? Math.min((averageShipmentCost / 500) * 100, 100) : 0) },
-      { metric: 'Peso facturable', value: normalizePercent(averageBillableWeight ? Math.min((averageBillableWeight / 100) * 100, 100) : 0) }
-    ];
-
-    return {
-      monthlySpend: Array.from(monthlySpendMap.values()),
-      shipmentCostHistory,
-      efficiencyData,
-      totals: {
-        totalSpend,
-        monthlyAverage,
-        totalConsolidations,
-        averageShipmentCost
-      }
-    };
-  }, [consolidations, invoices]);
+  const hasNoData = !invoices.length && !packages.length && !cbmIngresos.length && !dispatchOrders.length;
 
   if (loadingClients) {
     return <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin text-blue-600" /></div>;
@@ -257,45 +208,47 @@ export default function ClientAnalytics() {
         />
       )}
 
+      {selectedClient && <ListLimitNotice sections={cappedSections} />}
+
       {selectedClient && <AnalyticsSummaryCards items={[
         {
           title: 'Consumo total',
-          value: `$${analytics.totals.totalSpend.toFixed(2)}`,
+          value: `$${metrics.totalSpend.toFixed(2)}`,
           subtitle: 'Facturación acumulada',
           icon: DollarSign,
           accent: 'bg-emerald-100 text-emerald-700'
         },
         {
           title: 'Promedio mensual',
-          value: `$${analytics.totals.monthlyAverage.toFixed(2)}`,
+          value: `$${metrics.monthlyAverage.toFixed(2)}`,
           subtitle: 'Últimos 6 meses',
           icon: TrendingUp,
           accent: 'bg-blue-100 text-blue-700'
         },
         {
-          title: 'Consolidaciones',
-          value: String(analytics.totals.totalConsolidations),
-          subtitle: 'Histórico total',
+          title: 'Saldo pendiente',
+          value: `$${metrics.balance.toFixed(2)}`,
+          subtitle: 'Por cobrar en facturas',
+          icon: Wallet,
+          accent: metrics.balance > 0 ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'
+        },
+        {
+          title: 'CBM total',
+          value: metrics.totalCbm.toFixed(3),
+          subtitle: `${metrics.receiptCount} recibos`,
           icon: Boxes,
           accent: 'bg-purple-100 text-purple-700'
         },
         {
-          title: 'Costo promedio',
-          value: `$${analytics.totals.averageShipmentCost.toFixed(2)}`,
-          subtitle: 'Por consolidación',
+          title: 'Paquetes',
+          value: String(metrics.packageCount),
+          subtitle: 'Registrados',
           icon: Package,
           accent: 'bg-amber-100 text-amber-700'
         }
       ]} />}
 
-      {selectedClient && (
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-          <MonthlySpendChart data={analytics.monthlySpend} />
-          <ConsolidationEfficiencyChart data={analytics.efficiencyData} />
-        </div>
-      )}
-
-      {selectedClient && <ShippingCostBreakdownChart data={analytics.shipmentCostHistory} />}
+      {selectedClient && <MonthlySpendChart data={metrics.monthlySpend} />}
 
       {selectedClient && (
         <FichaSection title="Historial CBM" count={cbmIngresos.length} onDownload={dl('Recibos CBM')}>
@@ -367,8 +320,8 @@ export default function ClientAnalytics() {
         </FichaSection>
       )}
 
-      {selectedClient && analytics.shipmentCostHistory.length === 0 && !loading && (
-        <p className="m-0 rounded-[10px] bg-muted px-4 py-3 text-sm text-muted-foreground">Aún no hay suficientes datos para mostrar analítica histórica.</p>
+      {selectedClient && hasNoData && !loading && (
+        <p className="m-0 rounded-[10px] bg-muted px-4 py-3 text-sm text-muted-foreground">Este cliente aún no tiene facturas, recibos, paquetes ni órdenes de despacho registradas.</p>
       )}
       </div>
     </div>

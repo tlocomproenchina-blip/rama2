@@ -3,7 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 
 export default function AnalyticsSummaryCards({ items }) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 gap-4">
       {items.map((item) => {
         const Icon = item.icon;
         return (
