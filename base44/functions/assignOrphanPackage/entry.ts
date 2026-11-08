@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import { clientEventId, findProcessedEvent, rememberEvent, replayResponse } from '../../shared/clientEvents.ts';
 import {
   buildTrackingCandidates,
   findSameShipmentMatches,
@@ -20,7 +21,10 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Forbidden: se requiere rol de almacén o admin' }, { status: 403 });
     }
 
-    const body = await req.json();
+    const body = await req.json().catch(() => ({}));
+    const eventId = clientEventId(body);
+    const replay = await findProcessedEvent(base44, eventId);
+    if (replay) return replayResponse(replay);
     const packageId = String(body.package_id || '').trim();
     const clientEmail = String(body.client_email || '').trim();
     if (!packageId) return Response.json({ error: 'ID de paquete requerido' }, { status: 400 });
@@ -129,6 +133,10 @@ Deno.serve(async (req) => {
     const sigueEnLista = !(wasReceived && noticeDeliveredWithPhoto(aviso));
     if (!sigueEnLista) await setOrphanFollowup(base44, packageId, false);
 
+    await rememberEvent(base44, {
+      eventId, kind: 'assignOrphanPackage', user, body,
+      response: { success: true, package: { id: updated?.id || packageId }, recibido: wasReceived, sigue_en_huerfanos: sigueEnLista },
+    });
     return Response.json({
       package: { ...updated, orphan_pending_reception: sigueEnLista },
       recibido: wasReceived,

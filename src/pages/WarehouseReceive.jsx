@@ -51,10 +51,6 @@ export default function WarehouseReceive({ user }) {
 
   const { pending: pendingReceives, isOnline, isSyncing, enqueue: enqueueReceive } = useOfflineWriteQueue({
     queueType: 'receive',
-    processor: async (item) => {
-      const res = await base44.functions.invoke('assignPackageToLocation', item.payload);
-      return res?.data || res;
-    },
   });
 
   const handleSearch = async (rawTracking = tracking) => {

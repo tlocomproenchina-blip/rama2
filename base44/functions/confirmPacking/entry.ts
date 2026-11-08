@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
+import { clientEventId, findProcessedEvent, rememberEvent, replayResponse } from '../../shared/clientEvents.ts';
 
 async function hasWarehouseAccess(base44, user, allowedPages) {
   if (user?.role === 'admin') return true;
@@ -47,6 +48,9 @@ Deno.serve(async (req) => {
     if (!(await hasWarehouseAccess(base44, user, ['WarehousePickPackShip']))) return Response.json({ error: 'Forbidden' }, { status: 403 });
 
     const body = await req.json().catch(() => ({}));
+    const eventId = clientEventId(body);
+    const replay = await findProcessedEvent(base44, eventId);
+    if (replay) return replayResponse(replay);
     const requestId = String(body?.request_id || '').trim();
     const targetLocationId = body?.target_location_id ? String(body.target_location_id).trim() : '';
     // Fotos capturadas automáticamente por el escáner de picking/packing,
@@ -107,7 +111,9 @@ Deno.serve(async (req) => {
     const notes = request.notes ? `${request.notes}\n${noteLine}` : noteLine;
     await base44.asServiceRole.entities.ConsolidationRequest.update(request.id, { notes });
 
-    return Response.json({ success: true, packed_packages: packages.length, target_location: targetLocation || null });
+    const response = { success: true, packed_packages: packages.length, target_location: targetLocation || null };
+    await rememberEvent(base44, { eventId, kind: 'confirmPacking', user, body, response });
+    return Response.json(response);
   } catch (error) {
     return Response.json({ error: String(error?.message || error) }, { status: 500 });
   }

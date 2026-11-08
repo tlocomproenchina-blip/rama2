@@ -51,13 +51,6 @@ export default function AdminPackages({ user }) {
 
   const { pending: pendingPkgOps, isOnline, isSyncing, enqueue: enqueuePkgOp } = useOfflineWriteQueue({
     queueType: 'admin_packages',
-    processor: async (item) => {
-      if (item.operation === 'update') {
-        await base44.entities.Package.update(item.payload.id, item.payload.patch);
-      } else if (item.operation === 'delete') {
-        await base44.entities.Package.delete(item.payload.id);
-      }
-    },
   });
 
   const bulk = useAdminPackagesBulk({

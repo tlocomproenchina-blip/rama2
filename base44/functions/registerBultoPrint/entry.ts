@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.49';
+import { clientEventId, findProcessedEvent, rememberEvent, replayResponse } from '../../shared/clientEvents.ts';
 
 // Registra una impresión de etiqueta de bulto.
 // Recibe: { bulto_id, reason?, reason_detail? }
@@ -20,6 +21,10 @@ export default async function(req: Request): Promise<Response> {
     }
 
     const body = await req.json().catch(() => ({}));
+    // Reintento de una impresión ya registrada (el teléfono no recibió el acuse).
+    const eventId = clientEventId(body);
+    const replay = await findProcessedEvent(base44, eventId);
+    if (replay) return replayResponse(replay);
     // La Mesa de empaque imprime sin esperar al servidor: la impresión llega después con
     // el id local de la unidad y su código, y aquí se ubica el bulto ya registrado.
     const requestedId: string = String(body.bulto_id || '').trim();
@@ -91,6 +96,10 @@ export default async function(req: Request): Promise<Response> {
     }
     const updated = await base44.asServiceRole.entities.Bulto.update(bultoId, update);
 
+    await rememberEvent(base44, {
+      eventId, kind: 'registerBultoPrint', user: sessionUser, body,
+      response: { success: true, bulto_id: bultoId, log_id: log?.id || '', print_count: newCount },
+    });
     return Response.json({ bulto: updated, log });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });

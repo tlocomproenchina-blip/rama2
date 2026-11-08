@@ -42,17 +42,6 @@ export default function WarehouseLocations({ user }) {
 
   const { pending: pendingOps, isOnline, isSyncing, enqueue: enqueueOp } = useOfflineWriteQueue({
     queueType: 'warehouse_mgmt',
-    processor: async (item) => {
-      const fnMap = {
-        create_location: 'createWarehouseLocation',
-        update_location: 'updateWarehouseLocation',
-        delete_location: 'deleteWarehouseLocation',
-        create_warehouse: 'createWarehouse',
-        update_warehouse: 'updateWarehouse',
-        delete_warehouse: 'deleteWarehouse',
-      };
-      await base44.functions.invoke(fnMap[item.operation], item.payload);
-    },
   });
 
   const loadLocations = async (append = false) => {

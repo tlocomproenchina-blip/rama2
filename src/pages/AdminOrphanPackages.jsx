@@ -89,10 +89,6 @@ export default function AdminOrphanPackages({ user }) {
 
   const { pending: pendingAssigns, isOnline, isSyncing, enqueue: enqueueAssign } = useOfflineWriteQueue({
     queueType: 'orphan_assign',
-    processor: async (item) => {
-      const { data } = await base44.functions.invoke('assignOrphanPackage', item.payload);
-      if (data?.error) throw new Error(data.error);
-    },
   });
 
   const loadOrphans = useCallback(async (reset = false) => {

@@ -46,13 +46,6 @@ export default function WarehousePickPackShip({ user }) {
 
   const { pending: pendingOps, isOnline, isSyncing, enqueue: enqueueOp } = useOfflineWriteQueue({
     queueType: 'pickpack',
-    processor: async (item) => {
-      if (item.operation === 'move') {
-        await base44.functions.invoke('updatePackageLocationStatus', item.payload);
-      } else if (item.operation === 'packing') {
-        await base44.functions.invoke('confirmPacking', item.payload);
-      }
-    },
   });
 
   const loadBaseData = async (append = false) => {

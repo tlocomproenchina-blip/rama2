@@ -100,7 +100,14 @@ export async function getLocalScanLogs() {
 }
 
 // Reenvía los escaneos que quedaron pendientes (sin conexión) al servidor.
-export async function flushPendingScanLogs() {
+// Un solo reenvío a la vez: dos rondas simultáneas crearían el mismo escaneo dos veces.
+let flushing = null;
+export function flushPendingScanLogs() {
+  if (!flushing) flushing = flushOnce().finally(() => { flushing = null; });
+  return flushing;
+}
+
+async function flushOnce() {
   const all = await getLocalScanLogs();
   const pending = all.filter((l) => l.pending);
   if (!pending.length) return 0;

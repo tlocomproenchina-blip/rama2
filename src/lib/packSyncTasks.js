@@ -39,6 +39,8 @@ export async function syncPrintLog(item) {
     bulto_id: item.bulto_local_id,
     label_code: item.label_code,
     printed_at: item.printed_at,
+    client_event_id: item.id,
+    device_created_at: item.device_created_at || '',
   });
   if (res?.data?.error) throw new Error(res.data.error);
 }

@@ -1,0 +1,51 @@
+{
+  "name": "ProcessedClientEvent",
+  "type": "object",
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "description": "Id estable del evento creado en el tel\u00e9fono de bodega (cola Store and Forward). Un reintento con el mismo id devuelve este resultado sin repetir la operaci\u00f3n."
+    },
+    "kind": {
+      "type": "string",
+      "description": "Operaci\u00f3n que proces\u00f3 el evento (funci\u00f3n del servidor)"
+    },
+    "response": {
+      "type": "object",
+      "description": "Resumen de la respuesta entregada la primera vez"
+    },
+    "processed_by": {
+      "type": "string",
+      "description": "Email del usuario que envi\u00f3 el evento"
+    },
+    "device_created_at": {
+      "type": "string",
+      "description": "Hora del tel\u00e9fono en que se captur\u00f3 el evento (puede ser anterior a la recepci\u00f3n en el servidor)"
+    }
+  },
+  "required": [
+    "event_id"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
