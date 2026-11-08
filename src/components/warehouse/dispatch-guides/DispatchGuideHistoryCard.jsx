@@ -181,6 +181,18 @@ export default function DispatchGuideHistoryCard({ guide, appName, highlighted =
           <span>{guide.totals?.packages || 0} paquete(s)</span>
         </div>
 
+        <div className="space-y-0.5">
+          {clients.map((client) => {
+            const cbm = Number(client.totals?.cbm) || sumCbm(client.bultos);
+            return (
+              <p key={`vol-${client.client_key || client.client_email || client.client_name}`} className="text-xs font-semibold text-slate-800">
+                {clients.length > 1 ? `${client.shipping_mark || client.client?.shipping_mark || client.client_name || 'Cliente'}: ` : 'Volumen: '}
+                {cbm.toFixed(2)} CBM · {(cbm * CUBIC_FEET_PER_CBM).toFixed(2)} pies cúbicos
+              </p>
+            );
+          })}
+        </div>
+
         {delivered && (
           <p className="flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50/70 px-2 py-1.5 text-[11px] text-emerald-800">
             <CalendarCheck2 className="h-3.5 w-3.5 shrink-0" />
