@@ -211,6 +211,46 @@
         }
       }
     },
+    "pallets": {
+      "type": "array",
+      "default": [],
+      "description": "Paletas f\u00edsicas (bultos envueltos en envoplast) que recibe la empresa de transporte, anotadas a mano por cliente. Cada paleta se identifica con el mark del cliente y su posici\u00f3n X/N. No cambia los bultos y cajas de la gu\u00eda, que siguen siendo el contenido que recibe el cliente.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "client_key": {
+            "type": "string"
+          },
+          "client_email": {
+            "type": "string"
+          },
+          "client_name": {
+            "type": "string"
+          },
+          "shipping_mark": {
+            "type": "string"
+          },
+          "count": {
+            "type": "number",
+            "description": "Paletas f\u00edsicas de ese cliente"
+          }
+        }
+      }
+    },
+    "pallets_total": {
+      "type": "number",
+      "default": 0,
+      "description": "Total de paletas f\u00edsicas de la gu\u00eda (suma de pallets.count): es lo que cuenta la empresa de transporte."
+    },
+    "pallets_updated_by": {
+      "type": "string",
+      "description": "Email del usuario que anot\u00f3 o corrigi\u00f3 las paletas"
+    },
+    "pallets_updated_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha y hora de la \u00faltima anotaci\u00f3n de paletas"
+    },
     "client_names": {
       "type": "array",
       "default": [],

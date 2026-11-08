@@ -89,6 +89,34 @@ const mergeClients = (groups: any[]) => {
     );
 };
 
+// Paletas físicas anotadas a mano por cliente antes de emitir (lo que cuenta el
+// transporte). Se cruzan con los clientes finales de la guía por email o, si falta,
+// por mark. No cambian los bultos de la guía.
+const buildPallets = (requested: any[], clients: any[]) => {
+  const low = (v: any) => String(v || '').trim().toLowerCase();
+  const up = (v: any) => String(v || '').trim().toUpperCase();
+  const list = Array.isArray(requested) ? requested : [];
+  return clients
+    .map((client: any) => {
+      const email = low(client.client_email);
+      const mark = up(client.shipping_mark || client.client?.shipping_mark);
+      const hit = list.find((entry: any) => {
+        const entryEmail = low(entry?.client_email);
+        if (email && entryEmail) return entryEmail === email;
+        return !!mark && up(entry?.shipping_mark) === mark;
+      });
+      const count = Math.max(0, Math.min(999, Math.floor(Number(hit?.count) || 0)));
+      return {
+        client_key: client.client_key || '',
+        client_email: client.client_email || '',
+        client_name: client.client_name || '',
+        shipping_mark: client.shipping_mark || client.client?.shipping_mark || '',
+        count,
+      };
+    })
+    .filter((entry: any) => entry.count > 0);
+};
+
 export default async function (req: Request): Promise<Response> {
   try {
     const base44 = createClientFromRequest(req);
@@ -223,6 +251,9 @@ export default async function (req: Request): Promise<Response> {
       ),
     };
 
+    const pallets = buildPallets(body.pallets, clients);
+    const palletsTotal = pallets.reduce((sum: number, entry: any) => sum + entry.count, 0);
+
     // Número correlativo con bloqueo optimista sobre el contador dedicado.
     const sequence = await allocateGuideSequence(base44);
 
@@ -253,6 +284,11 @@ export default async function (req: Request): Promise<Response> {
       bulto_codes: bultoCodes,
       unregistered_order_keys: unique(orderKeys),
       totals,
+      pallets,
+      pallets_total: palletsTotal,
+      ...(palletsTotal
+        ? { pallets_updated_by: user.email || '', pallets_updated_date: emittedDate }
+        : {}),
       dispatch_status: 'emitida',
     });
 

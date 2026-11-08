@@ -3,6 +3,7 @@
 // entrega, los totales por cliente y el total general al cierre.
 import { isUnregisteredLine, summarizeGuide } from './dispatchGuides';
 import { qrDataUrl } from './qrCode';
+import { clientRefsOf, palletCountFor, palletSequence, palletsTotalOf } from './guidePallets';
 
 // Contenido del QR de la guía. El escáner de despacho lo reconoce por el prefijo.
 export const GUIDE_QR_PREFIX = 'GUIA:';
@@ -23,6 +24,7 @@ export async function generateDispatchGuidePdf({
   guideNumber = '',
   emittedAt = '',
   notes = '',
+  pallets = [],
 }) {
   const { jsPDF } = await import('jspdf');
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
@@ -33,6 +35,9 @@ export async function generateDispatchGuidePdf({
     .flatMap((entry) => (Array.isArray(entry.bultos) ? entry.bultos : []))
     .filter(isUnregisteredLine).length;
   const unitLabel = unregistered ? `${totals.bultos} línea(s)` : `${totals.bultos} bulto(s)`;
+  // Paletas físicas (lo que cuenta el transporte): solo aparecen si se anotaron.
+  const palletsTotal = palletsTotalOf(pallets);
+  const palletLabel = palletsTotal ? `${palletsTotal} paleta(s) · ` : '';
   const now = emittedAt ? new Date(emittedAt) : new Date();
   const left = 14;
   const right = 196;
@@ -74,7 +79,7 @@ export async function generateDispatchGuidePdf({
       doc.setFontSize(9);
       doc.text(`Emitida: ${now.toLocaleString('es-VE')}`, right, 17, { align: 'right' });
       doc.text(
-        `${totals.clients} cliente(s) · ${unitLabel}` + (unregistered ? ` · ${unregistered} sin bulto` : ''),
+        `${totals.clients} cliente(s) · ${palletLabel}${unitLabel}` + (unregistered ? ` · ${unregistered} sin bulto` : ''),
         right,
         22,
         { align: 'right' }
@@ -155,7 +160,22 @@ export async function generateDispatchGuidePdf({
     doc.setFont('helvetica', 'normal');
     const addressLines = doc.splitTextToSize(String(info.address || '—'), 146);
     doc.text(addressLines, left + 22, y);
-    y += addressLines.length * 4.5 + 4;
+    y += addressLines.length * 4.5;
+
+    // Facturas y contenedores que respaldan la totalidad de bultos del cliente.
+    const refs = clientRefsOf(bultos);
+    const refText = [
+      refs.invoices.length && `Facturas: ${refs.invoices.join(', ')}`,
+      refs.containers.length && `Contenedores: ${refs.containers.join(', ')}`,
+    ].filter(Boolean).join('   ·   ');
+    if (refText) {
+      doc.setFont('helvetica', 'bold');
+      const refLines = doc.splitTextToSize(refText, right - left);
+      doc.text(refLines, left, y);
+      doc.setFont('helvetica', 'normal');
+      y += refLines.length * 4.5;
+    }
+    y += 4;
 
     tableHeader();
 
@@ -202,12 +222,29 @@ export async function generateDispatchGuidePdf({
 
     // El chofer solo necesita contar bultos: el resumen del cliente muestra ese número
     // y nada más, en grande, sin paquetes ni órdenes que confundan el conteo.
-    if (y > 262) startPage(false);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(17);
+    if (y > 256) startPage(false);
     const clientBultos = bultos.filter((b) => b.label_code).length;
     const clientUnregistered = bultos.filter(isUnregisteredLine).length;
-    doc.text(`Total cliente: ${clientBultos} bulto(s)`, right, y, { align: 'right' });
+    // Paletas del cliente: el transporte cuenta paletas (mark + X/N escrito en cada
+    // una); el cliente, los bultos de adentro.
+    const clientPallets = palletCountFor(pallets, entry);
+    if (clientPallets) {
+      const mark = entry.shipping_mark || info.shipping_mark || '';
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(13);
+      doc.text(`Transporte: ${clientPallets} paleta(s)`, right, y, { align: 'right' });
+      y += 5;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8.5);
+      doc.setTextColor(100, 116, 139);
+      const seqLines = doc.splitTextToSize(`${mark ? `${mark} ` : ''}${palletSequence(clientPallets)}`, 120);
+      doc.text(seqLines, right, y, { align: 'right' });
+      doc.setTextColor(30, 41, 59);
+      y += seqLines.length * 4 + 3.5;
+    }
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(17);
+    doc.text(`${clientPallets ? 'Contenido cliente' : 'Total cliente'}: ${clientBultos} bulto(s)`, right, y, { align: 'right' });
     y += 5.5;
     if (clientUnregistered) {
       doc.setFont('helvetica', 'normal');
@@ -232,7 +269,7 @@ export async function generateDispatchGuidePdf({
   doc.setFontSize(11);
   doc.text('TOTAL GENERAL', 16, y + 1);
   doc.setFontSize(13);
-  doc.text(`${totals.clients} cliente(s) · ${unitLabel}`, right, y + 1, { align: 'right' });
+  doc.text(`${totals.clients} cliente(s) · ${palletLabel}${unitLabel}`, right, y + 1, { align: 'right' });
   if (unregistered) {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8.5);

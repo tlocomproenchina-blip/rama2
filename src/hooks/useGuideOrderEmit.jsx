@@ -9,7 +9,7 @@ export default function useGuideOrderEmit({ appName, onGenerated }) {
   const [emitting, setEmitting] = useState(false);
 
   const emit = useCallback(
-    async (orders) => {
+    async (orders, pallets = []) => {
       const list = Array.isArray(orders) ? orders : [];
       if (!list.length) {
         toast.error('Marca al menos una contenedor');
@@ -23,6 +23,7 @@ export default function useGuideOrderEmit({ appName, onGenerated }) {
             client_email: order.client_email,
             order_number: order.order_number,
           })),
+          pallets,
           with_orders: true,
         });
         const data = res?.data || res || {};
@@ -55,6 +56,7 @@ export default function useGuideOrderEmit({ appName, onGenerated }) {
             mode: 'save',
             guideNumber: guide.guide_number,
             emittedAt: guide.emitted_date,
+            pallets: guide.pallets || [],
           });
         }
 

@@ -7,6 +7,7 @@ import {
   ChevronDown,
   ChevronUp,
   Download,
+  Layers,
   Loader2,
   PenLine,
   Printer,
@@ -20,6 +21,8 @@ import ContinuousLabelsDialog from './ContinuousLabelsDialog';
 import GuideBultoChips from './GuideBultoChips';
 import DeleteGuideButton from './DeleteGuideButton';
 import { Checkbox } from '@/components/ui/checkbox';
+import GuidePalletsDialog from './GuidePalletsDialog';
+import { palletCountFor, palletSequence, palletsTotalOf } from '@/lib/guidePallets';
 
 const fmtDate = (value) => {
   if (!value) return '—';
@@ -55,6 +58,8 @@ export default function DispatchGuideHistoryCard({ guide, appName, highlighted =
   const [expanded, setExpanded] = useState(!!highlighted);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [labelsOpen, setLabelsOpen] = useState(false);
+  const [palletsOpen, setPalletsOpen] = useState(false);
+  const palletsTotal = palletsTotalOf(guide.pallets);
   const [generating, setGenerating] = useState('');
 
   const clients = Array.isArray(guide.clients) ? guide.clients : [];
@@ -78,6 +83,7 @@ export default function DispatchGuideHistoryCard({ guide, appName, highlighted =
         guideNumber: guide.guide_number,
         emittedAt: guide.emitted_date,
         notes: guide.delivery_notes || '',
+        pallets: guide.pallets || [],
       });
     } catch (_) {
       toast.error('No se pudo generar el PDF de la guía');
@@ -163,6 +169,12 @@ export default function DispatchGuideHistoryCard({ guide, appName, highlighted =
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-600">
           <span>{guide.totals?.clients || clients.length || 0} cliente(s)</span>
           <span>·</span>
+          {palletsTotal > 0 && (
+            <>
+              <span className="font-semibold text-slate-800">{palletsTotal} paleta(s) para transporte</span>
+              <span>·</span>
+            </>
+          )}
           <span>{guide.totals?.bultos || 0} bulto(s)</span>
           <span>·</span>
           <span>{guide.totals?.packages || 0} paquete(s)</span>
@@ -192,6 +204,10 @@ export default function DispatchGuideHistoryCard({ guide, appName, highlighted =
           <Button size="sm" variant="outline" onClick={() => setLabelsOpen(true)}>
             <Tags className="h-4 w-4" />
             Etiquetas continuas
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => setPalletsOpen(true)}>
+            <Layers className="h-4 w-4" />
+            Paletas{palletsTotal > 0 ? ` (${palletsTotal})` : ''}
           </Button>
           <Button size="sm" variant={delivered ? 'ghost' : 'default'} onClick={() => setDialogOpen(true)}>
             <PenLine className="h-4 w-4" />
@@ -227,6 +243,11 @@ export default function DispatchGuideHistoryCard({ guide, appName, highlighted =
                   <p className="font-mono text-[11px] text-blue-700 break-all">
                     Mark: {client.shipping_mark || client.client?.shipping_mark || '—'}
                   </p>
+                  {palletCountFor(guide.pallets, client) > 0 && (
+                    <p className="text-[11px] font-semibold text-slate-700">
+                      Paletas: {palletCountFor(guide.pallets, client)} ({palletSequence(palletCountFor(guide.pallets, client))})
+                    </p>
+                  )}
                   {orderFor(client) && (
                     <p className="font-mono text-[11px] text-emerald-700 break-all">
                       Orden de despacho: {orderFor(client).order_number}
@@ -241,6 +262,8 @@ export default function DispatchGuideHistoryCard({ guide, appName, highlighted =
       </CardContent>
 
       <ContinuousLabelsDialog guide={guide} open={labelsOpen} onOpenChange={setLabelsOpen} />
+
+      <GuidePalletsDialog guide={guide} open={palletsOpen} onOpenChange={setPalletsOpen} onSaved={onGuideUpdated} />
 
       <DispatchGuideDeliveryDialog
         guide={guide}

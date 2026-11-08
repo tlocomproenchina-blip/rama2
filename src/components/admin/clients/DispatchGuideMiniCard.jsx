@@ -31,6 +31,7 @@ export default function DispatchGuideMiniCard({ guide }) {
         guideNumber: guide.guide_number,
         emittedAt: guide.emitted_date,
         notes: guide.delivery_notes || '',
+        pallets: guide.pallets || [],
       });
     } catch (_) {
       toast.error('No se pudo generar el PDF de la guía');
@@ -69,6 +70,7 @@ export default function DispatchGuideMiniCard({ guide }) {
             <Boxes className="h-3 w-3 text-slate-400" />
             {totals.bultos || 0} bultos
           </span>
+          {Number(guide.pallets_total) > 0 && <span>{guide.pallets_total} paleta(s)</span>}
           {Number(totals.cajas) > 0 && (
             <span className="flex items-center gap-1">
               <Package className="h-3 w-3 text-slate-400" />

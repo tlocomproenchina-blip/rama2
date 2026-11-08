@@ -9,6 +9,8 @@ import useManualGuideCandidates from '@/hooks/useManualGuideCandidates';
 import ManualGuideClientCard from './ManualGuideClientCard';
 import ManualGuideSelectionSummary from './ManualGuideSelectionSummary';
 import GuideSearchHint from './GuideSearchHint';
+import GuidePalletsInputs from './GuidePalletsInputs';
+import { buildPalletEntries, palletClientKey } from '@/lib/guidePallets';
 
 // Emisión manual por bultos escaneados: se eligen a mano el cliente y los bultos que
 // siguen pendientes de guía. Al emitir, la guía queda con su número correlativo y se
@@ -35,6 +37,22 @@ export default function ManualGuideScannedTab({ appName = 'TLEC CARGO', onGenera
     });
     return { clients: keys.size, bultos, packages, cbm };
   }, [clients, selected]);
+
+  // Clientes con bultos marcados, para anotar sus paletas antes de emitir.
+  const [palletValues, setPalletValues] = useState({});
+  const palletClients = useMemo(
+    () =>
+      clients
+        .map((client) => ({
+          key: palletClientKey(client),
+          client_email: client.client_email || '',
+          client_name: client.client_name || '',
+          shipping_mark: client.shipping_mark || client.client?.shipping_mark || '',
+          bultos: (client.bultos || []).filter((bulto) => selected.has(bulto.label_code)).length,
+        }))
+        .filter((client) => client.bultos > 0),
+    [clients, selected]
+  );
 
   const toggleBulto = (code) => {
     setSelected((prev) => {
@@ -65,6 +83,7 @@ export default function ManualGuideScannedTab({ appName = 'TLEC CARGO', onGenera
     try {
       const res = await base44.functions.invoke('createDispatchGuide', {
         codes: [...selected],
+        pallets: buildPalletEntries(palletClients, palletValues),
         with_orders: true,
       });
       const data = res?.data || res || {};
@@ -73,6 +92,7 @@ export default function ManualGuideScannedTab({ appName = 'TLEC CARGO', onGenera
       const guide = data.guide || {};
       const orders = data.orders || [];
       setSelected(new Set());
+      setPalletValues({});
 
       toast.success(
         `Guía ${guide.guide_number || ''} emitida · ${orders.length} orden(es) de despacho generada(s)`
@@ -92,7 +112,8 @@ export default function ManualGuideScannedTab({ appName = 'TLEC CARGO', onGenera
           mode: 'save',
           guideNumber: guide.guide_number,
           emittedAt: guide.emitted_date,
-        });
+          pallets: guide.pallets || [],
+          });
       }
 
       reload();
@@ -144,6 +165,10 @@ export default function ManualGuideScannedTab({ appName = 'TLEC CARGO', onGenera
             </Button>
           )}
         </div>
+      )}
+
+      {searched && (
+        <GuidePalletsInputs clients={palletClients} values={palletValues} onChange={setPalletValues} />
       )}
 
       {searched && (

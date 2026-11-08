@@ -1,4 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
+import useOrderPalletClients from '@/hooks/useOrderPalletClients';
+import { buildPalletEntries } from '@/lib/guidePallets';
+import GuidePalletsInputs from './GuidePalletsInputs';
 import { Input } from '@/components/ui/input';
 import { Loader2, Search } from 'lucide-react';
 import useGuideOrderSources from '@/hooks/useGuideOrderSources';
@@ -15,11 +18,14 @@ export default function GuideFromOrdersTab({ appName, onGenerated }) {
   const { search, setSearch, orders, loading, searched, reload } = useGuideOrderSources('orders');
   const { selected, toggle, clear, summary } = useGuideOrderSelection();
   const { emit, emitting } = useGuideOrderEmit({ appName, onGenerated });
+  const palletClients = useOrderPalletClients(selected);
+  const [palletValues, setPalletValues] = useState({});
 
   const handleEmit = async () => {
-    const done = await emit([...selected.values()]);
+    const done = await emit([...selected.values()], buildPalletEntries(palletClients, palletValues));
     if (done) {
       clear();
+      setPalletValues({});
       reload();
     }
   };
@@ -58,6 +64,10 @@ export default function GuideFromOrdersTab({ appName, onGenerated }) {
             />
           ))}
         </div>
+      )}
+
+      {searched && (
+        <GuidePalletsInputs clients={palletClients} values={palletValues} onChange={setPalletValues} />
       )}
 
       {searched && (
