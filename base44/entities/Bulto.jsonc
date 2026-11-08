@@ -406,6 +406,16 @@
       "default": "activo",
       "description": "Estado del bulto: activo (abierto, llen\u00e1ndose), cerrado (sellado, esperando despacho/impresi\u00f3n), en_almacen_ve (en almac\u00e9n de Venezuela, esperando despacho al cliente), despachado (entregado al transporte/cliente desde WarehouseDispatch), desarmado (sus bultos se restauraron por separado; queda solo como registro hist\u00f3rico, sin contenido)"
     },
+    "device_closed_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha y hora en que el operador cerr\u00f3 la unidad en la Mesa de empaque (hora del dispositivo, aunque estuviera sin conexi\u00f3n)."
+    },
+    "first_printed_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha y hora de la primera impresi\u00f3n de la etiqueta (hora del dispositivo, aunque se haya impreso sin conexi\u00f3n)."
+    },
     "print_count": {
       "type": "number",
       "default": 0,

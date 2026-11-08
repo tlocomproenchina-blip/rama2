@@ -325,6 +325,8 @@ export default async function (req: Request): Promise<Response> {
       warehouse_id: existing?.warehouse_id || pkgs[0]?.warehouse_id || '',
       bulto_number: numberFromCode || existing?.bulto_number || 0,
       created_by: existing?.created_by || assignedBy,
+      // Hora real del cierre en el dispositivo (aunque se haya cerrado sin conexión).
+      ...(String(body.closed_at || '').trim() ? { device_closed_date: String(body.closed_at).trim() } : {}),
     };
 
     let caja: any;

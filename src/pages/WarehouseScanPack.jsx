@@ -20,10 +20,8 @@ import AbsorbBultosConfirmDialog from '@/components/warehouse/AbsorbBultosConfir
 import BultoHistory from '@/components/warehouse/BultoHistory';
 import ManualPackageAssign from '@/components/warehouse/ManualPackageAssign';
 import BulkBultoCreator from '@/components/warehouse/BulkBultoCreator';
-import ScanPhotoFailureNotice from '@/components/warehouse/ScanPhotoFailureNotice';
 import OfflineScanResult from '@/components/warehouse/OfflineScanResult';
 import PrintQueueCard from '@/components/warehouse/PrintQueueCard';
-import useScannedPhotoUploader from '@/hooks/useScannedPhotoUploader';
 import { usePrintQueue } from '@/hooks/usePrintQueue';
 import { useOfflineWarehouseData } from '@/hooks/useOfflineWarehouseData';
 import { useBultoNumberBlock } from '@/hooks/useBultoNumberBlock';
@@ -36,7 +34,10 @@ import ReviewQueueCard from '@/components/warehouse/ReviewQueueCard';
 import useReviewQueue from '@/hooks/useReviewQueue';
 import useSharedPackUnits from '@/hooks/useSharedPackUnits';
 import DuplicateTrackingAlert from '@/components/warehouse/DuplicateTrackingAlert';
-import { describeOwner, findLocalTrackingOwner, findServerTrackingOwner } from '@/lib/trackingDuplicates';
+import { describeOwner, findLocalTrackingOwner } from '@/lib/trackingDuplicates';
+
+// Tope para buscar en el servidor un paquete que aún no está en la copia del dispositivo.
+const SERVER_LOOKUP_MS = 2500;
 
 // Mesa única de empaque (offline-first): un solo escáner recibe el paquete y lo deja en la
 // unidad del cliente que indique el selector (bulto suelto o caja consolidada). La unidad
@@ -68,12 +69,16 @@ export default function WarehouseScanPack({ user }) {
     try { navigator.vibrate?.([200, 100, 200]); } catch (_) {}
   }, []);
 
-  const {
-    handlePhotoCaptured, waitForPhoto, getPhotoStatus, retryPhoto,
-  } = useScannedPhotoUploader();
-  // Fotos de escaneo que no subieron: se avisan en pantalla y se pueden reintentar.
-  const [failedPhotos, setFailedPhotos] = useState([]);
-  const [photoRetrying, setPhotoRetrying] = useState(false);
+  // Foto tomada por el escáner al leer el código: se guarda en memoria hasta que el
+  // paquete entra en la unidad y ahí pasa a la cola del dispositivo (no se pierde aunque
+  // no haya conexión ni se recargue la pantalla).
+  const photoStashRef = useRef(new Map());
+  const handlePhotoCaptured = useCallback((scannedCode, base64) => {
+    if (!scannedCode || !base64) return;
+    const stash = photoStashRef.current;
+    stash.set(scannedCode, base64);
+    if (stash.size > 20) stash.delete(stash.keys().next().value);
+  }, []);
 
   // Cola de impresión persistente (sobrevive recarga/cierre de app)
   const {
@@ -90,48 +95,29 @@ export default function WarehouseScanPack({ user }) {
   const { block: numberBlock, getNextNumber, reserving: reservingBlock } = useBultoNumberBlock();
 
   const {
-    pendingBultos, isSyncing, isOnline, enqueueClosedBulto, enqueueCaja, enqueuePackageReception, retrySync,
+    pendingBultos, isSyncing, isOnline, enqueueClosedBulto, enqueueCaja, enqueuePackageReception,
+    enqueueScanPhoto, enqueuePrintLogs, enqueueCajaLabels, retrySync,
   } = useOfflineBultoSync({
-    // Bulto guardado en el servidor: se imprimen sus etiquetas con el código definitivo.
+    // El servidor le dio otro código al bulto: se reimprime con el código nuevo.
     onRelabeled: (bulto) => { enqueuePrint(bulto); setHistoryRefreshKey((k) => k + 1); },
-    onDuplicate: (list) => { reportDuplicate(list); setHistoryRefreshKey((k) => k + 1); },
+    // Trackings que ya había registrado otro operador: el servidor los omite y sigue.
+    onDuplicate: () => setHistoryRefreshKey((k) => k + 1),
   });
 
-  // Adjunta la foto del escaneo al paquete local y reencola su recepción para que llegue
-  // al servidor (idempotente por id). Los paquetes creados a mano en el dispositivo no se
-  // reencolan: todavía no existen en el servidor.
-  const attachScanPhoto = useCallback(async (pkg, photoUrl) => {
-    if (!pkg?.id || !photoUrl) return;
-    const urls = [...(pkg.package_image_urls || []), photoUrl].slice(0, 3);
-    const updatedPkg = {
-      ...pkg,
-      package_image_url: pkg.package_image_url || photoUrl,
-      package_image_urls: urls,
-    };
-    await put('packages', updatedPkg);
-    if (!pkg.is_local && !String(pkg.id).startsWith('local_')) {
-      enqueuePackageReception(updatedPkg);
-    }
-  }, [enqueuePackageReception]);
-
-  // Espera la foto capturada al escanear y la guarda. Si no sube, deja el código avisado
-  // en pantalla: la foto nunca se descarta en silencio.
+  // La foto del escaneo pasa a la cola del dispositivo y se sube sola al haber conexión.
   const captureScanPhoto = useCallback(async (scannedCode, pkg) => {
-    if (!getPhotoStatus(scannedCode)) return;
-    const photoUrl = await waitForPhoto(scannedCode);
-    if (photoUrl) {
-      await attachScanPhoto(pkg, photoUrl);
-      return;
-    }
-    setFailedPhotos((prev) => (prev.some((f) => f.code === scannedCode) ? prev : [...prev, { code: scannedCode, pkg }]));
-  }, [getPhotoStatus, waitForPhoto, attachScanPhoto]);
+    const base64 = photoStashRef.current.get(scannedCode);
+    if (!base64) return;
+    photoStashRef.current.delete(scannedCode);
+    await enqueueScanPhoto({ pkg, base64 });
+  }, [enqueueScanPhoto]);
 
   // Cajas y bultos que arma este operador, guardados en línea (los recupera en otro equipo).
   const packRef = useRef(null);
   const shared = useSharedPackUnits({
     owner: user?.email || '',
     onRemoteChange: () => packRef.current?.reloadUnits(),
-    onDuplicate: reportDuplicate,
+    onDuplicate: () => {},
   });
 
   // Bultos creados o modificados en otros dispositivos: refresca el historial al instante.
@@ -222,42 +208,16 @@ export default function WarehouseScanPack({ user }) {
     return () => { cancelled = true; };
   }, [lotEmail, lotKey, pendingBultos.length, cajaRefreshKey]);
 
-  // Cuando una caja cerrada termina de registrarse en el servidor, se imprime sola su
-  // tira de etiquetas continuas (ya con la numeración X/N definitiva).
-  const pendingCajasRef = useRef(new Map());
-  useEffect(() => {
-    const current = new Map(
-      pendingBultos.filter((p) => p.type === 'caja').map((p) => [p.id, p.client_email])
-    );
-    for (const [id, email] of pendingCajasRef.current) {
-      if (!current.has(id) && email) {
-        setLotEmail(email);
-        setAutoPrintLabels(true);
-        setLabelsOpen(true);
-        break;
-      }
-    }
-    pendingCajasRef.current = current;
-  }, [pendingBultos]);
-
-  // --- Reintentar las fotos de escaneo que no subieron ---
-  const handleRetryFailedPhotos = useCallback(async () => {
-    if (!failedPhotos.length) return;
-    setPhotoRetrying(true);
-    const stillFailed = [];
-    for (const entry of failedPhotos) {
-      const photoUrl = await retryPhoto(entry.code);
-      if (photoUrl) await attachScanPhoto(entry.pkg, photoUrl);
-      else stillFailed.push(entry);
-    }
-    setPhotoRetrying(false);
-    setFailedPhotos(stillFailed);
-    if (stillFailed.length) {
-      toast.error('Algunas fotos siguen sin subir. Revisa tu conexión e intenta de nuevo.');
-    } else {
-      toast.success('Fotos guardadas en sus paquetes');
-    }
-  }, [failedPhotos, retryPhoto, attachScanPhoto]);
+  // Al cerrar la caja se imprime de inmediato la tira de etiquetas del lote, con o sin
+  // conexión: el registro en el servidor sigue en segundo plano.
+  const closeCaja = useCallback(async () => {
+    const closed = await pack.closeUnit();
+    if (!closed?.client_email) return;
+    setLotEmail(closed.client_email);
+    setLotKey((k) => k + 1);
+    setAutoPrintLabels(true);
+    setLabelsOpen(true);
+  }, [pack]);
 
   // --- Registrar bultos creados en lote (sellados en almacén) ---
   const handleBulkCreated = useCallback(async (newBultos) => {
@@ -278,9 +238,9 @@ export default function WarehouseScanPack({ user }) {
   }, [removeFromQueue]);
 
   // Cada tracking registrado pasa primero por la revisión; etiquetas y códigos no
-  // registrados siguen el flujo normal de empaque.
-  // Ya no se refresca todo el caché en cada escaneo (era lo que frenaba la mesa): lo
-  // que falte se consulta puntualmente en el servidor.
+  // registrados siguen el flujo normal de empaque. El escaneo nunca espera al servidor:
+  // los duplicados se detectan al instante con lo que hay en el dispositivo y el servidor
+  // omite al sincronizar los que haya registrado otro operador.
   const handleDetected = useCallback(async (value) => {
     const raw = String(value || '').trim();
     if (!raw) return;
@@ -288,20 +248,20 @@ export default function WarehouseScanPack({ user }) {
     const isLabel = /-(B|C|L)\d+$/i.test(raw);
     let pkg = isLabel ? null : await findPackageByTracking(raw).catch(() => null);
     if (!isLabel) {
-      const code = pkg?.tracking_number || raw;
-      const local = await findLocalTrackingOwner({ code, packageId: pkg?.id, activeUnit: pack.activeUnit });
+      const local = await findLocalTrackingOwner({ code: pkg?.tracking_number || raw, packageId: pkg?.id, activeUnit: pack.activeUnit });
       if (local) { reportDuplicate(local); return; }
-      // En paralelo: el paquete (si no está en la copia local) y el chequeo de duplicados
-      // del servidor, que conoce lo registrado por todos los operadores.
-      const [serverPkg, serverOwner] = await Promise.all([
-        pkg ? null : base44.entities.Package.filter({ tracking_number: raw }, '-created_date', 1)
-          .then((rows) => rows?.[0] || null).catch(() => null),
-        findServerTrackingOwner({ code, packageId: pkg?.id, ownUnitIds: pack.units.map((u) => u.id) }),
-      ]);
-      if (serverOwner) { reportDuplicate(serverOwner); return; }
-      if (!pkg && serverPkg) {
-        pkg = serverPkg;
-        await put('packages', serverPkg).catch(() => {});
+      // Paquete que aún no está en la copia local: se busca con un tope corto y solo con
+      // conexión, para no frenar la mesa.
+      if (!pkg && navigator.onLine) {
+        const serverPkg = await Promise.race([
+          base44.entities.Package.filter({ tracking_number: raw }, '-created_date', 1)
+            .then((rows) => rows?.[0] || null).catch(() => null),
+          new Promise((resolve) => setTimeout(() => resolve(null), SERVER_LOOKUP_MS)),
+        ]);
+        if (serverPkg) {
+          pkg = serverPkg;
+          await put('packages', serverPkg).catch(() => {});
+        }
       }
     }
     if (!pkg) {
@@ -442,18 +402,6 @@ export default function WarehouseScanPack({ user }) {
         </p>
       )}
 
-      {/* Fotos de escaneo que no subieron */}
-      {failedPhotos.length > 0 && (
-        <ScanPhotoFailureNotice
-          codes={failedPhotos.map((f) => f.code)}
-          retrying={photoRetrying}
-          onRetry={handleRetryFailedPhotos}
-          onSkip={() => setFailedPhotos([])}
-          skipLabel="Continuar sin esas fotos"
-          description="Esas fotos no se guardaron en el paquete. Reintenta la subida o continúa sin ellas (el paquete ya quedó en la unidad)."
-        />
-      )}
-
       {/* Código escaneado que no está registrado */}
       <PendingScanCodeCard
         code={pack.pendingCode?.code}
@@ -496,7 +444,7 @@ export default function WarehouseScanPack({ user }) {
         <CajaActiveCard
           caja={activeUnit}
           contents={pack.contents}
-          onClose={pack.closeUnit}
+          onClose={closeCaja}
           onUndoLast={pack.removeLast}
           onRemoveUnregistered={pack.removeUnregistered}
           busy={pack.busy}
@@ -525,6 +473,7 @@ export default function WarehouseScanPack({ user }) {
         autoPrint={autoPrintLabels}
         onAutoPrinted={() => setAutoPrintLabels(false)}
         clientEmail={lotEmail}
+        onAssigned={(list) => enqueueCajaLabels({ clientEmail: lotEmail, cajas: list })}
         onPrinted={() => setLotKey((key) => key + 1)}
       />
 
@@ -555,6 +504,7 @@ export default function WarehouseScanPack({ user }) {
         onRemove={removeFromQueue}
         onClear={clearPrintQueue}
         onPrintedAll={removeFromQueueMany}
+        onLogPrints={enqueuePrintLogs}
       />
 
       {/* Unidades pendientes de sincronizar */}

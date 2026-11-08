@@ -13,6 +13,7 @@ import {
   writePayload,
 } from '@/lib/thermalPrinter';
 import { localCajasOfClient, saveLocalCaja } from '@/lib/cajaLocal';
+import { bulkPut } from '@/lib/offlineDb';
 import ContinuousLabelPreview from './dispatch-guides/ContinuousLabelPreview';
 
 const LABEL_COPIES = 3; // cada etiqueta de caja sale por triplicado, igual que los bultos
@@ -21,9 +22,38 @@ const LABEL_COPIES = 3; // cada etiqueta de caja sale por triplicado, igual que 
 // del cliente y, en cada etiqueta, el código QR de su caja. Esa es la etiqueta que
 // se pega en la caja y la que se escanea al despachar para dar la salida definitiva.
 //
-// La numeración la fija el servidor (assignCajaLabels) para que el X/N impreso coincida
-// con el de la guía. Si no hay conexión, se numera en el dispositivo y se imprime igual.
-export default function CajaLabelsDialog({ open, onOpenChange, clientEmail, onPrinted, autoPrint = false, onAutoPrinted }) {
+// La numeración se arma en el dispositivo (incluye la caja recién cerrada aunque todavía
+// no llegue al servidor) y se imprime al instante. Con conexión, antes se suman en un
+// par de segundos las cajas del cliente registradas desde otros equipos. El X/N impreso
+// se entrega luego al servidor (onAssigned) para que la guía use el mismo.
+const SERVER_WAIT_MS = 2500;
+
+const withTimeout = (promise, ms) =>
+  Promise.race([promise, new Promise((resolve) => setTimeout(() => resolve(null), ms))]);
+
+async function lotCajas(clientEmail) {
+  if (typeof navigator === 'undefined' || navigator.onLine) {
+    const server = await withTimeout(
+      base44.entities.Bulto.filter({ client_email: clientEmail, is_caja: true }, '-created_date', 200).catch(() => null),
+      SERVER_WAIT_MS
+    );
+    if (Array.isArray(server) && server.length) {
+      const local = await localCajasOfClient(clientEmail).catch(() => []);
+      const linked = new Set(local.map((c) => c.server_bulto_id).filter(Boolean));
+      await bulkPut('bultos', server.filter((c) => !linked.has(c.id))).catch(() => {});
+    }
+  }
+  // Una caja puede estar dos veces (copia local enlazada + copia del servidor): una por código.
+  const seen = new Set();
+  return (await localCajasOfClient(clientEmail).catch(() => [])).filter((c) => {
+    const key = String(c.label_code || '').toUpperCase();
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+export default function CajaLabelsDialog({ open, onOpenChange, clientEmail, onPrinted, onAssigned, autoPrint = false, onAutoPrinted }) {
   const [client, setClient] = useState({});
   const [cajas, setCajas] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -39,20 +69,13 @@ export default function CajaLabelsDialog({ open, onOpenChange, clientEmail, onPr
     setError('');
     setOffline(false);
     try {
-      const res = await base44.functions.invoke('assignCajaLabels', { client_email: clientEmail });
-      const data = res?.data || res || {};
-      if (!Array.isArray(data.cajas) || !data.cajas.length) throw new Error(data.error || 'Sin cajas');
-      setClient(data.client || {});
-      setCajas(data.cajas);
-    } catch (_) {
-      // Sin conexión: se numera con las cajas que ya están en el dispositivo.
-      const local = await localCajasOfClient(clientEmail).catch(() => []);
+      const local = await lotCajas(clientEmail);
       if (!local.length) {
         setCajas([]);
         setError('No hay cajas pendientes de etiqueta para este cliente.');
       } else {
         const total = local.length;
-        setOffline(true);
+        setOffline(typeof navigator !== 'undefined' && !navigator.onLine);
         setClient(local.find((c) => c.client_snapshot?.full_name)?.client_snapshot || {});
         setCajas(
           local.map((caja, index) => ({
@@ -60,8 +83,8 @@ export default function CajaLabelsDialog({ open, onOpenChange, clientEmail, onPr
             label_code: caja.label_code,
             caja_number: index + 1,
             caja_total: total,
-            package_count:
-              (caja.package_ids || []).length + (caja.unregistered_codes || []).length,
+            package_count: Number(caja.cargo_package_count)
+              || (caja.package_ids || []).length + (caja.unregistered_codes || []).length,
             cbm: Number(caja.cargo_cbm) || 0,
             order_numbers: caja.cbm_order_numbers || [],
           }))
@@ -135,6 +158,7 @@ export default function CajaLabelsDialog({ open, onOpenChange, clientEmail, onPr
         }
       }
       toast.success(`${cajas.length} etiqueta(s) enviadas a la impresora`);
+      onAssigned?.(cajas);
       onPrinted?.();
     } catch (e) {
       setStatus('error');

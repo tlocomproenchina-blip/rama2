@@ -155,6 +155,8 @@ export default async function(req: Request): Promise<Response> {
       warehouse_id: warehouse_id || '',
       status: bultoStatus,
       created_by: created_by || user.email || '',
+      // Hora real del cierre en el dispositivo (aunque se haya cerrado sin conexión).
+      ...(closed_at ? { device_closed_date: closed_at } : {}),
     });
 
     // Otro bulto se registró con el mismo código en el mismo instante.

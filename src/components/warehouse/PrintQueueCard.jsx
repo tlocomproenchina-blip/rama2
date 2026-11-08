@@ -8,18 +8,24 @@ import BluetoothPrinter from './BluetoothPrinter';
 
 // Tarjeta de cola de impresión: lista bultos pendientes, imprime todo en una
 // sola conexión Bluetooth, y permite quitar individualmente o vaciar la cola.
-export default function PrintQueueCard({ queue, onRemove, onClear, onPrintedAll }) {
+// onLogPrints(items): guarda las impresiones en el dispositivo (con su hora) para
+// registrarlas en el servidor cuando haya conexión, sin esperar la respuesta.
+export default function PrintQueueCard({ queue, onRemove, onClear, onPrintedAll, onLogPrints }) {
   const [confirmClear, setConfirmClear] = useState(false);
 
   const handlePrinted = async () => {
-    // Registrar cada impresión (best-effort) y limpiar la cola
-    for (const item of queue) {
-      try {
-        await base44.functions.invoke('registerBultoPrint', { bulto_id: item.id });
-      } catch (_) {}
+    const printed = [...queue];
+    if (onLogPrints) {
+      await onLogPrints(printed);
+    } else {
+      for (const item of printed) {
+        try {
+          await base44.functions.invoke('registerBultoPrint', { bulto_id: item.id });
+        } catch (_) {}
+      }
     }
-    await onPrintedAll?.(queue.map((q) => q.id));
-    toast.success(`${queue.length} etiqueta(s) impresa(s) y registrada(s)`);
+    await onPrintedAll?.(printed.map((q) => q.id));
+    toast.success(`${printed.length} etiqueta(s) impresa(s)`);
   };
 
   const handleClear = () => {

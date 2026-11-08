@@ -41,6 +41,28 @@ export default async function (req: Request): Promise<Response> {
     const rows = await base44.asServiceRole.entities.Bulto
       .filter({ client_email: clientEmail, is_caja: true }, '-created_date', 500)
       .catch(() => []);
+
+    // La tira ya se imprimió en el dispositivo (con o sin conexión): se guarda tal cual la
+    // numeración X/N que quedó impresa, con la hora real de la impresión. Si alguna caja
+    // todavía no llegó al servidor, se avisa para reintentar después.
+    if (Array.isArray(body.assignments) && body.assignments.length) {
+      const byCode = new Map((rows || []).map((c: any) => [String(c.label_code || '').toUpperCase(), c]));
+      const missing: string[] = [];
+      for (const a of body.assignments) {
+        const code = String(a?.label_code || '').trim();
+        const caja: any = byCode.get(code.toUpperCase());
+        if (!caja) { missing.push(code); continue; }
+        const printedAt = String(a?.printed_at || '').trim() || new Date().toISOString();
+        await base44.asServiceRole.entities.Bulto.update(caja.id, {
+          caja_number: Number(a.caja_number) || 0,
+          caja_total: Number(a.caja_total) || 0,
+          caja_label_printed_date: printedAt,
+          caja_label_printed_by: assignedBy,
+          ...(caja.first_printed_date ? {} : { first_printed_date: printedAt }),
+        }).catch(() => null);
+      }
+      return Response.json({ saved: body.assignments.length - missing.length, missing });
+    }
     const pending = (rows || [])
       .filter((c: any) => c.status !== 'despachado')
       .filter((c: any) => !onlyIds.size || onlyIds.has(c.id))

@@ -542,20 +542,22 @@ export default function usePackUnit({
           combine_codes: closed.combined_codes || [],
           unregistered_codes: closed.unregistered_codes || [],
           cbm_order_numbers: orders,
+          closed_at: closed.closed_at,
         });
-        toast.success(`Caja ${closed.label_code} cerrada: se sincroniza en segundo plano`);
+        toast.success(`Caja ${closed.label_code} cerrada: imprimiendo etiquetas`);
         applyUnits((prev) => prev.filter((u) => u.id !== unit.id));
         selectUnit(null);
         setContents({ package_count: 0, cbm: 0 });
         setOrdersText('');
         onHistoryChange?.();
+        return closed;
       } catch (e) {
         setError('No se pudo cerrar la caja');
       } finally {
         busyRef.current = false;
         setBusy(false);
       }
-      return;
+      return null;
     }
 
     let cbmOrderNumbers = Array.isArray(unit.cbm_order_numbers) ? unit.cbm_order_numbers : [];
@@ -573,8 +575,10 @@ export default function usePackUnit({
     applyUnits((prev) => prev.filter((u) => u.id !== unit.id));
     selectUnit(null);
 
-    // La etiqueta se imprime cuando el servidor confirma el guardado y devuelve el código definitivo.
-    toast.success(`Bulto ${unit.bulto_number} cerrado: se imprime al confirmarse el guardado`);
+    // La etiqueta definitiva se imprime ya (el código sale del bloque reservado para este
+    // dispositivo); el servidor valida al sincronizar sin detener la mesa.
+    await enqueuePrint?.(closed);
+    toast.success(`Bulto ${unit.bulto_number} cerrado: etiqueta enviada a imprimir`);
 
     await enqueueClosedBulto({
       local_bulto_id: closed.local_bulto_id || closed.id,
@@ -597,6 +601,7 @@ export default function usePackUnit({
     });
 
     onHistoryChange?.();
+    return closed;
   }, [applyUnits, contents, deviceId, enqueueCaja, enqueueClosedBulto, enqueuePrint, onHistoryChange, onUnitRemoved, ordersText, selectUnit, user]);
 
   return {

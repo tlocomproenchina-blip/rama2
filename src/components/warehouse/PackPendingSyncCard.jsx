@@ -2,8 +2,10 @@ import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, CloudOff, Loader2, RefreshCw } from 'lucide-react';
+import { describeQueueItem } from '@/lib/packSyncTasks';
 
-// Unidades (bultos y cajas) creadas en el dispositivo que todavía no llegaron al servidor.
+// Todo lo guardado en el dispositivo que todavía no llegó al servidor (unidades, fotos,
+// recepciones e impresiones), con la hora en que ocurrió. Se entrega solo al reconectar.
 export default function PackPendingSyncCard({ items = [], isSyncing, isOnline, onRetry }) {
   if (!items.length) return null;
 
@@ -12,7 +14,9 @@ export default function PackPendingSyncCard({ items = [], isSyncing, isOnline, o
       <CardContent className="p-3 space-y-2">
         <div className="flex items-center gap-2 text-amber-700">
           <CloudOff className="h-4 w-4 shrink-0" />
-          <p className="text-sm font-semibold">Unidades por sincronizar ({items.length})</p>
+          <p className="text-sm font-semibold">
+            Guardado en el dispositivo ({items.length}){isOnline ? '' : ' · se envía al reconectar'}
+          </p>
           {!isSyncing && isOnline && (
             <Button variant="ghost" size="sm" onClick={onRetry} className="ml-auto h-7 text-xs">
               <RefreshCw className="h-3 w-3" /> Reintentar
@@ -32,8 +36,13 @@ export default function PackPendingSyncCard({ items = [], isSyncing, isOnline, o
               <span className={`font-mono break-all ${
                 item.sync_status === 'error' ? 'text-red-600' : 'text-slate-600'
               }`}>
-                {item.label_code || 'Unidad'}
+                {describeQueueItem(item)}
               </span>
+              {item.created_at && (
+                <span className="shrink-0 text-[10px] text-slate-400">
+                  {new Date(item.created_at).toLocaleString('es-VE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                </span>
+              )}
               {item.type === 'caja' && (
                 <span className="shrink-0 rounded-full border border-amber-300 px-1.5 text-[10px] text-amber-800">
                   caja

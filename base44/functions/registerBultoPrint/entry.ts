@@ -20,8 +20,13 @@ export default async function(req: Request): Promise<Response> {
     }
 
     const body = await req.json().catch(() => ({}));
-    const bultoId: string = body.bulto_id || '';
-    if (!bultoId) return Response.json({ error: 'Falta bulto_id' }, { status: 400 });
+    // La Mesa de empaque imprime sin esperar al servidor: la impresión llega después con
+    // el id local de la unidad y su código, y aquí se ubica el bulto ya registrado.
+    const requestedId: string = String(body.bulto_id || '').trim();
+    const labelCode: string = String(body.label_code || '').trim();
+    if (!requestedId && !labelCode) return Response.json({ error: 'Falta bulto_id' }, { status: 400 });
+    const printedAtRaw = String(body.printed_at || '').trim();
+    const printedAt = printedAtRaw && !Number.isNaN(Date.parse(printedAtRaw)) ? printedAtRaw : new Date().toISOString();
 
     // La pantalla /BultoOrderScan se comparte como enlace de trabajo y abre sin
     // sesión: en ese caso se identifica el dispositivo que imprime.
@@ -31,8 +36,16 @@ export default async function(req: Request): Promise<Response> {
     }
     const printedBy = sessionUser?.email || `Dispositivo ${deviceId.slice(0, 8).toUpperCase()}`;
 
-    const bulto = await base44.asServiceRole.entities.Bulto.get(bultoId).catch(() => null);
+    const Bulto = base44.asServiceRole.entities.Bulto;
+    let bulto: any = requestedId ? await Bulto.get(requestedId).catch(() => null) : null;
+    if (!bulto && requestedId) {
+      bulto = (await Bulto.filter({ local_unit_id: requestedId }, '-created_date', 1).catch(() => []))?.[0] || null;
+    }
+    if (!bulto && labelCode) {
+      bulto = (await Bulto.filter({ label_code: labelCode }, '-created_date', 1).catch(() => []))?.[0] || null;
+    }
     if (!bulto) return Response.json({ error: 'Bulto no encontrado' }, { status: 404 });
+    const bultoId: string = bulto.id;
 
     const currentCount: number = Number(bulto.print_count || 0);
     const unlocked: boolean = !!bulto.reprint_unlocked;
@@ -66,12 +79,13 @@ export default async function(req: Request): Promise<Response> {
       reason: body.reason || null,
       reason_detail: body.reason_detail || null,
       printed_by: printedBy,
-      print_date: new Date().toISOString(),
+      print_date: printedAt,
       approval_status: 'n/a'
     });
 
     // Actualizar bulto: incrementar contador y resetear unlock si era reimpresion aprobada
     const update: any = { print_count: newCount };
+    if (!bulto.first_printed_date) update.first_printed_date = printedAt;
     if (unlocked) {
       update.reprint_unlocked = false;
     }
