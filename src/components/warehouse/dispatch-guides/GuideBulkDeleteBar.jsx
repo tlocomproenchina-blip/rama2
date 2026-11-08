@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { CUBIC_FEET_PER_CBM, sumCbm } from '@/lib/guideVolume';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -15,6 +16,9 @@ export default function GuideBulkDeleteBar({ guides, selectedIds, onSelectAll, o
   const [deleting, setDeleting] = useState(false);
   const count = selectedIds.length;
   const allSelected = guides.length > 0 && guides.every((g) => selectedIds.includes(g.id));
+  const selectedCbm = guides
+    .filter((g) => selectedIds.includes(g.id))
+    .reduce((sum, g) => sum + (g.clients || []).reduce((s, c) => s + (Number(c.totals?.cbm) || sumCbm(c.bultos)), 0), 0);
 
   const handleDelete = async (e) => {
     e.preventDefault();
@@ -38,6 +42,11 @@ export default function GuideBulkDeleteBar({ guides, selectedIds, onSelectAll, o
         <Checkbox checked={allSelected} onCheckedChange={(v) => (v ? onSelectAll() : onClear())} />
         {count ? `${count} seleccionada(s)` : 'Seleccionar todas'}
       </label>
+      {count > 0 && (
+        <span className="text-xs font-semibold text-slate-800">
+          Volumen total: {selectedCbm.toFixed(2)} CBM · {(selectedCbm * CUBIC_FEET_PER_CBM).toFixed(2)} pies cúbicos
+        </span>
+      )}
       {count > 0 && (
         <div className="flex flex-wrap gap-2">
           <Button size="sm" variant="ghost" onClick={onClear}>
