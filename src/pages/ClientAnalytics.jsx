@@ -223,6 +223,7 @@ export default function ClientAnalytics() {
         <ClientAnalyticsSearch
           selectedClient={selectedClient}
           onSelectClient={setSelectedClient}
+          hideSelected
         />
       </FichaHero>
 

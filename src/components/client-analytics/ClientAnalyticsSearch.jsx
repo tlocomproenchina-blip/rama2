@@ -3,7 +3,7 @@ import { Search, X, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import useClientSearch from '@/hooks/useClientSearch';
 
-export default function ClientAnalyticsSearch({ selectedClient, onSelectClient }) {
+export default function ClientAnalyticsSearch({ selectedClient, onSelectClient, hideSelected = false }) {
   const { query, setQuery, results, setResults, searching } = useClientSearch();
 
   return (
@@ -50,7 +50,7 @@ export default function ClientAnalyticsSearch({ selectedClient, onSelectClient }
         </div>
       )}
 
-      {selectedClient && (
+      {selectedClient && !hideSelected && (
         <div className="mt-3 flex flex-wrap gap-2 text-sm text-slate-600">
           <span className="rounded-full bg-slate-100 px-3 py-1 font-medium text-slate-700">
             {selectedClient.full_name || 'Sin nombre'}
