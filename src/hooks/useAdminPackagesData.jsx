@@ -79,7 +79,8 @@ export function useAdminPackagesData({ pageSize = 50 } = {}) {
     if (append) setLoadingMore(false); else setLoading(false);
   }, [debouncedSearch, statusFilter, reportedFilter, advancedFilters, pageSize]);
 
-  // Cargar conteos globales (registro único PackageCounts, sin escaneo)
+  // Conteos globales calculados en vivo por el servidor
+  const countsTimerRef = useRef(null);
   const loadCounts = useCallback(async () => {
     try {
       const res = await base44.functions.invoke('getPackageCounts', {});
@@ -104,7 +105,11 @@ export function useAdminPackagesData({ pageSize = 50 } = {}) {
   // que ocurran desde cualquier otra página (AdminOrphanPackages, etc.).
   useEffect(() => {
     const unsubscribe = base44.entities.Package.subscribe((event) => {
-      if (!event || !event.data) return;
+      if (!event) return;
+      // Los totales se recalculan una sola vez tras una ráfaga de cambios (3 s).
+      clearTimeout(countsTimerRef.current);
+      countsTimerRef.current = setTimeout(loadCounts, 3000);
+      if (!event.data) return;
       const pkg = event.data;
       if (event.type === 'delete') {
         const removedId = pkg.id || event.id;
@@ -116,8 +121,11 @@ export function useAdminPackagesData({ pageSize = 50 } = {}) {
         setPackages((prev) => prev.map((p) => (p.id === pkg.id ? { ...p, ...pkg } : p)));
       }
     });
-    return () => { if (typeof unsubscribe === 'function') unsubscribe(); };
-  }, []);
+    return () => {
+      clearTimeout(countsTimerRef.current);
+      if (typeof unsubscribe === 'function') unsubscribe();
+    };
+  }, [loadCounts]);
 
   const resetFilters = () => {
     setAdvancedFilters(null);

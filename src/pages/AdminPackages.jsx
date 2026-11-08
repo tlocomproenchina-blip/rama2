@@ -29,6 +29,7 @@ import { useAdminPackagesBulk } from '@/hooks/useAdminPackagesBulk';
 import { exportPreAlerta, exportSelectedToExcel } from '@/components/admin/packages/PackagesExports';
 import { useOfflineWriteQueue } from '@/hooks/useOfflineWriteQueue';
 import OfflineSyncBadge from '@/components/warehouse/OfflineSyncBadge';
+import ReconciliationPanel from '@/components/admin/packages/reconciliation/ReconciliationPanel';
 
 export default function AdminPackages({ user }) {
   const {
@@ -498,6 +499,8 @@ export default function AdminPackages({ user }) {
           filters: { q: search, statusFilter, reportedFilter, advancedFilters }
         })}
       />
+
+      <ReconciliationPanel />
 
       <BulkProgressIndicator progress={bulkProgress} />
 
