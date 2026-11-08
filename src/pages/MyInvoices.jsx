@@ -14,6 +14,9 @@ import ClientPageHero from '@/components/client-portal/ClientPageHero';
 import PortalMetricCard from '@/components/client-portal/PortalMetricCard';
 import ClientSectionHeader from '@/components/client-portal/ClientSectionHeader';
 import CreditBalanceWidget from '@/components/client-portal/CreditBalanceWidget';
+import PendingDeliveryInvoiceCard from '@/components/invoice/delivery/PendingDeliveryInvoiceCard';
+import DeliveryChoiceDialog from '@/components/invoice/delivery/DeliveryChoiceDialog';
+import { isDeliveryChoicePending, DELIVERY_OPTION_LABELS } from '@/lib/invoiceDeliveryChoice';
 
 export default function MyInvoices({ user }) {
   const [invoices, setInvoices] = useState([]);
@@ -80,6 +83,24 @@ export default function MyInvoices({ user }) {
     }
     setHasMore(data.length === PAGE_SIZE);
     if (append) setLoadingMore(false); else setLoading(false);
+  };
+
+  const [choosingInvoice, setChoosingInvoice] = useState(null);
+
+  const openOtherPay = (inv) => {
+    if (inv.status === 'pagada' || inv.status === 'revision') return;
+    const balance = Math.max(0, billableTotal(inv) - Number(inv.paid_amount || 0));
+    setSelectedConsolidation({ id: inv.consolidation_id, invoice_id: inv.id, total_cost: balance, consolidation_tracking: inv.consolidation_tracking });
+    setPaymentOpen(true);
+  };
+
+  // El cliente eligió la entrega: ya tiene monto final y su factura digital
+  const handleDeliveryChosen = (updated) => {
+    setChoosingInvoice(null);
+    setInvoices((prev) => prev.map((inv) => (inv.id === updated.id ? updated : inv)));
+    toast.success(`${DELIVERY_OPTION_LABELS[updated.delivery_option]}: total a pagar $${billableTotal(updated).toFixed(2)}`);
+    setHighlightId(updated.id);
+    if (hasOtherMethodsConfigured) openOtherPay(updated);
   };
 
   const handlePayPal = async (invoice) => {
@@ -271,6 +292,9 @@ export default function MyInvoices({ user }) {
                 key={invoice.id}
                 className={`transition-all duration-700 rounded-2xl ${highlightId === invoice.id ? 'ring-4 ring-blue-400 ring-offset-2 ring-offset-background scale-[1.01]' : ''}`}
               >
+              {isDeliveryChoicePending(invoice) && invoice.status === 'pendiente' ? (
+                <PendingDeliveryInvoiceCard invoice={invoice} onChoose={setChoosingInvoice} />
+              ) : (
               <InvoiceCard
                 invoice={invoice}
                 user={user}
@@ -279,18 +303,23 @@ export default function MyInvoices({ user }) {
                 onPayPal={handlePayPal}
                 showPayPalButton={config?.payments_enable_paypal === true}
                 onRefresh={loadInvoices}
-                onOtherPay={(inv) => {
-                  if (inv.status === 'pagada' || inv.status === 'revision') return;
-                  const balance = Math.max(0, billableTotal(inv) - Number(inv.paid_amount || 0));
-                  setSelectedConsolidation({ id: inv.consolidation_id, invoice_id: inv.id, total_cost: balance, consolidation_tracking: inv.consolidation_tracking });
-                  setPaymentOpen(true);
-                }}
+                onOtherPay={openOtherPay}
                 showOtherMethodsButton={hasOtherMethodsConfigured}
               />
+              )}
               </div>
             ))}
           </div>
         </>
+      )}
+
+      {choosingInvoice && (
+        <DeliveryChoiceDialog
+          open
+          invoice={choosingInvoice}
+          onClose={() => setChoosingInvoice(null)}
+          onChosen={handleDeliveryChosen}
+        />
       )}
 
       {/* Modal PayPal */}

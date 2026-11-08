@@ -432,6 +432,54 @@
         }
       }
     },
+    "delivery_choice_status": {
+      "type": "string",
+      "enum": [
+        "pendiente",
+        "elegida"
+      ],
+      "enumColors": [
+        "yellow",
+        "green"
+      ],
+      "description": "pendiente: el cliente a\u00fan no eligi\u00f3 c\u00f3mo recibir su carga y el monto final se calcula al elegir; elegida: ya eligi\u00f3 y el total qued\u00f3 fijo"
+    },
+    "delivery_option": {
+      "type": "string",
+      "enum": [
+        "retiro_almacen",
+        "puerta_a_puerta"
+      ],
+      "enumColors": [
+        "blue",
+        "purple"
+      ],
+      "description": "Entrega elegida por el cliente: retiro en almac\u00e9n Valencia o env\u00edo puerta a puerta"
+    },
+    "delivery_choice_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha en que el cliente eligi\u00f3 la entrega"
+    },
+    "delivery_choice_by": {
+      "type": "string",
+      "description": "Email de quien eligi\u00f3 la entrega"
+    },
+    "door_to_door_quote": {
+      "type": "object",
+      "description": "C\u00e1lculo autom\u00e1tico del servicio puerta a puerta: tarifa por CBM \u00d7 CBM facturado",
+      "properties": {
+        "rate_per_cbm": {
+          "type": "number"
+        },
+        "cbm": {
+          "type": "number"
+        },
+        "amount": {
+          "type": "number"
+        }
+      }
+    },
     "description": {
       "type": "string",
       "maxLength": 1000,

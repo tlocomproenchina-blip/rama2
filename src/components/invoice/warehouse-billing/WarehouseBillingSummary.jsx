@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Receipt, Loader2 } from 'lucide-react';
+import DoorToDoorQuoteNote from '@/components/invoice/delivery/DoorToDoorQuoteNote';
 
 const money = (v) => `$${Number(v || 0).toFixed(2)}`;
 
@@ -69,6 +70,8 @@ export default function WarehouseBillingSummary({
           </div>
         </div>
 
+        <DoorToDoorQuoteNote cbm={totals.billedCbm} />
+
         <div className="space-y-3 pt-2 border-t border-border">
           <p className="text-xs uppercase tracking-wide text-slate-400">Ajustes (opcional)</p>
           <div className="grid grid-cols-2 gap-2">
@@ -88,15 +91,6 @@ export default function WarehouseBillingSummary({
                 value={overrides.insurance}
                 onChange={(e) => setOverride('insurance', e.target.value)}
                 placeholder={`Auto ${money(totals.autoInsurance)}`}
-              />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-[11px] text-slate-500">Puerta a puerta</Label>
-              <Input
-                inputMode="decimal"
-                value={overrides.doorToDoor}
-                onChange={(e) => setOverride('doorToDoor', e.target.value)}
-                placeholder="0.00"
               />
             </div>
             <div className="space-y-1">

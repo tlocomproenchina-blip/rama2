@@ -26,7 +26,8 @@ export async function applyCreditsToUnpaidInvoices(base44, clientEmail) {
     'invoice_date'
   );
   const unpaid = allInvoices.filter(
-    (inv) => inv.status === 'pendiente' || inv.status === 'revision'
+    // Las facturas que esperan la elección de entrega del cliente aún no tienen monto final
+    (inv) => (inv.status === 'pendiente' || inv.status === 'revision') && inv.delivery_choice_status !== 'pendiente'
   );
 
   const applications = [];

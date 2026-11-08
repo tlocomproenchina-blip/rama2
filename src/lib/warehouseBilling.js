@@ -1,5 +1,7 @@
 import { base44 } from '@/components/api/ApiQueueManager';
 import { IMMUTABLE_INVOICE_FIELDS } from '@/lib/invoiceImmutability';
+import { loadDoorToDoorRate } from '@/lib/doorToDoorRate';
+import { deliveryChoiceFields } from '@/lib/invoiceDeliveryChoice';
 
 // =====================================================================
 // Facturación de carga en almacén (Venezuela).
@@ -325,8 +327,10 @@ export async function generateWarehouseInvoice({ client, selectedItems, totals, 
     tracking_numbers: it.trackings || [],
   }));
 
+  const doorRate = await loadDoorToDoorRate();
   const invoice = await base44.entities.Invoice.create({
     ...IMMUTABLE_INVOICE_FIELDS,
+    ...deliveryChoiceFields(totals.billedCbm, doorRate),
     invoice_number: `INV-M-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
     client_email: client.client_email,
     consolidation_id: 'manual',
@@ -371,18 +375,16 @@ export async function generateWarehouseInvoice({ client, selectedItems, totals, 
     })),
   ]);
 
-  const amount = `$${num(totals.total).toFixed(2)}`;
-
-  // Aviso al cliente: notificación in-app + email
+  // Aviso al cliente sin monto: el total se define cuando elige cómo recibir su carga
   try {
     await base44.functions.invoke('sendNotificationEmail', {
       to: client.client_email,
       subject: `Nueva factura ${invoice.invoice_number} - TLEC CARGO`,
-      body: `Hola,\n\nSe generó tu factura para la carga disponible en almacén.\n\nFactura: ${invoice.invoice_number}\nEnvíos: ${labels.join(', ')}\nCBM: ${num(totals.billedCbm).toFixed(4)}\nTotal: ${amount}\n\nIngresa a tu portal de TLEC CARGO, en "Mis Facturas", para revisar el detalle y pagar tus envíos disponibles para entrega.\n\nGracias.`,
+      body: `Hola,\n\nTu factura ${invoice.invoice_number} para la carga disponible en almacén ya está disponible para el pago.\n\nEnvíos: ${labels.join(', ')}\n\nIngresa a tu portal de TLEC CARGO, en "Mis Facturas", y selecciona la factura: te preguntaremos si quieres retirar tu carga en nuestro almacén de Valencia o recibirla en la puerta de tu casa. Según tu elección verás el monto a pagar y tu factura digital.\n\nGracias.`,
       in_app: {
         user_email: client.client_email,
-        title: '🧾 Nueva factura generada',
-        message: `Tu factura ${invoice.invoice_number} por ${amount} está disponible. Ingresa a Mis Facturas para revisar y pagar.`,
+        title: '🧾 Nueva factura disponible',
+        message: `Tu factura ${invoice.invoice_number} está disponible para el pago. Ingresa a Mis Facturas y elige cómo recibir tu carga.`,
         type: 'payment',
         icon: 'dollar',
         reference_id: invoice.id,

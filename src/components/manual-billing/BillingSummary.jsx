@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Loader2, FileText, Wallet } from 'lucide-react';
 import ProviderInvoiceUploader from '@/components/manual-billing/ProviderInvoiceUploader';
+import DoorToDoorQuoteNote from '@/components/invoice/delivery/DoorToDoorQuoteNote';
 
 export default function BillingSummary({
   rows, consolidationMode, setConsolidationMode, manualConsolidationFee, setManualConsolidationFee,
@@ -19,7 +20,7 @@ export default function BillingSummary({
   manualReceiptNumber, setManualReceiptNumber,
   extraAmount, setExtraAmount,
   extraConcept, setExtraConcept,
-  doorToDoorFee, setDoorToDoorFee,
+  doorToDoorCbm = 0,
   creditBalance = 0,
 }) {
   const selected = rows.filter(r => r.selected);
@@ -93,14 +94,7 @@ export default function BillingSummary({
         </div>
 
         <div className="space-y-2 border-t pt-3">
-          <Label className="text-sm">Envío puerta a puerta</Label>
-          <Input
-            type="number" step="0.01" min="0"
-            value={doorToDoorFee || ''}
-            onChange={(e) => setDoorToDoorFee(e.target.value)}
-            placeholder="Ej: 10.00"
-          />
-          <p className="text-xs text-slate-500">Tarifa opcional de envío puerta a puerta. Se agrega como línea en la factura.</p>
+          <DoorToDoorQuoteNote cbm={doorToDoorCbm} />
         </div>
 
         <div className="space-y-2 border-t pt-3">
@@ -148,9 +142,6 @@ export default function BillingSummary({
               <span>Seguro ya pagado (referencia)</span>
               <span className="line-through">${Number(paidInsuranceTotal).toFixed(2)}</span>
             </div>
-          )}
-          {Number(doorToDoorFee) > 0 && (
-            <div className="flex justify-between text-slate-600"><span>Puerta a puerta</span><span>${Number(doorToDoorFee).toFixed(2)}</span></div>
           )}
           {Number(extraAmount) > 0 && (
             <div className="flex justify-between text-slate-600"><span>{String(extraConcept || '').trim() || 'Monto adicional'}</span><span>${Number(extraAmount).toFixed(2)}</span></div>

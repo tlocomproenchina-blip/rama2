@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { base44 } from '@/components/api/ApiQueueManager';
 import { IMMUTABLE_INVOICE_FIELDS } from '@/lib/invoiceImmutability';
+import { loadDoorToDoorRate } from '@/lib/doorToDoorRate';
+import { deliveryChoiceFields } from '@/lib/invoiceDeliveryChoice';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2, ReceiptText, RotateCcw, AlertTriangle, Package, ChevronDown, Boxes } from 'lucide-react';
@@ -44,7 +46,6 @@ export default function AdminManualBilling({ user }) {
   const [manualReceiptNumber, setManualReceiptNumber] = useState('');
   const [extraAmount, setExtraAmount] = useState('');
   const [extraConcept, setExtraConcept] = useState('');
-  const [doorToDoorFee, setDoorToDoorFee] = useState('');
   const [creating, setCreating] = useState(false);
   const [recovering, setRecovering] = useState(false);
   const [creditBalance, setCreditBalance] = useState(0);
@@ -538,8 +539,8 @@ export default function AdminManualBilling({ user }) {
   const totalPackages = selectedRows.reduce((s, r) => s + (r.package_count || 0), 0) + selectedOrphans.length;
   const consolidationFee = consolidationMode === 'manual' ? num(manualConsolidationFee) : totalPackages * 1;
   const extraAmountValue = num(extraAmount);
-  const doorToDoorValue = num(doorToDoorFee);
-  const total = shippingTotal + insuranceTotal + consolidationFee + extraAmountValue + doorToDoorValue;
+  // El puerta a puerta no se suma aquí: se calcula solo y lo agrega el cliente si lo elige al pagar.
+  const total = shippingTotal + insuranceTotal + consolidationFee + extraAmountValue;
 
   const handleCreate = async () => {
     const manualReceipt = String(manualReceiptNumber || '').trim();
@@ -682,15 +683,6 @@ export default function AdminManualBilling({ user }) {
           details: { package_count: totalPackages },
         });
       }
-      if (doorToDoorValue > 0) {
-        items.push({
-          description: 'Envío puerta a puerta',
-          quantity: 1,
-          unit_price: doorToDoorValue,
-          total: doorToDoorValue,
-          details: { door_to_door: true },
-        });
-      }
       if (extraAmountValue > 0) {
         items.push({
           description: String(extraConcept || '').trim() || 'Monto adicional',
@@ -729,7 +721,7 @@ export default function AdminManualBilling({ user }) {
         insurance_total: insuranceTotal,
         paid_insurance_total: paidInsuranceTotal,
         consolidation_fee: consolidationFee,
-        door_to_door_fee: doorToDoorValue,
+        door_to_door_fee: 0,
         extra_amount: extraAmountValue,
         extra_concept: String(extraConcept || '').trim(),
         rate_per_cbm: flatRatePerCbm,
@@ -744,8 +736,10 @@ export default function AdminManualBilling({ user }) {
       const dueDate = new Date();
       dueDate.setDate(dueDate.getDate() + num(appConfig?.invoice_overdue_days || 7));
 
+      const doorRate = await loadDoorToDoorRate();
       const invoice = await base44.entities.Invoice.create({
         ...IMMUTABLE_INVOICE_FIELDS,
+        ...deliveryChoiceFields(billedCbmValue, doorRate),
         invoice_number: `INV-M-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
         client_email: client.email,
         consolidation_id: selectedRows[0]?.consolidation_id || 'manual',
@@ -808,7 +802,7 @@ export default function AdminManualBilling({ user }) {
         await base44.entities.Notification.create({
           user_email: client.email,
           title: '🧾 Nueva factura generada',
-          message: `Tu factura ${invoice.invoice_number} por $${num(total).toFixed(2)} está disponible. Ingresa a Mis Facturas para revisar y pagar.`,
+          message: `Tu factura ${invoice.invoice_number} está disponible para el pago. Ingresa a Mis Facturas, elige cómo recibir tu carga y verás el monto a pagar.`,
           type: 'payment',
           icon: 'dollar',
           reference_id: invoice.id,
@@ -821,10 +815,10 @@ export default function AdminManualBilling({ user }) {
         await base44.functions.invoke('sendNotificationEmail', {
           to: client.email,
           subject: `Nueva factura ${invoice.invoice_number} - TLEC CARGO`,
-          body: `Hola,\n\nSe ha generado una nueva factura a tu nombre.\n\nFactura: ${invoice.invoice_number}\nTotal: $${num(total).toFixed(2)}\n\nIngresa a tu portal de TLEC CARGO para revisar los métodos de pago disponibles y completar el pago.\n\nGracias.`,
+          body: `Hola,\n\nTu factura ${invoice.invoice_number} ya está disponible para el pago.\n\nIngresa a tu portal de TLEC CARGO, en "Mis Facturas", y selecciona la factura: te preguntaremos si quieres retirar tu carga en nuestro almacén de Valencia o recibirla en la puerta de tu casa. Según tu elección verás el monto a pagar y tu factura digital.\n\nGracias.`,
           in_app: {
-            title: 'Nueva factura generada',
-            message: `Factura ${invoice.invoice_number} por $${num(total).toFixed(2)}`,
+            title: 'Nueva factura disponible',
+            message: `Factura ${invoice.invoice_number} disponible para el pago`,
             type: 'payment',
             icon: 'dollar',
             reference_id: invoice.id
@@ -876,7 +870,6 @@ export default function AdminManualBilling({ user }) {
       setManualReceiptNumber('');
       setExtraAmount('');
       setExtraConcept('');
-      setDoorToDoorFee('');
       setCargoType(INITIAL_CARGO_TYPE);
       // La carga facturada sale de la lista de pendientes del panel
       pending.reload();
@@ -1033,8 +1026,7 @@ export default function AdminManualBilling({ user }) {
       setExtraAmount={setExtraAmount}
       extraConcept={extraConcept}
       setExtraConcept={setExtraConcept}
-      doorToDoorFee={doorToDoorFee}
-      setDoorToDoorFee={setDoorToDoorFee}
+      doorToDoorCbm={billedCbm !== '' ? num(billedCbm) : totalCbmAll}
       creditBalance={creditBalance}
     />
   );
