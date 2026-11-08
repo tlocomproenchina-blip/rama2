@@ -18,6 +18,9 @@ import {
 import { toast } from 'sonner';
 import StatusBadge from '@/components/StatusBadge';
 
+const PAGE_SIZE = 100;
+const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 export default function AdminDelete({ user }) {
   const [packages, setPackages] = useState([]);
   const [consolidations, setConsolidations] = useState([]);
@@ -28,19 +31,43 @@ export default function AdminDelete({ user }) {
   const [deleteDialog, setDeleteDialog] = useState({ open: false, type: null, item: null });
   const [deleting, setDeleting] = useState(false);
 
+  // Búsqueda y carga progresiva en el servidor (no se descargan todos los registros).
+  const [term, setTerm] = useState('');
+  const [limit, setLimit] = useState(PAGE_SIZE);
+  const cedulaKey = Array.from(cedulaEmails || []).sort().join(',');
+
+  useEffect(() => {
+    const t = setTimeout(() => { setTerm(search.trim()); setLimit(PAGE_SIZE); }, 400);
+    return () => clearTimeout(t);
+  }, [search]);
+
   useEffect(() => {
     loadData();
-  }, []);
+  }, [term, limit, cedulaKey]);
+
+  const buildQuery = (fields) => {
+    if (!term) return {};
+    const rx = { $regex: escapeRegex(term), $options: 'i' };
+    const ors = fields.map((field) => ({ [field]: rx }));
+    if (cedulaKey) ors.push({ client_email: { $in: cedulaKey.split(',') } });
+    return { $or: ors };
+  };
 
   const loadData = async () => {
     const [pkgs, cons] = await Promise.all([
-      base44.entities.Package.list('-created_date'),
-      base44.entities.Consolidation.list('-created_date')
+      base44.entities.Package.filter(buildQuery(['tracking_number', 'shipping_mark', 'client_email']), '-created_date', limit),
+      base44.entities.Consolidation.filter(buildQuery(['consolidation_tracking', 'shipping_mark', 'client_email']), '-created_date', limit)
     ]);
     setPackages(pkgs);
     setConsolidations(cons);
     setLoading(false);
   };
+
+  const loadMoreButton = (count) => count >= limit && (
+    <div className="flex justify-center pt-4">
+      <Button variant="outline" onClick={() => setLimit((n) => n + PAGE_SIZE)}>Cargar más</Button>
+    </div>
+  );
 
   const handleDeletePackage = async (pkg) => {
     setDeleting(true);
@@ -247,6 +274,7 @@ export default function AdminDelete({ user }) {
                   ))}
                 </div>
               )}
+              {loadMoreButton(packages.length)}
             </CardContent>
           </Card>
         </TabsContent>
@@ -297,6 +325,7 @@ export default function AdminDelete({ user }) {
                   ))}
                 </div>
               )}
+              {loadMoreButton(consolidations.length)}
             </CardContent>
           </Card>
         </TabsContent>
