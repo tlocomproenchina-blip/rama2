@@ -22,6 +22,7 @@ import GuideBultoChips from './GuideBultoChips';
 import DeleteGuideButton from './DeleteGuideButton';
 import { Checkbox } from '@/components/ui/checkbox';
 import GuidePalletsDialog from './GuidePalletsDialog';
+import { CUBIC_FEET_PER_CBM, sumCbm } from '@/lib/guideVolume';
 import { palletCountFor, palletSequence, palletsTotalOf } from '@/lib/guidePallets';
 
 const fmtDate = (value) => {
@@ -243,6 +244,14 @@ export default function DispatchGuideHistoryCard({ guide, appName, highlighted =
                   <p className="font-mono text-[11px] text-blue-700 break-all">
                     Mark: {client.shipping_mark || client.client?.shipping_mark || '—'}
                   </p>
+                  {(() => {
+                    const cbm = Number(client.totals?.cbm) || sumCbm(client.bultos);
+                    return (
+                      <p className="text-[11px] font-semibold text-slate-700">
+                        Volumen: {cbm.toFixed(2)} CBM · {(cbm * CUBIC_FEET_PER_CBM).toFixed(2)} pies cúbicos
+                      </p>
+                    );
+                  })()}
                   {palletCountFor(guide.pallets, client) > 0 && (
                     <p className="text-[11px] font-semibold text-slate-700">
                       Paletas: {palletCountFor(guide.pallets, client)} ({palletSequence(palletCountFor(guide.pallets, client))})
