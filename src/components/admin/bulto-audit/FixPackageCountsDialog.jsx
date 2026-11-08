@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { AlertTriangle, Loader2, RefreshCw } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
+import FixCountsResult from '@/components/admin/bulto-audit/FixCountsResult';
 
 // Corrección del conteo de paquetes ya guardado: recalcula el número real de las cajas y
 // bultos creados hasta hoy y limpia las etiquetas de bultos ya fusionados que quedaron
@@ -48,19 +49,14 @@ export default function FixPackageCountsDialog({ open, onClose, onDone }) {
         </DialogHeader>
         <div className="space-y-3 py-2">
           <p className="text-sm text-slate-600">
-            Recalcula el número de paquetes de las cajas y bultos creados hasta hoy con el conteo real que hay dentro,
-            sin las etiquetas de bultos que ya se fusionaron, para que la ficha, la etiqueta y la guía de despacho
-            muestren el mismo número.
+            Quita los trackings duplicados de las cajas y bultos ya registrados y corrige su conteo de paquetes,
+            sin las etiquetas de bultos que ya se fusionaron. Las guías de despacho emitidas reciben el conteo corregido.
           </p>
           <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
             No crea ni suelta paquetes y no borra el historial de bultos absorbidos. Puedes ejecutarla más de una vez:
             si ya está todo cuadrado, no cambia nada.
           </div>
-          {result && (
-            <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
-              Revisados: {result.revisados ?? 0} · Corregidos: {result.corregidos ?? 0}
-            </p>
-          )}
+          {result && <FixCountsResult result={result} />}
         </div>
         <DialogFooter className="gap-2">
           <Button variant="outline" onClick={close} disabled={running}>Cerrar</Button>

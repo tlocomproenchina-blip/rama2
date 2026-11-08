@@ -3,6 +3,7 @@ import { markPackagesReceivedIfMissing } from '../../shared/bultoScan.ts';
 import { planCombinedSources, deleteCombinedSources } from '../../shared/combineSources.ts';
 import { isSameWork, reassignLabelCode, settleCreateRace } from '../../shared/labelConflict.ts';
 import { findTrackingOwners, publicOwner, settleTrackingRace } from '../../shared/trackingDuplicates.ts';
+import { dedupeUnitContents } from '../../shared/unitDedupe.ts';
 
 // Sincroniza un bulto cerrado (creado offline) con todos sus paquetes al servidor.
 // Recibe:
@@ -104,9 +105,20 @@ export default async function(req: Request): Promise<Response> {
           actor: created_by || user.email || '',
         })
       : null;
-    const mergedPackageIds = [...new Set([...validPackageIds, ...(combined?.package_ids || [])])];
-    const mergedTrackings = [...new Set([...validTrackings, ...(combined?.trackings || [])])];
-    const mergedUnregistered = [...new Set([...unregisteredFromLocal, ...(combined?.unregistered_codes || [])])];
+    // Cada tracking cuenta una sola vez: sin repetidos (aunque cambien las mayúsculas) y
+    // sin contar como "sin registrar" el tracking de un paquete registrado del bulto.
+    const registeredCodes = rawTrackings.filter((_, i) => {
+      const id = String(rawPackageIds[i] || '');
+      return id && !id.startsWith('local_') && !dupIds.has(id);
+    });
+    const deduped = dedupeUnitContents({
+      package_ids: [...validPackageIds, ...(combined?.package_ids || [])],
+      package_trackings: [...validTrackings, ...(combined?.trackings || [])],
+      unregistered_codes: [...unregisteredFromLocal, ...(combined?.unregistered_codes || [])],
+    }, registeredCodes);
+    const mergedPackageIds = deduped.package_ids;
+    const mergedTrackings = deduped.package_trackings;
+    const mergedUnregistered = deduped.unregistered_codes;
 
     // Todos los bultos nacen 'en_almacen_ve' (sellados en el almacén, esperando despacho al cliente).
     // Las etiquetas vacías creadas en lote también: antes nacían como 'despachado' y aparecían
