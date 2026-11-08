@@ -1,19 +1,17 @@
 import React from 'react';
 import { Warehouse, Truck, Check } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { DOOR_TO_DOOR_RATE_PER_CBM } from '@/lib/doorToDoor';
 
 const OPTIONS = [
-  { value: 'si', icon: Warehouse, title: 'Sí, retiro en almacén', text: 'Buscas tu carga en nuestro almacén. Sin cargo de entrega.' },
-  { value: 'no', icon: Truck, title: 'No, entrega puerta a puerta', text: `La llevamos a tu dirección: $${DOOR_TO_DOOR_RATE_PER_CBM} por CBM, a cualquier destino.` }
+  { value: 'si', icon: Warehouse, title: 'Sí, retiro en almacén', text: 'Buscas tu carga en nuestro almacén.' },
+  { value: 'no', icon: Truck, title: 'No, entrega puerta a puerta', text: 'Te lo llevamos hasta la puerta de tu casa.' }
 ];
 
-export default function WarehousePickupChoice({ value, onChange, door }) {
+export default function WarehousePickupChoice({ value, onChange }) {
   return (
     <div className="space-y-3 rounded-2xl border border-border/70 bg-muted/40 p-4">
       <div>
         <p className="font-display text-base font-semibold text-foreground">¿Retiras tu carga en almacén?</p>
-        <p className="text-sm text-muted-foreground">Elige cómo quieres recibirla para completar tu estimado.</p>
+        <p className="text-sm text-muted-foreground">Elige cómo quieres recibirla.</p>
       </div>
       <div role="radiogroup" className="grid gap-3 sm:grid-cols-2">
         {OPTIONS.map(({ value: v, icon: Icon, title, text }) => {
@@ -33,20 +31,6 @@ export default function WarehousePickupChoice({ value, onChange, door }) {
           );
         })}
       </div>
-      <AnimatePresence initial={false}>
-        {value === 'no' && door && (
-          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
-            <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-primary/30 bg-card px-4 py-3">
-              <div className="text-sm text-muted-foreground">
-                {door.cbm > 0
-                  ? `${door.cbm.toFixed(4)} CBM × $${door.rate} · se usa el mayor CBM (${door.source === 'medidas' ? 'por medidas' : 'indicado'})`
-                  : 'Ingresa las medidas o el CBM para calcular la entrega.'}
-              </div>
-              <div className="font-display text-lg font-bold text-foreground">${door.charge.toFixed(2)}</div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }

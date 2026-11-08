@@ -49,7 +49,6 @@ import ShippingMarkExamplesEditor from '@/components/admin/ShippingMarkExamplesE
 import BatteryBannerSettings from '@/components/admin/BatteryBannerSettings';
 import WholesalerConnectionCard from '@/components/admin/WholesalerConnectionCard';
 import AiTicketSettingsCard from '@/components/admin/AiTicketSettingsCard';
-import DestinationChargeSettings from '@/components/admin/DestinationChargeSettings';
 import DispatchOrderWhatsappSettingsCard from '@/components/admin/DispatchOrderWhatsappSettingsCard';
 import TermsNoticeCard from '@/components/admin/TermsNoticeCard';
 
@@ -918,9 +917,6 @@ export default function AdminSettings({ user }) {
             </CardContent>
           </Card>
 
-          <div className="mt-6">
-            <DestinationChargeSettings />
-          </div>
         </TabsContent>
 
         {/* Tab Estados */}
