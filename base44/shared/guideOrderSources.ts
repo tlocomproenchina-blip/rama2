@@ -188,6 +188,22 @@ export async function fetchReceiptsForOrders(base44: any, requests: any[]) {
   return receipts;
 }
 
+// Los bultos sin CBM propio reciben el CBM restante del recibo, repartido una
+// sola vez entre ellos (no se repite el CBM del recibo en cada bulto).
+export function fillMissingCbmFromReceipt(bultos: any[], receiptCbm: number) {
+  const missing = bultos.filter((bulto: any) => !(num(bulto.cbm) > 0));
+  if (!missing.length || !(receiptCbm > 0)) return;
+  const explicit = bultos.reduce((sum: number, bulto: any) => sum + (num(bulto.cbm) > 0 ? num(bulto.cbm) : 0), 0);
+  const remaining = Number((receiptCbm - explicit).toFixed(4));
+  if (!(remaining > 0)) return;
+  const share = Number((remaining / missing.length).toFixed(4));
+  missing.forEach((bulto: any, index: number) => {
+    bulto.cbm = index === missing.length - 1
+      ? Number((remaining - share * (missing.length - 1)).toFixed(4))
+      : share;
+  });
+}
+
 // Cada recibo se vuelve un candidato: qué cliente es, qué carga trae, qué bultos
 // registrados tiene esa orden y si ya salió en una guía.
 export async function resolveOrderCandidates(base44: any, receipts: any[]) {
@@ -229,6 +245,7 @@ export async function resolveOrderCandidates(base44: any, receipts: any[]) {
         caja_total: num(bulto?.caja_total),
       }))
       .filter((bulto: any) => !!bulto.label_code);
+    fillMissingCbmFromReceipt(bultos, num(receipt?.cbm));
 
     const trackings = unique((receipt?.tracking_numbers || []).map(text));
     const registered = bultos.length > 0;
