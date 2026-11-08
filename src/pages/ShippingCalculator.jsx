@@ -414,6 +414,13 @@ export default function ShippingCalculator({ user, defaultStateCode, defaultShip
                     <p className="text-xs text-slate-500">Sin cargo puerta a puerta</p>
                   </div>
                 )}
+                {result.insuranceCost > 0 && (
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+                    <p className="text-sm font-medium text-amber-800">Seguro</p>
+                    <p className="mt-1 text-xl font-bold text-amber-700">${result.insuranceCost.toFixed(2)}</p>
+                    <p className="text-xs text-amber-700">{(config?.insurance_percentage || 0)}% del valor FOB</p>
+                  </div>
+                )}
                 <div className="rounded-xl border-2 border-emerald-300 bg-emerald-50 p-4 md:col-span-2">
                   <p className="text-sm font-medium text-emerald-800">Total estimado</p>
                   <p className="mt-1 text-2xl font-bold text-emerald-700">${result.totalCost.toFixed(2)}</p>
@@ -422,14 +429,6 @@ export default function ShippingCalculator({ user, defaultStateCode, defaultShip
                   </p>
                 </div>
               </div>
-
-              {result.insuranceCost > 0 && (
-                <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
-                  <p className="text-sm font-medium text-amber-800">Seguro</p>
-                  <p className="mt-1 text-xl font-bold text-amber-700">${result.insuranceCost.toFixed(2)}</p>
-                  <p className="text-xs text-amber-700">{(config?.insurance_percentage || 0)}% del valor FOB</p>
-                </div>
-              )}
 
               <div className="grid grid-cols-1 gap-2 text-sm text-slate-600 md:grid-cols-2">
                 <div className="rounded-lg bg-slate-100/80 px-3 py-2">Peso volumétrico: {result.volumetricWeight.toFixed(2)} kg</div>
