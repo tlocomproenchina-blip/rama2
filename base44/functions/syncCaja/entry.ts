@@ -16,6 +16,7 @@ import { syncBultoToAccounting } from '../../shared/veAccountingSync.ts';
 import { planCombinedSources, deleteCombinedSources } from '../../shared/combineSources.ts';
 import { isSameWork, reassignLabelCode, settleCreateRace } from '../../shared/labelConflict.ts';
 import { findTrackingOwners, publicOwner } from '../../shared/trackingDuplicates.ts';
+import { findCajaMergeTarget } from '../../shared/cajaMerge.ts';
 
 // Registra en el servidor una caja consolidada armada en el almacén de Venezuela.
 //
@@ -191,10 +192,37 @@ export default async function (req: Request): Promise<Response> {
       warnings.push(...combined.warnings);
     }
 
+    // Una sola caja consolidada por cliente: si esta caja es nueva y el cliente ya tiene
+    // otra caja cerrada en el almacén (mismo contenedor o sin contenedor), su contenido
+    // se suma a esa caja en lugar de registrar una segunda.
+    const ownRows = await base44.asServiceRole.entities.Bulto
+      .filter({ label_code: labelCode }, '-created_date', 1)
+      .catch(() => []);
+    const mergeTarget = ownRows?.length
+      ? null
+      : await findCajaMergeTarget(base44, {
+        clientEmail,
+        labelCode,
+        preferLabel: String(body.merge_into || ''),
+        orders: manualOrders,
+        skipLabels: [...absorbCodes, ...combineCodes],
+      });
+    if (mergeTarget) {
+      for (const id of mergeTarget.package_ids || []) {
+        const value = String(id || '').trim();
+        if (value && !value.startsWith('local_') && !packageIds.includes(value)) packageIds.push(value);
+      }
+      for (const code of mergeTarget.unregistered_codes || []) {
+        const value = String(code || '').trim();
+        if (value && !unregistered.includes(value)) unregistered.push(value);
+      }
+      movedOrders.push(...(mergeTarget.cbm_order_numbers || []));
+    }
+
     // Un tracking que ya está en otra caja o bulto no entra a esta caja: se avisa al
     // dispositivo y la caja se registra con el resto de su contenido.
     const duplicates = await findTrackingOwners(base44, directItems, {
-      excludeLabels: [labelCode, ...absorbCodes, ...combineCodes],
+      excludeLabels: [labelCode, ...absorbCodes, ...combineCodes, ...(mergeTarget ? [mergeTarget.label_code] : [])],
       excludeLocalUnitId: localUnitId,
       excludeOpenUnitId: localUnitId,
     });
@@ -232,15 +260,18 @@ export default async function (req: Request): Promise<Response> {
       .filter((c) => !isBultoLabel(c))
       .filter((c) => !resolvedTrackings.has(String(c).trim().toUpperCase()));
 
-    const existingRows = await base44.asServiceRole.entities.Bulto
-      .filter({ label_code: labelCode }, '-created_date', 1)
-      .catch(() => []);
-    let existing: any = existingRows?.[0] || null;
+    let existing: any = mergeTarget || ownRows?.[0] || null;
 
-    // El código ya lo tiene otra unidad (otro operador cerró una caja o bulto con el
-    // mismo código): esa conserva su código y esta caja recibe uno nuevo para que
-    // ninguna pierda su contenido.
-    if (existing && (existing.is_caja === false || !isSameWork(existing, localUnitId, scannedCodes))) {
+    if (mergeTarget) {
+      relabeled = {
+        from: labelCode,
+        to: mergeTarget.label_code,
+        number: Number(mergeTarget.bulto_number) || null,
+        merged: true,
+      };
+      labelCode = mergeTarget.label_code;
+      numberFromCode = Number(mergeTarget.bulto_number) || numberFromCode;
+    } else if (existing && (existing.is_caja === false || !isSameWork(existing, localUnitId, scannedCodes))) {
       const fresh = await reassignLabelCode(base44, labelCode, 'C');
       if (!fresh) {
         return Response.json({ error: `El código ${labelCode} ya está usado y no se pudo asignar uno nuevo. Reintenta.` }, { status: 500 });
@@ -390,6 +421,7 @@ export default async function (req: Request): Promise<Response> {
         bulto_number: caja.bulto_number,
       },
       relabeled,
+      merged_into: mergeTarget ? mergeTarget.label_code : null,
       duplicates: duplicates.map(publicOwner),
       absorbed: {
         bultos: plan.absorbed,
