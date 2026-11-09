@@ -132,10 +132,11 @@ export default async function(req: Request): Promise<Response> {
         const cbms = await base44.asServiceRole.entities.CbmIngreso.filter(
           { client_email }, '-fecha', 200
         );
-        const trackingSet = new Set(mergedTrackings);
+        const norm = (v: unknown) => String(v || '').trim().toUpperCase();
+        const trackingSet = new Set(mergedTrackings.map(norm));
         for (const c of cbms || []) {
           const tn = Array.isArray(c.tracking_numbers) ? c.tracking_numbers : [];
-          if (tn.some((t: string) => trackingSet.has(t)) && c.invoice_number) {
+          if (tn.some((t: string) => trackingSet.has(norm(t))) && c.invoice_number) {
             finalOrderNumbers.push(c.invoice_number);
           }
         }

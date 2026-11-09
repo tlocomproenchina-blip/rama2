@@ -4,6 +4,7 @@
 // Reference: TSPL/TSPL2 Programming Manual (TSC / Zijiang-compatible).
 
 import { qrModuleCount } from '@/lib/qrCode';
+import { containerLine } from '@/lib/labelContainerLine';
 
 const enc = new TextEncoder();
 
@@ -85,12 +86,8 @@ export const buildBultoLabelPayload = (bulto, copies = 1) => {
   const cs = bulto.client_snapshot || {};
   const estado = (cs.state || 'SIN ESTADO').toUpperCase();
   const labelCode = bulto.label_code || '';
-  const bultoNum = bulto.is_caja
-    ? 'CAJA CONSOLIDADA'
-    : `BULTO ${bulto.bulto_number || 1}`;
-  // La etiqueta no imprime la cantidad de paquetes: ese conteo es de uso interno
-  // y el cliente lo consulta en su perfil.
-  const bultoPkg = bultoNum;
+  // Donde iba "BULTO N" va el N° de contenedor; el número de bulto no se imprime.
+  const containerText = containerLine(bulto);
 
   // Métricas verticales (dots @203dpi). Altura real de cada texto + respiro.
   const MARGIN = 20;
@@ -99,9 +96,6 @@ export const buildBultoLabelPayload = (bulto, copies = 1) => {
   const nameCedula = [cs.full_name, cs.cedula ? `C.I. ${cs.cedula}` : ''].filter(Boolean).join(' - ');
   const cityState = [cs.city, cs.state].filter(Boolean).join(', ');
   const addrLines = cs.address ? wrapText(cs.address, 40).slice(0, 2) : [];
-  const orderNumbers = Array.isArray(bulto.cbm_order_numbers) ? bulto.cbm_order_numbers.filter(Boolean) : [];
-  // N° de contenedor tal cual, al lado del estado del cliente.
-  const ordenStr = orderNumbers.join(', ');
 
   // Cada bloque conoce su alto y se dibuja en la Y que se le asigna
   const blocks = [];
@@ -114,33 +108,20 @@ export const buildBultoLabelPayload = (bulto, copies = 1) => {
   // 2. Separador
   addBlock(22, (y) => [`BAR 50,${y + 9},700,3`]);
 
-  // 3. ESTADO + N° de contenedor: van en la misma línea y con el mismo tamaño.
-  const BIG_CW = FONT_WIDTH['3']; // ancho de carácter de la fuente grande (24 dots)
-  const ROW_GAP = 40; // separación entre ESTADO y el N° de contenedor
-  addBlock(78, (y) => {
-    // Escala común a los dos textos: llega al tamaño grande del ESTADO (3x) y baja
-    // solo lo necesario para que ambos entren juntos en el ancho de la etiqueta.
-    let scale = 3;
-    if (ordenStr) {
-      const units = (estado.length + ordenStr.length) * BIG_CW;
-      scale = Math.max(1, Math.min(3, Math.floor((LABEL_W - 60) / (units + ROW_GAP))));
-    }
-    const estadoW = estado.length * BIG_CW * scale;
-    const orderW = ordenStr ? ordenStr.length * BIG_CW * scale : 0;
-    const pairW = estadoW + (ordenStr ? ROW_GAP + orderW : 0);
-    const x0 = Math.max(10, Math.floor((LABEL_W - pairW) / 2));
-    const lines = [`TEXT ${x0},${y},${q('3')},0,${scale},${scale},${q(estado)}`];
-    if (ordenStr) {
-      lines.push(`TEXT ${x0 + estadoW + ROW_GAP},${y},${q('3')},0,${scale},${scale},${q(ordenStr)}`);
-    }
-    return lines;
-  });
+  // 3. ESTADO en grande, centrado (se achica solo si no entra a lo ancho).
+  const estadoScale = Math.max(1, Math.min(3, Math.floor((LABEL_W - 60) / (estado.length * FONT_WIDTH['3']))));
+  addBlock(78, (y) => [
+    `TEXT ${centerX(estado, '3', estadoScale)},${y},${q('3')},0,${estadoScale},${estadoScale},${q(estado)}`,
+  ]);
 
   // 5. Separador
   addBlock(22, (y) => [`BAR 50,${y + 9},700,3`]);
 
-  // 6. Bulto X/Y + cantidad de paquetes
-  addBlock(48, (y) => [`TEXT ${centerX(bultoPkg, '2', 2)},${y},${q('2')},0,2,2,${q(bultoPkg)}`]);
+  // 6. N° de contenedor (en el lugar de la antigua línea "BULTO N")
+  const containerScale = Math.max(1, Math.min(2, Math.floor((LABEL_W - 60) / (containerText.length * FONT_WIDTH['2']))));
+  addBlock(48, (y) => [
+    `TEXT ${centerX(containerText, '2', containerScale)},${y},${q('2')},0,${containerScale},${containerScale},${q(containerText)}`,
+  ]);
 
   // 7. Separador
   addBlock(22, (y) => [`BAR 50,${y + 9},700,3`]);

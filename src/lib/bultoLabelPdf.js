@@ -1,4 +1,5 @@
 import { labelSymbolImage } from '@/lib/labelSymbol';
+import { containerLine } from '@/lib/labelContainerLine';
 
 // Etiqueta de bulto en PDF para impresión térmica de 100 × 100 mm.
 // Todo el contenido se ajusta al área imprimible: los textos largos reducen su
@@ -30,12 +31,10 @@ function fitSize(doc, text, maxWidth, maxSize, minSize, style = 'bold', family =
 async function drawLabel(doc, bulto) {
   const cs = bulto.client_snapshot || {};
   const estado = String(cs.state || 'SIN ESTADO').toUpperCase();
-  const orderNumbers = Array.isArray(bulto.cbm_order_numbers)
-    ? bulto.cbm_order_numbers.filter(Boolean).join(', ')
-    : '';
   const nameCedula = [cs.full_name, cs.cedula ? `C.I. ${cs.cedula}` : ''].filter(Boolean).join(' - ');
   const cityState = [cs.city, cs.state].filter(Boolean).join(', ');
-  const bultoLine = `BULTO ${bulto.bulto_number}`;
+  // Donde iba "BULTO N" va el N° de contenedor; el número de bulto no se imprime.
+  const bultoLine = containerLine(bulto);
 
   let symbol = null;
   try {
@@ -92,28 +91,14 @@ async function drawLabel(doc, bulto) {
     y += mm(codeH);
   }
 
-  // 2. Estado + N° de contenedor (mismo tamaño, reducido si no entran)
+  // 2. Estado en grande, centrado (reducido si no entra)
   separator();
-  const gap = Math.max(1.5, mm(4));
-  let numSize = Math.max(7, mm(19));
+  const numSize = fitSize(doc, estado, CONTENT_W, Math.max(7, mm(19)), 6.5);
   setFont(doc, numSize);
-  let wState = doc.getTextWidth(estado);
-  let wOrder = orderNumbers ? doc.getTextWidth(orderNumbers) : 0;
-  let totalW = wState + (orderNumbers ? gap + wOrder : 0);
-  if (totalW > CONTENT_W) {
-    numSize = Math.max(6.5, numSize * (CONTENT_W / totalW));
-    setFont(doc, numSize);
-    wState = doc.getTextWidth(estado);
-    wOrder = orderNumbers ? doc.getTextWidth(orderNumbers) : 0;
-    totalW = wState + (orderNumbers ? gap + wOrder : 0);
-  }
-  const x0 = Math.max(MARGIN, (PAGE_SIZE - totalW) / 2);
-  const baseline = y + mm(stateH) / 2 + numSize * 0.24;
-  doc.text(estado, x0, baseline);
-  if (orderNumbers) doc.text(orderNumbers, x0 + wState + gap, baseline);
+  doc.text(estado, PAGE_SIZE / 2, y + mm(stateH) / 2 + numSize * 0.24, { align: 'center' });
   y += mm(stateH);
 
-  // 3. Bulto X/Y + cantidad de paquetes
+  // 3. N° de contenedor (en el lugar de la antigua línea "BULTO N")
   separator();
   const bultoSize = fitSize(doc, bultoLine, CONTENT_W, mm(15), 6.5);
   setFont(doc, bultoSize);

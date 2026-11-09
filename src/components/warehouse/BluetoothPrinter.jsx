@@ -4,6 +4,7 @@ import { Printer, Loader2, BluetoothConnected, Bluetooth, FileDown, AlertTriangl
 import { toast } from 'sonner';
 import { buildBultoLabelPayload, concatUint8Arrays } from '@/lib/tspl';
 import { downloadBultoLabelsPdf } from '@/lib/bultoLabelPdf';
+import { withContainerNumbers } from '@/lib/containerLookup';
 import { connectAuthorizedPrinter, pickAndConnectPrinter } from '@/lib/bluetoothReconnect';
 import { prefetchStation, sendToPrinter } from '@/lib/printDispatch';
 import SharedPrintQueueButton from './print-queue/SharedPrintQueueButton';
@@ -101,8 +102,10 @@ export default function BluetoothPrinter({ bultos = [], onPrinted, autoPrint = f
       if (!auto) toast.error('No hay bultos para imprimir');
       return;
     }
-    // Un solo payload para todos los bultos; cada etiqueta sale con su código QR.
-    const combined = concatUint8Arrays(bultos.map((b) => buildBultoLabelPayload(b, LABEL_COPIES)));
+    // Un solo payload para todos los bultos; cada etiqueta sale con su código QR y
+    // con el N° de contenedor (se busca aquí si la unidad no lo trae).
+    const ready = await withContainerNumbers(bultos);
+    const combined = concatUint8Arrays(ready.map((b) => buildBultoLabelPayload(b, LABEL_COPIES)));
     try {
       setError('');
       setStatus('printing');
@@ -146,7 +149,7 @@ export default function BluetoothPrinter({ bultos = [], onPrinted, autoPrint = f
   const downloadPdf = async () => {
     if (!bultos.length) return;
     try {
-      await downloadBultoLabelsPdf(bultos);
+      await downloadBultoLabelsPdf(await withContainerNumbers(bultos));
       toast.success(`${bultos.length} etiqueta(s) PDF descargada(s)`);
       onPrinted?.();
     } catch (e) {
