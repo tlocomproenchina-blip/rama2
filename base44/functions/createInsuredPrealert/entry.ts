@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.44';
+import { linkLabelTracking, LinkError } from '../../shared/labelLink.ts';
 
 export default async function(req: Request): Promise<Response> {
   try {
@@ -46,7 +47,26 @@ export default async function(req: Request): Promise<Response> {
     const orphan = existing.find((p) => p.is_orphan);
     let pkgRecord;
 
-    if (orphan) {
+    if (labelCode) {
+      // Etiqueta y tracking son la misma carga → un solo paquete
+      try {
+        const linked = await linkLabelTracking(base44, { user, labelCode, tracking });
+        pkgRecord = await base44.asServiceRole.entities.Package.update(linked.package.id, {
+          shipping_company: shippingCompany,
+          shipping_type: body.shipping_type === 'maritimo' ? 'maritimo' : 'aereo',
+          risk_category: body.risk_category === 'alto_riesgo' ? 'alto_riesgo' : 'general',
+          package_count: Number(body.package_count) || 1,
+          description,
+          has_insurance: false,
+          fob_value: fobValue,
+          invoice_url: body.invoice_url || linked.package.invoice_url || null,
+          product_image_url: body.product_image_url || linked.package.product_image_url || null,
+        });
+      } catch (e) {
+        if (e instanceof LinkError) return Response.json({ error: e.message }, { status: e.status });
+        throw e;
+      }
+    } else if (orphan) {
       const wasReceived = !!(orphan.warehouse_location_id || orphan.actual_weight_kg || orphan.received_date);
       const nextStatus = wasReceived ? 'recibido' : 'pre_alerta';
       pkgRecord = await base44.asServiceRole.entities.Package.update(orphan.id, {

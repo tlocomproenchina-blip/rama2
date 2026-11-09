@@ -14,7 +14,7 @@ import { getTrackingCandidates } from '@/lib/trackingNormalizer';
 import { useOfflineEntityCache } from '@/hooks/useOfflineEntityCache';
 import { useOfflineWriteQueue } from '@/hooks/useOfflineWriteQueue';
 import OfflineSyncBadge from '@/components/warehouse/OfflineSyncBadge';
-import { findPackageByTracking } from '@/lib/offlineDb';
+import { findPackageByTracking, findPackageByLabelCode } from '@/lib/offlineDb';
 
 const emptyForm = {
   location_id: '',
@@ -60,7 +60,7 @@ export default function WarehouseReceive({ user }) {
       setSearching(true);
       setTracking(nextTracking);
       // 1. Buscar en cache local (instantáneo, sin red)
-      const localPkg = await findPackageByTracking(nextTracking);
+      const localPkg = (await findPackageByTracking(nextTracking)) || (await findPackageByLabelCode(nextTracking));
       if (localPkg) {
         setPkg(localPkg);
         setNotFoundTracking(null);
@@ -94,6 +94,13 @@ export default function WarehouseReceive({ user }) {
           if (candidate !== nextTracking) resolvedFromMaster = true;
           break;
         }
+      }
+      // No es un tracking conocido: puede ser la etiqueta de envío del cliente
+      // (ej. N4-TLEC-5401-L2). Se recibe sobre el mismo paquete de esa etiqueta.
+      if (!nextPkg) {
+        const res = await base44.functions.invoke('resolveReceptionCode', { code: nextTracking });
+        nextPkg = res?.data?.package || null;
+        if (nextPkg) toast.info(`Etiqueta de envío ${nextPkg.label_code} · ${nextPkg.client_email}`);
       }
       setPkg(nextPkg);
       if (!nextPkg) {

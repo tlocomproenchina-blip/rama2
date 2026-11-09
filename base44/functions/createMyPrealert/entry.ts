@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import { linkLabelTracking, LinkError } from '../../shared/labelLink.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -33,6 +34,28 @@ Deno.serve(async (req) => {
         }
       } catch (_) {}
     };
+
+    // 0) Con etiqueta: etiqueta y tracking son la misma carga → un solo paquete
+    if (labelCode) {
+      try {
+        const linked = await linkLabelTracking(base44, { user, labelCode, tracking });
+        const updated = await base44.asServiceRole.entities.Package.update(linked.package.id, {
+          shipping_company: shippingCompany,
+          shipping_type: body.shipping_type === 'maritimo' ? 'maritimo' : 'aereo',
+          risk_category: body.risk_category === 'alto_riesgo' ? 'alto_riesgo' : 'general',
+          package_count: Number(body.package_count) || 1,
+          description,
+          has_insurance: !!body.has_insurance,
+          fob_value: parseFloat(body.fob_value) || 0,
+          invoice_url: body.invoice_url || linked.package.invoice_url || null,
+          product_image_url: body.product_image_url || linked.package.product_image_url || null,
+        });
+        return Response.json({ package: updated, linked_from_label: true, merged: linked.merged });
+      } catch (e) {
+        if (e instanceof LinkError) return Response.json({ error: e.message }, { status: e.status });
+        throw e;
+      }
+    }
 
     // 1) Reclamo automático: si existe un huérfano con el mismo tracking, reclamarlo
     const existing = await base44.asServiceRole.entities.Package.filter({ tracking_number: tracking }, '-created_date', 1);

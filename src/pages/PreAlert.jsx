@@ -56,6 +56,7 @@ export default function PreAlert({ user }) {
   const [pendingFormData, setPendingFormData] = useState(null);
   const [shippingLabels, setShippingLabels] = useState([]);
   const [selectedLabelCode, setSelectedLabelCode] = useState('');
+  const [labelSearch, setLabelSearch] = useState('');
   const [showInsuranceContract, setShowInsuranceContract] = useState(false);
   const [insuranceTermsAccepted, setInsuranceTermsAccepted] = useState(false);
 
@@ -411,6 +412,14 @@ export default function PreAlert({ user }) {
                   <Tag className="h-4 w-4 text-amber-600" />
                   Etiqueta TLEC generada (opcional)
                 </Label>
+                {shippingLabels.length > 3 && (
+                  <Input
+                    value={labelSearch}
+                    onChange={(e) => setLabelSearch(e.target.value)}
+                    placeholder="Buscar etiqueta (ej. L2)..."
+                    className="font-mono"
+                  />
+                )}
                 <Select value={selectedLabelCode || 'none'} onValueChange={(v) => {
                   setSelectedLabelCode(v === 'none' ? '' : v);
                   if (v !== 'none') {
@@ -425,7 +434,10 @@ export default function PreAlert({ user }) {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">Sin etiqueta</SelectItem>
-                    {shippingLabels.map((label) => (
+                    {shippingLabels
+                      .filter((label) => !labelSearch.trim() || label.label_code === selectedLabelCode
+                        || `${label.label_code} ${label.content || ''}`.toLowerCase().includes(labelSearch.trim().toLowerCase()))
+                      .map((label) => (
                       <SelectItem key={label.id} value={label.label_code}>
                         {label.label_code} — {label.content || 'Sin contenido'}
                       </SelectItem>

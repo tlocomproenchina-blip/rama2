@@ -42,6 +42,7 @@ import InsuranceBadge, { getInsuranceState } from '@/components/client-portal/In
 import InsurancePaymentModal from '@/components/client-portal/InsurancePaymentModal';
 import DeliveryProofDeadlineAlert from '@/components/client-portal/DeliveryProofDeadlineAlert';
 import { getDeliveryProofState } from '@/lib/deliveryProofDeadline';
+import ClientShippingLabelsCard from '@/components/client-portal/labels/ClientShippingLabelsCard';
 
 export default function MyPackages({ user }) {
   const PAGE_SIZE = 200;
@@ -234,6 +235,7 @@ export default function MyPackages({ user }) {
   const filteredPackages = useMemo(() => {
     return packages.filter(pkg => {
       const matchesSearch = pkg.tracking_number.toLowerCase().includes(search.toLowerCase()) ||
+                           (pkg.label_code || '').toLowerCase().includes(search.toLowerCase()) ||
                            (pkg.description || '').toLowerCase().includes(search.toLowerCase());
       const matchesStatus = statusFilter === 'all' || pkg.status === statusFilter ||
                             (statusFilter === 'disponible_despacho' && isDisponibleDespacho(pkg));
@@ -293,6 +295,8 @@ export default function MyPackages({ user }) {
         <PortalMetricCard title="Entregados" value={packageStats.entregados} subtitle="Procesos completados" icon={Plane} tone="blue" />
       </div>
 
+      <ClientShippingLabelsCard user={user} packages={packages} onLinked={() => loadPackages(false)} />
+
       {/* Filters */}
       <Card className="border-border/70 bg-card/95 shadow-card">
         <CardContent className="p-3 md:p-4">
@@ -300,7 +304,7 @@ export default function MyPackages({ user }) {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <Input
-                placeholder="Buscar por tracking..."
+                placeholder="Buscar por tracking o etiqueta..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-10 text-sm"
@@ -366,7 +370,12 @@ export default function MyPackages({ user }) {
                         }
                       </div>
                       <div className="min-w-0">
-                        <h3 className="font-semibold text-slate-800 font-mono text-xs md:text-sm truncate">{pkg.tracking_number}</h3>
+                        <h3 className="font-semibold text-slate-800 font-mono text-xs md:text-sm truncate">
+                          {pkg.label_code && String(pkg.tracking_number).toUpperCase() === String(pkg.label_code).toUpperCase() ? 'Sin tracking asignado' : pkg.tracking_number}
+                        </h3>
+                        {pkg.label_code && (
+                          <p className="font-mono text-[11px] md:text-xs font-semibold text-primary truncate">Etiqueta {pkg.label_code}</p>
+                        )}
                         <p className="text-xs md:text-sm text-slate-500 capitalize">
                           {pkg.shipping_type === 'aereo' ? 'Aéreo' : 'Marítimo'}
                         </p>
