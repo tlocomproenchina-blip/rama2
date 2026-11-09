@@ -31,6 +31,7 @@ import DemoModeBanner from '@/components/common/DemoModeBanner';
 import MobilePageTransition from '@/components/navigation/MobilePageTransition';
 import PushOptInBanner from '@/components/notifications/PushOptInBanner';
 import SyncCenterButton from '@/components/store-forward/SyncCenterButton';
+import PrintStationRunner from '@/components/warehouse/print-queue/PrintStationRunner';
 
 // Lazy loaded onboarding tour
 const GuidedTour = lazy(() =>
@@ -464,6 +465,7 @@ export default function Layout({ children, currentPageName }) {
       {user && <PushOptInBanner />}
 
       {user?.role === 'admin' && <InternalFloatingChat user={user} />}
+      {user?.role === 'admin' && <PrintStationRunner />}
 
       {user?.role === 'admin' && (
         <Suspense fallback={null}><GlobalSearchPalette /></Suspense>

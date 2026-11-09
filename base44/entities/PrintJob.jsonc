@@ -1,0 +1,122 @@
+{
+  "name": "PrintJob",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Qu\u00e9 se imprime (ej. Bulto C-001-B12)"
+    },
+    "source": {
+      "type": "string",
+      "description": "Flujo que envi\u00f3 el trabajo (bultos, cajas, continuas)"
+    },
+    "label_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Cantidad de etiquetas del trabajo"
+    },
+    "payload_uri": {
+      "type": "string",
+      "description": "Archivo privado con los datos de impresi\u00f3n listos para la impresora"
+    },
+    "payload_size": {
+      "type": "number",
+      "default": 0,
+      "description": "Tama\u00f1o de los datos en bytes"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "printing",
+        "done",
+        "failed"
+      ],
+      "enumColors": [
+        "yellow",
+        "blue",
+        "green",
+        "red"
+      ],
+      "default": "pending",
+      "description": "En espera, imprimiendo, impreso o fallido"
+    },
+    "client_key": {
+      "type": "string",
+      "description": "Clave \u00fanica del env\u00edo para no duplicar el trabajo en reintentos"
+    },
+    "requested_by": {
+      "type": "string",
+      "description": "Email del operador que envi\u00f3 el trabajo"
+    },
+    "requested_by_name": {
+      "type": "string",
+      "description": "Nombre del operador que envi\u00f3 el trabajo"
+    },
+    "requester_device": {
+      "type": "string",
+      "description": "Dispositivo que envi\u00f3 el trabajo"
+    },
+    "station_device": {
+      "type": "string",
+      "description": "Dispositivo de la estaci\u00f3n que reserv\u00f3 el trabajo"
+    },
+    "station_operator": {
+      "type": "string",
+      "description": "Email del operador de la estaci\u00f3n que lo imprimi\u00f3"
+    },
+    "claim_token": {
+      "type": "string",
+      "description": "Reserva exclusiva de la estaci\u00f3n mientras imprime"
+    },
+    "claimed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Cu\u00e1ndo la estaci\u00f3n reserv\u00f3 el trabajo"
+    },
+    "claim_expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Vencimiento de la reserva (si la estaci\u00f3n deja de responder)"
+    },
+    "printed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Cu\u00e1ndo se imprimi\u00f3"
+    },
+    "error": {
+      "type": "string",
+      "description": "Motivo del fallo"
+    },
+    "attempts": {
+      "type": "number",
+      "default": 0,
+      "description": "Reintentos manuales realizados"
+    }
+  },
+  "required": [
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

@@ -13,6 +13,7 @@ import {
   isPrinterConnected,
   writePayload,
 } from '@/lib/thermalPrinter';
+import { sendToPrinter } from '@/lib/printDispatch';
 import ContinuousLabelPreview from './ContinuousLabelPreview';
 import LabelCajaAssignList from './LabelCajaAssignList';
 
@@ -119,7 +120,7 @@ export default function ContinuousLabelsDialog({ guide, open, onOpenChange }) {
   const end = Number(to) || 0;
   const count = end >= start ? end - start + 1 : 0;
   const tooMany = count > MAX_LABELS;
-  const busy = status === 'connecting' || status === 'printing';
+  const busy = status === 'connecting' || status === 'printing' || status === 'queued';
   const guideNumber = guide?.guide_number || '';
   const labels = useMemo(
     () => (count > 0 ? Array.from({ length: count }, (_, i) => start + i) : []),
@@ -178,13 +179,24 @@ export default function ContinuousLabelsDialog({ guide, open, onOpenChange }) {
     });
 
     try {
-      setStatus(isPrinterConnected() ? 'printing' : 'connecting');
-      await ensurePrinterConnected();
       setStatus('printing');
-      await writePayload(concatUint8Arrays(payloads), (bytes) => {
-        let done = 0;
-        while (done < boundaries.length && boundaries[done] <= bytes) done += 1;
-        setWritten(done);
+      await sendToPrinter({
+        bytes: concatUint8Arrays(payloads),
+        title: `Etiquetas continuas${guideNumber ? ` · Guía ${guideNumber}` : ''}`,
+        labelCount: count,
+        source: 'continuas',
+        onQueued: () => setStatus('queued'),
+        direct: async (data, onProgress) => {
+          setStatus(isPrinterConnected() ? 'printing' : 'connecting');
+          await ensurePrinterConnected();
+          setStatus('printing');
+          await writePayload(data, onProgress);
+        },
+        onProgress: (bytes) => {
+          let done = 0;
+          while (done < boundaries.length && boundaries[done] <= bytes) done += 1;
+          setWritten(done);
+        },
       });
       setWritten(count);
       setStatus('connected');
@@ -198,6 +210,7 @@ export default function ContinuousLabelsDialog({ guide, open, onOpenChange }) {
 
   const statusText = () => {
     if (status === 'connecting') return 'Conectando impresora…';
+    if (status === 'queued') return 'En la cola compartida, esperando a la estación…';
     if (status === 'printing') {
       return `Imprimiendo etiqueta ${Math.min(written + 1, count)} de ${count}`;
     }

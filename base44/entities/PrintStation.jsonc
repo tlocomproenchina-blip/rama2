@@ -1,0 +1,58 @@
+{
+  "name": "PrintStation",
+  "type": "object",
+  "properties": {
+    "station_key": {
+      "type": "string",
+      "default": "main",
+      "description": "Clave \u00fanica de la estaci\u00f3n de impresi\u00f3n"
+    },
+    "device_id": {
+      "type": "string",
+      "description": "Dispositivo que tiene la impresora y procesa la cola (vac\u00edo = sin estaci\u00f3n)"
+    },
+    "operator_email": {
+      "type": "string",
+      "description": "Operador del tel\u00e9fono estaci\u00f3n"
+    },
+    "operator_name": {
+      "type": "string",
+      "description": "Nombre del operador del tel\u00e9fono estaci\u00f3n"
+    },
+    "heartbeat_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "\u00daltima se\u00f1al de vida de la estaci\u00f3n"
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Cu\u00e1ndo este dispositivo tom\u00f3 la estaci\u00f3n"
+    }
+  },
+  "required": [
+    "station_key"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

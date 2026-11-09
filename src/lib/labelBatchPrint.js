@@ -1,5 +1,6 @@
 import { buildContinuousLabelPayload, concatUint8Arrays } from '@/lib/tspl';
 import { bluetoothSupported, ensurePrinterConnected, writePayload } from '@/lib/thermalPrinter';
+import { sendToPrinter } from '@/lib/printDispatch';
 
 // Imprime la tira continua de un lote de cajas: una etiqueta por caja, numerada X/N y
 // con el código QR de esa caja, su conteo de paquetes y su CBM. Reporta el avance por
@@ -32,11 +33,20 @@ export const printCajaLabelBatch = async ({ client = {}, cajas = [], emittedAt =
     boundaries.push(accumulated);
   });
 
-  await ensurePrinterConnected();
-  await writePayload(concatUint8Arrays(payloads), (bytes) => {
-    let done = 0;
-    while (done < boundaries.length && boundaries[done] <= bytes) done += 1;
-    onProgress?.(done, total);
+  await sendToPrinter({
+    bytes: concatUint8Arrays(payloads),
+    title: `Lote de cajas de ${client?.full_name || client?.email || 'cliente'} (${total})`,
+    labelCount: total,
+    source: 'lote_cajas',
+    direct: async (data, report) => {
+      await ensurePrinterConnected();
+      await writePayload(data, report);
+    },
+    onProgress: (bytes) => {
+      let done = 0;
+      while (done < boundaries.length && boundaries[done] <= bytes) done += 1;
+      onProgress?.(done, total);
+    },
   });
 
   return total;

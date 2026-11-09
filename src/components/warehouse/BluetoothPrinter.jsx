@@ -5,6 +5,10 @@ import { toast } from 'sonner';
 import { buildBultoLabelPayload, concatUint8Arrays } from '@/lib/tspl';
 import { downloadBultoLabelsPdf } from '@/lib/bultoLabelPdf';
 import { connectAuthorizedPrinter, pickAndConnectPrinter } from '@/lib/bluetoothReconnect';
+import { prefetchStation, sendToPrinter } from '@/lib/printDispatch';
+import SharedPrintQueueButton from './print-queue/SharedPrintQueueButton';
+
+const NO_PRINTER = new Error('no_printer');
 
 const friendlyError = (e) => {
   const msg = String(e?.message || '');
@@ -22,11 +26,15 @@ const INTER_CHUNK_DELAY_MS = 80; // delay entre chunks para evitar desbordamient
 export default function BluetoothPrinter({ bultos = [], onPrinted, autoPrint = false, size = 'default', className = '' }) {
   const [status, setStatus] = useState('idle'); // idle | connecting | connected | printing | error
   const [error, setError] = useState('');
+  const [viaStation, setViaStation] = useState(false);
   const deviceRef = useRef(null);
   const serverRef = useRef(null);
   const characteristicRef = useRef(null);
 
   const btSupported = typeof navigator !== 'undefined' && !!navigator.bluetooth;
+
+  // Se consulta la estación al montar para que el toque de "Imprimir" no espere a la red.
+  useEffect(() => { prefetchStation(); }, []);
 
   const applySession = (session) => {
     deviceRef.current = session.device;
@@ -93,26 +101,33 @@ export default function BluetoothPrinter({ bultos = [], onPrinted, autoPrint = f
       if (!auto) toast.error('No hay bultos para imprimir');
       return;
     }
+    // Un solo payload para todos los bultos; cada etiqueta sale con su código QR.
+    const combined = concatUint8Arrays(bultos.map((b) => buildBultoLabelPayload(b, LABEL_COPIES)));
     try {
-      // Connect if needed
-      if (!characteristicRef.current || !deviceRef.current?.gatt?.connected) {
-        setError('');
-        setStatus('connecting');
-        let session = await connectAuthorizedPrinter();
-        if (!session) {
-          if (auto) { setStatus('idle'); return; }
-          session = await pickAndConnectPrinter();
-        }
-        applySession(session);
-      }
+      setError('');
       setStatus('printing');
-
-      // Build combined payload for all bultos (single Bluetooth session)
-      // Cada etiqueta sale con su código QR
-      const payloads = bultos.map((b) => buildBultoLabelPayload(b, LABEL_COPIES));
-      const combined = concatUint8Arrays(payloads);
-      await writeData(combined);
-
+      const result = await sendToPrinter({
+        bytes: combined,
+        title: bultos.length === 1 ? `Bulto ${bultos[0].label_code || bultos[0].bulto_number || ''}` : `${bultos.length} bultos`,
+        labelCount: bultos.length * LABEL_COPIES,
+        source: 'bultos',
+        onQueued: () => setStatus('queued'),
+        // Impresora de este teléfono: en automático solo usa la ya autorizada (sin diálogo).
+        direct: async (data) => {
+          if (!characteristicRef.current || !deviceRef.current?.gatt?.connected) {
+            setStatus('connecting');
+            let session = await connectAuthorizedPrinter();
+            if (!session) {
+              if (auto) throw NO_PRINTER;
+              session = await pickAndConnectPrinter();
+            }
+            applySession(session);
+            setStatus('printing');
+          }
+          await writeData(data);
+        },
+      });
+      setViaStation(result.via === 'station');
       setStatus('connected');
       const label = bultos.length === 1
         ? `Bulto ${bultos[0].bulto_number}/${bultos[0].total_bultos} impreso`
@@ -120,6 +135,7 @@ export default function BluetoothPrinter({ bultos = [], onPrinted, autoPrint = f
       toast.success(label);
       onPrinted?.();
     } catch (e) {
+      if (e === NO_PRINTER) { setStatus('idle'); return; }
       characteristicRef.current = null;
       setStatus('error');
       setError(friendlyError(e));
@@ -138,7 +154,7 @@ export default function BluetoothPrinter({ bultos = [], onPrinted, autoPrint = f
     }
   };
 
-  const isBusy = status === 'connecting' || status === 'printing';
+  const isBusy = status === 'connecting' || status === 'printing' || status === 'queued';
 
   const autoKey = autoPrint ? bultos.map((b) => b?.label_code || b?.id).join('|') : '';
   const lastAutoKeyRef = useRef('');
@@ -165,11 +181,17 @@ export default function BluetoothPrinter({ bultos = [], onPrinted, autoPrint = f
           PDF
         </Button>
       </div>
-      {status === 'connected' && (
-        <p className="text-xs text-green-600 flex items-center gap-1">
-          <BluetoothConnected className="h-3 w-3" /> Impresora conectada
+      {status === 'queued' && (
+        <p className="text-xs text-muted-foreground flex items-center gap-1">
+          <Loader2 className="h-3 w-3 animate-spin" /> En la cola compartida, esperando a la estación…
         </p>
       )}
+      {status === 'connected' && (
+        <p className="text-xs text-green-600 flex items-center gap-1">
+          <BluetoothConnected className="h-3 w-3" /> {viaStation ? 'Impreso en la estación compartida' : 'Impresora conectada'}
+        </p>
+      )}
+      <SharedPrintQueueButton />
       {!btSupported && (
         <p className="text-xs text-amber-600 flex items-start gap-1">
           <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0" />

@@ -12,6 +12,7 @@ import {
   isPrinterConnected,
   writePayload,
 } from '@/lib/thermalPrinter';
+import { sendToPrinter } from '@/lib/printDispatch';
 import { localCajasOfClient, saveLocalCaja } from '@/lib/cajaLocal';
 import { bulkPut } from '@/lib/offlineDb';
 import ContinuousLabelPreview from './dispatch-guides/ContinuousLabelPreview';
@@ -134,13 +135,24 @@ export default function CajaLabelsDialog({ open, onOpenChange, clientEmail, onPr
     });
 
     try {
-      setStatus(isPrinterConnected() ? 'printing' : 'connecting');
-      await ensurePrinterConnected({ pick });
       setStatus('printing');
-      await writePayload(concatUint8Arrays(payloads), (bytes) => {
-        let done = 0;
-        while (done < boundaries.length && boundaries[done] <= bytes) done += 1;
-        setWritten(done);
+      await sendToPrinter({
+        bytes: concatUint8Arrays(payloads),
+        title: `Cajas de ${client?.full_name || clientEmail || 'cliente'} (${cajas.length})`,
+        labelCount: cajas.length * LABEL_COPIES,
+        source: 'cajas',
+        onQueued: () => setStatus('queued'),
+        direct: async (data, onProgress) => {
+          setStatus(isPrinterConnected() ? 'printing' : 'connecting');
+          await ensurePrinterConnected({ pick });
+          setStatus('printing');
+          await writePayload(data, onProgress);
+        },
+        onProgress: (bytes) => {
+          let done = 0;
+          while (done < boundaries.length && boundaries[done] <= bytes) done += 1;
+          setWritten(done);
+        },
       });
       setWritten(cajas.length);
       setStatus('connected');
@@ -174,11 +186,12 @@ export default function CajaLabelsDialog({ open, onOpenChange, clientEmail, onPr
     handlePrint();
   }, [open, autoPrint, loaded, loading, cajas.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const busy = status === 'connecting' || status === 'printing';
+  const busy = status === 'connecting' || status === 'printing' || status === 'queued';
   const first = cajas[0] || null;
 
   const statusText = () => {
     if (status === 'connecting') return 'Conectando impresora…';
+    if (status === 'queued') return 'En la cola compartida, esperando a la estación…';
     if (status === 'printing') return `Imprimiendo etiqueta ${Math.min(written + 1, cajas.length)} de ${cajas.length}`;
     if (status === 'connected') return 'Impresora conectada';
     if (status === 'error') return error;

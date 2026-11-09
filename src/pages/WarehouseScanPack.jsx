@@ -27,6 +27,7 @@ import ManualPackageAssign from '@/components/warehouse/ManualPackageAssign';
 import BulkBultoCreator from '@/components/warehouse/BulkBultoCreator';
 import OfflineScanResult from '@/components/warehouse/OfflineScanResult';
 import PrintQueueCard from '@/components/warehouse/PrintQueueCard';
+import ConnectedSharedPrintQueue from '@/components/warehouse/print-queue/ConnectedSharedPrintQueue';
 import { usePrintQueue } from '@/hooks/usePrintQueue';
 import { useOfflineWarehouseData } from '@/hooks/useOfflineWarehouseData';
 import { useBultoNumberBlock } from '@/hooks/useBultoNumberBlock';
@@ -510,6 +511,8 @@ export default function WarehouseScanPack({ user }) {
       </TaskPanel>
 
       <TaskPanel tab="etiquetas" active={tab} idPrefix="pack">
+        {/* Cola compartida: un teléfono es la estación e imprime para todos */}
+        <ConnectedSharedPrintQueue />
         {/* Cola de impresión persistente */}
         <PrintQueueCard
           queue={printQueue}
