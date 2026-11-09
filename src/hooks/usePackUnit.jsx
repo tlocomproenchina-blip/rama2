@@ -4,8 +4,8 @@ import { del, getAll, put } from '@/lib/offlineDb';
 import { blockNumberFromCode, isBultoCode, isCajaCode, markOfBlockCode } from '@/lib/cajaCodes';
 import {
   absorbBultoIntoLocalCaja, cajaContents, createLocalCaja, dropLocalBultoFromQueue,
-  findLocalBultoByCode, findLocalClientByMark, findLocalPackage, findServerBultoByCode,
-  removeLastFromLocalCaja, saveLocalCaja,
+  findClientCajaToMerge, findLocalBultoByCode, findLocalClientByMark, findLocalPackage, findServerBultoByCode,
+  mergeCajaIntoClientCaja, refreshClientCajasFromServer, removeLastFromLocalCaja, saveLocalCaja,
 } from '@/lib/cajaLocal';
 import { addPackageToUnit, createLocalBulto, findOpenUnit, loadOpenUnits, sameClient, saveUnit } from '@/lib/packUnits';
 import { combineUnitsLocally } from '@/lib/combineUnits';
@@ -532,9 +532,16 @@ export default function usePackUnit({
         ...(contents.cbm > 0 ? { cargo_cbm: contents.cbm } : {}),
       };
       try {
-        await saveLocalCaja(closed);
+        // Una sola caja consolidada por cliente: si ya tiene otra caja cerrada en el
+        // almacén, el contenido entra en esa caja y se imprime una sola etiqueta.
+        await refreshClientCajasFromServer(closed.client_email).catch(() => {});
+        const target = await findClientCajaToMerge(closed).catch(() => null);
+        const finalCaja = target
+          ? await mergeCajaIntoClientCaja(target, closed)
+          : await saveLocalCaja(closed);
         onUnitRemoved?.(closed, 'cerrada');
         await enqueueCaja({
+          merge_into: target?.label_code || '',
           local_bulto_id: closed.local_bulto_id || closed.id,
           label_code: closed.label_code,
           client_email: closed.client_email,
@@ -550,13 +557,15 @@ export default function usePackUnit({
           cbm_order_numbers: orders,
           closed_at: closed.closed_at,
         });
-        toast.success(`Caja ${closed.label_code} cerrada: imprimiendo etiquetas`);
+        toast.success(target
+          ? `Paquetes agregados a la caja ${target.label_code} del cliente: imprimiendo etiqueta`
+          : `Caja ${closed.label_code} cerrada: imprimiendo etiquetas`);
         applyUnits((prev) => prev.filter((u) => u.id !== unit.id));
         selectUnit(null);
         setContents({ package_count: 0, cbm: 0 });
         setOrdersText('');
         onHistoryChange?.();
-        return closed;
+        return finalCaja;
       } catch (e) {
         setError('No se pudo cerrar la caja');
       } finally {

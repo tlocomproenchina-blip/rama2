@@ -13,8 +13,7 @@ import {
   writePayload,
 } from '@/lib/thermalPrinter';
 import { sendToPrinter } from '@/lib/printDispatch';
-import { localCajasOfClient, saveLocalCaja } from '@/lib/cajaLocal';
-import { bulkPut } from '@/lib/offlineDb';
+import { localCajasOfClient, refreshClientCajasFromServer, saveLocalCaja } from '@/lib/cajaLocal';
 import ContinuousLabelPreview from './dispatch-guides/ContinuousLabelPreview';
 
 const LABEL_COPIES = 3; // cada etiqueta de caja sale por triplicado, igual que los bultos
@@ -27,23 +26,8 @@ const LABEL_COPIES = 3; // cada etiqueta de caja sale por triplicado, igual que 
 // no llegue al servidor) y se imprime al instante. Con conexión, antes se suman en un
 // par de segundos las cajas del cliente registradas desde otros equipos. El X/N impreso
 // se entrega luego al servidor (onAssigned) para que la guía use el mismo.
-const SERVER_WAIT_MS = 2500;
-
-const withTimeout = (promise, ms) =>
-  Promise.race([promise, new Promise((resolve) => setTimeout(() => resolve(null), ms))]);
-
 async function lotCajas(clientEmail) {
-  if (typeof navigator === 'undefined' || navigator.onLine) {
-    const server = await withTimeout(
-      base44.entities.Bulto.filter({ client_email: clientEmail, is_caja: true }, '-created_date', 200).catch(() => null),
-      SERVER_WAIT_MS
-    );
-    if (Array.isArray(server) && server.length) {
-      const local = await localCajasOfClient(clientEmail).catch(() => []);
-      const linked = new Set(local.map((c) => c.server_bulto_id).filter(Boolean));
-      await bulkPut('bultos', server.filter((c) => !linked.has(c.id))).catch(() => {});
-    }
-  }
+  await refreshClientCajasFromServer(clientEmail).catch(() => {});
   // Una caja puede estar dos veces (copia local enlazada + copia del servidor): una por código.
   const seen = new Set();
   return (await localCajasOfClient(clientEmail).catch(() => [])).filter((c) => {

@@ -54,6 +54,7 @@ async function syncCaja(item, ctx) {
     device_id: item.device_id || '',
     recognition_photo_url: item.recognition_photo_url || '',
     closed_at: item.closed_at || '',
+    merge_into: item.merge_into || '',
   });
   const data = res?.data || res || {};
   reportDuplicates(data.duplicates, ctx);
@@ -61,15 +62,25 @@ async function syncCaja(item, ctx) {
   if (!data.caja) throw new Error(data.error || 'No se pudo registrar la caja');
 
   const localBultos = await getAll('bultos').catch(() => []);
-  const localCaja = localBultos.find((b) => (b.local_bulto_id || b.id) === item.id || b.label_code === item.label_code);
+  const finalLabel = data.caja.label_code;
+  const localCaja = localBultos.find((b) => (b.local_bulto_id || b.id) === item.id || b.label_code === item.label_code)
+    || localBultos.find((b) => b.label_code === finalLabel);
   if (localCaja) {
-    await put('bultos', { ...localCaja, ...data.caja, id: localCaja.id, is_local: false, synced: true, server_bulto_id: data.caja.id }).catch(() => {});
+    await put('bultos', { ...localCaja, ...data.caja, id: localCaja.id, is_local: false, synced: true, merge_pending: false, server_bulto_id: data.caja.id }).catch(() => {});
+    // Una sola copia por caja en el dispositivo.
+    for (const b of localBultos) {
+      if (b.id !== localCaja.id && b.is_caja && b.label_code === finalLabel) await del('bultos', b.id).catch(() => null);
+    }
   }
   for (const code of [...(item.absorb_codes || []), ...(item.combine_codes || [])]) {
     const absorbed = localBultos.find((b) => b.label_code === code && (b.local_bulto_id || b.id) !== item.id);
     if (absorbed?.id) await del('bultos', absorbed.id).catch(() => null);
   }
-  if (data.relabeled) {
+  if (data.relabeled?.merged) {
+    if (data.relabeled.to !== item.merge_into) {
+      toast.info(`El contenido de ${data.relabeled.from} se sumó a la caja ${data.relabeled.to} del cliente (una sola caja). Reimprime su etiqueta.`, { duration: 12000 });
+    }
+  } else if (data.relabeled) {
     toast.warning(`El código ${data.relabeled.from} ya lo tenía otra unidad: esta caja quedó como ${data.relabeled.to}.`, { duration: 12000 });
   }
   return { result: 'ok' };

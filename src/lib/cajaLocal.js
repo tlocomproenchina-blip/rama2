@@ -6,7 +6,7 @@
 // Mientras se arma, todo se resuelve contra el caché del dispositivo para que el trabajo
 // no se detenga si la conexión falla.
 import { base44 } from '@/api/base44Client';
-import { getAll, put, del, findPackageByLabelCode, findPackageByTracking } from '@/lib/offlineDb';
+import { getAll, put, del, bulkPut, findPackageByLabelCode, findPackageByTracking } from '@/lib/offlineDb';
 import { buildCajaCode, isCajaCode } from '@/lib/cajaCodes';
 import { realPackageCount } from '@/lib/bultoCounts';
 import { settleItems } from '@/lib/storeForward/engine';
@@ -208,6 +208,68 @@ export async function localCajasOfClient(clientEmail, { clientSideOnly = false }
     .filter((b) => text(b.status) !== 'despachado')
     .filter((b) => !clientSideOnly || b.is_local)
     .sort((a, b) => (Number(a.bulto_number) || 0) - (Number(b.bulto_number) || 0));
+}
+
+// --- Una sola caja consolidada por cliente ---
+const up = (value) => text(value).toUpperCase();
+const MERGEABLE = ['cerrado', 'en_almacen_ve'];
+
+const ordersCompatible = (a = [], b = []) => {
+  const left = uniq(a);
+  const right = uniq(b);
+  if (!left.length || !right.length) return true;
+  return left.some((o) => right.includes(o));
+};
+
+// Trae al dispositivo las cajas del cliente registradas desde otros equipos (con tiempo
+// límite para no detener la mesa). Las cajas con una fusión pendiente no se pisan.
+export async function refreshClientCajasFromServer(clientEmail, ms = 2500) {
+  if (!text(clientEmail)) return;
+  if (typeof navigator !== 'undefined' && !navigator.onLine) return;
+  const server = await Promise.race([
+    base44.entities.Bulto.filter({ client_email: clientEmail, is_caja: true }, '-created_date', 200).catch(() => null),
+    new Promise((resolve) => setTimeout(() => resolve(null), ms)),
+  ]);
+  if (!Array.isArray(server) || !server.length) return;
+  const local = await localCajasOfClient(clientEmail).catch(() => []);
+  const skip = new Set(local.map((c) => c.server_bulto_id).filter(Boolean));
+  local.filter((c) => c.merge_pending).forEach((c) => skip.add(c.id));
+  await bulkPut('bultos', server.filter((c) => !skip.has(c.id))).catch(() => {});
+}
+
+// Caja cerrada del cliente que sigue en el almacén (mismo contenedor o sin contenedor).
+export async function findClientCajaToMerge(caja) {
+  if (!caja?.client_email) return null;
+  const others = await localCajasOfClient(caja.client_email).catch(() => []);
+  return others.find((c) =>
+    c.id !== caja.id
+    && up(c.label_code) !== up(caja.label_code)
+    && MERGEABLE.includes(text(c.status))
+    && !c.dismantle_in_progress
+    && ordersCompatible(c.cbm_order_numbers, caja.cbm_order_numbers)
+  ) || null;
+}
+
+// Suma el contenido de la caja recién cerrada a la caja del cliente y descarta la nueva.
+export async function mergeCajaIntoClientCaja(target, caja) {
+  const merged = {
+    ...target,
+    package_ids: uniq([...(target.package_ids || []), ...(caja.package_ids || [])]),
+    package_trackings: uniq([...(target.package_trackings || []), ...(caja.package_trackings || [])]),
+    unregistered_codes: uniq([...(target.unregistered_codes || []), ...(caja.unregistered_codes || [])]),
+    cbm_order_numbers: uniq([...(target.cbm_order_numbers || []), ...(caja.cbm_order_numbers || [])]),
+    absorbed_codes: uniq([...(target.absorbed_codes || []), ...(caja.absorbed_codes || [])]),
+    absorbed_bultos: [...(target.absorbed_bultos || []), ...(caja.absorbed_bultos || [])],
+    status: 'en_almacen_ve',
+    closed_at: caja.closed_at,
+    merge_pending: true,
+  };
+  merged.cargo_package_count = realPackageCount(merged);
+  const cbm = (Number(target.cargo_cbm) || 0) + (Number(caja.cargo_cbm) || 0);
+  if (cbm > 0) merged.cargo_cbm = Number(cbm.toFixed(4));
+  await put('bultos', merged);
+  await del('bultos', caja.id).catch(() => null);
+  return merged;
 }
 
 export async function dropLocalBulto(id) {
