@@ -10,6 +10,7 @@ import {
 import { addPackageToUnit, createLocalBulto, findOpenUnit, loadOpenUnits, sameClient, saveUnit } from '@/lib/packUnits';
 import { combineUnitsLocally } from '@/lib/combineUnits';
 import { findLocalTrackingOwner } from '@/lib/trackingDuplicates';
+import { lookupContainerNumbers } from '@/lib/containerLookup';
 
 // Mesa única de empaque: un solo escáner recibe paquetes, arma bultos y arma la caja
 // consolidada. El selector decide el destino del próximo escaneo y la unidad que el
@@ -563,6 +564,11 @@ export default function usePackUnit({
     let cbmOrderNumbers = Array.isArray(unit.cbm_order_numbers) ? unit.cbm_order_numbers : [];
     if (Array.isArray(ordersOverride) && ordersOverride.length > 0) {
       cbmOrderNumbers = ordersOverride;
+    }
+    // Sin N° de contenedor a mano: se busca por los trackings antes de imprimir
+    // para que la etiqueta lo lleve (sin conexión se imprime sin él).
+    if (cbmOrderNumbers.length === 0) {
+      cbmOrderNumbers = await lookupContainerNumbers(unit.client_email, unit.package_trackings);
     }
     const closed = {
       ...unit,
