@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
+import CloseCajaDialog from './CloseCajaDialog';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -14,6 +15,7 @@ export default function CajaActiveCard({
   const trackings = Array.isArray(caja?.package_trackings) ? caja.package_trackings : [];
   const packageCount = contents?.package_count || 0;
   const cbm = Number(contents?.cbm) || 0;
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   return (
     <Card className="border-primary/40">
@@ -98,7 +100,7 @@ export default function CajaActiveCard({
         )}
 
         <div className="flex flex-col gap-2">
-          <Button className="w-full gap-2" onClick={onClose} disabled={busy || packageCount === 0}>
+          <Button className="w-full gap-2" onClick={() => setConfirmOpen(true)} disabled={busy || packageCount === 0}>
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
             Cerrar caja y sincronizar
           </Button>
@@ -111,6 +113,12 @@ export default function CajaActiveCard({
             <Undo2 className="h-4 w-4" /> Deshacer último
           </Button>
         </div>
+        <CloseCajaDialog
+          open={confirmOpen}
+          caja={caja}
+          onCancel={() => setConfirmOpen(false)}
+          onConfirm={(orders) => { setConfirmOpen(false); onClose(orders); }}
+        />
       </CardContent>
     </Card>
   );

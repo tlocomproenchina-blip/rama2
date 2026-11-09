@@ -216,8 +216,8 @@ export default function WarehouseScanPack({ user }) {
 
   // Al cerrar la caja se imprime de inmediato la tira de etiquetas del lote, con o sin
   // conexión: el registro en el servidor sigue en segundo plano.
-  const closeCaja = useCallback(async () => {
-    const closed = await pack.closeUnit();
+  const closeCaja = useCallback(async (orders) => {
+    const closed = await pack.closeUnit(orders);
     if (!closed?.client_email) return;
     setLotEmail(closed.client_email);
     setLotKey((k) => k + 1);

@@ -515,7 +515,11 @@ export default function usePackUnit({
       // El N° de contenedor ya no se pide al cerrar: se toman los que la caja
       // traiga de sus bultos absorbidos y, si no hay, se cierra sin orden y se
       // asigna después.
-      const orders = ordersText.split(',').map((s) => s.trim()).filter(Boolean);
+      // N° de contenedor confirmado en el cierre; si no llega, el de la caja o el escrito.
+      let orders = Array.isArray(ordersOverride) && ordersOverride.length
+        ? ordersOverride
+        : (unit.cbm_order_numbers || []).filter(Boolean);
+      if (!orders.length) orders = ordersText.split(',').map((s) => s.trim()).filter(Boolean);
       setBusy(true);
       busyRef.current = true;
       setError('');

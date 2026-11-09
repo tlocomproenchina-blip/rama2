@@ -34,7 +34,7 @@ export async function lookupContainerNumbers(clientEmail, trackings, timeoutMs =
 export async function withContainerNumbers(units) {
   return Promise.all((units || []).map(async (u) => {
     const has = Array.isArray(u?.cbm_order_numbers) && u.cbm_order_numbers.some(Boolean);
-    if (has || u?.is_caja) return u;
+    if (has) return u;
     const orders = await lookupContainerNumbers(u?.client_email, u?.package_trackings);
     return orders.length ? { ...u, cbm_order_numbers: orders } : u;
   }));
