@@ -31,8 +31,9 @@ const TEMPLATE_NAME = 'Almacenamiento - Cargo Diario';
 const NOTICE_DAYS = [20, 30, 45];
 
 function isUnpaidInvoice(invoice: any) {
-  // Factura protegida: no recibe cargos automáticos.
-  if (invoice?.locked === true) return false;
+  // Las facturas protegidas también reciben los cargos de almacenamiento del
+  // contrato (excepción autorizada a la inmutabilidad: solo las líneas de
+  // almacenamiento y el total; el resto de la factura no se toca).
   // Igual que los avisos de cobro: pagada, cancelada o con un pago en revisión no suma cargos.
   const status = text(invoice?.status);
   if (status === 'pagada' || status === 'cancelada' || status === 'revision') return false;

@@ -2,8 +2,10 @@
 //
 // Una factura protegida (`locked = true`) no se puede editar: ni sus líneas, ni
 // sus montos, ni su desglose de envío. Los procesos automáticos (recálculo de
-// tarifas, cargos de almacenamiento, montacargas, fusión de recibos duplicados)
-// la omiten y la pantalla de facturas esconde sus controles de edición.
+// tarifas, montacargas, fusión de recibos duplicados) la omiten y la pantalla de
+// facturas esconde sus controles de edición. Única excepción: los cargos de
+// almacenamiento y custodia del contrato (día 8 fijo, desde el día 9 diario) sí
+// se suman a sus líneas y a su total.
 //
 // Cada factura guarda además `amount_restore`: el registro de la restauración
 // (quién, cuándo, monto anterior y monto restaurado).
