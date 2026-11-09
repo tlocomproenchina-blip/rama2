@@ -1,13 +1,21 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { getStationState, onStationState } from '@/lib/printStationRunner';
+import { OPEN_EVENT } from './PrintStationRunner';
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { ListOrdered, Printer } from 'lucide-react';
-import ConnectedSharedPrintQueue from './ConnectedSharedPrintQueue';
+import SharedPrintQueueSheet from './SharedPrintQueueSheet';
 
 // Acceso a la cola compartida desde cualquier pantalla que imprime por Bluetooth.
 // variant="header": botón compacto de la cabecera, visible para todo el personal.
 export default function SharedPrintQueueButton({ variant = 'inline' }) {
-  const [open, setOpen] = useState(false);
+  const [ownOpen, setOwnOpen] = useState(false);
+  // En el teléfono estación la ventana la maneja la estación (se abre sola).
+  useEffect(() => onStationState((s) => { if (s.running) setOwnOpen(false); }), []);
+  const open = ownOpen;
+  const setOpen = (v) => {
+    if (v && getStationState().running) window.dispatchEvent(new Event(OPEN_EVENT));
+    else setOwnOpen(v);
+  };
   return (
     <>
       {variant === 'header' ? (
@@ -25,17 +33,7 @@ export default function SharedPrintQueueButton({ variant = 'inline' }) {
           <ListOrdered className="h-4 w-4" /> Cola compartida
         </Button>
       )}
-      <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-md">
-          <SheetHeader className="mb-4">
-            <SheetTitle className="font-display">Cola de impresión compartida</SheetTitle>
-            <SheetDescription>
-              Un teléfono tiene la impresora y la imprime en orden para todos los operadores.
-            </SheetDescription>
-          </SheetHeader>
-          {open && <ConnectedSharedPrintQueue />}
-        </SheetContent>
-      </Sheet>
+      <SharedPrintQueueSheet open={open} onOpenChange={setOpen} />
     </>
   );
 }
