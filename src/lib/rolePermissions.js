@@ -138,6 +138,7 @@ export const PAGE_LABELS = {
   AdminSupportSupervisor: 'Supervisor',
   AdminSupportTickets: 'Tickets Soporte',
   AdminSupportQuickMessages: 'Mensajes Rápidos',
+  AdminSupportCollections: 'Cobranza',
   AdminSupportClients: 'Ficha de Cliente',
   AdminAssistantKnowledge: 'Conocimiento Asistente',
   AdminInternalMessages: 'Mensajería Interna',
