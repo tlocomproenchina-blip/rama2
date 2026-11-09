@@ -24,10 +24,14 @@ export default function InsuranceStatusCell({ pkg, payment }) {
   const state = getInsuranceState(pkg, payment);
   const style = STYLES[state];
   const fob = Number(pkg?.fob_value || 0);
+  const paid = Number(payment?.amount || 0);
 
   return (
     <div className="flex flex-col gap-0.5">
       <Badge variant="outline" className={`${style.className} text-xs whitespace-nowrap`}>{style.label}</Badge>
+      {state === 'pagado' && paid > 0 && (
+        <span className="text-[11px] font-semibold text-emerald-700 whitespace-nowrap">Pagado ${paid.toFixed(2)}</span>
+      )}
       {fob > 0 && (
         <span className="text-[11px] text-slate-500 whitespace-nowrap">FOB ${fob.toFixed(2)}</span>
       )}
