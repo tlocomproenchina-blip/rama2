@@ -9,6 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { ClipboardCheck, FileText, Loader2, PackagePlus, X } from 'lucide-react';
 import MultiPhotoPicker from '@/components/warehouse/incidents/MultiPhotoPicker';
 import IncidentDetailsFields from '@/components/warehouse/incidents/IncidentDetailsFields';
+import { isOpenBox, OPEN_BOX_LABEL } from '@/lib/incidentTone';
 
 // Revisión obligatoria de cada paquete escaneado antes de añadirlo a la unidad activa.
 export default function PackageReviewPanel({ review, unitLabel, client, onDone, onCancel }) {
@@ -90,8 +91,8 @@ export default function PackageReviewPanel({ review, unitLabel, client, onDone, 
           <Label>Foto del contenido (obligatoria)</Label>
           <MultiPhotoPicker files={photos} onChange={setPhotos} max={1} hint="Fotografía el contenido del paquete. Uso interno." />
         </div>
-        <p className={`rounded-xl px-3 py-2 text-sm font-semibold ${hasIncident ? 'bg-rose-50 text-rose-700' : 'bg-emerald-50 text-emerald-700'}`}>
-          Estado: {hasIncident ? 'Con incidencia' : 'Sin incidencia'}
+        <p className={`rounded-xl px-3 py-2 text-sm font-semibold ${hasIncident && !isOpenBox(type) ? 'bg-rose-50 text-rose-700' : 'bg-emerald-50 text-emerald-700'}`}>
+          Estado: {hasIncident ? (isOpenBox(type) ? OPEN_BOX_LABEL : 'Con incidencia') : 'Sin incidencia'}
         </p>
         <label className="flex items-center gap-2 rounded-xl border border-border p-3 text-sm font-medium">
           <Checkbox checked={hasIncident} onCheckedChange={(v) => setHasIncident(!!v)} /> Hay incidencia

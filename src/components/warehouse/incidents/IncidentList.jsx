@@ -7,7 +7,7 @@ import IncidentEditDialog from './IncidentEditDialog';
 const TYPE_GROUPS = [
   { key: 'faltante', label: 'Contenido faltante', dot: 'bg-destructive' },
   { key: 'danado', label: 'Paquete dañado', dot: 'bg-primary' },
-  { key: 'abierto', label: 'Paquete abierto', dot: 'bg-warning' },
+  { key: 'abierto', label: 'Caja abierta para verificación', dot: 'bg-success' },
   { key: 'otro', label: 'Sin tipo', dot: 'bg-muted-foreground' },
 ];
 

@@ -9,7 +9,7 @@ import QuickFilterTabs from '@/components/client-portal/QuickFilterTabs';
 
 const isIssue = (r) => r.result === 'recibida_con_incidencia';
 const TYPES = [
-  { value: 'abierto', label: 'Paquete abierto' },
+  { value: 'abierto', label: 'Caja abierta' },
   { value: 'faltante', label: 'Contenido faltante' },
   { value: 'danado', label: 'Paquete dañado' },
 ];

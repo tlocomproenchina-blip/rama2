@@ -80,11 +80,11 @@
         "danado"
       ],
       "enumColors": [
-        "yellow",
+        "green",
         "red",
         "purple"
       ],
-      "description": "Tipo de problema cuando hay incidencia"
+      "description": "Tipo de problema cuando hay incidencia (abierto = caja abierta para verificaci\u00f3n, procedimiento normal)"
     },
     "damage_photo_uris": {
       "type": "array",

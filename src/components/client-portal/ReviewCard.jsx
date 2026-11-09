@@ -1,9 +1,12 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { CheckCircle2, AlertTriangle } from 'lucide-react';
+import { isOpenBox, OPEN_BOX_LABEL } from '@/lib/incidentTone';
 
 export default function ReviewCard({ review }) {
-  const ok = review.result !== 'recibida_con_incidencia';
+  const issue = review.result === 'recibida_con_incidencia';
+  const routine = issue && isOpenBox(review.incident_type);
+  const ok = !issue || routine;
   const Icon = ok ? CheckCircle2 : AlertTriangle;
   const photos = review.photos || [];
   return (
@@ -14,25 +17,26 @@ export default function ReviewCard({ review }) {
         </div>
         <div className="min-w-0 flex-1 space-y-1">
           <p className={`text-sm font-semibold ${ok ? 'text-emerald-700' : 'text-amber-700'}`}>
-            {ok ? 'Revisión positiva' : `Aviso: ${review.incident_label}`}
+            {routine ? OPEN_BOX_LABEL : ok ? 'Revisión positiva' : `Aviso: ${review.incident_label}`}
           </p>
           <p className="font-mono text-xs text-slate-800 break-all">{review.tracking_number || 'Sin tracking'}</p>
           <p className="text-xs text-slate-500">
             Contenedor: {review.container_number || '—'} · {review.date ? new Date(review.date).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}
           </p>
-          {!ok && review.detail && (
-            <p className="text-sm text-slate-700 rounded-lg bg-amber-50 px-3 py-2">{review.detail}</p>
+          {routine && <p className="text-xs text-emerald-700">Abrimos el paquete para verificar la cantidad, como en cada revisión.</p>}
+          {issue && review.detail && (
+            <p className={`text-sm text-slate-700 rounded-lg px-3 py-2 ${routine ? 'bg-emerald-50' : 'bg-amber-50'}`}>{review.detail}</p>
           )}
-          {!ok && photos.length > 0 && (
+          {issue && photos.length > 0 && (
             <div className="flex flex-wrap gap-2 pt-1">
               {photos.map((url) => (
                 <a key={url} href={url} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-lg border border-border">
-                  <img src={url} alt="Foto de la incidencia" className="h-20 w-20 object-cover" />
+                  <img src={url} alt="Foto de la revisión" className="h-20 w-20 object-cover" />
                 </a>
               ))}
             </div>
           )}
-          {!ok && <p className="text-xs text-slate-600">Nuestro equipo ya está al tanto. Contacta a soporte si necesitas más información.</p>}
+          {issue && !routine && <p className="text-xs text-slate-600">Nuestro equipo ya está al tanto. Contacta a soporte si necesitas más información.</p>}
         </div>
       </CardContent>
     </Card>

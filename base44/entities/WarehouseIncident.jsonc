@@ -52,11 +52,11 @@
         "danado"
       ],
       "enumColors": [
-        "yellow",
+        "green",
         "red",
         "purple"
       ],
-      "description": "Tipo de problema"
+      "description": "Tipo de problema (abierto = caja abierta para verificaci\u00f3n, procedimiento normal)"
     },
     "photo_uri": {
       "type": "string",

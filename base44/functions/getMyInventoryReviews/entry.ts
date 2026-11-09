@@ -2,7 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.59';
 
 // Devuelve al cliente autenticado sus revisiones de almacén y las incidencias
 // reportadas en sus paquetes (tipo, detalle y fotos con enlace temporal).
-const TYPE_LABEL: Record<string, string> = { abierto: 'Paquete abierto', faltante: 'Contenido faltante', danado: 'Paquete dañado' };
+const TYPE_LABEL: Record<string, string> = { abierto: 'Caja abierta para verificación', faltante: 'Contenido faltante', danado: 'Paquete dañado' };
 
 const cleanNotes = (notes: string) => String(notes || '').replace(/^\[[^\]]*\]\s*/, '').trim();
 
