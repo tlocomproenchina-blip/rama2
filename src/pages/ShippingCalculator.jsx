@@ -403,8 +403,7 @@ export default function ShippingCalculator({ user, defaultStateCode, defaultShip
                 {shippingType === 'maritimo' && pickupInWarehouse === 'no' && (
                   <div className="rounded-xl border border-primary/40 bg-accent p-4">
                     <p className="text-sm font-medium text-accent-foreground">Puerta a puerta</p>
-                    <p className="mt-1 text-2xl font-bold text-foreground">${result.doorCharge.toFixed(2)}</p>
-                    <p className="text-xs text-muted-foreground">{`${doorRate.toFixed(2)} × ${result.billableWeight.toFixed(4)} CBM · Te lo llevamos hasta la puerta de tu casa`}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">Te lo llevamos hasta la puerta de tu casa.</p>
                   </div>
                 )}
                 {shippingType === 'maritimo' && pickupInWarehouse === 'si' && (
@@ -425,7 +424,7 @@ export default function ShippingCalculator({ user, defaultStateCode, defaultShip
                   <p className="text-sm font-medium text-emerald-800">Total estimado</p>
                   <p className="mt-1 text-2xl font-bold text-emerald-700">${result.totalCost.toFixed(2)}</p>
                   <p className="text-xs text-emerald-700">
-                    {`Envío $${result.shippingCost.toFixed(2)} + recepción $${result.receptionFee.toFixed(2)}${result.doorCharge > 0 ? ` + puerta a puerta $${result.doorCharge.toFixed(2)}` : ''}${result.insuranceCost > 0 ? ` + seguro $${result.insuranceCost.toFixed(2)}` : ''}`}
+                    {`Envío $${result.shippingCost.toFixed(2)} + recepción $${result.receptionFee.toFixed(2)}${result.doorCharge > 0 ? ' + puerta a puerta' : ''}${result.insuranceCost > 0 ? ` + seguro $${result.insuranceCost.toFixed(2)}` : ''}`}
                   </p>
                 </div>
               </div>

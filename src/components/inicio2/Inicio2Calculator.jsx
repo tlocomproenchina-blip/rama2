@@ -152,7 +152,7 @@ export default function Inicio2Calculator({ defaultStateCode }) {
               <div className="flex justify-between"><span className="text-slate-500">Tarifa Unitaria:</span><span className="font-bold text-slate-900">{result ? `$${result.rate.toFixed(2)} / CBM` : '—'}</span></div>
               <div className="flex justify-between"><span className="text-slate-500">Tiempo de Tránsito:</span><span className="font-bold text-sky-700">🚢 75 a 90 días</span></div>
               {result?.doorCharge > 0 && (
-                <div className="flex justify-between gap-2"><span className="text-slate-500">Puerta a puerta:</span><span className="text-right font-bold text-slate-900">{`$${doorRate.toFixed(2)} × ${result.cbm.toFixed(4)} = $${result.doorCharge.toFixed(2)}`}</span></div>
+                <div className="flex justify-between gap-2"><span className="text-slate-500">Puerta a puerta:</span><span className="text-right font-bold text-slate-900">Hasta la puerta de tu casa</span></div>
               )}
             </div>
             {result?.multiplier === 2 && (
