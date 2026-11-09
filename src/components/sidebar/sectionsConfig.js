@@ -69,7 +69,7 @@ export const ADMIN_SECTIONS = [
 export const CLIENT_SECTIONS = [
   { id: 'c-inicio', label: 'Inicio', icon: LayoutDashboard, pages: [p('Dashboard', 'Dashboard')] },
   { id: 'c-envios', label: 'Mis envíos', icon: Package, pages: [
-    p('MyPackages', 'Paquetes'), p('MyWarehouseMerchandise', 'Almacén Venezuela'), p('MyCbm', 'Mis CBM'),
+    p('MyPackages', 'Paquetes'), p('MyIncidents', 'Mis incidencias'), p('MyWarehouseMerchandise', 'Almacén Venezuela'), p('MyCbm', 'Mis CBM'),
     p('PreAlert', 'Pre-alerta'), p('RequestConsolidation', 'Solicitar consolidación'),
   ], subPages: ['MyConsolidations'] },
   { id: 'c-facturas', label: 'Facturas y pagos', icon: CreditCard, pages: [p('MyInvoices', 'Mis facturas'), p('AssistedPayment', 'Pago asistido')] },
