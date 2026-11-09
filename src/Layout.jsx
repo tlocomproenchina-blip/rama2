@@ -28,7 +28,6 @@ import SkipToContent from '@/components/common/SkipToContent';
 import ScrollToTopButton from '@/components/common/ScrollToTopButton';
 import InternalFloatingChat from '@/components/internal-messaging/InternalFloatingChat';
 import DemoModeBanner from '@/components/common/DemoModeBanner';
-import MobileBottomNav from '@/components/navigation/MobileBottomNav';
 import MobilePageTransition from '@/components/navigation/MobilePageTransition';
 import PushOptInBanner from '@/components/notifications/PushOptInBanner';
 import SyncCenterButton from '@/components/store-forward/SyncCenterButton';
@@ -462,7 +461,6 @@ export default function Layout({ children, currentPageName }) {
         <Suspense fallback={null}><ChatbotAssistant user={user} /></Suspense>
       )}
 
-      {user?.role === 'user' && isApkApp && <MobileBottomNav />}
       {user && <PushOptInBanner />}
 
       {user?.role === 'admin' && <InternalFloatingChat user={user} />}
@@ -547,7 +545,7 @@ export default function Layout({ children, currentPageName }) {
          {/* Main Content */}
         <div id="main-content" tabIndex={-1} className="flex-1 overflow-x-clip w-full focus:outline-none">
           <PullToRefresh enabled={!!user} onRefresh={async () => { await queryClientInstance.invalidateQueries(); }}>
-            <div className="w-full p-4 md:p-6 lg:p-8 mx-auto max-w-screen-sm sm:max-w-2xl lg:max-w-[100vw]" style={{ paddingBottom: isApkApp ? 'calc(env(safe-area-inset-bottom) + 72px)' : 'calc(env(safe-area-inset-bottom) + 24px)' }}>
+            <div className="w-full p-4 md:p-6 lg:p-8 mx-auto max-w-screen-sm sm:max-w-2xl lg:max-w-[100vw]" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 24px)' }}>
               {user && <SectionTabs currentPage={currentPageName} />}
               {showBackButton && (
                 <div className="mb-3">
