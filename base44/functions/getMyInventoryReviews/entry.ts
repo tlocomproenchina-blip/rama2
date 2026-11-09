@@ -66,9 +66,26 @@ export default async function (req: Request): Promise<Response> {
       });
     }
 
+    // Una sola tarjeta por tracking: se queda la más completa (con aviso, fotos,
+    // detalle) y, a igualdad, la más reciente.
+    const score = (it: any) =>
+      (it.result === 'recibida_con_incidencia' ? 4 : 0) +
+      (it._incident?.photo_uri || it._incident?.photo_uris?.length ? 2 : 0) +
+      (it.detail ? 1 : 0);
+    const time = (it: any) => new Date(it.date || 0).getTime();
+    const byTracking: Record<string, any> = {};
+    for (const it of items) {
+      const key = String(it.tracking_number || '').replace(/\s+/g, '').toUpperCase() || `id:${it.id}`;
+      const prev = byTracking[key];
+      if (!prev || score(it) > score(prev) || (score(it) === score(prev) && time(it) > time(prev))) {
+        byTracking[key] = it;
+      }
+    }
+    const uniqueItems = Object.values(byTracking);
+
     const withPhotos = [];
-    for (let i = 0; i < items.length; i += 6) {
-      const batch = await Promise.all(items.slice(i, i + 6).map(async ({ _incident, ...rest }) => ({
+    for (let i = 0; i < uniqueItems.length; i += 6) {
+      const batch = await Promise.all(uniqueItems.slice(i, i + 6).map(async ({ _incident, ...rest }) => ({
         ...rest,
         photos: _incident ? await photosFor(_incident) : [],
       })));
