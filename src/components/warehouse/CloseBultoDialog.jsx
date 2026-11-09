@@ -3,7 +3,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Hash, Lock } from 'lucide-react';
+import { Hash, Loader2, Lock } from 'lucide-react';
+import { lookupContainerNumbers } from '@/lib/containerLookup';
 
 // Confirmación previa al cierre del bulto: deja ver y modificar el número de contenedor
 // (el detectado automáticamente o uno ingresado a mano) antes de sellarlo.
@@ -14,22 +15,29 @@ export default function CloseBultoDialog({ open, bulto, onConfirm, onCancel }) {
     ? bulto.cbm_order_numbers.filter(Boolean)
     : [];
 
+  const [searching, setSearching] = useState(false);
+
   useEffect(() => {
-    if (open) {
-      setOrderText(
-        (Array.isArray(bulto?.cbm_order_numbers) ? bulto.cbm_order_numbers.filter(Boolean) : []).join(', ')
-      );
-    }
+    if (!open || !bulto) return;
+    const own = (Array.isArray(bulto.cbm_order_numbers) ? bulto.cbm_order_numbers : []).filter(Boolean);
+    setOrderText(own.join(', '));
+    if (own.length) return;
+    let cancelled = false;
+    setSearching(true);
+    lookupContainerNumbers(bulto.client_email, bulto.package_trackings)
+      .then((found) => { if (!cancelled && found.length) setOrderText((t) => t || found.join(', ')); })
+      .finally(() => { if (!cancelled) setSearching(false); });
+    return () => { cancelled = true; };
   }, [open, bulto]);
 
   if (!bulto) return null;
 
   const count = bulto.package_ids?.length || (bulto.package_trackings || []).length || 0;
   const cs = bulto.client_snapshot || {};
+  const orders = orderText.split(',').map((s) => s.trim()).filter(Boolean);
 
   const handleConfirm = () => {
-    const orders = orderText.split(',').map((s) => s.trim()).filter(Boolean);
-    onConfirm(orders.length > 0 ? orders : null);
+    if (orders.length) onConfirm(orders);
   };
 
   return (
@@ -65,18 +73,24 @@ export default function CloseBultoDialog({ open, bulto, onConfirm, onCancel }) {
               inputMode="numeric"
               pattern="[0-9, ]*"
               className="mt-1 text-sm font-mono"
+              autoFocus
             />
-            <p className="mt-1 text-[10px] text-slate-400">
-              {detected.length > 0
-                ? `Detectada automáticamente: ${detected.join(', ')}. Puedes corregirla o reemplazarla antes de cerrar.`
-                : 'No se detectó contenedor automáticamente. Puedes ingresarlo ahora o dejarlo vacío.'}
+            <p className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground">
+              {searching && <Loader2 className="h-3 w-3 animate-spin" />}
+              {searching
+                ? 'Buscando contenedor por los trackings…'
+                : detected.length > 0
+                  ? `Detectado: ${detected.join(', ')}. Puedes corregirlo antes de cerrar.`
+                  : orders.length
+                    ? 'Sale impreso en la etiqueta del bulto.'
+                    : 'Obligatorio: escribe el N° de contenedor para cerrar e imprimir la etiqueta.'}
             </p>
           </div>
         </div>
 
         <DialogFooter className="gap-2">
           <Button variant="outline" onClick={onCancel} className="flex-1">Cancelar</Button>
-          <Button onClick={handleConfirm} className="flex-1 bg-blue-600 hover:bg-blue-700">
+          <Button onClick={handleConfirm} disabled={!orders.length} className="flex-1 bg-blue-600 hover:bg-blue-700">
             <Lock className="h-4 w-4" /> Cerrar bulto
           </Button>
         </DialogFooter>

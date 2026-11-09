@@ -121,6 +121,11 @@ export default function BluetoothPrinter({ bultos = [], onPrinted, autoPrint = f
         onQueued: () => { setStatus('queued'); handedOff = true; onPrinted?.(); },
         // Impresora de este teléfono: en automático solo usa la ya autorizada (sin diálogo).
         direct: async (data) => {
+          // Sin Bluetooth en este teléfono la etiqueta solo puede salir por la estación.
+          if (!btSupported) {
+            if (auto) throw NO_PRINTER;
+            throw new Error('Este teléfono no imprime por Bluetooth: activa una estación de impresión o descarga el PDF.');
+          }
           if (!characteristicRef.current || !deviceRef.current?.gatt?.connected) {
             setStatus('connecting');
             let session = await connectAuthorizedPrinter();
@@ -166,7 +171,7 @@ export default function BluetoothPrinter({ bultos = [], onPrinted, autoPrint = f
   const autoKey = autoPrint ? bultos.map((b) => b?.label_code || b?.id).join('|') : '';
   const lastAutoKeyRef = useRef('');
   useEffect(() => {
-    if (!autoKey || !btSupported || isBusy || lastAutoKeyRef.current === autoKey) return;
+    if (!autoKey || isBusy || lastAutoKeyRef.current === autoKey) return;
     lastAutoKeyRef.current = autoKey;
     handlePrint(true);
   }, [autoKey]);
@@ -179,7 +184,7 @@ export default function BluetoothPrinter({ bultos = [], onPrinted, autoPrint = f
   return (
     <div className={`flex flex-col gap-2 ${className}`}>
       <div className="flex flex-wrap gap-2">
-        <Button onClick={() => handlePrint(false)} disabled={!bultos.length || isBusy || !btSupported} className="bg-blue-600 hover:bg-blue-700">
+        <Button onClick={() => handlePrint(false)} disabled={!bultos.length || isBusy} className="bg-blue-600 hover:bg-blue-700">
           {isBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : status === 'connected' ? <BluetoothConnected className="h-4 w-4" /> : <Printer className="h-4 w-4" />}
           {label}
         </Button>

@@ -15,6 +15,7 @@ import OpenBultoCard from '@/components/warehouse/OpenBultoCard';
 import CajaActiveCard from '@/components/warehouse/CajaActiveCard';
 import CajaLotList from '@/components/warehouse/CajaLotList';
 import CajaLabelsDialog from '@/components/warehouse/CajaLabelsDialog';
+import CloseBultoDialog from '@/components/warehouse/CloseBultoDialog';
 import PackDestinationSelector from '@/components/warehouse/PackDestinationSelector';
 import PackUnitChips from '@/components/warehouse/PackUnitChips';
 import PackStatusBar from '@/components/warehouse/PackStatusBar';
@@ -409,14 +410,24 @@ export default function WarehouseScanPack({ user }) {
             const unit = review.manual
               ? await pack.handleManualAssign(review.client, value)
               : await pack.handleScan(value);
-            // Bulto suelto revisado: se cierra solo para que pase al historial y a la
-            // cola de impresión. Las cajas siguen abiertas para seguir consolidando.
-            if (unit && !unit.is_caja) await pack.closeUnit();
+            // Bulto suelto revisado: se cierra solo con el N° de contenedor de la revisión
+            // para que pase al historial y a la cola de impresión. Las cajas siguen abiertas.
+            if (unit && !unit.is_caja) {
+              await pack.closeUnit(summary?.container ? [summary.container] : undefined, unit);
+            }
           }}
         />
       )}
 
       <DuplicateTrackingAlert items={duplicates} onDismiss={() => setDuplicates([])} />
+
+      {/* Bulto suelto sin N° de contenedor: no se cierra ni imprime hasta escribirlo */}
+      <CloseBultoDialog
+        open={!!pack.containerPrompt}
+        bulto={pack.containerPrompt}
+        onConfirm={(orders) => pack.closeUnit(orders, pack.containerPrompt)}
+        onCancel={pack.cancelContainerPrompt}
+      />
 
       {pack.error && (
         <p className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
@@ -510,7 +521,7 @@ export default function WarehouseScanPack({ user }) {
       )}
       </TaskPanel>
 
-      <TaskPanel tab="etiquetas" active={tab} idPrefix="pack">
+      <TaskPanel tab="etiquetas" active={tab} idPrefix="pack" keepMounted>
         {/* Cola compartida: un teléfono es la estación e imprime para todos */}
         <ConnectedSharedPrintQueue />
         {/* Cola de impresión persistente */}

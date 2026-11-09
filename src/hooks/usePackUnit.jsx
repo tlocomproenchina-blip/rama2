@@ -29,6 +29,8 @@ export default function usePackUnit({
   const [manualAssign, setManualAssign] = useState(null);
   const [clientPrompt, setClientPrompt] = useState(null);
   const [ordersText, setOrdersText] = useState('');
+  // Bulto suelto que no se puede cerrar todavía porque falta su N° de contenedor.
+  const [containerPrompt, setContainerPrompt] = useState(null);
   const [contents, setContents] = useState({ package_count: 0, cbm: 0 });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -507,8 +509,9 @@ export default function usePackUnit({
   }, [activateUnit, applyUnits, getClientByEmail, getNextNumber, onHistoryChange, onUnitRemoved, user]);
 
   // --- Cerrar la unidad: bulto (etiqueta individual) o caja (etiquetas continuas) ---
-  const closeUnit = useCallback(async (ordersOverride) => {
-    const unit = activeUnitRef.current;
+  const closeUnit = useCallback(async (ordersOverride, unitOverride) => {
+    const current = activeUnitRef.current;
+    const unit = unitOverride && unitOverride.id !== current?.id ? unitOverride : current;
     if (!unit) return;
 
     if (unit.is_caja) {
@@ -575,15 +578,19 @@ export default function usePackUnit({
       return null;
     }
 
-    let cbmOrderNumbers = Array.isArray(unit.cbm_order_numbers) ? unit.cbm_order_numbers : [];
-    if (Array.isArray(ordersOverride) && ordersOverride.length > 0) {
-      cbmOrderNumbers = ordersOverride;
-    }
-    // Sin N° de contenedor a mano: se busca por los trackings antes de imprimir
-    // para que la etiqueta lo lleve (sin conexión se imprime sin él).
+    const clean = (list) => (Array.isArray(list) ? list : []).map((o) => String(o || '').trim()).filter(Boolean);
+    let cbmOrderNumbers = clean(unit.cbm_order_numbers);
+    if (clean(ordersOverride).length > 0) cbmOrderNumbers = clean(ordersOverride);
+    // Sin N° de contenedor a mano: se busca por los trackings antes de imprimir.
     if (cbmOrderNumbers.length === 0) {
-      cbmOrderNumbers = await lookupContainerNumbers(unit.client_email, unit.package_trackings);
+      cbmOrderNumbers = clean(await lookupContainerNumbers(unit.client_email, unit.package_trackings));
     }
+    // El N° de contenedor es obligatorio: sin él no se cierra ni se imprime; se pide al operador.
+    if (cbmOrderNumbers.length === 0) {
+      setContainerPrompt(unit);
+      return null;
+    }
+    setContainerPrompt(null);
     const closed = {
       ...unit,
       status: 'en_almacen_ve',
@@ -647,6 +654,8 @@ export default function usePackUnit({
     cancelClientPrompt,
     ordersText,
     setOrdersText,
+    containerPrompt,
+    cancelContainerPrompt: () => setContainerPrompt(null),
     contents,
     busy,
     error,
