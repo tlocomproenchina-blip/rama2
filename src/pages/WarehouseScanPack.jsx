@@ -404,7 +404,10 @@ export default function WarehouseScanPack({ user }) {
             setReview(null);
             setLastReview(summary);
             toast.success(withIncident ? 'Incidencia guardada. Paquete empacado.' : 'Revisión guardada. Paquete empacado.');
-            const unit = await pack.handleScan(value);
+            // Paquete manual: se crea y empaca igual que uno escaneado, tras su revisión.
+            const unit = review.manual
+              ? await pack.handleManualAssign(review.client, value)
+              : await pack.handleScan(value);
             // Bulto suelto revisado: se cierra solo para que pase al historial y a la
             // cola de impresión. Las cajas siguen abiertas para seguir consolidando.
             if (unit && !unit.is_caja) await pack.closeUnit();
@@ -439,9 +442,22 @@ export default function WarehouseScanPack({ user }) {
       {pack.manualAssign && (
         <ManualPackageAssign
           tracking={pack.manualAssign.tracking}
-          onAssigned={async (client) => {
-            const unit = await pack.handleManualAssign(client);
-            if (unit && !unit.is_caja) await pack.closeUnit();
+          onAssigned={(client) => {
+            // Igual que un paquete escaneado: pasa por la revisión (foto, contenedor e
+            // incidencia) antes de empacarse.
+            const tracking = pack.manualAssign.tracking;
+            pack.cancelManualAssign();
+            setReview({
+              code: tracking,
+              manual: true,
+              client,
+              pkg: {
+                tracking_number: tracking,
+                client_email: client.email,
+                shipping_mark: client.shipping_mark || '',
+                description: '',
+              },
+            });
           }}
           onCancel={pack.cancelManualAssign}
         />

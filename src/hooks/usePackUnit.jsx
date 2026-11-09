@@ -314,9 +314,10 @@ export default function usePackUnit({
     setPendingCode(null);
   }, [pendingCode]);
 
-  const handleManualAssign = useCallback(async (client) => {
-    if (!manualAssign) return;
-    const { tracking } = manualAssign;
+  const handleManualAssign = useCallback(async (client, trackingOverride) => {
+    // El tracking puede venir de la revisión del paquete (la asignación ya se cerró).
+    const tracking = trackingOverride || manualAssign?.tracking;
+    if (!tracking) return;
     setManualAssign(null);
     try {
       const pkg = {
