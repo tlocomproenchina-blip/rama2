@@ -23,6 +23,10 @@ const slim = (j: any) => {
   return rest;
 };
 
+// Personal: administradores y empleados de cualquier área (todos con role 'admin';
+// el área va en custom_role). Los clientes (role 'user') no usan la cola.
+const isStaff = (user: any) => user?.role === 'admin';
+
 const toBase64 = (buf: Uint8Array) => {
   let bin = '';
   for (let i = 0; i < buf.length; i += 0x8000) bin += String.fromCharCode(...buf.subarray(i, i + 0x8000));
@@ -34,7 +38,7 @@ export default async function (req: Request): Promise<Response> {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me().catch((e: any) => (e?.status === 401 ? null : Promise.reject(e)));
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    if (user.role !== 'admin') return Response.json({ error: 'Forbidden' }, { status: 403 });
+    if (!isStaff(user)) return Response.json({ error: 'Solo el personal puede usar la cola de impresión' }, { status: 403 });
 
     const svc = base44.asServiceRole.entities;
     const body = await req.json().catch(() => ({}));
