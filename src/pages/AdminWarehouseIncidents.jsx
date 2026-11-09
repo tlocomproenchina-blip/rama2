@@ -7,6 +7,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import InventoryReviewCard from '@/components/warehouse/incidents/InventoryReviewCard';
 import ReviewPhotoHistory from '@/components/warehouse/incidents/ReviewPhotoHistory';
 import IncidentList from '@/components/warehouse/incidents/IncidentList';
+import IncidentSortControls from '@/components/warehouse/incidents/IncidentSortControls';
 import { downloadWarehouseIncidents } from '@/lib/warehouseIncidentsExport';
 
 // Incidencias de almacén: paquetes que llegan abiertos desde China dentro de un
@@ -16,16 +17,19 @@ export default function AdminWarehouseIncidents() {
   const [incidents, setIncidents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
+  const [sortMode, setSortMode] = useState('type');
+  const [dateDir, setDateDir] = useState('desc');
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const page = await base44.entities.WarehouseIncident.list({ sort: '-reported_date', limit: 200 });
+      const sort = dateDir === 'asc' ? 'reported_date' : '-reported_date';
+      const page = await base44.entities.WarehouseIncident.list({ sort, limit: 200 });
       setIncidents(page?.items || []);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [dateDir]);
 
   useEffect(() => {
     load();
@@ -71,11 +75,14 @@ export default function AdminWarehouseIncidents() {
         </TabsContent>
 
         <TabsContent value="incidencias" className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-muted-foreground">Historial</h2>
-            <span className="text-xs text-muted-foreground">{incidents.length} incidencia(s)</span>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-baseline gap-3">
+              <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-muted-foreground">Historial</h2>
+              <span className="text-xs text-muted-foreground">{incidents.length} incidencia(s)</span>
+            </div>
+            <IncidentSortControls mode={sortMode} dir={dateDir} onModeChange={setSortMode} onDirChange={setDateDir} />
           </div>
-          <IncidentList incidents={incidents} loading={loading} onChanged={load} />
+          <IncidentList incidents={incidents} loading={loading} onChanged={load} groupByType={sortMode === 'type'} />
         </TabsContent>
 
         <TabsContent value="fotos">
