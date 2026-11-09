@@ -524,7 +524,7 @@ export default function Layout({ children, currentPageName }) {
               </Button>
               <div className="min-w-0 flex-1 px-2 text-center">
                 <p className="truncate text-[10px] font-semibold uppercase tracking-[0.24em] text-primary/70">Navegación</p>
-                <h1 className="truncate font-display text-sm font-semibold text-slate-800">{config?.app_name || 'TLEC CARGO'}</h1>
+                <h1 className="line-clamp-2 break-words leading-tight font-display text-sm font-semibold text-slate-800">{config?.app_name || 'TLEC CARGO'}</h1>
                 <p className="truncate text-[11px] text-slate-500">{currentPageName || 'Panel'}</p>
               </div>
               <div className="flex items-center justify-end gap-1.5">
