@@ -25,42 +25,52 @@
     "free_days": {
       "type": "number",
       "default": 7,
-      "description": "D\u00edas de almacenamiento gratuito desde la emisi\u00f3n de la factura (el cargo empieza el d\u00eda siguiente)"
+      "description": "D\u00edas de almacenamiento gratuito (el d\u00eda 1 es el siguiente a la emisi\u00f3n; el cargo fijo llega el d\u00eda siguiente)"
     },
     "max_days": {
       "type": "number",
       "default": 45,
       "description": "\u00daltimo d\u00eda del contrato en que se acumulan cargos de almacenamiento"
     },
+    "fixed_fee": {
+      "type": "number",
+      "default": 100,
+      "description": "Cargo fijo \u00fanico (USD) por factura al llegar el d\u00eda 8"
+    },
+    "daily_rate": {
+      "type": "number",
+      "default": 20,
+      "description": "Cargo diario (USD) por factura desde el d\u00eda 9"
+    },
     "standard_daily_rate": {
       "type": "number",
       "default": 10,
-      "description": "Tarifa diaria (USD) por bulto est\u00e1ndar"
+      "description": "DEPRECATED: tarifa diaria por bulto est\u00e1ndar del m\u00e9todo anterior por tama\u00f1o (descontinuado)"
     },
     "large_daily_rate": {
       "type": "number",
       "default": 20,
-      "description": "Tarifa diaria (USD) por bulto grande"
+      "description": "DEPRECATED: tarifa diaria por bulto grande del m\u00e9todo anterior por tama\u00f1o (descontinuado)"
     },
     "forklift_fee": {
       "type": "number",
       "default": 150,
-      "description": "Recargo \u00fanico (USD) por cada palet de carga consolidada que requiera montacargas"
+      "description": "Recargo (USD) por uso de montacargas, aplicado aparte en la factura"
     },
     "standard_max_cbm": {
       "type": "number",
       "default": 0.027,
-      "description": "Volumen m\u00e1ximo (CBM) para considerar un bulto como est\u00e1ndar: si el volumen del bulto o de su caja consolidada lo supera, se cobra como bulto grande. Referencia: 30 \u00d7 30 \u00d7 30 cm = 0.027 CBM."
+      "description": "DEPRECATED: volumen m\u00e1ximo para bulto est\u00e1ndar del m\u00e9todo anterior por tama\u00f1o"
     },
     "standard_max_cm": {
       "type": "number",
       "default": 30,
-      "description": "DEPRECATED: lado m\u00e1ximo en cent\u00edmetros que se usaba antes para clasificar el bulto. Se conserva por compatibilidad con la configuraci\u00f3n hist\u00f3rica; el c\u00e1lculo ahora usa standard_max_cbm (volumen)."
+      "description": "DEPRECATED: lado m\u00e1ximo en cent\u00edmetros del m\u00e9todo anterior"
     },
     "large_if_multiple_packages": {
       "type": "boolean",
       "default": true,
-      "description": "Considerar bulto grande a toda caja consolidada o bulto que agrupe m\u00e1s de un paquete"
+      "description": "DEPRECATED: regla de bulto grande del m\u00e9todo anterior por tama\u00f1o"
     },
     "default_category": {
       "type": "string",
@@ -69,12 +79,12 @@
         "grande"
       ],
       "default": "estandar",
-      "description": "Categor\u00eda que se aplica cuando el bulto no tiene volumen registrado ni marca manual"
+      "description": "DEPRECATED: categor\u00eda por defecto del m\u00e9todo anterior por tama\u00f1o"
     },
     "fallback_unit_per_order": {
       "type": "boolean",
       "default": true,
-      "description": "Cuando la factura no tiene bultos registrados, cobrar un bulto est\u00e1ndar por cada env\u00edo (N\u00b0 de orden) facturado"
+      "description": "Cuando la factura no tiene bultos registrados, tomar sus env\u00edos como referencia de unidades en almac\u00e9n"
     },
     "notify_client": {
       "type": "boolean",

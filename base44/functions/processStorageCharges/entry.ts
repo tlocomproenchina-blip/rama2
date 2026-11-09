@@ -1,4 +1,5 @@
-// Cargos de almacenamiento y custodia de las facturas impagas (día 8 al 45).
+// Cargos de almacenamiento y custodia de las facturas impagas (día 8 al 45):
+// cargo fijo de USD 100 el día 8 y USD 20 por día desde el día 9.
 //
 // Se ejecuta a diario desde el workflow "Cargos de almacenamiento - Diario" y
 // también a mano desde Gestión de Facturas (siempre en modo revisión primero).
@@ -32,8 +33,9 @@ const NOTICE_DAYS = [20, 30, 45];
 function isUnpaidInvoice(invoice: any) {
   // Factura protegida: no recibe cargos automáticos.
   if (invoice?.locked === true) return false;
+  // Igual que los avisos de cobro: pagada, cancelada o con un pago en revisión no suma cargos.
   const status = text(invoice?.status);
-  if (status === 'pagada' || status === 'cancelada') return false;
+  if (status === 'pagada' || status === 'cancelada' || status === 'revision') return false;
   return !!invoice?.invoice_date && !!text(invoice?.client_email);
 }
 
@@ -172,7 +174,7 @@ export default async function (req: Request): Promise<Response> {
         .filter({ invoice_id: invoice.id }, { sort: '-day_number', limit: 300 })
         .catch(() => ({ items: [] }));
       const charges = chargePage?.items || [];
-      const plan = planInvoiceCharges({ invoice, units: unitsInfo.units, charges, config });
+      const plan = planInvoiceCharges({ invoice, charges, config });
 
       const row: any = {
         invoice_id: invoice.id,
@@ -183,23 +185,19 @@ export default async function (req: Request): Promise<Response> {
         day_number: plan.day_number,
         days: plan.days,
         days_count: plan.days.length,
-        units_standard: plan.units_standard,
-        units_large: plan.units_large,
-        units_total: plan.units_total,
         units_source: unitsInfo.source,
         units: unitsInfo.units,
+        fixed_amount: plan.fixed_amount,
+        daily_days: plan.daily_days,
         daily_amount: plan.daily_amount,
         storage_amount: plan.storage_amount,
-        forklift_pallets: plan.forklift_pallets,
-        forklift_pallets_marked: plan.forklift_pallets_marked,
-        forklift_amount: plan.forklift_amount,
         amount: plan.amount,
         accumulated_after: plan.accumulated_after,
         total_before: plan.total_before,
         total_after: plan.total_after,
         changed: plan.changed,
         stopped: plan.stopped,
-        already_charged_days: charges.filter((c: any) => num(c.days_count) > 0).length,
+        already_charged_days: charges.filter((c: any) => ['cargo_fijo', 'almacenamiento_diario'].includes(text(c.charge_type))).length,
         reason: unitsInfo.reason,
       };
 
@@ -226,7 +224,7 @@ export default async function (req: Request): Promise<Response> {
       }
 
       if (plan.changed) {
-        const lines = applyStorageLines(invoice, plan, unitsInfo.units);
+        const lines = applyStorageLines(invoice, plan);
         await base44.asServiceRole.entities.Invoice.update(invoice.id, {
           items: lines.items,
           subtotal: lines.subtotal,

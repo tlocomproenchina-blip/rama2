@@ -14,6 +14,22 @@
       "type": "string",
       "description": "Email del cliente que recibe el cargo"
     },
+    "charge_type": {
+      "type": "string",
+      "enum": [
+        "cargo_fijo",
+        "almacenamiento_diario",
+        "montacargas",
+        "aviso"
+      ],
+      "enumColors": [
+        "purple",
+        "blue",
+        "yellow",
+        "gray"
+      ],
+      "description": "Tipo de registro: cargo fijo del d\u00eda 8 (USD 100), almacenamiento diario desde el d\u00eda 9 (USD 20), montacargas aplicado aparte en la factura, o aviso de fin de contrato. Los registros sin tipo son del m\u00e9todo anterior por tama\u00f1o de bulto (descontinuado)."
+    },
     "charge_date": {
       "type": "string",
       "format": "date",
@@ -26,7 +42,7 @@
     "covered_days": {
       "type": "array",
       "default": [],
-      "description": "D\u00edas del contrato incluidos en este registro (por ejemplo 8, 9 y 10 cuando la primera ejecuci\u00f3n regulariza d\u00edas atrasados)",
+      "description": "D\u00edas del contrato incluidos en este registro",
       "items": {
         "type": "number"
       }
@@ -39,12 +55,12 @@
     "units_standard": {
       "type": "number",
       "default": 0,
-      "description": "Bultos est\u00e1ndar cobrados en el d\u00eda"
+      "description": "DEPRECATED: bultos est\u00e1ndar del m\u00e9todo anterior por tama\u00f1o"
     },
     "units_large": {
       "type": "number",
       "default": 0,
-      "description": "Bultos grandes cobrados en el d\u00eda"
+      "description": "DEPRECATED: bultos grandes del m\u00e9todo anterior por tama\u00f1o"
     },
     "units_source": {
       "type": "string",
@@ -53,12 +69,12 @@
         "envio",
         "ninguna"
       ],
-      "description": "De d\u00f3nde salieron las unidades cobradas: bultos registrados en almac\u00e9n, env\u00edos de la factura o ninguna"
+      "description": "De d\u00f3nde salieron las unidades en almac\u00e9n registradas como referencia"
     },
     "units_snapshot": {
       "type": "array",
       "default": [],
-      "description": "Snapshot de las unidades cobradas ese d\u00eda (etiqueta, categor\u00eda, palets y montacargas)",
+      "description": "Referencia de las unidades que segu\u00edan en almac\u00e9n ese d\u00eda",
       "items": {
         "type": "object",
         "properties": {
@@ -82,41 +98,41 @@
     },
     "daily_rate_standard": {
       "type": "number",
-      "description": "Tarifa diaria est\u00e1ndar vigente cuando se calcul\u00f3 el registro"
+      "description": "DEPRECATED: tarifa diaria est\u00e1ndar del m\u00e9todo anterior"
     },
     "daily_rate_large": {
       "type": "number",
-      "description": "Tarifa diaria grande vigente cuando se calcul\u00f3 el registro"
+      "description": "DEPRECATED: tarifa diaria grande del m\u00e9todo anterior"
     },
     "daily_amount": {
       "type": "number",
       "default": 0,
-      "description": "Monto diario de almacenamiento (bultos est\u00e1ndar y grandes)"
+      "description": "Monto diario de almacenamiento (0 en el cargo fijo)"
     },
     "storage_amount": {
       "type": "number",
       "default": 0,
-      "description": "Almacenamiento cobrado en este registro (daily_amount \u00d7 d\u00edas cubiertos)"
+      "description": "Almacenamiento cobrado en este registro (cargo fijo o d\u00eda de almacenamiento)"
     },
     "forklift_pallets_today": {
       "type": "number",
       "default": 0,
-      "description": "Palets que estrenaron el recargo de montacargas en este registro"
+      "description": "Palets/usos de montacargas registrados (solo en registros de montacargas)"
     },
     "forklift_amount": {
       "type": "number",
       "default": 0,
-      "description": "Recargo \u00fanico de montacargas cobrado en este registro"
+      "description": "Recargo de montacargas aplicado en la factura (solo en registros de montacargas)"
     },
     "amount": {
       "type": "number",
       "default": 0,
-      "description": "Total del registro (almacenamiento + montacargas)"
+      "description": "Total del registro"
     },
     "accumulated_amount": {
       "type": "number",
       "default": 0,
-      "description": "Acumulado de almacenamiento y montacargas incluyendo este registro"
+      "description": "Acumulado de almacenamiento incluyendo este registro"
     },
     "invoice_total_before": {
       "type": "number",
@@ -142,7 +158,7 @@
     },
     "notes": {
       "type": "string",
-      "description": "Notas del c\u00e1lculo (unidades no ubicadas, cargos detenidos por el d\u00eda tope, etc.)"
+      "description": "Notas del c\u00e1lculo"
     }
   },
   "required": [

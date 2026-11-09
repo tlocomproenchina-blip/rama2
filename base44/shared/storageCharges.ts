@@ -1,13 +1,12 @@
 // Cargos de almacenamiento y custodia de las facturas impagas.
 //
-// Reglas del contrato (secciones VII, XIII y XV):
-//   - Días 1 al 7 desde la emisión de la factura: almacenamiento gratuito.
-//   - Desde el día 8: USD 10 diarios por bulto estándar (hasta 0.027 CBM de
-//     volumen, que equivale a 30 × 30 × 30 cm) y USD 20 diarios por bulto grande
-//     (supera ese volumen). El volumen del bulto se compara en CBM, que es la
-//     unidad con la que se factura la carga.
-//   - El recargo de montacargas es USD 150 por palet, UNA sola vez por palet y NO
-//     lo cobra el proceso automático: lo aplica un administrador a mano.
+// Reglas del contrato (Términos, sección VII):
+//   - Días 1 al 7 (el día 1 es el siguiente a la emisión): almacenamiento gratuito.
+//   - Día 8: cargo fijo único de USD 100 por factura.
+//   - Desde el día 9: USD 20 por cada día continuo, por factura.
+//   - Ya no se cobra por tamaño de bulto (tarifas de USD 10/20 por bulto descontinuadas).
+//   - El montacargas (USD 150 por uso) se aplica aparte en la factura y el
+//     proceso automático no lo toca.
 //   - Hasta el día 45 se sigue acumulando; después el sistema deja de cobrar.
 //   - No existe una penalización independiente por mora: aquí solo hay
 //     almacenamiento y custodia, más el recargo de montacargas.
@@ -41,6 +40,8 @@ export const DEFAULT_STORAGE_CONFIG: Record<string, any> = {
   is_active: true,
   free_days: 7,
   max_days: 45,
+  fixed_fee: 100,
+  daily_rate: 20,
   standard_daily_rate: 10,
   large_daily_rate: 20,
   forklift_fee: 150,
@@ -78,10 +79,11 @@ function caracasDayStart(value: any) {
   return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
 }
 
-// Día del contrato: la fecha de emisión es el día 1, así que el cargo empieza el día 8.
+// Día del contrato: igual que los Términos, el día de emisión es 0 y el siguiente
+// es el día 1, así que el cargo fijo llega el día 8.
 export function storageDayNumber(invoiceDate: any, now: Date = new Date()) {
   if (!invoiceDate) return 0;
-  return Math.floor((caracasDayStart(now) - caracasDayStart(invoiceDate)) / DAY_MS) + 1;
+  return Math.floor((caracasDayStart(now) - caracasDayStart(invoiceDate)) / DAY_MS);
 }
 
 // Fecha local de Venezuela (YYYY-MM-DD) del momento de ejecución.
@@ -272,98 +274,63 @@ export async function resolveStorageUnits(base44: any, invoice: any, config: any
 
 // --- Cálculo del cargo ------------------------------------------------------
 
+export const CHARGE_TYPE_FIXED = "cargo_fijo";
+export const CHARGE_TYPE_DAILY = "almacenamiento_diario";
+export const CHARGE_TYPE_FORKLIFT = "montacargas";
+export const CHARGE_TYPE_NOTICE = "aviso";
+
+// Registros que cuentan como almacenamiento con la regla vigente. Los registros
+// anteriores (tarifa por tamaño de bulto) no tienen tipo y no se toman en cuenta.
+const isStorageRecord = (r: any) => {
+  const type = text(r?.charge_type);
+  return type === CHARGE_TYPE_FIXED || type === CHARGE_TYPE_DAILY;
+};
+
+const recordDays = (r: any) => (Array.isArray(r?.covered_days) && r.covered_days.length ? r.covered_days : [r?.day_number])
+  .map(num)
+  .filter((d: number) => d > 0);
+
+// Línea de almacenamiento de la factura (las de montacargas NO entran aquí: se
+// aplican aparte en la factura y nunca se reemplazan).
 export function isStorageLine(item: any) {
-  const kind = text(item?.details?.kind);
-  return kind === STORAGE_LINE_KIND || kind === FORKLIFT_LINE_KIND;
+  if (text(item?.details?.kind) === STORAGE_LINE_KIND) return true;
+  return text(item?.description).toLowerCase().startsWith("almacenamiento y custodia");
 }
 
-// Días nuevos (nunca repite uno ya registrado), monto del día, palets que
-// estrenan el recargo de montacargas y acumulado del contrato.
-export function planInvoiceCharges({ invoice, units, charges, config, now = new Date() }: any) {
+// Días nuevos (nunca repite uno ya registrado): el día 8 lleva el cargo fijo y
+// cada día siguiente la tarifa diaria. El monto no depende de los bultos.
+export function planInvoiceCharges({ invoice, charges, config, now = new Date() }: any) {
   const dayNumber = storageDayNumber(invoice?.invoice_date, now);
   const startDay = num(config?.free_days) + 1;
   const maxDay = num(config?.max_days) || 45;
-  const records = Array.isArray(charges) ? charges : [];
+  const fixedFee = num(config?.fixed_fee ?? DEFAULT_STORAGE_CONFIG.fixed_fee);
+  const dailyRate = num(config?.daily_rate ?? DEFAULT_STORAGE_CONFIG.daily_rate);
+  const all = Array.isArray(charges) ? charges : [];
+  const records = all.filter(isStorageRecord);
 
-  const lastChargedDay = records.reduce((max: number, r: any) => Math.max(max, num(r.day_number)), 0);
+  const lastChargedDay = records.reduce((max: number, r: any) => Math.max(max, ...recordDays(r)), 0);
   const from = Math.max(startDay, lastChargedDay + 1);
   const to = Math.min(dayNumber, maxDay);
+  const enabled = storageChargesEnabled(config);
   const days: number[] = [];
-  for (let d = from; d <= to; d += 1) days.push(d);
+  if (enabled) for (let d = from; d <= to; d += 1) days.push(d);
 
-  const list = Array.isArray(units) ? units : [];
-  const unitsStandard = list.filter((u: any) => u.category !== CATEGORY_LARGE).length;
-  const unitsLarge = list.filter((u: any) => u.category === CATEGORY_LARGE).length;
+  const fixedAmount = days.includes(startDay) ? round2(fixedFee) : 0;
+  const dailyDays = days.filter((d) => d !== startDay).length;
+  const dailyAmount = round2(dailyDays * dailyRate);
+  const amount = round2(fixedAmount + dailyAmount);
 
-  const rateStandard = num(config?.standard_daily_rate);
-  const rateLarge = num(config?.large_daily_rate);
-  const dailyAmount = round2(unitsStandard * rateStandard + unitsLarge * rateLarge);
-
-  // El montacargas NO se cobra automáticamente: los palets marcados solo quedan
-  // como referencia y el recargo lo aplica un administrador a mano desde el panel
-  // de cargos (función applyStorageForklift).
-  const palletsMarked = list.reduce(
-    (sum: number, u: any) => sum + (u.requires_forklift ? Math.max(0, Math.round(num(u.pallets))) : 0),
-    0
-  );
-  const palletsCharged = records.reduce((sum: number, r: any) => sum + num(r.forklift_pallets_today), 0);
-  const newPallets = 0;
-
-  const storageAmount = round2(days.length * dailyAmount);
-  const forkliftAmount = 0;
-  const amount = round2(storageAmount + forkliftAmount);
-
-  // El aviso de fin de contrato (día tope alcanzado) se registra una sola vez.
-  const stopNoticed = records.some((r: any) => String(r?.notes || "").includes("procedimiento contractual"));
+  const sumOf = (type: string) => round2(records
+    .filter((r: any) => text(r.charge_type) === type)
+    .reduce((sum: number, r: any) => sum + num(r.storage_amount), 0));
+  const dailyDaysBefore = records
+    .filter((r: any) => text(r.charge_type) === CHARGE_TYPE_DAILY)
+    .reduce((sum: number, r: any) => sum + recordDays(r).length, 0);
 
   const accumulatedBefore = round2(records.reduce((sum: number, r: any) => sum + num(r.amount), 0));
-  const storageAccumulatedBefore = round2(records.reduce((sum: number, r: any) => sum + num(r.storage_amount), 0));
-  const forkliftAccumulatedBefore = round2(records.reduce((sum: number, r: any) => sum + num(r.forklift_amount), 0));
-
-  const storageAccumulatedAfter = round2(storageAccumulatedBefore + storageAmount);
-  const forkliftAccumulatedAfter = round2(forkliftAccumulatedBefore + forkliftAmount);
-  const daysChargedAfter = Math.max(lastChargedDay, to >= from ? to : lastChargedDay);
+  const stopNoticed = all.some((r: any) => text(r?.charge_type) === CHARGE_TYPE_NOTICE
+    || String(r?.notes || "").includes("procedimiento contractual"));
   const totalBefore = num(invoice?.total);
-
-  // Con los cargos en pausa el plan no mueve dinero: cero días nuevos, cero
-  // monto y sin aviso de fin de contrato, así no se escribe nada en la factura.
-  if (!storageChargesEnabled(config)) {
-    return {
-      invoice_id: invoice?.id || null,
-      invoice_number: text(invoice?.invoice_number),
-      client_email: text(invoice?.client_email),
-      status: text(invoice?.status),
-      invoice_date: invoice?.invoice_date || null,
-      day_number: dayNumber,
-      start_day: startDay,
-      max_day: maxDay,
-      days: [],
-      days_charged_after: lastChargedDay,
-      units_standard: unitsStandard,
-      units_large: unitsLarge,
-      units_total: list.length,
-      units_source: text(invoice?.units_source) || null,
-      daily_rate_standard: rateStandard,
-      daily_rate_large: rateLarge,
-      daily_amount: 0,
-      storage_amount: 0,
-      forklift_pallets: 0,
-      forklift_pallets_marked: palletsMarked,
-      forklift_pallets_charged: palletsCharged,
-      forklift_amount: 0,
-      amount: 0,
-      accumulated_before: accumulatedBefore,
-      accumulated_after: accumulatedBefore,
-      storage_accumulated_after: storageAccumulatedBefore,
-      forklift_accumulated_after: forkliftAccumulatedBefore,
-      pallets_charged_after: palletsCharged,
-      total_before: totalBefore,
-      total_after: totalBefore,
-      stopped: false,
-      stop_notice_created: true,
-      changed: false,
-    };
-  }
 
   return {
     invoice_id: invoice?.id || null,
@@ -375,114 +342,64 @@ export function planInvoiceCharges({ invoice, units, charges, config, now = new 
     start_day: startDay,
     max_day: maxDay,
     days,
-    days_charged_after: daysChargedAfter,
-    units_standard: unitsStandard,
-    units_large: unitsLarge,
-    units_total: list.length,
-    units_source: text(invoice?.units_source) || null,
-    daily_rate_standard: rateStandard,
-    daily_rate_large: rateLarge,
+    days_charged_after: days.length ? days[days.length - 1] : lastChargedDay,
+    fixed_fee: fixedFee,
+    daily_rate: dailyRate,
+    fixed_amount: fixedAmount,
+    daily_days: dailyDays,
     daily_amount: dailyAmount,
-    storage_amount: storageAmount,
-    forklift_pallets: newPallets,
-    forklift_pallets_marked: palletsMarked,
-    forklift_pallets_charged: palletsCharged,
-    forklift_amount: forkliftAmount,
+    storage_amount: amount,
     amount,
+    fixed_accumulated_after: round2(sumOf(CHARGE_TYPE_FIXED) + fixedAmount),
+    daily_accumulated_after: round2(sumOf(CHARGE_TYPE_DAILY) + dailyAmount),
+    daily_days_after: dailyDaysBefore + dailyDays,
     accumulated_before: accumulatedBefore,
     accumulated_after: round2(accumulatedBefore + amount),
-    storage_accumulated_after: storageAccumulatedAfter,
-    forklift_accumulated_after: forkliftAccumulatedAfter,
-    pallets_charged_after: palletsCharged + newPallets,
     total_before: totalBefore,
     total_after: round2(totalBefore + amount),
-    stopped: dayNumber > maxDay,
-    stop_notice_created: stopNoticed,
+    // Con los cargos en pausa no se registra ni el aviso de fin de contrato.
+    stopped: enabled && dayNumber > maxDay,
+    stop_notice_created: !enabled || stopNoticed,
     changed: amount >= 0.01,
   };
 }
 
-// Cómo queda la factura: se reemplazan solo las líneas de almacenamiento y
-// montacargas y el total se mueve por la diferencia, así el resto de la factura
-// (envío, seguro, consolidación, puerta a puerta) queda intacto.
-export function applyStorageLines(invoice: any, plan: any, units: any[]) {
+// Cómo queda la factura: se reemplazan solo las líneas de almacenamiento (cargo
+// fijo y diario) y el total se mueve por la diferencia. El montacargas y el resto
+// de la factura (envío, seguro, consolidación, puerta a puerta) quedan intactos.
+export function applyStorageLines(invoice: any, plan: any) {
   const items = Array.isArray(invoice?.items) ? invoice.items : [];
   const others = items.filter((item: any) => !isStorageLine(item));
   const previousTotal = round2(items.filter(isStorageLine).reduce((sum: number, item: any) => sum + num(item.total), 0));
-
   const now = new Date().toISOString();
   const lines: any[] = [];
 
-  if (plan.storage_accumulated_after > 0) {
-    const days = Math.max(1, num(plan.days_charged_after) - plan.start_day + 1);
-    const toDay = num(plan.days_charged_after);
-    const rateStandard = num(plan.daily_rate_standard);
-    const rateLarge = num(plan.daily_rate_large);
-    const unitsStandard = num(plan.units_standard);
-    const unitsLarge = num(plan.units_large);
-
-    // Cada tipo de bulto va en su propia línea con la tarifa diaria aprobada
-    // como precio unitario y los bulto-día como cantidad (bultos × días), para
-    // que el almacenamiento nunca se confunda con el recargo de montacargas.
-    const computedStandard = round2(unitsStandard * rateStandard * days);
-    const computedLarge = round2(unitsLarge * rateLarge * days);
-    const computed = round2(computedStandard + computedLarge);
-    const factor = computed > 0 ? num(plan.storage_accumulated_after) / computed : 0;
-
-    const storageLine = (category: string, units: number, amount: number) => {
-      const quantity = Math.max(1, units * days);
-      lines.push({
-        description: `Almacenamiento y custodia · bultos ${category} (día ${plan.start_day} al ${toDay})`,
-        quantity,
-        unit_price: round2(amount / quantity),
-        total: round2(amount),
-        details: {
-          kind: STORAGE_LINE_KIND,
-          category: category === "grandes" ? CATEGORY_LARGE : CATEGORY_STANDARD,
-          days,
-          from_day: plan.start_day,
-          to_day: toDay,
-          units,
-          rate: category === "grandes" ? rateLarge : rateStandard,
-          daily_amount: round2(units * (category === "grandes" ? rateLarge : rateStandard)),
-          updated_date: now,
-        },
-      });
-    };
-
-    if (unitsStandard > 0) storageLine("estándar", unitsStandard, computedStandard * factor);
-    if (unitsLarge > 0) storageLine("grandes", unitsLarge, computedLarge * factor);
-    if (!unitsStandard && !unitsLarge) {
-      lines.push({
-        description: `Almacenamiento y custodia (día ${plan.start_day} al ${toDay})`,
-        quantity: days,
-        unit_price: round2(num(plan.storage_accumulated_after) / days),
-        total: round2(plan.storage_accumulated_after),
-        details: {
-          kind: STORAGE_LINE_KIND,
-          days,
-          from_day: plan.start_day,
-          to_day: toDay,
-          daily_amount: plan.daily_amount,
-          rate_standard: rateStandard,
-          rate_large: rateLarge,
-          updated_date: now,
-        },
-      });
-    }
+  if (plan.fixed_accumulated_after > 0) {
+    lines.push({
+      description: `Almacenamiento y custodia · cargo fijo (día ${plan.start_day})`,
+      quantity: 1,
+      unit_price: round2(plan.fixed_accumulated_after),
+      total: round2(plan.fixed_accumulated_after),
+      details: { kind: STORAGE_LINE_KIND, charge_type: CHARGE_TYPE_FIXED, day: plan.start_day, updated_date: now },
+    });
   }
 
-  if (plan.forklift_accumulated_after > 0) {
-    const pallets = Math.max(1, num(plan.pallets_charged_after));
+  if (plan.daily_accumulated_after > 0) {
+    const days = Math.max(1, num(plan.daily_days_after));
+    const fromDay = plan.start_day + 1;
+    const toDay = num(plan.days_charged_after);
     lines.push({
-      description: `Uso de montacargas (${pallets} palet${pallets === 1 ? "" : "s"})`,
-      quantity: pallets,
-      unit_price: round2(plan.forklift_accumulated_after / pallets),
-      total: round2(plan.forklift_accumulated_after),
+      description: `Almacenamiento y custodia · diario (día ${fromDay} al ${toDay})`,
+      quantity: days,
+      unit_price: round2(plan.daily_accumulated_after / days),
+      total: round2(plan.daily_accumulated_after),
       details: {
-        kind: FORKLIFT_LINE_KIND,
-        pallets,
-        charged_once: true,
+        kind: STORAGE_LINE_KIND,
+        charge_type: CHARGE_TYPE_DAILY,
+        days,
+        from_day: fromDay,
+        to_day: toDay,
+        rate: plan.daily_rate,
         updated_date: now,
       },
     });
@@ -490,27 +407,17 @@ export function applyStorageLines(invoice: any, plan: any, units: any[]) {
 
   const newTotal = round2(lines.reduce((sum: number, line: any) => sum + line.total, 0));
   const delta = round2(newTotal - previousTotal);
-  const unitsSnapshot = (Array.isArray(units) ? units : []).map((u: any) => ({
-    label_code: u.label_code,
-    category: u.category,
-    pallets: num(u.pallets),
-    requires_forklift: !!u.requires_forklift,
-    source: u.source,
-  }));
-
   return {
     items: [...others, ...lines],
     lines,
     delta,
     subtotal: round2(num(invoice?.subtotal) + delta),
     total: round2(num(invoice?.total) + delta),
-    units_snapshot: unitsSnapshot,
   };
 }
 
-// Registros que se guardan para auditoría: un renglón por día nuevo cobrado,
-// con el recargo de montacargas en el último (o en su propio renglón cuando no
-// hay días nuevos pero se marcó un palet).
+// Registros para el historial de cobros: un renglón por día nuevo, identificado
+// como cargo fijo (día 8) o almacenamiento diario, más el aviso de fin de contrato.
 export function buildChargeRecords(plan: any, units: any[], options: any = {}) {
   const createdBy = text(options.createdBy) || "sistema (automático)";
   const chargeDate = text(options.chargeDate) || storageDayKey();
@@ -521,99 +428,61 @@ export function buildChargeRecords(plan: any, units: any[], options: any = {}) {
     requires_forklift: !!u.requires_forklift,
     source: u.source,
   }));
+  const base = {
+    invoice_id: plan.invoice_id,
+    invoice_number: plan.invoice_number,
+    client_email: plan.client_email,
+    charge_date: chargeDate,
+    units_standard: 0,
+    units_large: 0,
+    units_snapshot: snapshot,
+    forklift_pallets_today: 0,
+    forklift_amount: 0,
+    notified: false,
+    created_by: createdBy,
+  };
 
   const records: any[] = [];
   let running = num(plan.accumulated_before);
+  let invoiceTotal = num(plan.total_before);
 
-  plan.days.forEach((day: number, index: number) => {
-    const isLast = index === plan.days.length - 1;
-    const forkliftAmount = isLast ? num(plan.forklift_amount) : 0;
-    const amount = round2(num(plan.daily_amount) + forkliftAmount);
+  for (const day of plan.days) {
+    const isFixed = day === plan.start_day;
+    const amount = round2(isFixed ? plan.fixed_fee : plan.daily_rate);
     running = round2(running + amount);
     records.push({
-      invoice_id: plan.invoice_id,
-      invoice_number: plan.invoice_number,
-      client_email: plan.client_email,
-      charge_date: chargeDate,
+      ...base,
+      charge_type: isFixed ? CHARGE_TYPE_FIXED : CHARGE_TYPE_DAILY,
       day_number: day,
       covered_days: [day],
       days_count: 1,
-      units_standard: plan.units_standard,
-      units_large: plan.units_large,
-      units_source: options.unitsSource || "bulto",
-      units_snapshot: snapshot,
-      daily_rate_standard: plan.daily_rate_standard,
-      daily_rate_large: plan.daily_rate_large,
-      daily_amount: plan.daily_amount,
-      storage_amount: plan.daily_amount,
-      forklift_pallets_today: isLast ? num(plan.forklift_pallets) : 0,
-      forklift_amount: forkliftAmount,
+      units_source: options.unitsSource || "ninguna",
+      daily_amount: isFixed ? 0 : amount,
+      storage_amount: amount,
       amount,
       accumulated_amount: running,
-      invoice_total_before: round2(plan.total_before + (running - num(plan.accumulated_before) - amount)),
-      invoice_total_after: round2(plan.total_before + (running - num(plan.accumulated_before))),
-      notified: false,
-      created_by: createdBy,
-      notes: "",
+      invoice_total_before: round2(invoiceTotal),
+      invoice_total_after: round2(invoiceTotal + amount),
+      notes: isFixed ? `Cargo fijo de almacenamiento y custodia (día ${day}).` : `Almacenamiento diario (día ${day}).`,
     });
-  });
-
-  if (!records.length && num(plan.forklift_amount) > 0) {
-    const amount = round2(num(plan.forklift_amount));
-    running = round2(running + amount);
-    records.push({
-      invoice_id: plan.invoice_id,
-      invoice_number: plan.invoice_number,
-      client_email: plan.client_email,
-      charge_date: chargeDate,
-      day_number: num(plan.day_number),
-      covered_days: [],
-      days_count: 0,
-      units_standard: plan.units_standard,
-      units_large: plan.units_large,
-      units_source: options.unitsSource || "bulto",
-      units_snapshot: snapshot,
-      daily_rate_standard: plan.daily_rate_standard,
-      daily_rate_large: plan.daily_rate_large,
-      daily_amount: 0,
-      storage_amount: 0,
-      forklift_pallets_today: num(plan.forklift_pallets),
-      forklift_amount: amount,
-      amount,
-      accumulated_amount: running,
-      invoice_total_before: round2(num(plan.total_before)),
-      invoice_total_after: round2(num(plan.total_before) + amount),
-      notified: false,
-      created_by: createdBy,
-      notes: "Recargo único de montacargas por palet marcado; no hay días nuevos de almacenamiento.",
-    });
+    invoiceTotal += amount;
   }
 
   if (plan.stopped && !plan.stop_notice_created) {
     records.push({
-      invoice_id: plan.invoice_id,
-      invoice_number: plan.invoice_number,
-      client_email: plan.client_email,
-      charge_date: chargeDate,
+      ...base,
+      charge_type: CHARGE_TYPE_NOTICE,
       day_number: plan.day_number,
       covered_days: [],
       days_count: 0,
-      units_standard: plan.units_standard,
-      units_large: plan.units_large,
       units_source: "ninguna",
       units_snapshot: [],
-      daily_rate_standard: plan.daily_rate_standard,
-      daily_rate_large: plan.daily_rate_large,
       daily_amount: 0,
       storage_amount: 0,
-      forklift_pallets_today: 0,
-      forklift_amount: 0,
       amount: 0,
       accumulated_amount: round2(plan.accumulated_after),
-      invoice_total_before: num(plan.total_before),
-      invoice_total_after: num(plan.total_before),
-      notified: false,
-      created_by: createdBy,
+      invoice_total_before: round2(invoiceTotal),
+      invoice_total_after: round2(invoiceTotal),
       notes: `Día ${plan.day_number}: pasó el día ${plan.max_day} del contrato, los cargos de almacenamiento se detienen y corresponde revisar el procedimiento contractual.`,
     });
   }
@@ -624,14 +493,12 @@ export function buildChargeRecords(plan: any, units: any[], options: any = {}) {
 // Texto del desglose que ve el cliente (sin llamarlo penalización por mora).
 export function chargeBreakdownText(plan: any) {
   const parts: string[] = [];
-  const standard = `• Bultos estándar: ${plan.units_standard} × $${num(plan.daily_rate_standard).toFixed(2)} = $${round2(plan.units_standard * plan.daily_rate_standard).toFixed(2)} diarios`;
-  const large = `• Bultos grandes: ${plan.units_large} × $${num(plan.daily_rate_large).toFixed(2)} = $${round2(plan.units_large * plan.daily_rate_large).toFixed(2)} diarios`;
-  parts.push(standard, large);
-  if (plan.days.length) {
-    parts.push(`• Días de almacenamiento cobrados ahora: ${plan.days.length} (día ${plan.days[0]} al ${plan.days[plan.days.length - 1]}) = $${round2(plan.storage_amount).toFixed(2)}`);
+  if (num(plan.fixed_amount) > 0) {
+    parts.push(`• Cargo fijo de almacenamiento (día ${plan.start_day}): $${round2(plan.fixed_amount).toFixed(2)}`);
   }
-  if (num(plan.forklift_amount) > 0) {
-    parts.push(`• Uso de montacargas: ${plan.forklift_pallets} palet(s) × $${num(plan.forklift_fee || 0).toFixed(2)} = $${round2(plan.forklift_amount).toFixed(2)} (recargo único por palet)`);
+  if (num(plan.daily_days) > 0) {
+    const dailyDays = plan.days.filter((d: number) => d !== plan.start_day);
+    parts.push(`• Almacenamiento diario: ${plan.daily_days} día(s) × $${num(plan.daily_rate).toFixed(2)} (día ${dailyDays[0]} al ${dailyDays[dailyDays.length - 1]}) = $${round2(plan.daily_amount).toFixed(2)}`);
   }
   parts.push(`• Total agregado a la factura: $${round2(plan.amount).toFixed(2)}`);
   parts.push(`• Acumulado de almacenamiento y custodia: $${round2(plan.accumulated_after).toFixed(2)}`);

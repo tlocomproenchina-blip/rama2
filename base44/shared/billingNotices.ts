@@ -61,8 +61,14 @@ export function dateOfDay(invoiceDate: any, day: number) {
   return new Date(base).toLocaleDateString('es-VE', { timeZone: 'UTC', day: '2-digit', month: 'long', year: 'numeric' });
 }
 
+// Saldo sin las líneas de almacenamiento ya registradas en la factura: esos
+// cargos se muestran aparte con storageAccrued, así no se cuentan dos veces.
 export function invoiceBalance(invoice: any) {
-  return Math.max(0, Math.round((num(invoice?.total) - num(invoice?.paid_amount)) * 100) / 100);
+  const storageLines = (Array.isArray(invoice?.items) ? invoice.items : [])
+    .filter((item: any) => item?.details?.kind === 'storage_charge'
+      || String(item?.description || '').trim().toLowerCase().startsWith('almacenamiento y custodia'))
+    .reduce((sum: number, item: any) => sum + num(item?.total), 0);
+  return Math.max(0, Math.round((num(invoice?.total) - storageLines - num(invoice?.paid_amount)) * 100) / 100);
 }
 
 // La factura deja de recibir avisos cuando se paga, se cancela, tiene un pago en
