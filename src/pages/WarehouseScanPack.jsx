@@ -58,6 +58,7 @@ export default function WarehouseScanPack({ user }) {
   const [cajaRefreshKey, setCajaRefreshKey] = useState(0);
   const [labelsOpen, setLabelsOpen] = useState(false);
   const [autoPrintLabels, setAutoPrintLabels] = useState(false);
+  const [onlyCajaLabel, setOnlyCajaLabel] = useState('');
   const [lotKey, setLotKey] = useState(0);
   const [lotEmail, setLotEmail] = useState('');
   const [cajas, setCajas] = useState([]);
@@ -222,6 +223,7 @@ export default function WarehouseScanPack({ user }) {
     if (!closed?.client_email) return;
     setLotEmail(closed.client_email);
     setLotKey((k) => k + 1);
+    setOnlyCajaLabel(closed.label_code || '');
     setAutoPrintLabels(true);
     setLabelsOpen(true);
   }, [pack]);
@@ -533,7 +535,7 @@ export default function WarehouseScanPack({ user }) {
           onLogPrints={enqueuePrintLogs}
         />
         {/* Cajas del cliente que esperan etiqueta continua y despacho */}
-        <CajaLotList cajas={cajas} onPrintLabels={() => setLabelsOpen(true)} />
+        <CajaLotList cajas={cajas} onPrintLabels={() => { setOnlyCajaLabel(''); setLabelsOpen(true); }} />
         {!printQueue.length && !cajas.length && (
           <EmptyTaskState
             icon={Printer}
@@ -545,7 +547,8 @@ export default function WarehouseScanPack({ user }) {
 
       <CajaLabelsDialog
         open={labelsOpen}
-        onOpenChange={(value) => { setLabelsOpen(value); if (!value) setAutoPrintLabels(false); }}
+        onOpenChange={(value) => { setLabelsOpen(value); if (!value) { setAutoPrintLabels(false); setOnlyCajaLabel(''); } }}
+        onlyLabelCode={onlyCajaLabel}
         autoPrint={autoPrintLabels}
         onAutoPrinted={() => setAutoPrintLabels(false)}
         clientEmail={lotEmail}

@@ -38,7 +38,9 @@ async function lotCajas(clientEmail) {
   });
 }
 
-export default function CajaLabelsDialog({ open, onOpenChange, clientEmail, onPrinted, onAssigned, autoPrint = false, onAutoPrinted }) {
+// onlyLabelCode: al cerrar una caja se imprime solo esa caja (con su número X/N del lote),
+// no la tira completa de todas las cajas del cliente.
+export default function CajaLabelsDialog({ open, onOpenChange, clientEmail, onPrinted, onAssigned, autoPrint = false, onAutoPrinted, onlyLabelCode = '' }) {
   const [client, setClient] = useState({});
   const [cajas, setCajas] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -62,8 +64,11 @@ export default function CajaLabelsDialog({ open, onOpenChange, clientEmail, onPr
         const total = local.length;
         setOffline(typeof navigator !== 'undefined' && !navigator.onLine);
         setClient(local.find((c) => c.client_snapshot?.full_name)?.client_snapshot || {});
+        const only = String(onlyLabelCode || '').toUpperCase();
+        const numbered = local.map((caja, index) => ({ caja, index }));
+        const picked = only ? numbered.filter(({ caja }) => String(caja.label_code || '').toUpperCase() === only) : [];
         setCajas(
-          local.map((caja, index) => ({
+          (picked.length ? picked : numbered).map(({ caja, index }) => ({
             id: caja.id,
             label_code: caja.label_code,
             caja_number: index + 1,
@@ -79,7 +84,7 @@ export default function CajaLabelsDialog({ open, onOpenChange, clientEmail, onPr
       setLoading(false);
       setLoaded(true);
     }
-  }, [clientEmail]);
+  }, [clientEmail, onlyLabelCode]);
 
   useEffect(() => {
     if (!open) {
