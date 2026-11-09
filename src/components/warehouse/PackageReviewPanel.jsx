@@ -10,6 +10,7 @@ import { ClipboardCheck, FileText, Loader2, PackagePlus, X } from 'lucide-react'
 import MultiPhotoPicker from '@/components/warehouse/incidents/MultiPhotoPicker';
 import IncidentDetailsFields from '@/components/warehouse/incidents/IncidentDetailsFields';
 import { isOpenBox, OPEN_BOX_LABEL } from '@/lib/incidentTone';
+import ExistingIncidentNotice from './ExistingIncidentNotice';
 
 // Revisión obligatoria de cada paquete escaneado antes de añadirlo a la unidad activa.
 export default function PackageReviewPanel({ review, unitLabel, client, onDone, onCancel }) {
@@ -23,6 +24,7 @@ export default function PackageReviewPanel({ review, unitLabel, client, onDone, 
   const [damage, setDamage] = useState([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [existing, setExisting] = useState(null);
 
   const save = async () => {
     setError('');
@@ -36,7 +38,7 @@ export default function PackageReviewPanel({ review, unitLabel, client, onDone, 
     if (hasIncident && tracking && email) {
       const chk = await base44.functions.invoke('cajaInventoryReview', { action: 'check_incident', tracking_number: tracking, client_email: email }).catch(() => null);
       if (chk?.data?.exists) {
-        setError(`Esta incidencia ya fue registrada anteriormente para este cliente (tracking ${tracking}).`);
+        setExisting(chk.data);
         setSaving(false);
         return;
       }
@@ -98,6 +100,15 @@ export default function PackageReviewPanel({ review, unitLabel, client, onDone, 
           <Checkbox checked={hasIncident} onCheckedChange={(v) => setHasIncident(!!v)} /> Hay incidencia
         </label>
         {hasIncident && <IncidentDetailsFields type={type} onType={setType} notes={notes} onNotes={setNotes} photos={damage} onPhotos={setDamage} />}
+        {existing && (
+          <ExistingIncidentNotice
+            data={existing}
+            tracking={pkg?.tracking_number || code}
+            description={pkg?.description || ''}
+            packing={saving}
+            onPackWithExisting={(summary) => { setSaving(true); onDone(true, summary); }}
+          />
+        )}
         {error && <p className="text-sm text-destructive">{error}</p>}
         <Button className="w-full" disabled={saving} onClick={save}>
           {saving ? <Loader2 className="animate-spin" /> : <PackagePlus />} Guardar revisión y empacar

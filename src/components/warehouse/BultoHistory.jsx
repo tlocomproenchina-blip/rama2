@@ -17,6 +17,7 @@ import { groupBultosByOrder } from '@/lib/bultoOrderGroups';
 import { sortNewestFirst } from '@/lib/bultoRecency';
 import BultoHistoryRow from './BultoHistoryRow';
 import { useReceivedByMap } from '@/hooks/useReceivedByMap';
+import UnpackedTrackingNotice from './UnpackedTrackingNotice';
 import UnitKindFilter from './UnitKindFilter';
 import BultoOrderGroupCard from './BultoOrderGroupCard';
 import ReprintDialog from './ReprintDialog';
@@ -343,7 +344,8 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
       ) : entries.length === 0 ? (
         <Card><CardContent className="p-10 text-center text-slate-500">
           <Boxes className="h-10 w-10 mx-auto mb-2 text-slate-300" />
-          {search.trim() ? 'Sin bultos con ese código.' : 'No hay bultos que coincidan con los filtros.'}
+          {search.trim() ? 'Sin bultos que coincidan con la búsqueda.' : 'No hay bultos que coincidan con los filtros.'}
+          {search.trim() && <UnpackedTrackingNotice query={search} />}
         </CardContent></Card>
       ) : (
         <div className="space-y-2">

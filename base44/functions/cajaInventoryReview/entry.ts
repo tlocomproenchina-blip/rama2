@@ -55,7 +55,16 @@ export default async function (req: Request): Promise<Response> {
       const email = String(body.client_email || '').trim();
       if (!tracking || !email) return Response.json({ exists: false });
       const found = await svc.WarehouseIncident.filter({ tracking_number: tracking, client_email: email }, '-reported_date', 1);
-      return Response.json({ exists: !!found[0], incident: found[0] || null });
+      if (!found[0]) return Response.json({ exists: false, incident: null });
+      // Datos para consultar el registro existente y reimprimir la etiqueta de su unidad.
+      const pkgs = await svc.Package.filter({ tracking_number: tracking }, '-created_date', 5);
+      const ors: any[] = [{ package_trackings: tracking }];
+      if (found[0].bulto_id) ors.push({ id: found[0].bulto_id });
+      for (const p of pkgs) ors.push({ package_ids: p.id });
+      const units = await svc.Bulto.filter({ $or: ors }, '-created_date', 5);
+      const unit = units.find((u: any) => u.status !== 'desarmado') || null;
+      const reviews = await svc.CajaInventoryReview.filter({ tracking_number: tracking }, '-reviewed_date', 1);
+      return Response.json({ exists: true, incident: found[0], review: reviews[0] || null, bulto: unit });
     }
 
     // Revisión por paquete en la Mesa de empaque, antes de añadirlo a la unidad.
