@@ -16,6 +16,7 @@ import { matchesBultoCode, mergeBultos } from '@/lib/bultoSearch';
 import { groupBultosByOrder } from '@/lib/bultoOrderGroups';
 import { sortNewestFirst } from '@/lib/bultoRecency';
 import BultoHistoryRow from './BultoHistoryRow';
+import { useReceivedByMap } from '@/hooks/useReceivedByMap';
 import UnitKindFilter from './UnitKindFilter';
 import BultoOrderGroupCard from './BultoOrderGroupCard';
 import ReprintDialog from './ReprintDialog';
@@ -32,6 +33,7 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
   const [bultos, setBultos] = useState([]);
   const [entries, setEntries] = useState([]);
   const [entriesTotal, setEntriesTotal] = useState(0);
+  const receivedByMap = useReceivedByMap(entries);
   const [expandedKeys, setExpandedKeys] = useState(new Set());
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
@@ -361,6 +363,7 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
                 onEdit={setEditTarget}
                 onDelete={(bulto) => setDeleteTargets([bulto])}
                 onDismantle={setDismantleTarget}
+                receivedByMap={receivedByMap}
               />
             ) : (
               <BultoHistoryRow
@@ -374,6 +377,7 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
                 onEdit={setEditTarget}
                 onDelete={(bulto) => setDeleteTargets([bulto])}
                 onDismantle={setDismantleTarget}
+                receivedByMap={receivedByMap}
               />
             )
           ))}

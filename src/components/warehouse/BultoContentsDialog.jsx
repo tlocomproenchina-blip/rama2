@@ -57,6 +57,12 @@ export default function BultoContentsDialog({ bulto, open, onClose }) {
                         Recibido {fdate(p.received_date)} · {p.actual_cbm ? `${Number(p.actual_cbm).toFixed(3)} CBM` : 'CBM —'}
                         {p.warehouse_location_code ? ` · Ubic. ${p.warehouse_location_code}` : ''}
                       </p>
+                      <p className="mt-0.5 break-all text-slate-500">
+                        Registrado en almacén por:{' '}
+                        {p.received_by
+                          ? <span className="font-medium text-slate-700">{p.received_by}</span>
+                          : <span className="italic text-slate-400">No disponible</span>}
+                      </p>
                     </div>
                   </li>
                 );

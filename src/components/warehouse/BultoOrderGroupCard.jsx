@@ -3,13 +3,14 @@ import { Card, CardContent } from '@/components/ui/card';
 import { ChevronDown, ChevronRight, Hash, CheckSquare, Square } from 'lucide-react';
 import { packageCountForDispatch } from '@/lib/bultoCounts';
 import BultoHistoryRow from './BultoHistoryRow';
+import ReceivedByLine from './ReceivedByLine';
 
 // Tarjeta plegable que reúne todos los bultos de un mismo cliente con el mismo N° de contenedor.
 // El encabezado indica el cliente, su shipping mark, el N° de contenedor, los números de bulto
 // que contiene y cuántos bultos son; al desplegarse se ven los bultos individuales.
 export default function BultoOrderGroupCard({
   entry, expanded, onToggle, selectMode, selectedIds,
-  onToggleSelect, onToggleGroup, canDelete, onPrint, onEdit, onDelete, onDismantle,
+  onToggleSelect, onToggleGroup, canDelete, onPrint, onEdit, onDelete, onDismantle, receivedByMap,
 }) {
   const bultos = entry.bultos;
   const first = bultos[0];
@@ -68,6 +69,7 @@ export default function BultoOrderGroupCard({
                 <span>Bultos: <span className="font-mono">{numbers.join(', ')}</span></span>
                 <span>{packages} paq.</span>
               </div>
+              <ReceivedByLine packageIds={bultos.flatMap((bulto) => bulto.package_ids || [])} receivedByMap={receivedByMap} />
             </div>
           </div>
           <button
@@ -96,6 +98,7 @@ export default function BultoOrderGroupCard({
                 onEdit={onEdit}
                 onDelete={onDelete}
                 onDismantle={onDismantle}
+                receivedByMap={receivedByMap}
               />
             ))}
           </div>

@@ -8,11 +8,12 @@ import { Pencil, Trash2, Printer, CheckSquare, Square, CloudOff, Hash, PackageOp
 import { format } from 'date-fns';
 import { packageCountForDispatch } from '@/lib/bultoCounts';
 import PrintCountBadge from './PrintCountBadge';
+import ReceivedByLine from './ReceivedByLine';
 
 // Tarjeta de un bulto individual del historial: la usan los bultos sin N° de contenedor y los
 // bultos que se despliegan dentro de su grupo.
 export default function BultoHistoryRow({
-  bulto: b, selectMode, selected, onToggleSelect, canDelete, onPrint, onEdit, onDelete, onDismantle,
+  bulto: b, selectMode, selected, onToggleSelect, canDelete, onPrint, onEdit, onDelete, onDismantle, receivedByMap,
 }) {
   // Cualquier unidad con bultos absorbidos se puede desarmar (con confirmación).
   const canDismantle = !!onDismantle && !b.is_local_pending && b.status !== 'desarmado'
@@ -84,6 +85,7 @@ export default function BultoHistoryRow({
                   Creado: {format(new Date(b.created_date), 'dd/MM/yyyy hh:mm a')}
                 </div>
               )}
+              <ReceivedByLine packageIds={b.package_ids} receivedByMap={receivedByMap} />
             </div>
           </div>
           {!selectMode && (
