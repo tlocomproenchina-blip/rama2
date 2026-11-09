@@ -22,7 +22,7 @@ import {
   round2,
   text,
   num,
-  STORAGE_CHARGES_ENABLED,
+  storageChargesEnabled,
 } from '../../shared/storageCharges.ts';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -140,7 +140,7 @@ export default async function (req: Request): Promise<Response> {
     const onlyIds = Array.isArray(payload?.invoice_ids) && payload.invoice_ids.length ? payload.invoice_ids : null;
 
     const config = await loadStorageConfig(base44);
-    if (!STORAGE_CHARGES_ENABLED) {
+    if (!storageChargesEnabled(config)) {
       return Response.json({ success: true, mode, skipped: 'cargos_desactivados', config, results: [] });
     }
     if (!config.is_active) {

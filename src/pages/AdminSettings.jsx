@@ -52,6 +52,7 @@ import AiTicketSettingsCard from '@/components/admin/AiTicketSettingsCard';
 import DispatchOrderWhatsappSettingsCard from '@/components/admin/DispatchOrderWhatsappSettingsCard';
 import TermsNoticeCard from '@/components/admin/TermsNoticeCard';
 import DoorToDoorRateSettings from '@/components/admin/DoorToDoorRateSettings';
+import StorageChargesToggleCard from '@/components/admin/StorageChargesToggleCard';
 
 const VENEZUELAN_STATES = [
   { code: 'zulia', name: 'Zulia' },
@@ -1755,6 +1756,8 @@ export default function AdminSettings({ user }) {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 p-4 md:space-y-6 md:p-6">
+              <StorageChargesToggleCard user={user} />
+
               <div className="space-y-2">
                 <Label>Nombre de la Empresa</Label>
                 <Input

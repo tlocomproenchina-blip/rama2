@@ -7,6 +7,16 @@
       "default": "main",
       "description": "Clave \u00fanica de configuraci\u00f3n"
     },
+    "charges_enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Interruptor general: cuando est\u00e1 activo, el proceso diario agrega cargos de almacenamiento y custodia a las facturas impagas desde el d\u00eda siguiente a los d\u00edas gratuitos. Apagado = cargos en pausa."
+    },
+    "charges_enabled_updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha y hora del \u00faltimo cambio del interruptor"
+    },
     "is_active": {
       "type": "boolean",
       "default": true,

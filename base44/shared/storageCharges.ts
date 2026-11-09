@@ -30,13 +30,14 @@ export const CATEGORY_LARGE = "grande";
 export const STORAGE_LINE_KIND = "storage_charge";
 export const FORKLIFT_LINE_KIND = "forklift_charge";
 
-// Almacenamiento y resguardo en pausa: no se generan ni se aplican cargos nuevos
-// a las facturas. Los registros históricos de StorageCharge y las líneas ya
-// guardadas se conservan intactos para auditoría.
-export const STORAGE_CHARGES_ENABLED = false;
+// Interruptor general (StorageChargeConfig.charges_enabled): apagado por defecto.
+// Mientras está apagado no se generan ni se aplican cargos nuevos a las
+// facturas; los registros históricos y las líneas ya guardadas se conservan.
+export const storageChargesEnabled = (config: any) => config?.charges_enabled === true;
 
 export const DEFAULT_STORAGE_CONFIG: Record<string, any> = {
   config_key: "main",
+  charges_enabled: false,
   is_active: true,
   free_days: 7,
   max_days: 45,
@@ -326,7 +327,7 @@ export function planInvoiceCharges({ invoice, units, charges, config, now = new 
 
   // Con los cargos en pausa el plan no mueve dinero: cero días nuevos, cero
   // monto y sin aviso de fin de contrato, así no se escribe nada en la factura.
-  if (!STORAGE_CHARGES_ENABLED) {
+  if (!storageChargesEnabled(config)) {
     return {
       invoice_id: invoice?.id || null,
       invoice_number: text(invoice?.invoice_number),
