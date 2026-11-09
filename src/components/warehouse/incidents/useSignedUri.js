@@ -11,7 +11,7 @@ export default function useSignedUri(uri) {
     setUrl('');
     if (!uri) return () => { alive = false; };
     // Foto local de una revisión que todavía se está subiendo.
-    if (String(uri).startsWith('blob:')) {
+    if (/^(blob:|https?:\/\/)/i.test(String(uri))) {
       setUrl(uri);
       return () => { alive = false; };
     }

@@ -21,6 +21,7 @@ import ClientInvoicesList from '@/components/client-analytics/ClientInvoicesList
 import ClientCargoPanel from '@/components/client-cargo/ClientCargoPanel';
 import ClientGuidesPanel from '@/components/client-cargo/ClientGuidesPanel';
 import Client360DispatchOrders from '@/components/support/client360/Client360DispatchOrders';
+import ClientIncidentsPanel from '@/components/client-analytics/ClientIncidentsPanel';
 
 
 export default function ClientAnalytics() {
@@ -37,6 +38,7 @@ export default function ClientAnalytics() {
   const [cbmIngresos, setCbmIngresos] = useState([]);
   const [dispatchOrders, setDispatchOrders] = useState([]);
   const [dispatchError, setDispatchError] = useState(false);
+  const [incidents, setIncidents] = useState([]);
   const [appConfig, setAppConfig] = useState(null);
   const [pricing, setPricing] = useState(null);
   const [stateConfigs, setStateConfigs] = useState([]);
@@ -77,6 +79,7 @@ export default function ClientAnalytics() {
       setInsurancePayments([]);
       setCbmIngresos([]);
       setDispatchOrders([]);
+      setIncidents([]);
       return;
     }
 
@@ -85,15 +88,17 @@ export default function ClientAnalytics() {
     // Cada bloque carga por separado: si uno falla, los demás siguen mostrándose.
     const failed = [];
     const safe = (label, promise) => promise.catch(() => { failed.push(label); return null; });
-    const [consolidationList, invoiceList, paymentList, packageList, cbmList, dispatchList, insuranceList] = await Promise.all([
+    const [consolidationList, invoiceList, paymentList, packageList, cbmList, dispatchList, insuranceList, incidentList] = await Promise.all([
       safe('consolidaciones', base44.entities.Consolidation.filter({ client_email: clientEmail }, '-created_date', 500)),
       safe('facturas', base44.entities.Invoice.filter({ client_email: clientEmail }, '-created_date', 500)),
       safe('abonos', base44.entities.InvoicePayment.filter({ client_email: clientEmail }, '-created_date', 500)),
       safe('paquetes', base44.entities.Package.filter({ client_email: clientEmail }, '-created_date', 1000)),
       safe('recibos', base44.entities.CbmIngreso.filter({ client_email: clientEmail }, '-fecha', 500)),
       safe('órdenes de despacho', base44.entities.DispatchOrder.filter({ client_email: clientEmail }, '-created_date', 500)),
-      safe('seguros', base44.entities.InsurancePayment.filter({ client_email: clientEmail }, '-created_date', 500))
+      safe('seguros', base44.entities.InsurancePayment.filter({ client_email: clientEmail }, '-created_date', 500)),
+      safe('incidencias', base44.entities.WarehouseIncident.filter({ client_email: clientEmail }, '-reported_date', 200))
     ]);
+    setIncidents(incidentList || []);
     setConsolidations(consolidationList || []);
     setInvoices(invoiceList || []);
     setInvoicePayments(paymentList || []);
@@ -317,6 +322,12 @@ export default function ClientAnalytics() {
             setPackages((prev) => prev.map((p) => p.id === pkgId ? { ...p, ...patch } : p));
           }}
         />
+        </FichaSection>
+      )}
+
+      {selectedClient && (
+        <FichaSection title="Incidencias en paquetes" count={incidents.length}>
+          <ClientIncidentsPanel incidents={incidents} />
         </FichaSection>
       )}
 
