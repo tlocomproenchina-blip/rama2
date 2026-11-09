@@ -14,11 +14,12 @@ const TYPES = [
   { value: 'danado', label: 'Paquete dañado' },
 ];
 
-export default function MyIncidents() {
+export default function MyIncidents({ user }) {
   const [status, setStatus] = useState('all');
   const [type, setType] = useState('all');
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ['my-inventory-reviews'],
+    queryKey: ['my-inventory-reviews', user?.email],
+    enabled: !!user?.email,
     queryFn: async () => (await base44.functions.invoke('getMyInventoryReviews', {})).data?.reviews || [],
   });
   const reviews = data || [];
