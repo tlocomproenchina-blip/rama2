@@ -14,6 +14,7 @@ import BulkOrderAssignDialog from './BulkOrderAssignDialog';
 import { useBultoCodeSearch } from '@/hooks/useBultoCodeSearch';
 import { matchesBultoCode, mergeBultos } from '@/lib/bultoSearch';
 import { groupBultosByOrder } from '@/lib/bultoOrderGroups';
+import { sortNewestFirst } from '@/lib/bultoRecency';
 import BultoHistoryRow from './BultoHistoryRow';
 import UnitKindFilter from './UnitKindFilter';
 import BultoOrderGroupCard from './BultoOrderGroupCard';
@@ -108,9 +109,11 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
     setSelectedIds(new Set());
   }, []);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async ({ silent = false } = {}) => {
+    if (!silent) setLoading(true);
     try {
+      // Siempre datos frescos: lo recién creado (aquí o en otro teléfono) debe aparecer.
+      try { apiQueue.invalidateEntityCache('Bulto'); } catch (_) {}
       // Cargar bultos del servidor ordenados por fecha desc
       // Búsqueda filtrada en el servidor; sin búsqueda se cargan los más recientes
       // por bloques ("Cargar bultos anteriores" amplía el bloque).
@@ -169,6 +172,8 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
         }
       }
 
+      // El último creado siempre arriba (locales sin sincronizar y coincidencias incluidas).
+      filtered = sortNewestFirst(filtered);
       setTotal(filtered.length);
 
       // Agrupación por cliente + N° de contenedor: cada grupo es una tarjeta plegable y los
@@ -180,6 +185,11 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
       const pageEntries = grouped.slice(start, start + PAGE_SIZE);
       setEntries(pageEntries);
       setBultos(pageEntries.flatMap((entry) => entry.bultos));
+      // La tarjeta más reciente se muestra abierta para ver enseguida lo último creado.
+      if (page === 0 && pageEntries[0]?.order) {
+        const firstKey = pageEntries[0].key;
+        setExpandedKeys((prev) => (prev.has(firstKey) ? prev : new Set(prev).add(firstKey)));
+      }
     } catch (_) {
       toast.error('Error al cargar historial');
     } finally {
@@ -195,6 +205,19 @@ export default function BultoHistory({ refreshKey, onEditBulto }) {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  // Se actualiza solo cuando cualquier operador crea, edita o borra un bulto.
+  useEffect(() => {
+    let timer = null;
+    let unsub = null;
+    try {
+      unsub = base44.entities.Bulto.subscribe(() => {
+        clearTimeout(timer);
+        timer = setTimeout(() => load({ silent: true }), 1200);
+      });
+    } catch (_) {}
+    return () => { clearTimeout(timer); try { unsub?.(); } catch (_) {} };
+  }, [load]);
 
   // Reset page al cambiar la búsqueda
   useEffect(() => { setPage(0); }, [search, kind]);
