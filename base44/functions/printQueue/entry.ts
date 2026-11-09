@@ -103,7 +103,8 @@ export default async function (req: Request): Promise<Response> {
       const clientKey = String(body.client_key || '').trim();
       const payloadUri = String(body.payload_uri || '').trim();
       if (!clientKey || !payloadUri) return Response.json({ error: 'Faltan los datos de impresión' }, { status: 400 });
-      const existing = (await svc.PrintJob.filter({ client_key: clientKey }, '-created_date', 1))[0];
+      // Mismo trabajo aún en espera o imprimiéndose: se devuelve en vez de duplicarlo.
+      const existing = (await svc.PrintJob.filter({ client_key: clientKey, status: { $in: ['pending', 'printing'] } }, '-created_date', 1))[0];
       if (existing) return Response.json({ job: slim(existing), duplicate: true });
       const job = await svc.PrintJob.create({
         title: String(body.title || 'Etiquetas').slice(0, 160),

@@ -106,6 +106,7 @@ export default function BluetoothPrinter({ bultos = [], onPrinted, autoPrint = f
     // con el N° de contenedor (se busca aquí si la unidad no lo trae).
     const ready = await withContainerNumbers(bultos);
     const combined = concatUint8Arrays(ready.map((b) => buildBultoLabelPayload(b, LABEL_COPIES)));
+    let handedOff = false;
     try {
       setError('');
       setStatus('printing');
@@ -114,7 +115,10 @@ export default function BluetoothPrinter({ bultos = [], onPrinted, autoPrint = f
         title: bultos.length === 1 ? `Bulto ${bultos[0].label_code || bultos[0].bulto_number || ''}` : `${bultos.length} bultos`,
         labelCount: bultos.length * LABEL_COPIES,
         source: 'bultos',
-        onQueued: () => setStatus('queued'),
+        dedupeKey: `bultos_${bultos.map((b) => b?.label_code || b?.id).join('|')}`,
+        // Entregado a la estación: sale de la cola local ya, para que al recargar la
+        // página no se vuelva a mandar el mismo trabajo.
+        onQueued: () => { setStatus('queued'); handedOff = true; onPrinted?.(); },
         // Impresora de este teléfono: en automático solo usa la ya autorizada (sin diálogo).
         direct: async (data) => {
           if (!characteristicRef.current || !deviceRef.current?.gatt?.connected) {
@@ -136,7 +140,7 @@ export default function BluetoothPrinter({ bultos = [], onPrinted, autoPrint = f
         ? `Bulto ${bultos[0].bulto_number}/${bultos[0].total_bultos} impreso`
         : `${bultos.length} bultos impresos`;
       toast.success(label);
-      onPrinted?.();
+      if (!handedOff) onPrinted?.();
     } catch (e) {
       if (e === NO_PRINTER) { setStatus('idle'); return; }
       characteristicRef.current = null;
