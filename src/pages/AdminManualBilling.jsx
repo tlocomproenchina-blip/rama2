@@ -546,7 +546,21 @@ export default function AdminManualBilling({ user }) {
   const insuranceTotal = manualInsurance !== '' ? num(manualInsurance) : (autoInsuranceTotal + orphanInsuranceTotal);
   // Seguro ya pagado y aprobado (referencia, NO se suma al total)
   const paidInsuranceTotal = selectedRows.reduce((s, r) => s + num(r.paid_insurance_amount), 0) + orphanPaidInsuranceTotal;
-  const totalPackages = selectedRows.reduce((s, r) => s + (r.package_count || 0), 0) + selectedOrphans.length;
+  // Recuento para consolidación: paquetes internos de los bultos en almacén vinculados
+  // por N° de contenedor (caja consolidada = su contenido; bulto suelto = sus paquetes).
+  // Cada bulto se cuenta una sola vez; recibos sin bultos usan su conteo propio.
+  const clientBultos = (pending.clients.find((c) => c.client_email === client?.email)?.bultos) || [];
+  const seenBultos = new Set();
+  const totalPackages = selectedRows.reduce((s, r) => {
+    const code = String(r.invoice_number || '').trim().toUpperCase();
+    const linked = clientBultos.filter((b) => (b.order_numbers || []).some((o) => String(o).trim().toUpperCase() === code));
+    if (!linked.length) return s + (r.package_count || 0);
+    return s + linked.reduce((n, b) => {
+      if (seenBultos.has(b.id)) return n;
+      seenBultos.add(b.id);
+      return n + (Number(b.package_count) || 0);
+    }, 0);
+  }, 0) + selectedOrphans.length;
   const consolidationFee = consolidationMode === 'manual' ? num(manualConsolidationFee) : totalPackages * 1;
   const extraAmountValue = num(extraAmount);
   // El puerta a puerta no se suma aquí: se calcula solo y lo agrega el cliente si lo elige al pagar.
@@ -1029,6 +1043,7 @@ export default function AdminManualBilling({ user }) {
       manualConsolidationFee={manualConsolidationFee}
       setManualConsolidationFee={setManualConsolidationFee}
       consolidationFee={consolidationFee}
+      consolidationPackages={totalPackages}
       shippingTotal={shippingTotal}
       insuranceTotal={insuranceTotal}
       autoInsuranceTotal={autoInsuranceTotal}

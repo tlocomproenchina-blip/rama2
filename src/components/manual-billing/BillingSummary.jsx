@@ -22,10 +22,11 @@ export default function BillingSummary({
   extraConcept, setExtraConcept,
   doorToDoorCbm = 0,
   creditBalance = 0,
+  consolidationPackages,
 }) {
   const selected = rows.filter(r => r.selected);
   const selectedCount = selected.length;
-  const totalPackages = selected.reduce((s, r) => s + (r.package_count || 0), 0);
+  const totalPackages = consolidationPackages ?? selected.reduce((s, r) => s + (r.package_count || 0), 0);
   const totalCbm = selected.reduce((s, r) => s + (Number(r.cbm) || 0), 0);
 
   return (
