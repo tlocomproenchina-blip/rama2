@@ -11,6 +11,7 @@ import { CITY_LANDINGS } from './lib/cityLandings';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import AreaAccessGate from '@/components/AreaAccessGate';
+import FaviconSync from '@/components/common/FaviconSync';
 import AdminCbmIngresos from './pages/AdminCbmIngresos';
 import AdminPackages from './pages/AdminPackages';
 // Importado de forma estática (no como chunk aparte): en el preview sandbox la
@@ -281,6 +282,7 @@ function App() {
       <QueryClientProvider client={queryClientInstance}>
         <Router>
           <NavigationTracker />
+          <FaviconSync />
           <AuthenticatedApp />
         </Router>
         <Toaster />
