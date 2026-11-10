@@ -1001,6 +1001,22 @@ export default function AdminManualBilling({ user }) {
     [pending.clients, client]
   );
 
+  // Vincula la carga en almacén a los recibos por facturar solo por N° de contenedor;
+  // lo que no coincide queda en la lista para crear su recibo.
+  const warehouseLink = useMemo(() => {
+    const byCode = new Map();
+    const codes = new Set(rows.map((r) => String(r.invoice_number || '').trim().toUpperCase()).filter((c) => c && c !== '—'));
+    if (!selectedPending) return { byCode, unmatched: null };
+    const left = [];
+    for (const b of selectedPending.bultos || []) {
+      const hits = (b.order_numbers || []).map((o) => String(o).trim().toUpperCase()).filter((o) => codes.has(o));
+      if (!hits.length) { left.push(b); continue; }
+      for (const h of hits) byCode.set(h, [...(byCode.get(h) || []), b]);
+    }
+    const unmatched = left.some((b) => !b.billing_marked) ? { ...selectedPending, bultos: left } : null;
+    return { byCode, unmatched };
+  }, [selectedPending, rows]);
+
   // El resumen de facturación se usa dos veces: fijo a la derecha en escritorio y
   // desplegable en la barra inferior en móvil/tablet.
   const billingSummary = (
@@ -1187,21 +1203,23 @@ export default function AdminManualBilling({ user }) {
                     assignedTrackings={assignedOrphansByReceipt[row.id] || []}
                     onMarkReceipt={(r) => handleMarkReceipt(r, true)}
                     providerInvoice={providerMatches[row.id] || null}
+                    warehouseBultos={warehouseLink.byCode.get(String(row.invoice_number || '').trim().toUpperCase()) || []}
                   />
                 ))}
               </div>
             )}
 
-            {(selectedPending || orphanPackages.length > 0 || markedReceipts.length > 0 || invoicedReceipts.length > 0) && (
-            <ClientHistoryToggle count={orphanPackages.length + markedReceipts.length + invoicedReceipts.length}>
-            {selectedPending && (
+            {warehouseLink.unmatched && (
               <ClientPendingLoad
-                client={selectedPending}
+                client={warehouseLink.unmatched}
                 markingId={pending.markingId}
                 onMarkBulto={handleMarkBulto}
                 onMarkOrderBultos={handleMarkOrderBultos}
               />
             )}
+
+            {(orphanPackages.length > 0 || markedReceipts.length > 0 || invoicedReceipts.length > 0) && (
+            <ClientHistoryToggle count={orphanPackages.length + markedReceipts.length + invoicedReceipts.length}>
             {orphanPackages.length > 0 && (
               <PackagesWithoutReceiptSection
                 packages={orphanPackages}

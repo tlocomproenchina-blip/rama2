@@ -17,7 +17,7 @@ const fmtDate = (d) => {
   return `${dd}-${mm}-${yy}`;
 };
 
-export default function BillingInvoiceRow({ row, onChange, cargoType = 'general', marking = false, assignedTrackings = [], onMarkReceipt, providerInvoice = null }) {
+export default function BillingInvoiceRow({ row, onChange, cargoType = 'general', marking = false, assignedTrackings = [], onMarkReceipt, providerInvoice = null, warehouseBultos = [] }) {
   const update = (patch) => onChange({ ...row, ...patch });
   // Trackings de paquetes sin recibo asignados a este recibo: se suman a su contenido
   const trackingsText = [row.consolidation_tracking, ...assignedTrackings].filter(Boolean).join(', ');
@@ -50,6 +50,16 @@ export default function BillingInvoiceRow({ row, onChange, cargoType = 'general'
               )}
             </div>
             <div className="mt-2"><ProviderInvoiceLink providerInvoice={providerInvoice} /></div>
+            {warehouseBultos.length > 0 && (
+              <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs">
+                <span className="text-muted-foreground">Bultos en almacén ({warehouseBultos.length}):</span>
+                {warehouseBultos.map((b) => (
+                  <span key={b.id} className="rounded-md bg-accent px-1.5 py-0.5 font-mono font-semibold text-accent-foreground">
+                    #{b.bulto_number ?? b.label}
+                  </span>
+                ))}
+              </div>
+            )}
             <p className="mt-2 text-xs text-slate-500 break-all line-clamp-1" title={trackingsText}>
               {trackingsText || 'Sin tracking'}
             </p>
