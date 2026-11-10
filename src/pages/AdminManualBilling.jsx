@@ -298,6 +298,7 @@ export default function AdminManualBilling({ user }) {
           return {
             id: p.id,
             tracking_number: p.tracking_number,
+            registered_date: p.received_date || p.created_date || null,
             fob_value: num(p.fob_value),
             has_insurance: !!p.has_insurance,
             has_paid_insurance: paidIns > 0,
@@ -388,6 +389,7 @@ export default function AdminManualBilling({ user }) {
           package_count: num(ing.package_count) || trackings.length,
           trackings,
           fecha: ing.fecha || null,
+          registered_date: ing.created_date || null,
           invoice_id: inv?.id || null,
           invoice_number: inv?.invoice_number || '',
           invoice_date: inv?.invoice_date || inv?.created_date || null,

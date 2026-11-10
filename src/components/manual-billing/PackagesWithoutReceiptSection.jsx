@@ -149,6 +149,9 @@ export default function PackagesWithoutReceiptSection({ packages, onChange, avai
                   />
                   <div className="flex-1 min-w-0">
                     <p className="font-mono text-sm text-slate-700 break-all">{pkg.tracking_number}</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      Registro: {pkg.registered_date ? new Date(pkg.registered_date).toLocaleDateString('es-VE') : 'No disponible'}
+                    </p>
                     {pkg.fob_value > 0 && (
                       <p className="text-xs text-emerald-700 flex items-center gap-1 mt-0.5">
                         <ShieldCheck className="h-3 w-3" /> FOB ${Number(pkg.fob_value).toFixed(2)}

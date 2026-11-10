@@ -24,6 +24,8 @@ export default function InvoicedReceiptRow({ receipt }) {
         </span>
         <span className="text-slate-400">·</span>
         <span>{receipt.package_count || 0} paquete(s)</span>
+        <span className="text-slate-400">·</span>
+        <span>Registro: {fmtDate(receipt.registered_date) || 'No disponible'}</span>
         {fmtDate(receipt.fecha) && (
           <>
             <span className="text-slate-400">·</span>
