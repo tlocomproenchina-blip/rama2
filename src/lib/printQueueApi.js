@@ -9,7 +9,21 @@ const call = async (action, params = {}) => {
 
 // Última estación conocida (para decidir rápido si se imprime directo o por la cola).
 let stationCache = { value: null, at: 0 };
-const remember = (station) => { stationCache = { value: station || null, at: Date.now() }; return station; };
+const remember = (station) => {
+  stationCache = { value: station || null, at: Date.now() };
+  try {
+    if (station?.alive && station.device_id) localStorage.setItem('tlec-last-station', JSON.stringify({ device_id: station.device_id, at: Date.now() }));
+  } catch (_) {}
+  return station;
+};
+
+// Última estación vista viva (persistida), para decidir sin internet si el trabajo debe guardarse.
+export const getLastKnownStation = (maxAgeMs = 12 * 3600 * 1000) => {
+  try {
+    const s = JSON.parse(localStorage.getItem('tlec-last-station') || 'null');
+    return s && Date.now() - s.at < maxAgeMs ? s : null;
+  } catch (_) { return null; }
+};
 
 export const fetchStation = async () => remember((await call('station'))?.station);
 export const getCachedStation = (maxAgeMs = 15000) =>

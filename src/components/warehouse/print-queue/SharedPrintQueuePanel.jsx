@@ -2,6 +2,7 @@ import React from 'react';
 import { Loader2, Inbox } from 'lucide-react';
 import PrintStationCard from './PrintStationCard';
 import PrintJobRow from './PrintJobRow';
+import PrintOutboxList from './PrintOutboxList';
 
 // Vista de la cola compartida: la estación activa y los últimos trabajos con su estado.
 export default function SharedPrintQueuePanel({
@@ -20,6 +21,7 @@ export default function SharedPrintQueuePanel({
         onStop={onStop}
         onReconnect={onReconnect}
       />
+      <PrintOutboxList />
       <div className="flex items-center justify-between px-1">
         <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Cola compartida</p>
         <p className="text-xs text-muted-foreground">{waiting} en curso</p>

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { getStationState, onStationState, resumeStationIfEnabled } from '@/lib/printStationRunner';
 import SharedPrintQueueSheet from './SharedPrintQueueSheet';
+import { startOutboxFlusher } from '@/lib/printOutbox';
 
 // El botón "Impresión" del teléfono estación abre esta misma ventana (una sola).
 export const OPEN_EVENT = 'tlec-open-station-queue';
@@ -14,6 +15,7 @@ export default function PrintStationRunner() {
 
   useEffect(() => {
     resumeStationIfEnabled().catch(() => {});
+    startOutboxFlusher();
     let wasRunning = getStationState().running;
     const openNow = () => setOpen(true);
     window.addEventListener(OPEN_EVENT, openNow);
