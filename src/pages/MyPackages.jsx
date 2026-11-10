@@ -229,7 +229,10 @@ export default function MyPackages({ user }) {
   };
 
   const isDisponibleDespacho = useCallback((pkg) => {
-    return !!pkg.label_code && pkg.status !== 'despachado' && pkg.status !== 'entregado';
+    // Solo está disponible cuando ya llegó a Venezuela (reconocido en el almacén VE)
+    // o el equipo lo marcó como disponible. Tener etiqueta o estar recibido en China no basta.
+    if (pkg.status === 'despachado' || pkg.status === 'entregado') return false;
+    return pkg.status === 'disponible' || !!pkg.ve_recognized_date;
   }, []);
 
   const filteredPackages = useMemo(() => {
@@ -248,8 +251,8 @@ export default function MyPackages({ user }) {
     preAlerta: packages.filter((pkg) => pkg.status === 'pre_alerta').length,
     recibidos: packages.filter((pkg) => pkg.status === 'recibido').length,
     entregados: packages.filter((pkg) => pkg.status === 'entregado').length,
-    disponibleDespacho: packages.filter((pkg) => !!pkg.label_code && pkg.status !== 'despachado' && pkg.status !== 'entregado').length,
-  }), [packages]);
+    disponibleDespacho: packages.filter(isDisponibleDespacho).length,
+  }), [packages, isDisponibleDespacho]);
 
   if (loading) {
     return (
