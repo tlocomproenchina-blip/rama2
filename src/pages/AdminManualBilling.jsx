@@ -23,6 +23,7 @@ import usePendingBillingClients from '@/hooks/usePendingBillingClients';
 import ClientPendingLoad from '@/components/manual-billing/ClientPendingLoad';
 import MobileBillingTabs from '@/components/manual-billing/MobileBillingTabs';
 import ClientHistoryToggle from '@/components/manual-billing/ClientHistoryToggle';
+import UnlinkedProviderInvoices from '@/components/manual-billing/UnlinkedProviderInvoices';
 import useProviderInvoiceMatches from '@/hooks/useProviderInvoiceMatches';
 
 const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
@@ -1150,6 +1151,12 @@ export default function AdminManualBilling({ user }) {
             <p className="pt-1 font-display text-xs font-semibold uppercase tracking-[0.2em] text-primary">
               Recibos registrados por facturar
             </p>
+
+            <UnlinkedProviderInvoices
+              client={client}
+              version={rows.length}
+              onCreated={() => loadClientInvoices(client, { skipAuto: true })}
+            />
 
             {loadingRows ? (
               <div className="flex items-center justify-center py-12">
