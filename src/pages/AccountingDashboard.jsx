@@ -186,36 +186,36 @@ export default function AccountingDashboard({ user }) {
             <CardTitle>Accesos rápidos</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <Link to="/AdminInvoices" className="block">
-              <Button variant="outline" className="w-full justify-between">
+            <Button asChild variant="outline" className="w-full justify-between">
+              <Link to="/AdminInvoices">
                 <span className="flex items-center gap-2"><FileText className="h-4 w-4" /> Facturas</span>
                 <ArrowRight className="h-4 w-4" />
-              </Button>
-            </Link>
-            <Link to="/AdminPayments" className="block">
-              <Button variant="outline" className="w-full justify-between">
+              </Link>
+            </Button>
+            <Button asChild variant="outline" className="w-full justify-between">
+              <Link to="/AdminPayments">
                 <span className="flex items-center gap-2"><CreditCard className="h-4 w-4" /> Validar pagos</span>
                 <ArrowRight className="h-4 w-4" />
-              </Button>
-            </Link>
-            <Link to="/AdminAccountsPayable" className="block">
-              <Button variant="outline" className="w-full justify-between">
+              </Link>
+            </Button>
+            <Button asChild variant="outline" className="w-full justify-between">
+              <Link to="/AdminAccountsPayable">
                 <span className="flex items-center gap-2"><Wallet className="h-4 w-4" /> Cuentas por pagar</span>
                 <ArrowRight className="h-4 w-4" />
-              </Button>
-            </Link>
-            <Link to="/AdminProviderPayments" className="block">
-              <Button variant="outline" className="w-full justify-between">
+              </Link>
+            </Button>
+            <Button asChild variant="outline" className="w-full justify-between">
+              <Link to="/AdminProviderPayments">
                 <span className="flex items-center gap-2"><TrendingUp className="h-4 w-4" /> Pagos proveedores</span>
                 <ArrowRight className="h-4 w-4" />
-              </Button>
-            </Link>
-            <Link to="/AdminCbmIngresos" className="block">
-              <Button variant="outline" className="w-full justify-between">
+              </Link>
+            </Button>
+            <Button asChild variant="outline" className="w-full justify-between">
+              <Link to="/AdminCbmIngresos">
                 <span className="flex items-center gap-2"><Package className="h-4 w-4" /> CBM Almacén China</span>
                 <ArrowRight className="h-4 w-4" />
-              </Button>
-            </Link>
+              </Link>
+            </Button>
           </CardContent>
         </Card>
       </section>

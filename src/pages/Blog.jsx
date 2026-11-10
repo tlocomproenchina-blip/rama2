@@ -49,9 +49,9 @@ export default function Blog() {
                     <span>{p.reading_time_minutes ? `${Math.round(p.reading_time_minutes)} min` : ''}</span>
                   </div>
                   <div className="mt-4">
-                    <Link to={createPageUrl('BlogPost') + `?slug=${encodeURIComponent(p.slug)}`}>
-                      <Button variant="outline">Leer más</Button>
-                    </Link>
+                    <Button asChild variant="outline">
+                      <Link to={createPageUrl('BlogPost') + `?slug=${encodeURIComponent(p.slug)}`}>Leer más</Link>
+                    </Button>
                   </div>
                 </CardContent>
               </Card>

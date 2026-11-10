@@ -51,7 +51,7 @@ export default function AdminClients({ user }) {
   const reqSeqRef = useRef(0);
 
   // Hooks especializados (extraídos para mantener este archivo enfocado)
-  const { bulkProgress, handleExportRemarketing, handleExportFiltered, handleCopyFiltered } = useClientExports({
+  const { bulkProgress, handleExportRemarketing, handleExportFiltered, handleCopyFiltered, handleExportExcel } = useClientExports({
     debouncedSearch, exclusiveKey, stateFilter, fromDate, toDate, quickDate,
   });
   const {
@@ -395,6 +395,7 @@ Email: ${client.email}`;
         canExport={canExport}
         onOpenImport={() => setImportModalOpen(true)}
         onExportFiltered={handleExportFiltered}
+        onExportExcel={handleExportExcel}
         onCopyFiltered={handleCopyFiltered}
         onExportRemarketing={handleExportRemarketing}
         onReportChanged={() => loadClients(false, true)}

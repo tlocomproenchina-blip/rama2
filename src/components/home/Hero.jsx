@@ -23,9 +23,9 @@ export default function Hero({ onLogin }) {
           </h1>
           <p className="mt-4 text-slate-600 text-lg max-w-xl">Consolidamos, aseguramos y entregamos puerta a puerta con transparencia total y soporte 24/7.</p>
           <div className="mt-6 flex flex-wrap gap-3">
-            <Link to={createPageUrl('ShippingCalculator')}>
-              <Button className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-600 hover:to-blue-600">Calcular tarifas <ArrowRight className="ml-2 h-4 w-4" /></Button>
-            </Link>
+            <Button asChild className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-600 hover:to-blue-600">
+              <Link to={createPageUrl('ShippingCalculator')}>Calcular tarifas <ArrowRight className="ml-2 h-4 w-4" /></Link>
+            </Button>
             <Button variant="outline" onClick={onLogin}>Registrarse</Button>
           </div>
           {/* Stats */}

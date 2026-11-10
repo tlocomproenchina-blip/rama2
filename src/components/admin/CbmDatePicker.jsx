@@ -239,11 +239,11 @@ export default function CbmDatePicker({
                   const dayPkgs = packagesByDay[dayKey];
                   return (
                     <div key={dayKey} className="space-y-1">
-                      <p className="text-xs font-semibold text-slate-600 flex items-center gap-1.5 sticky top-0 bg-white py-1">
+                      <div className="text-xs font-semibold text-slate-600 flex items-center gap-1.5 sticky top-0 bg-white py-1">
                         <CalendarDays className="h-3.5 w-3.5 text-blue-500" />
                         {format(new Date(dayKey + 'T12:00:00'), "dd 'de' MMMM yyyy", { locale: es })}
                         <Badge variant="outline" className="text-[10px]">{dayPkgs.length}</Badge>
-                      </p>
+                      </div>
                       <div className="divide-y border rounded-lg">
                         {dayPkgs.map((pkg) => {
                           const isSelected = selectedTrackings.includes(pkg.tracking_number);

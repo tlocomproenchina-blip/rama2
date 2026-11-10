@@ -263,10 +263,12 @@ export default function TrackingShipmentCard({ consolidation, user, isPending = 
 
   return (
     <Card className={`overflow-hidden rounded-2xl border-0 shadow-md transition-all hover:shadow-lg ${(isPending || savingPayment || uploadingProof) ? 'opacity-75' : ''} ${(hasFailedRequest || paymentActionFailed) ? 'ring-1 ring-rose-200 bg-rose-50/30' : ''}`}>
-      <button
-        type="button"
+      <div
+        role="button"
+        tabIndex={0}
         onClick={() => setExpanded((value) => !value)}
-        className="w-full bg-white px-5 py-5 text-left"
+        onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); setExpanded((value) => !value); } }}
+        className="w-full cursor-pointer bg-white px-5 py-5 text-left"
       >
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0 flex-1">
@@ -329,7 +331,7 @@ export default function TrackingShipmentCard({ consolidation, user, isPending = 
             <ChevronDown className={`h-5 w-5 text-slate-500 transition-transform ${expanded ? 'rotate-180' : ''}`} />
           </div>
         </div>
-      </button>
+      </div>
 
       {expanded && (
         <CardContent className="space-y-5 border-t border-slate-100 bg-slate-50/60 p-5">

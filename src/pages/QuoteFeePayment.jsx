@@ -245,16 +245,15 @@ export default function QuoteFeePayment() {
             </p>
           )}
           {success.quote_token && (
-            <a
-              href={publicAppUrl(`/Quote/${success.quote_token}`)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-block"
-            >
-              <Button style={{ backgroundColor: '#800080' }} className="text-white hover:opacity-90">
+            <Button asChild style={{ backgroundColor: '#800080' }} className="text-white hover:opacity-90">
+              <a
+                href={publicAppUrl(`/Quote/${success.quote_token}`)}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 Ir a mi presupuesto
-              </Button>
-            </a>
+              </a>
+            </Button>
           )}
         </div>
       </div>

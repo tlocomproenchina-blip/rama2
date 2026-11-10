@@ -25,9 +25,9 @@ export default function FAQSection() {
           ))}
         </Accordion>
         <div className="mt-5">
-          <Link to={createPageUrl('FAQ')}>
-            <Button className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-600 hover:to-blue-600 text-white">Ver más</Button>
-          </Link>
+          <Button asChild className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-600 hover:to-blue-600 text-white">
+            <Link to={createPageUrl('FAQ')}>Ver más</Link>
+          </Button>
         </div>
       </div>
     </section>

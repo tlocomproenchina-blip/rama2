@@ -201,11 +201,11 @@ export default function FAQ({ user }) {
           <p className="text-slate-600 mb-4">
             Nuestro equipo de soporte está aquí para ayudarte
           </p>
-          <Link to={createPageUrl('Support')}>
-            <Button className="bg-blue-600 hover:bg-blue-700">
+          <Button asChild className="bg-blue-600 hover:bg-blue-700">
+            <Link to={createPageUrl('Support')}>
               Contactar Soporte
-            </Button>
-          </Link>
+            </Link>
+          </Button>
         </CardContent>
       </Card>
     </div>

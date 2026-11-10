@@ -28,9 +28,9 @@ export default function HomeHeader({ onLogin }) {
           <Button onClick={onLogin} className="sm:hidden bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-600 hover:to-blue-600 text-white">Iniciar sesión</Button>
           {/* Desktop: ghost login + quote button */}
           <Button variant="ghost" onClick={onLogin} className="hidden sm:inline-flex">Iniciar sesión</Button>
-          <Link to={createPageUrl('ShippingCalculator')}>
-            <Button className="hidden sm:inline-flex bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-600 hover:to-blue-600">Cotizar</Button>
-          </Link>
+          <Button asChild className="hidden sm:inline-flex bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-600 hover:to-blue-600">
+            <Link to={createPageUrl('ShippingCalculator')}>Cotizar</Link>
+          </Button>
         </div>
       </div>
     </header>

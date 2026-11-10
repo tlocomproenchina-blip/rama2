@@ -127,5 +127,43 @@ export default function useClientExports(filters) {
     setBulkProgress(null);
   }, [fetchAllFilteredClients]);
 
-  return { bulkProgress, handleExportRemarketing, handleExportFiltered, handleCopyFiltered };
+  const handleExportExcel = useCallback(async () => {
+    try {
+      const all = await fetchAllFilteredClients((p) => setBulkProgress(p));
+      if (all.length === 0) {
+        toast.error('No hay clientes para exportar');
+        setBulkProgress(null);
+        return;
+      }
+      setBulkProgress({ total: all.length, remaining: 0, label: 'Generando Excel...' });
+      const XLSX = await import('xlsx');
+      const rows = [
+        ['登记日期', '客户编号', '联系人', '身份证', '区域', '城市', '详细地址', '联系方式', '邮箱', '备注'],
+        ['Fecha de Registro', 'Shipping Mark', 'Nombre', 'Cedula', 'Estado', 'Ciudad', 'Dirección', 'Numero telefonico', 'Email', 'Otros'],
+        ...all.map((c) => [
+          c.created_date ? new Date(c.created_date).toLocaleDateString('es-VE', { timeZone: 'America/Caracas' }) : '',
+          c.shipping_mark || '',
+          `${c.first_name || ''} ${c.last_name || ''}`.trim() || c.full_name || '',
+          c.cedula || '',
+          c.state || '',
+          c.city || '',
+          c.address || '',
+          c.whatsapp || '',
+          c.email || '',
+          c.notes || '',
+        ]),
+      ];
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+      ws['!cols'] = [14, 16, 28, 14, 14, 16, 40, 18, 30, 20].map((wch) => ({ wch }));
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Clientes');
+      XLSX.writeFile(wb, `clientes_${new Date().toISOString().split('T')[0]}.xlsx`);
+      toast.success(`${all.length} clientes exportados a Excel`);
+    } catch (error) {
+      toast.error('Error al exportar Excel');
+    }
+    setBulkProgress(null);
+  }, [fetchAllFilteredClients]);
+
+  return { bulkProgress, handleExportRemarketing, handleExportFiltered, handleCopyFiltered, handleExportExcel };
 }

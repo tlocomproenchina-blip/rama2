@@ -20,12 +20,12 @@ export default function DeliveryProofDeadlineAlert({ deadline, className = '' })
           Plazo vencido el {formatDeliveryProofDeadline(deadline)} (10 días desde tu pre-alerta).
         </p>
       )}
-      <Link to={createPageUrl('Support')} className="inline-block">
-        <Button size="sm" variant="outline" className="border-amber-400 text-amber-900 hover:bg-amber-100">
+      <Button asChild size="sm" variant="outline" className="border-amber-400 text-amber-900 hover:bg-amber-100">
+        <Link to={createPageUrl('Support')}>
           <LifeBuoy className="h-4 w-4 mr-2" />
           Abrir ticket en Soporte
-        </Button>
-      </Link>
+        </Link>
+      </Button>
     </div>
   );
 }

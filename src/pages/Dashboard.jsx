@@ -346,11 +346,11 @@ export default function Dashboard({ user, refreshUser }) {
                   </p>
                 </div>
               </div>
-              <Link to={createPageUrl('MyConsolidations')} className="w-full lg:w-auto">
-                <Button className="bg-blue-600 hover:bg-blue-700 w-full lg:w-auto">
+              <Button asChild className="bg-blue-600 hover:bg-blue-700 w-full lg:w-auto">
+                <Link to={createPageUrl('MyConsolidations')}>
                   Ver Consolidaciones
-                </Button>
-              </Link>
+                </Link>
+              </Button>
             </div>
           </CardContent>
         </Card>

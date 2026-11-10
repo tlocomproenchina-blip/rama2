@@ -269,12 +269,12 @@ export default function MyPackages({ user }) {
         description="Gestiona, filtra y revisa cada paquete en una vista más clara y premium."
         badges={[`${packages.length} registros`, user?.shipping_mark ? 'Shipping Mark activo' : 'Asignación pendiente']}
         action={user?.shipping_mark ? (
-          <Link to={createPageUrl('PreAlert')}>
-            <Button>
+          <Button asChild>
+            <Link to={createPageUrl('PreAlert')}>
               <Plus className="h-4 w-4 mr-2" />
               Nueva Pre-alerta
-            </Button>
-          </Link>
+            </Link>
+          </Button>
         ) : null}
         aside={
           <div className="space-y-3">
@@ -338,12 +338,12 @@ export default function MyPackages({ user }) {
               {search ? 'No se encontraron paquetes con ese criterio' : 'Aún no tienes paquetes registrados'}
             </p>
             {user?.shipping_mark && !search && (
-              <Link to={createPageUrl('PreAlert')}>
-                <Button>
+              <Button asChild>
+                <Link to={createPageUrl('PreAlert')}>
                   <Plus className="h-4 w-4 mr-2" />
                   Crear Pre-alerta
-                </Button>
-              </Link>
+                </Link>
+              </Button>
             )}
           </CardContent>
         </Card>

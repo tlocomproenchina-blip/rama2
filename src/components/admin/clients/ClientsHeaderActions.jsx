@@ -1,12 +1,13 @@
 import React from 'react';
 import { Button } from "@/components/ui/button";
-import { Upload, Download, ClipboardCopy } from 'lucide-react';
+import { Upload, Download, ClipboardCopy, FileSpreadsheet } from 'lucide-react';
 import ClientTxtReportButton from '@/components/admin/clients/ClientTxtReportButton';
 
 export default function ClientsHeaderActions({
   canExport,
   onOpenImport,
   onExportFiltered,
+  onExportExcel,
   onCopyFiltered,
   onExportRemarketing,
   onReportChanged,
@@ -30,6 +31,10 @@ export default function ClientsHeaderActions({
           >
             <Download className="h-4 w-4 mr-2" />
             Exportar TXT
+          </Button>
+          <Button onClick={onExportExcel} variant="outline" className="w-full sm:w-auto" title="Exporta a Excel los clientes según los filtros actuales">
+            <FileSpreadsheet className="h-4 w-4 mr-2" />
+            Exportar Excel
           </Button>
           <Button
             onClick={onCopyFiltered}

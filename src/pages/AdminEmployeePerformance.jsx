@@ -105,7 +105,7 @@ export default function AdminEmployeePerformance({ user }) {
         actions={
           <div className="flex flex-wrap gap-3">
             <Input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="w-[190px]" />
-            <Link to="/AdminEmployeeAudit"><Button variant="outline"><History className="h-4 w-4" /> Ver auditoría</Button></Link>
+            <Button asChild variant="outline"><Link to="/AdminEmployeeAudit"><History className="h-4 w-4" /> Ver auditoría</Link></Button>
           </div>
         }
       />

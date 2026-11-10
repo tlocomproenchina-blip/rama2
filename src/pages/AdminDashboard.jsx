@@ -136,11 +136,11 @@ export default function AdminDashboard({ user }) {
               <Button onClick={loadData}>
                 <RefreshCw className="mr-2 h-4 w-4" /> Actualizar dashboard
               </Button>
-              <Link to={createPageUrl('AdminPackages')}>
-                <Button variant="outline">
+              <Button asChild variant="outline">
+                <Link to={createPageUrl('AdminPackages')}>
                   Ver operaciones <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </Link>
+                </Link>
+              </Button>
             </div>
           </div>
 
@@ -196,7 +196,7 @@ export default function AdminDashboard({ user }) {
         <AdminDashboardSectionCard
           title="Resumen de soporte"
           description="Tickets recientes con el estado actual."
-          action={<Link to={`${createPageUrl('AdminSupportCRM')}?tab=tickets`}><Button variant="outline" size="sm">Abrir soporte</Button></Link>}
+          action={<Button asChild variant="outline" size="sm"><Link to={`${createPageUrl('AdminSupportCRM')}?tab=tickets`}>Abrir soporte</Link></Button>}
         >
           <div className="space-y-3">
             {recentTickets.length === 0 ? (
@@ -220,7 +220,7 @@ export default function AdminDashboard({ user }) {
         <AdminDashboardSectionCard
           title="Paquetes recientes"
           description="Últimos movimientos registrados en el sistema."
-          action={<Link to={createPageUrl('AdminPackages')}><Button variant="outline" size="sm">Ver paquetes</Button></Link>}
+          action={<Button asChild variant="outline" size="sm"><Link to={createPageUrl('AdminPackages')}>Ver paquetes</Link></Button>}
         >
           <div className="space-y-3">
             {recentPackages.map((pkg) => (
@@ -243,7 +243,7 @@ export default function AdminDashboard({ user }) {
         <AdminDashboardSectionCard
           title="Consolidaciones recientes"
           description="Salidas y cargas con actividad más reciente."
-          action={<Link to={createPageUrl('ShipmentTracking')}><Button variant="outline" size="sm">Ver consolidaciones</Button></Link>}
+          action={<Button asChild variant="outline" size="sm"><Link to={createPageUrl('ShipmentTracking')}>Ver consolidaciones</Link></Button>}
         >
           <div className="space-y-3">
             {recentConsolidations.map((item) => (
