@@ -7,12 +7,18 @@ import { Plus, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import ProviderClientSearch from './ProviderClientSearch';
 import FileUploadField from './FileUploadField';
+
+// Fecha local del dispositivo en formato YYYY-MM-DD
+const todayLocal = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
 import InvoiceLineFields, { emptyLine, lineTotal, linePayload } from './InvoiceLineFields';
 import { piCall, money } from '@/lib/providerInvoicesApi';
 
 export default function ProviderInvoiceForm({ flatRate, onCreated }) {
   const [client, setClient] = useState(null);
-  const [loadDate, setLoadDate] = useState('');
+  const [loadDate, setLoadDate] = useState(todayLocal);
   const [lines, setLines] = useState([emptyLine()]);
   const [file, setFile] = useState('');
   const [saving, setSaving] = useState(false);
@@ -27,7 +33,7 @@ export default function ProviderInvoiceForm({ flatRate, onCreated }) {
     try {
       for (const l of lines) { await piCall('create', { data: linePayload(l, client, loadDate, file) }); done++; }
       toast.success(`${done} factura(s) creada(s)`);
-      setLines([emptyLine()]); setClient(null); setLoadDate(''); setFile('');
+      setLines([emptyLine()]); setClient(null); setLoadDate(todayLocal()); setFile('');
     } catch (err) {
       toast.error(`${done} creada(s). Error: ${err?.response?.data?.error || 'No se pudo crear'}`);
       setLines(lines.slice(done));
