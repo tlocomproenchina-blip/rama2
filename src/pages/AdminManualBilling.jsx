@@ -24,6 +24,7 @@ import ClientPendingLoad from '@/components/manual-billing/ClientPendingLoad';
 import MobileBillingTabs from '@/components/manual-billing/MobileBillingTabs';
 import ClientHistoryToggle from '@/components/manual-billing/ClientHistoryToggle';
 import UnlinkedProviderInvoices from '@/components/manual-billing/UnlinkedProviderInvoices';
+import OrphanBultosSection from '@/components/manual-billing/OrphanBultosSection';
 import useProviderInvoiceMatches from '@/hooks/useProviderInvoiceMatches';
 
 const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
@@ -1156,6 +1157,12 @@ export default function AdminManualBilling({ user }) {
               client={client}
               version={rows.length}
               onCreated={() => loadClientInvoices(client, { skipAuto: true })}
+            />
+
+            <OrphanBultosSection
+              client={client}
+              version={rows.length}
+              onCreated={() => { loadClientInvoices(client, { skipAuto: true }); pending.reload(); }}
             />
 
             {loadingRows ? (
