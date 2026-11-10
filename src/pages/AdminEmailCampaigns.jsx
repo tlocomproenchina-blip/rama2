@@ -868,25 +868,13 @@ export default function AdminEmailCampaigns({ user }) {
                       Inactivos ({clients.filter(c => c.is_active === false).length})
                     </SelectItem>
                     <SelectItem value="with_packages">
-                      Con Paquetes ({(() => {
-                        const clientsWithAnyPackages = new Set(packages.map(pkg => pkg.client_email));
-                        return clients.filter(c => clientsWithAnyPackages.has(c.email)).length;
-                      })()})
+                      Con Paquetes ({clients.filter(c => packages.any.has(c.email)).length})
                     </SelectItem>
                     <SelectItem value="without_packages">
-                      Sin Paquetes ({(() => {
-                        const clientsWithAnyPackages = new Set(packages.map(pkg => pkg.client_email));
-                        return clients.filter(c => !clientsWithAnyPackages.has(c.email)).length;
-                      })()})
+                      Sin Paquetes ({clients.filter(c => !packages.any.has(c.email)).length})
                     </SelectItem>
                     <SelectItem value="with_active_packages">
-                      Con Paquetes Activos ({(() => {
-                        const activeStatuses = ['recibido', 'consolidado', 'en_transito'];
-                        const clientsWithActivePackages = new Set(
-                          packages.filter(pkg => activeStatuses.includes(pkg.status)).map(pkg => pkg.client_email)
-                        );
-                        return clients.filter(c => clientsWithActivePackages.has(c.email)).length;
-                      })()})
+                      Con Paquetes Activos ({clients.filter(c => packages.active.has(c.email)).length})
                     </SelectItem>
                     <SelectItem value="with_whatsapp">
                       Con WhatsApp ({clients.filter(c => !!c.whatsapp).length})
