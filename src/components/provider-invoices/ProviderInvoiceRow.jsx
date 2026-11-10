@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Link2, ExternalLink, FileText, CheckCircle2, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import FileUploadField from './FileUploadField';
+import ProviderInvoiceRowActions from './ProviderInvoiceRowActions';
 import { piCall, money, publicInvoiceUrl } from '@/lib/providerInvoicesApi';
 
 export default function ProviderInvoiceRow({ inv, isAdmin, onChanged }) {
@@ -38,6 +39,7 @@ export default function ProviderInvoiceRow({ inv, isAdmin, onChanged }) {
         {inv.payment_proof_url && !isAdmin && <Button variant="outline" size="sm" asChild><a href={inv.payment_proof_url} target="_blank" rel="noreferrer"><CheckCircle2 />Comprobante</a></Button>}
         <Button variant="outline" size="sm" asChild><a href={publicInvoiceUrl(inv.public_token)} target="_blank" rel="noreferrer"><ExternalLink />Ver enlace público</a></Button>
         <Button variant="outline" size="sm" onClick={copy}><Link2 />Copiar enlace</Button>
+        <ProviderInvoiceRowActions inv={inv} onChanged={onChanged} />
       </div>
       {isAdmin && (
         <div className="mt-3 flex flex-wrap items-center gap-3 border-t pt-3">

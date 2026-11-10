@@ -32,7 +32,7 @@ Deno.serve(async (req) => {
     let user = null;
     if (body.portal_token) {
       // Enlace público del portal: solo historial, búsqueda de clientes, carga de archivos y creación.
-      if (!['config', 'searchClients', 'upload', 'create', 'list'].includes(action) || String(body.portal_token).length < 20) {
+      if (!['config', 'searchClients', 'upload', 'create', 'list', 'update', 'delete'].includes(action) || String(body.portal_token).length < 20) {
         return Response.json({ error: 'Sin acceso' }, { status: 403 });
       }
       const links = await sr.entities.ProviderPortalLink.filter({ token: String(body.portal_token), active: true }, '-created_date', 1);
@@ -106,6 +106,29 @@ Deno.serve(async (req) => {
       }
       const items = await sr.entities.ProviderInvoice.filter(q, '-created_date', 200);
       return Response.json({ items });
+    }
+    if (action === 'update') {
+      const d = body.data || {};
+      const cbm = Number(d.cbm);
+      if (!body.id || !d.invoice_code || !d.shipping_mark || !(cbm > 0)) return Response.json({ error: 'Faltan datos obligatorios' }, { status: 400 });
+      const current = await sr.entities.ProviderInvoice.get(body.id);
+      const other = (Array.isArray(d.other_expenses) ? d.other_expenses : [])
+        .map((e: any) => ({ description: String(e.description || ''), amount: Number(e.amount) || 0 }))
+        .filter((e: any) => e.description || e.amount);
+      const otherTotal = round(other.reduce((s: number, e: any) => s + e.amount, 0));
+      const rate = Number(current.flat_rate) || await currentRate(sr);
+      const invoice = await sr.entities.ProviderInvoice.update(body.id, {
+        invoice_code: String(d.invoice_code).trim(),
+        client_email: d.client_email || '', client_name: d.client_name || '', shipping_mark: d.shipping_mark,
+        load_date: d.load_date || null, cbm, other_expenses: other, other_total: otherTotal,
+        total: round(rate * cbm + otherTotal), invoice_file_url: d.invoice_file_url || '',
+      });
+      return Response.json({ invoice });
+    }
+    if (action === 'delete') {
+      if (!body.id) return Response.json({ error: 'Falta la factura' }, { status: 400 });
+      await sr.entities.ProviderInvoice.delete(body.id);
+      return Response.json({ ok: true });
     }
     if (action === 'markPaid') {
       if (!isFullAdmin(user)) return Response.json({ error: 'Solo el administrador' }, { status: 403 });
