@@ -269,6 +269,20 @@
     "billing_assigned_by": {
       "type": "string",
       "description": "Email del administrador que asign\u00f3 el paquete a un recibo"
+    },
+    "billing_marked": {
+      "type": "boolean",
+      "default": false,
+      "description": "Marcado a mano como ya facturado desde Facturaci\u00f3n Manual; deja de aparecer en Paquetes sin recibo"
+    },
+    "billing_marked_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha en que se marc\u00f3 como ya facturado"
+    },
+    "billing_marked_by": {
+      "type": "string",
+      "description": "Email del administrador que lo marc\u00f3 como ya facturado"
     }
   },
   "required": [

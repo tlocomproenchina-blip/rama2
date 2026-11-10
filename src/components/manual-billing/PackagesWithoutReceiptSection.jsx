@@ -3,7 +3,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { PackageX, ShieldCheck, FileText, Layers } from 'lucide-react';
+import { PackageX, ShieldCheck, FileText, Layers, CheckCheck } from 'lucide-react';
+import {
+  AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogCancel,
+} from "@/components/ui/alert-dialog";
 import { toast } from 'sonner';
 import {
   Select,
@@ -13,8 +17,23 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-export default function PackagesWithoutReceiptSection({ packages, onChange, availableReceipts, onAssignReceipt }) {
+export default function PackagesWithoutReceiptSection({ packages, onChange, availableReceipts, onAssignReceipt, onMarkBilled }) {
   const [bulkReceiptId, setBulkReceiptId] = useState('');
+  const [markIds, setMarkIds] = useState(null);
+  const [marking, setMarking] = useState(false);
+
+  const confirmMark = async () => {
+    setMarking(true);
+    try {
+      await onMarkBilled(markIds);
+      toast.success(`${markIds.length} paquete(s) marcados como ya facturados`);
+      setMarkIds(null);
+    } catch (e) {
+      toast.error('No se pudo marcar como ya facturado');
+    } finally {
+      setMarking(false);
+    }
+  };
 
   // Todos los recibos disponibles del cliente (no facturados)
   const receipts = useMemo(
@@ -82,6 +101,11 @@ export default function PackagesWithoutReceiptSection({ packages, onChange, avai
             <span className="text-xs text-slate-500">({pendingPackages.length})</span>
           </div>
           {selectedCount > 0 && (
+            <Button type="button" size="sm" variant="outline" onClick={() => setMarkIds(pendingPackages.filter((p) => p.selected).map((p) => p.id))}>
+              <CheckCheck className="h-4 w-4" /> Marcar como ya facturado ({selectedCount})
+            </Button>
+          )}
+          {selectedCount > 0 && (
             <button
               type="button"
               onClick={() => selectAll(false)}
@@ -148,7 +172,12 @@ export default function PackagesWithoutReceiptSection({ packages, onChange, avai
                     className="mt-1"
                   />
                   <div className="flex-1 min-w-0">
-                    <p className="font-mono text-sm text-slate-700 break-all">{pkg.tracking_number}</p>
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="font-mono text-sm text-slate-700 break-all">{pkg.tracking_number}</p>
+                      <Button type="button" size="sm" variant="ghost" className="h-8 text-xs" onClick={() => setMarkIds([pkg.id])}>
+                        <CheckCheck className="h-3.5 w-3.5" /> Ya facturado
+                      </Button>
+                    </div>
                     <p className="text-[11px] text-muted-foreground mt-0.5">
                       Registro: {pkg.registered_date ? new Date(pkg.registered_date).toLocaleDateString('es-VE') : 'No disponible'}
                     </p>
@@ -184,6 +213,20 @@ export default function PackagesWithoutReceiptSection({ packages, onChange, avai
           })}
         </div>
       </CardContent>
+      <AlertDialog open={!!markIds} onOpenChange={(o) => !o && !marking && setMarkIds(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Marcar como ya facturado?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {markIds?.length} paquete(s) dejarán de aparecer en esta lista. Sus datos no se borran.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={marking}>Cancelar</AlertDialogCancel>
+            <Button onClick={confirmMark} disabled={marking}>{marking ? 'Guardando...' : 'Confirmar'}</Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }

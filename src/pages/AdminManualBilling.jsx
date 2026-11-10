@@ -290,7 +290,7 @@ export default function AdminManualBilling({ user }) {
       const orphans = (pkgs || [])
         .filter((p) => {
           const t = normTracking(p.tracking_number);
-          return t && !trackingsWithReceipt.has(t) && dispatchedTrackings.has(t);
+          return t && p.billing_marked !== true && !trackingsWithReceipt.has(t) && dispatchedTrackings.has(t);
         })
         .map((p) => {
           const t = normTracking(p.tracking_number);
@@ -1226,6 +1226,12 @@ export default function AdminManualBilling({ user }) {
               <PackagesWithoutReceiptSection
                 packages={orphanPackages}
                 onChange={setOrphanPackages}
+                onMarkBilled={async (ids) => {
+                  const me = await base44.auth.me();
+                  const now = new Date().toISOString();
+                  await base44.entities.Package.bulkUpdate(ids.map((id) => ({ id, billing_marked: true, billing_marked_date: now, billing_marked_by: me?.email || '' })));
+                  setOrphanPackages((prev) => prev.filter((p) => !ids.includes(p.id)));
+                }}
                 availableReceipts={rows}
                 onAssignReceipt={(packageIds, receiptId) => {
                   setRows((prev) => prev.map((r) => (r.id === receiptId ? { ...r, selected: true } : r)));
