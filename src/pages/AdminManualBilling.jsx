@@ -20,7 +20,6 @@ import PendingBillingPanel from '@/components/manual-billing/PendingBillingPanel
 import BilledReceiptsSection from '@/components/manual-billing/BilledReceiptsSection';
 import InvoicedReceiptsSection from '@/components/manual-billing/InvoicedReceiptsSection';
 import usePendingBillingClients from '@/hooks/usePendingBillingClients';
-import ClientPendingLoad from '@/components/manual-billing/ClientPendingLoad';
 import MobileBillingTabs from '@/components/manual-billing/MobileBillingTabs';
 import ClientHistoryToggle from '@/components/manual-billing/ClientHistoryToggle';
 import UnlinkedProviderInvoices from '@/components/manual-billing/UnlinkedProviderInvoices';
@@ -1223,15 +1222,6 @@ export default function AdminManualBilling({ user }) {
                   />
                 ))}
               </div>
-            )}
-
-            {warehouseLink.unmatched && (
-              <ClientPendingLoad
-                client={warehouseLink.unmatched}
-                markingId={pending.markingId}
-                onMarkBulto={handleMarkBulto}
-                onMarkOrderBultos={handleMarkOrderBultos}
-              />
             )}
 
             {(orphanPackages.length > 0 || markedReceipts.length > 0 || invoicedReceipts.length > 0) && (
