@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Plus, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import ProviderClientSearch from './ProviderClientSearch';
+import FileUploadField from './FileUploadField';
 import InvoiceLineFields, { emptyLine, lineTotal, linePayload } from './InvoiceLineFields';
 import { piCall, money } from '@/lib/providerInvoicesApi';
 
@@ -13,6 +14,7 @@ export default function ProviderInvoiceForm({ flatRate, onCreated }) {
   const [client, setClient] = useState(null);
   const [loadDate, setLoadDate] = useState('');
   const [lines, setLines] = useState([emptyLine()]);
+  const [file, setFile] = useState('');
   const [saving, setSaving] = useState(false);
   const total = lines.reduce((s, l) => s + lineTotal(l, flatRate), 0);
   const cbm = lines.reduce((s, l) => s + (Number(l.cbm) || 0), 0);
@@ -23,9 +25,9 @@ export default function ProviderInvoiceForm({ flatRate, onCreated }) {
     setSaving(true);
     let done = 0;
     try {
-      for (const l of lines) { await piCall('create', { data: linePayload(l, client, loadDate) }); done++; }
+      for (const l of lines) { await piCall('create', { data: linePayload(l, client, loadDate, file) }); done++; }
       toast.success(`${done} factura(s) creada(s)`);
-      setLines([emptyLine()]); setClient(null); setLoadDate('');
+      setLines([emptyLine()]); setClient(null); setLoadDate(''); setFile('');
     } catch (err) {
       toast.error(`${done} creada(s). Error: ${err?.response?.data?.error || 'No se pudo crear'}`);
       setLines(lines.slice(done));
@@ -49,6 +51,7 @@ export default function ProviderInvoiceForm({ flatRate, onCreated }) {
               onRemove={lines.length > 1 ? () => setLines(lines.filter((_, j) => j !== i)) : null} />
           ))}
           <Button type="button" variant="outline" onClick={() => setLines([...lines, emptyLine()])}><Plus /> Agregar factura y CBM</Button>
+          <div className="space-y-2"><Label>Factura (foto o PDF) — una para todo el grupo</Label><FileUploadField value={file} onChange={setFile} /></div>
           <div className="rounded-xl bg-accent/60 p-4 text-sm">
             <p>{lines.length} factura(s) · {cbm.toFixed(4)} CBM · Tarifa {money(flatRate)}</p>
             <p className="mt-1 font-display text-2xl font-bold text-primary">{money(total)}</p>

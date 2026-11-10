@@ -3,16 +3,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Plus, Trash2, X } from 'lucide-react';
-import FileUploadField from './FileUploadField';
 import { money } from '@/lib/providerInvoicesApi';
 
 export const emptyLine = () => ({ invoice_code: '', cbm: '', file: '', expenses: [{ description: '', amount: '' }] });
 export const lineOther = (l) => l.expenses.reduce((s, e) => s + (Number(e.amount) || 0), 0);
 export const lineTotal = (l, rate) => (Number(rate) || 0) * (Number(l.cbm) || 0) + lineOther(l);
-export const linePayload = (l, client, loadDate) => ({
+export const linePayload = (l, client, loadDate, file) => ({
   invoice_code: l.invoice_code, load_date: loadDate, cbm: Number(l.cbm),
   shipping_mark: client.shipping_mark, client_name: client.full_name, client_email: client.email,
-  other_expenses: l.expenses, invoice_file_url: l.file,
+  other_expenses: l.expenses, invoice_file_url: file || '',
 });
 
 export default function InvoiceLineFields({ line, onChange, onRemove, rate, index }) {
@@ -39,8 +38,7 @@ export default function InvoiceLineFields({ line, onChange, onRemove, rate, inde
         ))}
         <Button type="button" variant="ghost" size="sm" onClick={() => set('expenses', [...line.expenses, { description: '', amount: '' }])}><Plus /> Agregar gasto</Button>
       </div>
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div className="space-y-2"><Label>Factura (foto o PDF)</Label><FileUploadField value={line.file} onChange={(v) => set('file', v)} /></div>
+      <div className="flex justify-end">
         <p className="text-sm text-muted-foreground">{money(rate)} × {Number(line.cbm) || 0} + {money(lineOther(line))} = <b className="text-primary">{money(lineTotal(line, rate))}</b></p>
       </div>
     </div>
