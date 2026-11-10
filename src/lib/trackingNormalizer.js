@@ -1,3 +1,6 @@
+// Tracking normalizado: sin prefijo de transportista (texto antes de ":" o "：") y en mayúsculas.
+export const normTracking = (raw) => String(raw || '').split(/[:：]/).pop().trim().toUpperCase();
+
 /**
  * Dado un tracking escaneado (posible sub-tracking), retorna una lista de
  * candidatos ordenados por probabilidad de coincidencia:

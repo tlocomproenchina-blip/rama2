@@ -51,7 +51,7 @@ export function invoiceAging(invoice, now = Date.now()) {
   };
 }
 
-const money = (value) => `$${Number(value || 0).toFixed(2)}`;
+import { money } from '@/lib/numbers';
 
 const formatDate = (value) => {
   const date = toDate(value);

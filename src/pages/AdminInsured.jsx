@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import useCedulaClientEmails from '@/hooks/useCedulaClientEmails';
+import { normTracking } from '@/lib/trackingNormalizer';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -60,8 +61,6 @@ export default function AdminInsured({ user }) {
     return fob * ((config?.insurance_percentage || 5) / 100);
   };
 
-  // Normaliza un tracking: quita prefijo de transportista y pasa a mayúsculas
-  const normTracking = (raw) => String(raw || '').split(/[:：]/).pop().trim().toUpperCase();
 
   // Determina si el seguro de un paquete fue cobrado:
   // 1) La factura de su consolidación está pagada, o

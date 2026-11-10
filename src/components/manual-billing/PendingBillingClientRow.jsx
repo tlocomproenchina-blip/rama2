@@ -1,7 +1,7 @@
 import React from 'react';
 import { ChevronRight, Mail, MapPin } from 'lucide-react';
 
-const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
+import { num } from '@/lib/numbers';
 
 // Un cliente de la cola de facturación: lo justo para reconocerlo y el peso real
 // de lo que le falta facturar. Sus bultos y N° de contenedor se abren en el expediente.

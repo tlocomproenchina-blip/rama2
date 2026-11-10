@@ -2,7 +2,7 @@ import { base44 } from '@/components/api/ApiQueueManager';
 
 const clean = (v) => String(v || '').trim();
 const up = (v) => clean(v).toUpperCase();
-const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
+import { num } from '@/lib/numbers';
 
 export const bultoTrackings = (b) => [...new Set((b.package_trackings || []).map(up).filter(Boolean))];
 export const bultoCbm = (b) => num(b.cargo_cbm);

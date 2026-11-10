@@ -7,7 +7,7 @@ import InvoicePDFGenerator from '@/components/invoice/InvoicePDFGenerator';
 import ClientPaymentsSummary from '@/components/client-analytics/ClientPaymentsSummary';
 import { displayInvoiceItems, billableTotal } from '@/lib/storageLines';
 
-const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
+import { num } from '@/lib/numbers';
 
 const invoicedAmount = (invoice) => billableTotal(invoice);
 

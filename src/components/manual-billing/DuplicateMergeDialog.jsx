@@ -9,7 +9,7 @@ import { base44 } from '@/components/api/ApiQueueManager';
 import { toast } from 'sonner';
 import { AlertTriangle, CheckCircle2, Loader2 } from 'lucide-react';
 
-const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
+import { num } from '@/lib/numbers';
 const money = (v) => `$${num(v).toFixed(2)}`;
 const fmtCbm = (v) => num(v).toFixed(5);
 

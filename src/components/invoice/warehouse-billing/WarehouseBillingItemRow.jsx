@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Package, Truck, Pencil, Loader2, ShieldCheck, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 
-const money = (v) => `$${Number(v || 0).toFixed(2)}`;
+import { money } from '@/lib/numbers';
 
 const formatDate = (v) => {
   if (!v) return '—';

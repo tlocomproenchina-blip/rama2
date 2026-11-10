@@ -63,7 +63,7 @@ export const overdueTotals = (rows = []) => ({
   total: rows.reduce((sum, row) => sum + (Number(row.total) || 0), 0),
 });
 
-const money = (value) => `$${Number(value || 0).toFixed(2)}`;
+import { money } from '@/lib/numbers';
 
 const formatDate = (value) => {
   if (!value) return '—';

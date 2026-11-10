@@ -1,7 +1,7 @@
 import React from 'react';
 import { FileText, FileX } from 'lucide-react';
 
-const money = (n) => `$${Number(n || 0).toFixed(2)}`;
+import { money } from '@/lib/numbers';
 
 // Vínculo del recibo con la factura de proveedor: muestra su CBM o indica que falta.
 export default function ProviderInvoiceLink({ providerInvoice }) {

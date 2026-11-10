@@ -8,7 +8,7 @@ import { FileText, ImageIcon, CheckCircle2, Pencil } from 'lucide-react';
 import { format } from 'date-fns';
 import ProviderCreditForm from '@/components/provider-credits/ProviderCreditForm';
 
-const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
+import { num } from '@/lib/numbers';
 
 export default function ProviderCreditCard({ credit, onMarkUsed, onViewFile, onEdit, savingEdit }) {
   const [showUseDialog, setShowUseDialog] = useState(false);

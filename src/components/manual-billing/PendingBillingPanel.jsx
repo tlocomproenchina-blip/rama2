@@ -5,7 +5,7 @@ import { AlertCircle, Loader2, RefreshCw, Search } from 'lucide-react';
 import { matchesBultoCode } from '@/lib/bultoSearch';
 import PendingBillingClientRow from './PendingBillingClientRow';
 
-const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
+import { num } from '@/lib/numbers';
 
 // Cola de facturación: los clientes con carga en el almacén que todavía espera su
 // factura. Solo se listan —y solo se cuentan— los bultos pendientes: en cuanto el

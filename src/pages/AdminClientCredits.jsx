@@ -13,7 +13,7 @@ import ClientSearchBox from '@/components/manual-billing/ClientSearchBox';
 import ClientCreditRow from '@/components/client-credits/ClientCreditRow';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
+import { num } from '@/lib/numbers';
 
 export default function AdminClientCredits() {
   const [selectedClient, setSelectedClient] = useState(null);

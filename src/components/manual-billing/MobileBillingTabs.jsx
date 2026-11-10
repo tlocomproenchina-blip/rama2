@@ -1,7 +1,7 @@
 import React from 'react';
 import { Package, UserRound, Boxes, ReceiptText } from 'lucide-react';
 
-const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
+import { num } from '@/lib/numbers';
 
 // Pestañas de Facturación Manual en móvil y tablet: cada sección se abre por
 // separado y la barra queda fija arriba para saltar al resumen en cualquier momento.

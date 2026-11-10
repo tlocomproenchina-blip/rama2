@@ -11,7 +11,7 @@ import ProviderCreditForm from '@/components/provider-credits/ProviderCreditForm
 import ProviderCreditCard from '@/components/provider-credits/ProviderCreditCard';
 import useFileViewer from '@/hooks/useFileViewer';
 
-const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
+import { num } from '@/lib/numbers';
 
 export default function AdminProviderCredits() {
   const [credits, setCredits] = useState([]);

@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Receipt, Loader2 } from 'lucide-react';
 import DoorToDoorQuoteNote from '@/components/invoice/delivery/DoorToDoorQuoteNote';
 
-const money = (v) => `$${Number(v || 0).toFixed(2)}`;
+import { money } from '@/lib/numbers';
 
 export default function WarehouseBillingSummary({
   totals, overrides, setOverride, onCreate, creating, canCreate, clientName,

@@ -2,6 +2,8 @@ import { base44 } from '@/components/api/ApiQueueManager';
 import { IMMUTABLE_INVOICE_FIELDS } from '@/lib/invoiceImmutability';
 import { loadDoorToDoorRate } from '@/lib/doorToDoorRate';
 import { deliveryChoiceFields } from '@/lib/invoiceDeliveryChoice';
+import { num } from '@/lib/numbers';
+import { normTracking } from '@/lib/trackingNormalizer';
 
 // =====================================================================
 // Facturación de carga en almacén (Venezuela).
@@ -17,10 +19,9 @@ import { deliveryChoiceFields } from '@/lib/invoiceDeliveryChoice';
 // (getInvoiceDispatchOrders + DispatchOrderSelector) siga funcionando.
 // =====================================================================
 
-export const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 const round2 = (v) => Math.round(num(v) * 100) / 100;
 const round4 = (v) => Math.round(num(v) * 10000) / 10000;
-export const normTracking = (raw) => String(raw || '').split(/[:：]/).pop().trim().toUpperCase();
+export { num, normTracking };
 
 export function buildBillingContext({ pricing, appConfig, stateConfigs, rateHistory, clientState }) {
   const stateCode = String(clientState || '').trim().toLowerCase();

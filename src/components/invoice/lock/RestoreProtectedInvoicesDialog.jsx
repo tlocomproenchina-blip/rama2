@@ -10,7 +10,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Lock, Loader2, RefreshCw, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 
-const money = (v) => `$${(Number(v) || 0).toFixed(2)}`;
+import { money } from '@/lib/numbers';
 
 const SKIP_LABELS = {
   ya_protegida: 'Ya está protegida',

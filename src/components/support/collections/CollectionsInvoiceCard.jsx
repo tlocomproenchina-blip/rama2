@@ -7,7 +7,7 @@ import { buildInvoiceDoc } from '@/lib/invoicePdf';
 import { invoiceBalance, invoiceClientName, OVERDUE_BUCKET_LABELS } from '@/lib/collections';
 import CollectionsNotifyDialog from './CollectionsNotifyDialog';
 
-const money = (value) => `$${Number(value || 0).toFixed(2)}`;
+import { money } from '@/lib/numbers';
 
 const formatDate = (value) => {
   if (!value) return '—';

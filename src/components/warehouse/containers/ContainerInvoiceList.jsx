@@ -9,7 +9,7 @@ const STATUS_STYLES = {
   cancelada: 'border-slate-200 bg-slate-100 text-slate-600',
 };
 
-const money = (value) => `$${Number(value || 0).toFixed(2)}`;
+import { money } from '@/lib/numbers';
 const shortDate = (value) => (value ? new Date(value).toLocaleDateString('es-VE') : '—');
 
 // Facturas del contenedor con su estado de pago y saldo.

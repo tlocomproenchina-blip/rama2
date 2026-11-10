@@ -27,7 +27,8 @@ import UnlinkedProviderInvoices from '@/components/manual-billing/UnlinkedProvid
 import OrphanBultosSection from '@/components/manual-billing/OrphanBultosSection';
 import useProviderInvoiceMatches from '@/hooks/useProviderInvoiceMatches';
 
-const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
+import { num } from '@/lib/numbers';
+import { normTracking } from '@/lib/trackingNormalizer';
 
 // Tipo de carga con el que arranca la factura; cada recibo puede tener el suyo
 const INITIAL_CARGO_TYPE = 'general';
@@ -238,8 +239,6 @@ export default function AdminManualBilling({ user }) {
       const balance = (credits || []).reduce((s, c) => s + (Number(c.amount) || 0), 0);
       setCreditBalance(Math.max(0, balance));
 
-      // Normaliza un tracking: quita prefijo de transportista (texto antes de ":" o "：") y mayúsculas
-      const normTracking = (raw) => String(raw || '').split(/[:：]/).pop().trim().toUpperCase();
 
       // Set de trackings que tienen orden de despacho registrada (DispatchOrder)
       const dispatchedTrackings = new Set();

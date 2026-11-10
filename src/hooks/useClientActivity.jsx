@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { base44 } from '@/api/base44Client';
 
-const money = (n) => `$${Number(n || 0).toFixed(2)}`;
+import { money } from '@/lib/numbers';
 
 // Línea de tiempo del cliente: casos, paquetes, facturas, notas y tareas,
 // de lo más reciente a lo más antiguo.

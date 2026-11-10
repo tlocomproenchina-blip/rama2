@@ -9,7 +9,7 @@ const rateFor = (state, pricing, type) => {
     + Number(pricing.door_to_door_cost || 0);
 };
 
-const money = (v) => `$${Number(v || 0).toFixed(2)}`;
+import { money } from '@/lib/numbers';
 
 // PDF de tarifas por estado para entregar a clientes
 export async function generateClientPriceListPdf({ states = [], pricing = {}, appConfig = {} }) {

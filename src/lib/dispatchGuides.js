@@ -10,7 +10,7 @@ export const DISPATCH_SCAN_RESULTS = ['dispatched', 'already_dispatched'];
 
 export const normCode = (raw) => String(raw || '').trim().toUpperCase();
 
-export const normTracking = (raw) => String(raw || '').split(/[:：]/).pop().trim().toUpperCase();
+export { normTracking } from '@/lib/trackingNormalizer';
 
 // El bloque despachado termina en -B## (bulto suelto) o -C## (caja consolidada) y su
 // prefijo es el shipping mark del cliente (N6-TLEC-W1383S-C50012 → N6-TLEC-W1383S):

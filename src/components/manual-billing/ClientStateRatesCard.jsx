@@ -4,7 +4,7 @@ import { MapPin, TrendingUp } from 'lucide-react';
 import { CANONICAL_STATE_NAMES } from '@/components/utils/states';
 import CargoTypeSelector from '@/components/manual-billing/CargoTypeSelector';
 
-const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
+import { num } from '@/lib/numbers';
 
 export default function ClientStateRatesCard({ client, stateConfigs, appConfig, pricing, cargoType = 'general', onCargoTypeChange }) {
   const stateInfo = useMemo(() => {

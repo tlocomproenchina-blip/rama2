@@ -11,7 +11,7 @@ import WarehouseBillingClientDetail from './WarehouseBillingClientDetail';
 import { buildBillingContext, computeClientEstimate, num } from '@/lib/warehouseBilling';
 import { matchesBultoCode } from '@/lib/bultoSearch';
 
-const money = (v) => `$${Number(v || 0).toFixed(2)}`;
+import { money } from '@/lib/numbers';
 
 function MetricCard({ icon: Icon, label, value, tone }) {
   return (

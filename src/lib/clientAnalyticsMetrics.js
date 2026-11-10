@@ -1,6 +1,6 @@
 import { billableTotal } from '@/lib/storageLines';
 
-const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
+import { num } from '@/lib/numbers';
 
 function getLastMonths(count) {
   const now = new Date();

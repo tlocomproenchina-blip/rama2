@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Package, ChevronRight, PackageX } from 'lucide-react';
 
-const money = (v) => `$${Number(v || 0).toFixed(2)}`;
+import { money } from '@/lib/numbers';
 
 export default function WarehouseBillingList({ clients, onOpen }) {
   if (clients.length === 0) {

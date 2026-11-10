@@ -15,7 +15,7 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
+import { num } from '@/lib/numbers';
 
 export default function ClientCreditRow({ credit, onUpdated }) {
   const [editOpen, setEditOpen] = useState(false);

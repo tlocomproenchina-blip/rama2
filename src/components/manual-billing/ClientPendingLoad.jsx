@@ -3,7 +3,7 @@ import { PackageSearch } from 'lucide-react';
 import PendingBillingOrderGroup from './PendingBillingOrderGroup';
 import PendingBillingMarkedBultos from './PendingBillingMarkedBultos';
 
-const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
+import { num } from '@/lib/numbers';
 
 const ordersOf = (bulto) => {
   const orders = [...new Set((bulto.order_numbers || []).filter(Boolean).map((o) => String(o).trim()))];

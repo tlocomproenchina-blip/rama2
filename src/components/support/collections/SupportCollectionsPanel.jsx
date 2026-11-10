@@ -14,7 +14,7 @@ const FILTERS = [
   { key: 'por_vencer', label: 'Por vencer' },
 ];
 
-const money = (value) => `$${Number(value || 0).toFixed(2)}`;
+import { money } from '@/lib/numbers';
 
 // Módulo de cobranza de Soporte: facturas pendientes con sus días vencidos y el
 // botón para notificar el pago por email o WhatsApp.

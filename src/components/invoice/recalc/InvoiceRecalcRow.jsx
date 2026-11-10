@@ -5,7 +5,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react';
 
-const money = (v) => `$${(Number(v) || 0).toFixed(2)}`;
+import { money } from '@/lib/numbers';
 
 const formatDate = (value) => {
   if (!value) return '—';

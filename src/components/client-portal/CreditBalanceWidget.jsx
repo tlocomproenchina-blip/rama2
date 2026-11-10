@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Wallet, Loader2, ArrowUpCircle, ArrowDownCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { format } from 'date-fns';
 
-const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
+import { num } from '@/lib/numbers';
 
 export default function CreditBalanceWidget({ user }) {
   const [credits, setCredits] = useState([]);

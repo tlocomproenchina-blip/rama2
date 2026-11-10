@@ -11,7 +11,6 @@ import { Calculator, Loader2, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import InvoiceRecalcRow from './InvoiceRecalcRow';
 
-const money = (v) => `$${(Number(v) || 0).toFixed(2)}`;
 
 const PENDING_STATUSES = ['pendiente', 'vencida', 'revision'];
 

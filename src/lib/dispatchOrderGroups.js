@@ -1,6 +1,6 @@
 // Normaliza un número de tracking de forma consistente con AdminManualBilling:
 // quita prefijos de transportista (split por ":" o "：") y lo pasa a mayúsculas.
-const normTracking = (raw) => String(raw || '').split(/[:：]/).pop().trim().toUpperCase();
+import { normTracking } from '@/lib/trackingNormalizer';
 
 // Construye un mapa { tracking_normalizado: numero_de_recibo } a partir de
 // los CbmIngreso del cliente. Cada ingreso aporta su invoice_number como
