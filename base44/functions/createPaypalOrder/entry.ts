@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
+import { invoiceBalance, shouldStopNotices, storageAccrued, termsDay } from '../../shared/billingNotices.ts';
 
 async function getAccessToken() {
   const clientId = Deno.env.get('PAYPAL_CLIENT_ID');
@@ -48,7 +49,9 @@ Deno.serve(async (req) => {
 
     const accessToken = await getAccessToken();
 
-    const amount = Number(invoice.total || 0).toFixed(2);
+    // Saldo pendiente más los recargos de almacenamiento y custodia del día
+    const surcharge = shouldStopNotices(invoice) ? 0 : storageAccrued(termsDay(invoice.invoice_date));
+    const amount = (invoiceBalance(invoice) + surcharge).toFixed(2);
     const orderPayload = {
       intent: 'CAPTURE',
       purchase_units: [

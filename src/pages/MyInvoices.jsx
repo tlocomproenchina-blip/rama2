@@ -8,6 +8,7 @@ import PayPalInline from '@/components/payments/PayPalInline';
 import PaymentModal from '@/components/PaymentModal';
 import { FileText, Search, Loader2, CreditCard } from 'lucide-react';
 import { displayInvoiceItems, billableTotal } from '@/lib/storageLines';
+import { storageBalance } from '@/lib/storageBalance';
 import { toast } from 'sonner';
 import jsPDF from 'jspdf';
 import ClientPageHero from '@/components/client-portal/ClientPageHero';
@@ -89,7 +90,8 @@ export default function MyInvoices({ user }) {
 
   const openOtherPay = (inv) => {
     if (inv.status === 'pagada' || inv.status === 'revision') return;
-    const balance = Math.max(0, billableTotal(inv) - Number(inv.paid_amount || 0));
+    // Saldo pendiente más los recargos de almacenamiento y custodia del día
+    const balance = Math.round(storageBalance(inv).total * 100) / 100;
     setSelectedConsolidation({ id: inv.consolidation_id, invoice_id: inv.id, total_cost: balance, consolidation_tracking: inv.consolidation_tracking });
     setPaymentOpen(true);
   };

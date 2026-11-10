@@ -6,6 +6,7 @@ import { CreditCard, Calendar, DollarSign, Eye } from 'lucide-react';
 import { format } from 'date-fns';
 import InvoicePDFGenerator from './InvoicePDFGenerator';
 import InvoiceStorageBalance from '@/components/invoice/InvoiceStorageBalance';
+import { storageBalance } from '@/lib/storageBalance';
 import InvoiceCbmOrders from './InvoiceCbmOrders';
 import InvoiceCreditApply from './InvoiceCreditApply';
 import useFileViewer from '@/hooks/useFileViewer';
@@ -15,6 +16,7 @@ import { isStorageInvoiceLine, billableTotal } from '@/lib/storageLines';
 function InvoiceCard({ invoice, user, onPay, onDownload, showPayButton = false, onOtherPay, showOtherMethodsButton = false, onPayPal, showPayPalButton = false, extraActions = null, selectionControl = null, showInsuranceBreakdown = false, isAdmin = false, onRefresh }) {
   const fileViewer = useFileViewer();
   const total = billableTotal(invoice);
+  const storage = storageBalance(invoice);
   const assistedDetails = invoice.items?.find((item) => item?.details)?.details || {};
   const isAssistedPayment = assistedDetails.request_type === 'assisted_payment' || String(invoice.consolidation_tracking || '').startsWith('AP-') || String(invoice.notes || '').toLowerCase().includes('pago asistido');
   const providerLabel = {
@@ -117,6 +119,11 @@ function InvoiceCard({ invoice, user, onPay, onDownload, showPayButton = false, 
                   <DollarSign className="h-3 w-3" />
                   ${total.toFixed(2)}
                 </span>
+                {storage.active && (
+                  <span className="font-semibold text-amber-700">
+                    A pagar con recargos: ${storage.total.toFixed(2)}
+                  </span>
+                )}
                 {daysSinceInvoice !== null && invoice.status === 'pendiente' && (
                   <Badge className={`text-xs ${daysBadgeClass}`}>
                     {daysSinceInvoice} día{daysSinceInvoice === 1 ? '' : 's'}
