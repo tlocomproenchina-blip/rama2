@@ -29,7 +29,7 @@ export default function PackagesWithoutReceiptSection({ packages, onChange, avai
       toast.success(`${markIds.length} paquete(s) marcados como ya facturados`);
       setMarkIds(null);
     } catch (e) {
-      toast.error('No se pudo marcar como ya facturado');
+      toast.error(`No se pudo marcar como ya facturado${e?.message ? `: ${e.message}` : ''}`);
     } finally {
       setMarking(false);
     }

@@ -717,6 +717,14 @@ class ApiQueueManager {
         }, 'HIGH', 'write', undefined, { label: `${entityName}.bulkCreate` });
       },
 
+      bulkUpdate: async (dataArray) => {
+        this.invalidateEntityCache(entityName);
+
+        return await this.enqueue(async () => {
+          return await base44Client.entities[entityName].bulkUpdate(dataArray);
+        }, 'HIGH', 'write', undefined, { label: `${entityName}.bulkUpdate` });
+      },
+
       schema: async () => {
         const cacheKey = this.getCacheKey(entityName, 'schema', {});
         const cached = this.getFromCache(cacheKey, 3600000); // 1 hora
