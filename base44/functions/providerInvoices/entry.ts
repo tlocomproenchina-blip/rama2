@@ -105,7 +105,13 @@ Deno.serve(async (req) => {
         q.$or = [{ shipping_mark: { $regex: re, $options: 'i' } }, { client_name: { $regex: re, $options: 'i' } }, { invoice_code: { $regex: re, $options: 'i' } }];
       }
       const items = await sr.entities.ProviderInvoice.filter(q, '-created_date', 200);
-      return Response.json({ items });
+      const totals = { pending: 0, paid: 0, pending_count: 0, paid_count: 0 };
+      for (const i of items) {
+        if (i.status === 'pagada') { totals.paid += Number(i.total) || 0; totals.paid_count++; }
+        else { totals.pending += Number(i.total) || 0; totals.pending_count++; }
+      }
+      totals.pending = round(totals.pending); totals.paid = round(totals.paid);
+      return Response.json({ items, totals });
     }
     if (action === 'update') {
       const d = body.data || {};
@@ -137,6 +143,17 @@ Deno.serve(async (req) => {
       if (patch.status === 'pagada') { patch.paid_date = new Date().toISOString(); patch.paid_by = user.email; }
       const invoice = await sr.entities.ProviderInvoice.update(body.id, patch);
       return Response.json({ invoice });
+    }
+    if (action === 'markPaidBulk') {
+      if (!isFullAdmin(user)) return Response.json({ error: 'Solo el administrador' }, { status: 403 });
+      const list = Array.isArray(body.items) ? body.items : [];
+      if (!list.length) return Response.json({ error: 'No hay facturas seleccionadas' }, { status: 400 });
+      if (list.some((i: any) => !i.id || !i.payment_proof_url)) return Response.json({ error: 'Falta el comprobante de alguna factura' }, { status: 400 });
+      const date = /^\d{4}-\d{2}-\d{2}$/.test(String(body.paid_date || '')) ? `${body.paid_date}T12:00:00.000Z` : new Date().toISOString();
+      await sr.entities.ProviderInvoice.bulkUpdate(list.map((i: any) => ({
+        id: i.id, status: 'pagada', payment_proof_url: i.payment_proof_url, paid_date: date, paid_by: user.email,
+      })));
+      return Response.json({ ok: true, count: list.length });
     }
     return Response.json({ error: 'Acción inválida' }, { status: 400 });
   } catch (error: any) {

@@ -28,6 +28,12 @@ export async function uploadToBunny(original) {
   return data.url;
 }
 
+// Fecha local del dispositivo en formato YYYY-MM-DD
+export const todayLocal = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
 export const portalUrl = (token) => publicAppUrl(`/PortalProveedor/${token}`);
 export const publicInvoiceUrl = (token) => publicAppUrl(`/FacturaProveedor/${token}`);
 export const money = (n) => `$${Number(n || 0).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;

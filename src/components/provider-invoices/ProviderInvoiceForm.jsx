@@ -7,14 +7,8 @@ import { Plus, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import ProviderClientSearch from './ProviderClientSearch';
 import FileUploadField from './FileUploadField';
-
-// Fecha local del dispositivo en formato YYYY-MM-DD
-const todayLocal = () => {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-};
 import InvoiceLineFields, { emptyLine, lineTotal, linePayload } from './InvoiceLineFields';
-import { piCall, money } from '@/lib/providerInvoicesApi';
+import { piCall, money, todayLocal } from '@/lib/providerInvoicesApi';
 
 export default function ProviderInvoiceForm({ flatRate, onCreated }) {
   const [client, setClient] = useState(null);
