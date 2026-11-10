@@ -22,6 +22,8 @@ import InvoicedReceiptsSection from '@/components/manual-billing/InvoicedReceipt
 import usePendingBillingClients from '@/hooks/usePendingBillingClients';
 import ClientPendingLoad from '@/components/manual-billing/ClientPendingLoad';
 import MobileBillingTabs from '@/components/manual-billing/MobileBillingTabs';
+import ClientHistoryToggle from '@/components/manual-billing/ClientHistoryToggle';
+import useProviderInvoiceMatches from '@/hooks/useProviderInvoiceMatches';
 
 const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
 
@@ -71,6 +73,8 @@ export default function AdminManualBilling({ user }) {
   const [markingReceiptId, setMarkingReceiptId] = useState(null);
   // Contenedores que ya se facturaron en el sistema (con su factura): solo se muestran
   const [invoicedReceipts, setInvoicedReceipts] = useState([]);
+  // Factura de proveedor vinculada a cada recibo pendiente (por N° de contenedor)
+  const providerMatches = useProviderInvoiceMatches(client, rows);
 
   useEffect(() => {
     (async () => {
@@ -1137,15 +1141,6 @@ export default function AdminManualBilling({ user }) {
               onCargoTypeChange={setCargoType}
             />
 
-            {selectedPending && (
-              <ClientPendingLoad
-                client={selectedPending}
-                markingId={pending.markingId}
-                onMarkBulto={handleMarkBulto}
-                onMarkOrderBultos={handleMarkOrderBultos}
-              />
-            )}
-
             <Button className="w-full xl:hidden" onClick={() => { setMobileTab('recibos'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
               Ver recibos por facturar ({rows.length})
             </Button>
@@ -1160,10 +1155,10 @@ export default function AdminManualBilling({ user }) {
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
-            ) : rows.length === 0 && markedReceipts.length === 0 && invoicedReceipts.length === 0 ? (
+            ) : rows.length === 0 ? (
               <Card className="border-0 shadow-lg">
                 <CardContent className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                  Este cliente no tiene registros de CBM.
+                  Este cliente no tiene recibos pendientes por facturar.
                 </CardContent>
               </Card>
             ) : (
@@ -1177,11 +1172,22 @@ export default function AdminManualBilling({ user }) {
                     marking={markingReceiptId === row.id}
                     assignedTrackings={assignedOrphansByReceipt[row.id] || []}
                     onMarkReceipt={(r) => handleMarkReceipt(r, true)}
+                    providerInvoice={providerMatches[row.id] || null}
                   />
                 ))}
               </div>
             )}
 
+            {(selectedPending || orphanPackages.length > 0 || markedReceipts.length > 0 || invoicedReceipts.length > 0) && (
+            <ClientHistoryToggle count={orphanPackages.length + markedReceipts.length + invoicedReceipts.length}>
+            {selectedPending && (
+              <ClientPendingLoad
+                client={selectedPending}
+                markingId={pending.markingId}
+                onMarkBulto={handleMarkBulto}
+                onMarkOrderBultos={handleMarkOrderBultos}
+              />
+            )}
             {orphanPackages.length > 0 && (
               <PackagesWithoutReceiptSection
                 packages={orphanPackages}
@@ -1201,6 +1207,8 @@ export default function AdminManualBilling({ user }) {
             />
 
             <InvoicedReceiptsSection receipts={invoicedReceipts} />
+            </ClientHistoryToggle>
+            )}
 
             <Button className="w-full xl:hidden" onClick={() => { setMobileTab('resumen'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
               <ReceiptText className="h-4 w-4 mr-2" /> Ir al resumen (${total.toFixed(2)})
