@@ -8,7 +8,7 @@ import { sendBrevoEmail } from '../../shared/brevoEmail.ts';
 
 const APP_URL = 'https://tleccargo.com';
 const MY_PACKAGES_URL = `${APP_URL}/MyPackages`;
-const BRAND_NAME = 'TLEC CARGO by TELOCOMPROENCHINA';
+const BRAND_NAME = 'IMPORTADORA TLEC CARGO by TELOCOMPROENCHINA';
 const TAGLINE = 'Tu carga asegurada desde China hasta Venezuela';
 const LOGO_URL = 'https://media.base44.com/images/public/695da428c9924ef9b68e8866/362c2e6ac_WhatsAppImage2026-08-17at90120AM.jpeg';
 const CAMPAIGN_NAME = 'Comprobantes de entrega';
@@ -106,7 +106,7 @@ function buildEmail({ intro, images, recipient }: { intro: string; images: any[]
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                 <tr>
                   <td width="64" valign="middle" style="width:64px;">
-                    <img src="${LOGO_URL}" alt="TLEC CARGO" width="52" height="52" style="display:block;width:52px;height:52px;border-radius:12px;background-color:#ffffff;" />
+                    <img src="${LOGO_URL}" alt="IMPORTADORA TLEC CARGO" width="52" height="52" style="display:block;width:52px;height:52px;border-radius:12px;background-color:#ffffff;" />
                   </td>
                   <td valign="middle" style="padding-left:14px;font-family:Inter,Arial,sans-serif;">
                     <div style="font-size:17px;font-weight:700;color:#000000;">${BRAND_NAME}</div>
@@ -145,7 +145,7 @@ function buildEmail({ intro, images, recipient }: { intro: string; images: any[]
             <td style="padding:22px 24px 0;font-family:Inter,Arial,sans-serif;">
               <div style="font-size:15px;font-weight:700;color:#0f172a;padding-bottom:10px;">Cómo cargar el comprobante en 3 pasos</div>
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="font-family:Manrope,Arial,sans-serif;font-size:14px;color:#0f172a;">
-                ${stepRow(1, 'Entra a tu cuenta de TLEC CARGO y abre <strong>Mis Paquetes</strong>.')}
+                ${stepRow(1, 'Entra a tu cuenta de IMPORTADORA TLEC CARGO y abre <strong>Mis Paquetes</strong>.')}
                 ${stepRow(2, 'Ubica tu carga y pulsa <strong>Agregar fecha entrega</strong>.')}
                 ${stepRow(3, 'Elige la <strong>fecha en que el vendedor entregó el paquete</strong> en nuestro almacén, adjunta la <strong>foto del comprobante</strong> con <strong>Elegir foto</strong> y pulsa <strong>Guardar</strong>.')}
               </table>
@@ -174,7 +174,7 @@ function buildEmail({ intro, images, recipient }: { intro: string; images: any[]
           <tr>
             <td style="background-color:#f7fafd;border-top:1px solid #e5e7eb;padding:18px 24px;font-family:Manrope,Arial,sans-serif;font-size:12px;line-height:1.6;color:#64748b;">
               ${BRAND_NAME} · ${TAGLINE}<br />
-              <a href="${APP_URL}" style="color:#5c9eeb;text-decoration:none;">tleccargo.com</a>${email ? ` · Este correo llegó a ${escapeHtml(email)} porque tienes un Shipping Mark asignado en TLEC CARGO.` : ''}
+              <a href="${APP_URL}" style="color:#5c9eeb;text-decoration:none;">tleccargo.com</a>${email ? ` · Este correo llegó a ${escapeHtml(email)} porque tienes un Shipping Mark asignado en IMPORTADORA TLEC CARGO.` : ''}
             </td>
           </tr>
 
@@ -397,7 +397,7 @@ Deno.serve(async (req) => {
           to: recipient.email,
           subject: draft.subject,
           body: html,
-          from_name: 'TLEC CARGO',
+          from_name: 'IMPORTADORA TLEC CARGO',
           source: 'campaign',
           campaign_name: CAMPAIGN_NAME,
           provider

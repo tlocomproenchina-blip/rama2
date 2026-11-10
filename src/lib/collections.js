@@ -103,11 +103,11 @@ export function collectionMessage(invoice, aging = invoiceAging(invoice)) {
     '',
     'Si ya realizaste el pago, ignora este mensaje y envíanos el comprobante.',
     '',
-    'TLEC CARGO',
+    'IMPORTADORA TLEC CARGO',
   ].join('\n');
 
   const whatsapp = [
-    `Hola ${ctx.nombre}, te escribimos de TLEC CARGO.`,
+    `Hola ${ctx.nombre}, te escribimos de IMPORTADORA TLEC CARGO.`,
     OPENERS[bucket](ctx),
     NOTES[bucket],
     `Puedes ver y pagar tu factura aquí: ${ctx.link}`,

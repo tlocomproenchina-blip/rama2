@@ -16,7 +16,7 @@ export default function ContainersExportHistoryEntry({ entry }) {
   const reprint = async (mode) => {
     if (!clients.length) return;
     setBusy(true);
-    await generateContainersReportPdf(clients, 'TLEC CARGO', mode);
+    await generateContainersReportPdf(clients, 'IMPORTADORA TLEC CARGO', mode);
     setBusy(false);
   };
 

@@ -108,7 +108,7 @@ export default function PortalLinkFormDialog({ open, link, wholesalers, onSearch
               >
                 Todos los registros
                 <span className="mt-1 block text-xs font-normal text-muted-foreground">
-                  Ve todos los mayoristas y los registros directos de TLEC CARGO
+                  Ve todos los mayoristas y los registros directos de IMPORTADORA TLEC CARGO
                 </span>
               </button>
               <button

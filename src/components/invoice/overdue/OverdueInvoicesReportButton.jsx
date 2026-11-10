@@ -12,7 +12,7 @@ import {
 
 // Informe imprimible de las facturas vencidas que se están mostrando: shipping mark,
 // contenedor, tracking, cliente y total. Vive dentro de la pestaña Vencidas.
-export default function OverdueInvoicesReportButton({ invoices = [], appName = 'TLEC CARGO' }) {
+export default function OverdueInvoicesReportButton({ invoices = [], appName = 'IMPORTADORA TLEC CARGO' }) {
   const [open, setOpen] = useState(false);
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);

@@ -59,7 +59,7 @@ export default function WarehouseOrderModal({ open, onClose, invoice, appName, o
   const handleDocument = async (mode) => {
     setWorking(true);
     try {
-      await generateWarehouseOrderPdf({ invoice, order, appName: appName || 'TLEC CARGO', mode });
+      await generateWarehouseOrderPdf({ invoice, order, appName: appName || 'IMPORTADORA TLEC CARGO', mode });
     } catch (error) {
       toast.error('No se pudo preparar el documento');
     }

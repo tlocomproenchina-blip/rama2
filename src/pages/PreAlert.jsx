@@ -778,7 +778,7 @@ export default function PreAlert({ user }) {
                     </p>
                     <p className="mt-2 text-sm font-medium text-red-600 leading-relaxed flex items-start gap-1.5">
                       <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
-                      <span>⚠️ Importante: La mercancía no asegurada viaja bajo responsabilidad del cliente. TLEC CARGO no se hace responsable por pérdidas o daños ocasionados durante etapas logísticas fuera de nuestro control.</span>
+                      <span>⚠️ Importante: La mercancía no asegurada viaja bajo responsabilidad del cliente. IMPORTADORA TLEC CARGO no se hace responsable por pérdidas o daños ocasionados durante etapas logísticas fuera de nuestro control.</span>
                     </p>
                   </div>
                 </div>

@@ -11,7 +11,7 @@ import GuideBulkDeleteBar from './GuideBulkDeleteBar';
 // Historial de guías emitidas: filtros y paginación resueltos en el servidor,
 // con reimpresión y anotación de entrega por guía.
 export default function DispatchGuideHistoryPanel({ highlightId = '', reloadSignal = 0, onGuideUpdated }) {
-  const [appName, setAppName] = useState('TLEC CARGO');
+  const [appName, setAppName] = useState('IMPORTADORA TLEC CARGO');
   const { guides, loading, loadingMore, hasMore, error, filters, setFilters, refresh, loadMore } =
     useDispatchGuideHistory({ enabled: true });
 

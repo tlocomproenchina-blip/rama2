@@ -67,7 +67,7 @@ export default function AssistedPaymentsList() {
   const buildAssistedPaymentMessage = (requestNumber, clientName) => {
     const id = requestNumber || '';
     const greeting = clientName ? `Hola ${clientName},` : 'Hola,';
-    return `${greeting} le escribimos de TLEC CARGO en relación a su solicitud de pago asistido${id ? ` número ${id}` : ''}.`;
+    return `${greeting} le escribimos de IMPORTADORA TLEC CARGO en relación a su solicitud de pago asistido${id ? ` número ${id}` : ''}.`;
   };
 
   const getWhatsAppUrl = (email, requestNumber) => {

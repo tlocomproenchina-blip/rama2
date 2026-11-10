@@ -370,7 +370,7 @@ export default function WarehouseDispatchHistory({ user }) {
         };
       } catch (_) {}
     }
-    await generateDispatchOrderPdf(enrichedOrder, configs?.[0]?.app_name || 'TLEC CARGO', mode);
+    await generateDispatchOrderPdf(enrichedOrder, configs?.[0]?.app_name || 'IMPORTADORA TLEC CARGO', mode);
   };
 
   const handleDownload = (order) => buildPdf(order, 'save');

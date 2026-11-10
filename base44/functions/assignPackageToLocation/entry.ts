@@ -141,7 +141,7 @@ Deno.serve(async (req) => {
       await recalcLocation(base44, pkg.warehouse_location_id);
     }
 
-    // Recepción confirmada al mayorista con la foto que capturó TLEC CARGO en el
+    // Recepción confirmada al mayorista con la foto que capturó IMPORTADORA TLEC CARGO en el
     // almacén: su cuenta del cliente recibe el tracking con la foto. Si el aviso
     // sale completo, la carga deja de aparecer en seguimiento dentro de Paquetes
     // Huérfanos; si falla, queda pendiente y se reintenta en el corte siguiente.

@@ -97,7 +97,7 @@ export default async function (req: Request): Promise<Response> {
     for (const b of bultos) groupOf(b.client_email).bultos.push(b);
     for (const p of packages) groupOf(p.client_email).packages.push(p);
 
-    const appName = cfg.app_name || 'TLEC CARGO';
+    const appName = cfg.app_name || 'IMPORTADORA TLEC CARGO';
 
     // Plantilla editable por el admin: se crea con el texto por defecto la primera vez
     let template: any = { subject: DEFAULT_SUBJECT, body: DEFAULT_BODY };

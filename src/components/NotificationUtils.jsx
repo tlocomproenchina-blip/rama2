@@ -15,10 +15,10 @@ async function getFromName() {
   try {
     const cfgs = await base44.entities.AppConfig.filter({ config_key: 'main' });
     const cfg = cfgs?.[0] || {};
-    CACHED_FROM_NAME = cfg.invoice_company_name || cfg.app_name || 'TLEC CARGO';
+    CACHED_FROM_NAME = cfg.invoice_company_name || cfg.app_name || 'IMPORTADORA TLEC CARGO';
     return CACHED_FROM_NAME;
   } catch (_) {
-    CACHED_FROM_NAME = 'TLEC CARGO';
+    CACHED_FROM_NAME = 'IMPORTADORA TLEC CARGO';
     return CACHED_FROM_NAME;
   }
 }

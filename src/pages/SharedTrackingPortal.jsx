@@ -191,7 +191,7 @@ export default function SharedTrackingPortal() {
         <div className="max-w-md space-y-3 rounded-2xl border border-border bg-card p-6 text-center shadow-sm">
           <ShieldOff className="mx-auto h-8 w-8 text-muted-foreground" />
           <p className="font-display text-lg font-bold text-foreground">{blocked}</p>
-          <p className="text-sm text-muted-foreground">Pídele a TLEC CARGO un enlace nuevo para seguir consultando.</p>
+          <p className="text-sm text-muted-foreground">Pídele a IMPORTADORA TLEC CARGO un enlace nuevo para seguir consultando.</p>
         </div>
       </div>
     );
@@ -249,7 +249,7 @@ export default function SharedTrackingPortal() {
 
         <footer className="flex flex-col items-center gap-1 pt-2 text-center text-xs text-muted-foreground">
           <p>Vista de solo lectura. Consulta y exporta con los filtros que definas.</p>
-          <p>TLEC CARGO · Tu carga asegurada desde China hasta Venezuela</p>
+          <p>IMPORTADORA TLEC CARGO · Tu carga asegurada desde China hasta Venezuela</p>
         </footer>
       </div>
     </div>

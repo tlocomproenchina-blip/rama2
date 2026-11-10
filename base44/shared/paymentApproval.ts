@@ -1,7 +1,7 @@
 import { buildWarehouseOrderOnPayment } from "./warehouseOrder.ts";
 import { recordApprovalForReport } from "./paymentReport.ts";
 
-// Lógica única de aprobación de pagos de TLEC CARGO.
+// Lógica única de aprobación de pagos de IMPORTADORA TLEC CARGO.
 // La usan la aprobación individual de seguros (approveInsurancePayment) y la aprobación masiva (bulkApprovePayments), de modo que
 // aprobar en bloque tenga exactamente el mismo efecto que aprobar de a uno.
 // Módulo plano: solo exporta utilidades (sin Deno.serve).

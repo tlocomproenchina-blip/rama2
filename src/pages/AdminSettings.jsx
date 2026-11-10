@@ -117,7 +117,7 @@ export default function AdminSettings({ user }) {
 
   // App Config
    const [appConfig, setAppConfig] = useState({
-      app_name: 'TLEC CARGO',
+      app_name: 'IMPORTADORA TLEC CARGO',
       app_tagline: 'Tu socio confiable en envíos',
       app_logo_url: '',
       favicon_url: '',
@@ -126,7 +126,7 @@ export default function AdminSettings({ user }) {
       warehouse_zipcode: '',
       contract_text: '',
       insurance_percentage: 5,
-      invoice_company_name: 'TLEC CARGO LTD',
+      invoice_company_name: 'IMPORTADORA TLEC CARGO LTD',
       invoice_company_tagline: 'Sistema de Envios Internacionales',
       invoice_logo_url: '',
       invoice_overdue_days: 7,
@@ -494,7 +494,7 @@ export default function AdminSettings({ user }) {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
     let y = 14;
-    const companyName = appConfig.app_name || 'TLEC CARGO';
+    const companyName = appConfig.app_name || 'IMPORTADORA TLEC CARGO';
     const logoUrl = appConfig.invoice_logo_url || appConfig.app_logo_url;
 
     if (logoUrl) {
@@ -1352,7 +1352,7 @@ export default function AdminSettings({ user }) {
                 <Input
                   value={appConfig.app_name}
                   onChange={(e) => setAppConfig({ ...appConfig, app_name: e.target.value })}
-                  placeholder="TLEC CARGO"
+                  placeholder="IMPORTADORA TLEC CARGO"
                 />
               </div>
 
@@ -1763,7 +1763,7 @@ export default function AdminSettings({ user }) {
                 <Input
                   value={appConfig.invoice_company_name || ''}
                   onChange={(e) => setAppConfig({ ...appConfig, invoice_company_name: e.target.value })}
-                  placeholder="TLEC CARGO LTD"
+                  placeholder="IMPORTADORA TLEC CARGO LTD"
                 />
                 <p className="text-xs text-slate-500">Nombre que aparecerá en el encabezado de la factura</p>
               </div>

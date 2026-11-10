@@ -113,7 +113,7 @@ async function sendEmail(base44, {
     // Logística desactivada por defecto: solo in-app, sin emails
     return;
   }
-  const fromName = appConfig.invoice_company_name || appConfig.app_name || 'TLEC CARGO';
+  const fromName = appConfig.invoice_company_name || appConfig.app_name || 'IMPORTADORA TLEC CARGO';
   const template = templateName ? await getEmailTemplate(base44, templateName) : null;
   const subject = replaceTemplateVariables(template?.subject || fallbackSubject, variables);
   const body = replaceTemplateVariables(template?.body || fallbackBody, variables);

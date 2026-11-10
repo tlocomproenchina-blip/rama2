@@ -59,7 +59,7 @@ export default async function(req) {
       enabled_methods: enabledMethods,
       method_details: methodDetails,
       paypal_client_id: paypalClientId,
-      app_name: config.app_name || 'TLEC CARGO',
+      app_name: config.app_name || 'IMPORTADORA TLEC CARGO',
       bcv_eur_rate: Number(config.bcv_eur_rate) || 0,
       bcv_eur_rate_date: config.bcv_eur_rate_date || null,
     });

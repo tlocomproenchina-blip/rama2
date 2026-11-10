@@ -15,7 +15,7 @@ import { buildPalletEntries, palletClientKey } from '@/lib/guidePallets';
 // Emisión manual por bultos escaneados: se eligen a mano el cliente y los bultos que
 // siguen pendientes de guía. Al emitir, la guía queda con su número correlativo y se
 // genera sola la orden de despacho de cada cliente, más el PDF para imprimir.
-export default function ManualGuideScannedTab({ appName = 'TLEC CARGO', onGenerated }) {
+export default function ManualGuideScannedTab({ appName = 'IMPORTADORA TLEC CARGO', onGenerated }) {
   const { search, setSearch, clients, loading, searched, loadingMore, hasMore, loadMore, reload } =
     useManualGuideCandidates();
   const [selected, setSelected] = useState(() => new Set());

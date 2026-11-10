@@ -147,7 +147,7 @@ export default function TermsNoticeCard() {
         <div className="space-y-2">
           <Label>Mensaje</Label>
           <Textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={6} placeholder="Escribe el mensaje que recibirán tus clientes..." />
-          <p className="text-xs text-slate-500">El correo lleva el encabezado de TLEC CARGO, tu mensaje y el botón hacia los términos.</p>
+          <p className="text-xs text-slate-500">El correo lleva el encabezado de IMPORTADORA TLEC CARGO, tu mensaje y el botón hacia los términos.</p>
         </div>
         <div className="space-y-2">
           <Label>Enlace a los términos</Label>

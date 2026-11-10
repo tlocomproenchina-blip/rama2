@@ -47,7 +47,7 @@ export default async function(req: Request): Promise<Response> {
         seo_description: result.seo_description,
         tags: result.tags || [],
         reading_time_minutes: estimateReadingTime(result.content),
-        author_name: 'TLEC CARGO',
+        author_name: 'IMPORTADORA TLEC CARGO',
         status: 'published',
         published_at: new Date().toISOString()
       });

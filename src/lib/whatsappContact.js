@@ -18,5 +18,5 @@ export function buildPackageContactMessage(pkg, clientName, shippingMark) {
   const name = clientName ? clientName.split(' ')[0] : 'estimado cliente';
   const tracking = pkg?.tracking_number || '';
   const mark = shippingMark ? ` | Shipping Mark: ${shippingMark}` : '';
-  return `Hola ${name}, le contactamos de TLEC CARGO sobre su paquete con tracking ${tracking}${mark}.`;
+  return `Hola ${name}, le contactamos de IMPORTADORA TLEC CARGO sobre su paquete con tracking ${tracking}${mark}.`;
 }

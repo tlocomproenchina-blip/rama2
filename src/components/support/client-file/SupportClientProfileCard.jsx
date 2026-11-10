@@ -16,7 +16,7 @@ function Row({ icon: Icon, label, value }) {
 }
 
 // Datos de contacto del cliente dentro de su ficha: nombre, cédula, teléfono,
-// correo y dirección, tal como están registrados en TLEC CARGO.
+// correo y dirección, tal como están registrados en IMPORTADORA TLEC CARGO.
 export default function SupportClientProfileCard({ client }) {
   if (!client) return null;
 

@@ -470,7 +470,7 @@ export default function MyPackages({ user }) {
                       <>
                         {proofState.exception && proofState.pastDeadline && (
                           <p className="mt-1 text-[11px] md:text-xs text-emerald-700">
-                            Excepción habilitada por TLEC CARGO: puedes volver a cargar la fecha y la foto.
+                            Excepción habilitada por IMPORTADORA TLEC CARGO: puedes volver a cargar la fecha y la foto.
                           </p>
                         )}
                         <Button
@@ -621,7 +621,7 @@ export default function MyPackages({ user }) {
             <div>
               <Label>Foto de la entrega</Label>
               <p className="mt-1 text-[11px] text-slate-500">
-                Adjunta una foto del paquete como respaldo de esta entrega. Queda guardada con tu paquete y la ve el equipo de TLEC CARGO.
+                Adjunta una foto del paquete como respaldo de esta entrega. Queda guardada con tu paquete y la ve el equipo de IMPORTADORA TLEC CARGO.
               </p>
               <input
                 id="seller-delivery-photo"

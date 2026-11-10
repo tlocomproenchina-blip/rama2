@@ -13,7 +13,7 @@ const ACTION_LABELS: Record<string, string> = {
   escalate: 'el escalamiento del caso',
 };
 
-const SYSTEM_PROMPT = `Eres el copiloto de soporte de TLEC CARGO, una empresa de carga marítima de China a Venezuela.
+const SYSTEM_PROMPT = `Eres el copiloto de soporte de IMPORTADORA TLEC CARGO, una empresa de carga marítima de China a Venezuela.
 
 Trabajas PARA el agente de atención al cliente (ATC). No hablas con el cliente: escribes para que el ATC sepa qué hacer y qué responderle.
 

@@ -14,7 +14,7 @@ import GuideFromInvoicesTab from './GuideFromInvoicesTab';
 // Al emitir se guarda la guía numerada y se genera sola la orden de despacho de cada
 // cliente, más el PDF de la guía para imprimir.
 export default function ManualGuideCard({ onGenerated }) {
-  const [appName, setAppName] = useState('TLEC CARGO');
+  const [appName, setAppName] = useState('IMPORTADORA TLEC CARGO');
 
   useEffect(() => {
     base44.entities.AppConfig.filter({ config_key: 'main' }, '-updated_date', 1)

@@ -2,7 +2,7 @@
 // Un solo lugar define el HTML: lo usan el envío inmediato y la cola de correos.
 
 export const APP_URL = 'https://tleccargo.com';
-const BRAND_NAME = 'TLEC CARGO by TELOCOMPROENCHINA';
+const BRAND_NAME = 'IMPORTADORA TLEC CARGO by TELOCOMPROENCHINA';
 const TAGLINE = 'Tu carga asegurada desde China hasta Venezuela';
 const LOGO_URL = 'https://media.base44.com/images/public/695da428c9924ef9b68e8866/362c2e6ac_WhatsAppImage2026-08-17at90120AM.jpeg';
 
@@ -55,7 +55,7 @@ export function buildTermsNoticeEmail({ recipientName, message, termsUrl }: { re
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                 <tr>
                   <td width="64" valign="middle" style="width:64px;">
-                    <img src="${LOGO_URL}" alt="TLEC CARGO" width="52" height="52" style="display:block;width:52px;height:52px;border-radius:12px;background-color:#ffffff;" />
+                    <img src="${LOGO_URL}" alt="IMPORTADORA TLEC CARGO" width="52" height="52" style="display:block;width:52px;height:52px;border-radius:12px;background-color:#ffffff;" />
                   </td>
                   <td valign="middle" style="padding-left:14px;font-family:Inter,Arial,sans-serif;">
                     <div style="font-size:17px;font-weight:700;color:#000000;">${BRAND_NAME}</div>
@@ -74,7 +74,7 @@ export function buildTermsNoticeEmail({ recipientName, message, termsUrl }: { re
 
           <tr>
             <td style="padding:10px 24px 0;font-family:Manrope,Arial,sans-serif;font-size:14px;line-height:1.6;color:#64748b;">
-              Los nuevos términos ya están vigentes y aplican a tus envíos con TLEC CARGO.
+              Los nuevos términos ya están vigentes y aplican a tus envíos con IMPORTADORA TLEC CARGO.
             </td>
           </tr>
 
@@ -99,7 +99,7 @@ export function buildTermsNoticeEmail({ recipientName, message, termsUrl }: { re
           <tr>
             <td style="background-color:#f7fafd;border-top:1px solid #e5e7eb;padding:18px 24px;font-family:Manrope,Arial,sans-serif;font-size:12px;line-height:1.6;color:#64748b;">
               ${BRAND_NAME} · ${TAGLINE}<br />
-              <a href="${APP_URL}" style="color:#5c9eeb;text-decoration:none;">tleccargo.com</a> · Recibiste este correo porque tienes una cuenta en TLEC CARGO.
+              <a href="${APP_URL}" style="color:#5c9eeb;text-decoration:none;">tleccargo.com</a> · Recibiste este correo porque tienes una cuenta en IMPORTADORA TLEC CARGO.
             </td>
           </tr>
 

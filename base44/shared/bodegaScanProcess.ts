@@ -31,7 +31,7 @@ import { confirmReceptionToWholesaler, noticeDeliveredWithPhoto, setOrphanFollow
 // Aviso al mayorista titular de esa carga, en su app, con la foto del almacén.
 // Sale solo, sin confirmación de nadie, y también cuando la carga entró como
 // huérfana: el titular se reconoce en el contexto de ese mayorista, no por tener
-// cuenta en TLEC CARGO. Un fallo de conexión no rompe el registro: el aviso queda
+// cuenta en IMPORTADORA TLEC CARGO. Un fallo de conexión no rompe el registro: el aviso queda
 // pendiente y se reintenta en el corte siguiente.
 export async function notifyWholesalerReception(base44: any, pkg: any, photoUrl: any, now: string, by: string) {
   if (!pkg?.id) return;

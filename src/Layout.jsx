@@ -377,10 +377,10 @@ export default function Layout({ children, currentPageName }) {
             to: user.email,
             templateName: 'Base - Nuevo Cliente',
             client: updatedUser,
-            extraData: { app_name: config?.app_name || 'TLEC CARGO' },
-            fallbackSubject: '¡Bienvenido a TLEC CARGO!',
-            fallbackBody: 'Hola {cliente_nombre}, tu cuenta ya está activa en TLEC CARGO.',
-            title: 'Bienvenido a TLEC CARGO',
+            extraData: { app_name: config?.app_name || 'IMPORTADORA TLEC CARGO' },
+            fallbackSubject: '¡Bienvenido a IMPORTADORA TLEC CARGO!',
+            fallbackBody: 'Hola {cliente_nombre}, tu cuenta ya está activa en IMPORTADORA TLEC CARGO.',
+            title: 'Bienvenido a IMPORTADORA TLEC CARGO',
             message: 'Tu cuenta ya está activa y lista para usarse.',
             type: 'system',
             icon: 'check'
@@ -529,7 +529,7 @@ export default function Layout({ children, currentPageName }) {
               </Button>
               <div className="min-w-0 flex-1 px-2 text-center">
                 <p className="truncate text-[10px] font-semibold uppercase tracking-[0.24em] text-primary/70">Navegación</p>
-                <h1 className="line-clamp-2 break-words leading-tight font-display text-sm font-semibold text-slate-800">{config?.app_name || 'TLEC CARGO'}</h1>
+                <h1 className="line-clamp-2 break-words leading-tight font-display text-sm font-semibold text-slate-800">{config?.app_name || 'IMPORTADORA TLEC CARGO'}</h1>
                 <p className="truncate text-[11px] text-slate-500">{currentPageName || 'Panel'}</p>
               </div>
               <div className="flex items-center justify-end gap-1.5">

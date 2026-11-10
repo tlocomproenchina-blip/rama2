@@ -17,9 +17,9 @@ export default function PortalHeader({ link }) {
     <header className="rounded-2xl border border-border bg-card px-5 py-4 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex items-center gap-3">
-          <img src={LOGO_URL} alt="TLEC CARGO" className="h-11 w-11 rounded-xl object-contain" />
+          <img src={LOGO_URL} alt="IMPORTADORA TLEC CARGO" className="h-11 w-11 rounded-xl object-contain" />
           <div>
-            <p className="font-display text-lg font-bold tracking-tight text-foreground">TLEC CARGO</p>
+            <p className="font-display text-lg font-bold tracking-tight text-foreground">IMPORTADORA TLEC CARGO</p>
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
               Portal de consulta de tracking
             </p>

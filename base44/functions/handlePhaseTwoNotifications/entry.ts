@@ -96,7 +96,7 @@ async function sendEmail(base44, {
   if (appConfig.emails_enabled === false) {
     return { sent: false, skipped: true, reason: 'emails_enabled=false' };
   }
-  const fromName = appConfig.invoice_company_name || appConfig.app_name || 'TLEC CARGO';
+  const fromName = appConfig.invoice_company_name || appConfig.app_name || 'IMPORTADORA TLEC CARGO';
   const template = templateName ? await getEmailTemplate(base44, templateName) : null;
   const subject = replaceTemplateVariables(template?.subject || fallbackSubject, variables);
   const body = replaceTemplateVariables(template?.body || fallbackBody, variables);
@@ -144,14 +144,14 @@ async function handleUserNotification(base44, eventType, userData, oldData) {
   if ((eventType === 'create' && profileCompletedNow) || (eventType === 'update' && !profileCompletedBefore && profileCompletedNow)) {
     const variables = {
       cliente_nombre: fullName,
-      app_name: 'TLEC CARGO',
+      app_name: 'IMPORTADORA TLEC CARGO',
     };
 
     await sendEmail(base44, {
       to: email,
       templateName: 'Base - Nuevo Cliente',
-      fallbackSubject: '¡Bienvenido a TLEC CARGO!',
-      fallbackBody: 'Hola {cliente_nombre}, tu cuenta ya está activa en TLEC CARGO.',
+      fallbackSubject: '¡Bienvenido a IMPORTADORA TLEC CARGO!',
+      fallbackBody: 'Hola {cliente_nombre}, tu cuenta ya está activa en IMPORTADORA TLEC CARGO.',
       variables,
     });
 
@@ -223,13 +223,13 @@ async function handleInvoiceNotification(base44, eventType, invoiceData, oldData
         to: clientEmail,
         subject: email.subject,
         body: email.html,
-        from_name: appConfig.invoice_company_name || appConfig.app_name || 'TLEC CARGO',
+        from_name: appConfig.invoice_company_name || appConfig.app_name || 'IMPORTADORA TLEC CARGO',
       }).catch((error) => ({ sent: false, error: error?.message }));
       await createEmailLog(base44, {
         to: clientEmail,
         subject: email.subject,
         body: email.html,
-        fromName: 'TLEC CARGO',
+        fromName: 'IMPORTADORA TLEC CARGO',
         status: result?.sent ? 'sent' : 'failed',
       });
     }

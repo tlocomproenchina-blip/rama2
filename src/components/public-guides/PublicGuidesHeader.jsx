@@ -1,7 +1,7 @@
 import React from 'react';
 import { ClipboardList } from 'lucide-react';
 
-// Encabezado del portal público de guías de despacho: marca de TLEC CARGO y la
+// Encabezado del portal público de guías de despacho: marca de IMPORTADORA TLEC CARGO y la
 // explicación de lo que se puede consultar aquí.
 export default function PublicGuidesHeader() {
   return (
@@ -19,7 +19,7 @@ export default function PublicGuidesHeader() {
         </div>
       </div>
       <p className="mt-3 text-[11px] text-muted-foreground">
-        TLEC CARGO · Tu carga asegurada desde China hasta Venezuela
+        IMPORTADORA TLEC CARGO · Tu carga asegurada desde China hasta Venezuela
       </p>
     </header>
   );

@@ -41,7 +41,7 @@ Deno.serve(async (req) => {
     }
 
     const now = new Date();
-    const appName = cfg.app_name || 'TLEC CARGO';
+    const appName = cfg.app_name || 'IMPORTADORA TLEC CARGO';
 
     // === Métricas agregadas (lógica compartida con getDailySummary) ===
     const metrics = await fetchDailySummaryMetrics(base44);

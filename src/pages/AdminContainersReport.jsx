@@ -119,7 +119,7 @@ export default function AdminContainersReport() {
       return;
     }
     setExporting(true);
-    await generateContainersReportPdf(selectedGroups, 'TLEC CARGO', mode);
+    await generateContainersReportPdf(selectedGroups, 'IMPORTADORA TLEC CARGO', mode);
     await saveExportLog(selectedGroups, mode === 'print' ? 'print' : 'pdf');
     setExporting(false);
     if (mode === 'save') {

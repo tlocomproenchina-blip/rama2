@@ -164,7 +164,7 @@ export default function WholesalerConnectionDialog({ open, connection, onClose, 
             <p className="text-xs text-muted-foreground">
               Devuelve sus pre-alertas en páginas (con <span className="font-mono">items</span> y{' '}
               <span className="font-mono">next_cursor</span>); se le pide con <span className="font-mono">limit</span> y{' '}
-              <span className="font-mono">cursor</span>. Con esa dirección, TLEC CARGO lo consulta todos los días.
+              <span className="font-mono">cursor</span>. Con esa dirección, IMPORTADORA TLEC CARGO lo consulta todos los días.
             </p>
           </div>
 

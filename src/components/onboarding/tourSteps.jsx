@@ -7,7 +7,7 @@ import {
 export const clientTourSteps = [
   {
     id: 'welcome',
-    title: '¡Bienvenido a TLEC CARGO!',
+    title: '¡Bienvenido a IMPORTADORA TLEC CARGO!',
     description: 'Te guiaremos por las funciones principales de tu panel. Este recorrido dura menos de 2 minutos. Puedes repetirlo cuando quieras desde el botón de ayuda.',
     icon: Package,
     color: 'blue',

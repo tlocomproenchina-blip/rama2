@@ -17,7 +17,7 @@ async function fetchReceiptTotals(receipts, clientEmail) {
   }
 }
 
-export async function generateDispatchOrderPdf(order, appName = 'TLEC CARGO', mode = 'save') {
+export async function generateDispatchOrderPdf(order, appName = 'IMPORTADORA TLEC CARGO', mode = 'save') {
   const { jsPDF } = await import('jspdf');
   const doc = new jsPDF();
   const client = order.client_snapshot || {};

@@ -331,13 +331,13 @@ Deno.serve(async (req) => {
           `<p>Hola <strong>${clientName}</strong>,</p>` +
           `<p>Te informamos que tu paquete <strong>${displayTracking}</strong> fue despachado de nuestro almacén.</p>` +
           `<p>🚚 <strong>Transportista asignado</strong>: tu envío va en camino a su destino.</p>` +
-          `<p>Gracias por confiar en TLEC CARGO.</p>`;
+          `<p>Gracias por confiar en IMPORTADORA TLEC CARGO.</p>`;
         try {
           await sendBrevoEmail(base44, {
             to: pkg.client_email,
             subject: '🚚 Transportista asignado — tu paquete fue despachado',
             body: emailBody,
-            from_name: 'TLEC CARGO',
+            from_name: 'IMPORTADORA TLEC CARGO',
             source: 'dispatch_assigned',
           });
         } catch (_) {}

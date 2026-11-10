@@ -32,7 +32,7 @@ async function notifyAdminsOfContractAcceptance(base44: any, quote: any) {
     );
 
     if (emailsEnabled) {
-      const appName = 'TLEC CARGO';
+      const appName = 'IMPORTADORA TLEC CARGO';
       const body = `<h2>✅ Contrato de presupuesto aceptado</h2>
 <p>El cliente <strong>${quote.client_first_name || ''} ${quote.client_last_name || ''}</strong> ha aceptado el contrato del presupuesto <strong>${quote.quote_number || quote.token.slice(0, 8)}</strong>.</p>
 <p>Total: $${(quote.total_usd || 0).toFixed(2)} USD</p>

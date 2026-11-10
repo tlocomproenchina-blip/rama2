@@ -148,7 +148,7 @@ export default function AdminAssistantKnowledge({ user }) {
         <h1 className="text-2xl font-bold text-slate-900 md:text-3xl">Conocimiento del Asistente</h1>
         <p className="text-sm text-slate-500">
           Dos documentos para revisar: cómo se propone usar el conocimiento del sistema y qué reglas aplica hoy
-          TLEC CARGO. Cada sección se edita por separado.
+          IMPORTADORA TLEC CARGO. Cada sección se edita por separado.
         </p>
       </div>
 

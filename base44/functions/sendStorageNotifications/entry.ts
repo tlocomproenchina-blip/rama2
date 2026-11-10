@@ -118,7 +118,7 @@ Deno.serve(async (req) => {
         to: inv.client_email,
         subject: email.subject,
         body: email.html,
-        from_name: 'TLEC CARGO',
+        from_name: 'IMPORTADORA TLEC CARGO',
         source: 'avisos_cobro',
       } as any);
 

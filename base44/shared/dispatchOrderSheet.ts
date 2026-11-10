@@ -367,7 +367,7 @@ export function renderDispatchOrderText(sheet: any) {
   const totals = sheet?.totals || {};
   const lines: string[] = [];
 
-  lines.push('ORDEN DE DESPACHO - TLEC CARGO');
+  lines.push('ORDEN DE DESPACHO - IMPORTADORA TLEC CARGO');
   lines.push(`Período: ${fmtDay(sheet?.period_from)} al ${fmtDay(sheet?.period_to)} · Clientes: ${totals.clients || 0}`);
   const stamp = fmtStamp(sheet?.regenerated_date || sheet?.generated_date);
   lines.push(`Generada: ${stamp}${text(sheet?.regenerated_by || sheet?.generated_by) ? ` · ${text(sheet.regenerated_by || sheet.generated_by)}` : ''}`);

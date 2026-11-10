@@ -54,7 +54,7 @@ export default function HomeFooter() {
           </ul>
         </div>
       </div>
-      <div className="mt-8 border-t border-slate-800 pt-6 text-center text-xs text-slate-500">© {new Date().getFullYear()} TLEC CARGO. Todos los derechos reservados.</div>
+      <div className="mt-8 border-t border-slate-800 pt-6 text-center text-xs text-slate-500">© {new Date().getFullYear()} IMPORTADORA TLEC CARGO. Todos los derechos reservados.</div>
     </footer>
   );
 }

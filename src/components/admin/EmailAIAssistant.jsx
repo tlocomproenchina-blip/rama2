@@ -20,7 +20,7 @@ export default function EmailAIAssistant({ appName, onApply }) {
     setGenerating(true);
     try {
       const result = await base44.integrations.Core.InvokeLLM({
-        prompt: `Redacta un email comercial profesional en español para la empresa ${appName || 'TLEC CARGO'}.
+        prompt: `Redacta un email comercial profesional en español para la empresa ${appName || 'IMPORTADORA TLEC CARGO'}.
 
 Idea del usuario:
 ${idea}

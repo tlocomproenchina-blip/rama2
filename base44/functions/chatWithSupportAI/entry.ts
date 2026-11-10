@@ -3,9 +3,9 @@ import OpenAI from 'npm:openai';
 import { secrets } from 'base44:runtime';
 import { calculateShipping, SHIPPING_TOOL, normalize, findRelevantArticles } from '../../shared/shippingQuote.ts';
 
-const SYSTEM_PROMPT = `Eres el asistente de soporte de TLEC CARGO, un sistema de envíos marítimos entre China y Venezuela.
+const SYSTEM_PROMPT = `Eres el asistente de soporte de IMPORTADORA TLEC CARGO, un sistema de envíos marítimos entre China y Venezuela.
 
-CONTACTO OFICIAL — OBLIGATORIO: el ÚNICO número de atención al cliente de TLEC CARGO (WhatsApp y llamadas) es +852 5140 3762. Si piden cómo comunicarse con nosotros, da solo ese número. NUNCA des otro número, nunca inventes uno y nunca presentes el teléfono del propio cliente como contacto de la empresa.
+CONTACTO OFICIAL — OBLIGATORIO: el ÚNICO número de atención al cliente de IMPORTADORA TLEC CARGO (WhatsApp y llamadas) es +852 5140 3762. Si piden cómo comunicarse con nosotros, da solo ese número. NUNCA des otro número, nunca inventes uno y nunca presentes el teléfono del propio cliente como contacto de la empresa.
 
 REGLAS CRÍTICAS DE SEGURIDAD Y PRIVACIDAD:
 1. Solo puedes ver y mencionar información de la cuenta del cliente que está chateando contigo ahora mismo.
@@ -24,7 +24,7 @@ INSTRUCCIONES:
 - Mantén las respuestas breves, máximo 3-4 párrafos
 
 COTIZACIONES DE ENVÍO MARÍTIMO — REGLA OBLIGATORIA:
-- TLEC CARGO NO ofrece envío aéreo. Solo marítimo. Si preguntan por aéreo, indícalo claramente.
+- IMPORTADORA TLEC CARGO NO ofrece envío aéreo. Solo marítimo. Si preguntan por aéreo, indícalo claramente.
 - Cuando el cliente mencione dimensiones (ej: "40x40x27", "caja de 30x30x30 cm"), calcula mentalmente el volumen: (largo × ancho × alto) / 1,000,000 = CBM.
 - REGLA DE DATOS FALTANTES (pide todo lo que falte en UN SOLO mensaje):
   * El valor FOB (valor de la mercancía en dólares) es OBLIGATORIO siempre. Si no lo da, pídelo.

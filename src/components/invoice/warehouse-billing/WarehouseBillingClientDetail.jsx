@@ -153,7 +153,7 @@ export default function WarehouseBillingClientDetail({ client, ctx, appConfig, o
   };
 
   const handleWhatsApp = () => {
-    const message = `Hola ${client.client_name}, le escribimos de TLEC CARGO. Su carga ya está en el almacén de Venezuela. Generamos la factura ${created?.invoice_number} por un monto de $${Number(created?.total || 0).toFixed(2)} para los envíos: ${selectedItems.map((i) => i.label).join(', ')}. Puede revisarla y pagar en su portal, en "Mis Facturas". ¡Gracias!`;
+    const message = `Hola ${client.client_name}, le escribimos de IMPORTADORA TLEC CARGO. Su carga ya está en el almacén de Venezuela. Generamos la factura ${created?.invoice_number} por un monto de $${Number(created?.total || 0).toFixed(2)} para los envíos: ${selectedItems.map((i) => i.label).join(', ')}. Puede revisarla y pagar en su portal, en "Mis Facturas". ¡Gracias!`;
     const url = buildWhatsAppUrl(client.whatsapp, message);
     if (!url) {
       toast.error('Este cliente no tiene WhatsApp registrado');

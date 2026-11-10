@@ -72,7 +72,7 @@ const formatDate = (value) => {
 };
 
 // Genera el PDF del informe (horizontal, una fila por factura).
-export async function generateOverdueReportPdf(rows = [], mode = 'save', appName = 'TLEC CARGO') {
+export async function generateOverdueReportPdf(rows = [], mode = 'save', appName = 'IMPORTADORA TLEC CARGO') {
   const { jsPDF } = await import('jspdf');
   const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
   const pageWidth = 297;

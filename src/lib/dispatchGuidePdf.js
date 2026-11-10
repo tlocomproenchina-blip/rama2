@@ -19,7 +19,7 @@ const fmtDate = (value) => {
 
 export async function generateDispatchGuidePdf({
   clients,
-  appName = 'TLEC CARGO',
+  appName = 'IMPORTADORA TLEC CARGO',
   mode = 'save',
   offline = false,
   guideNumber = '',

@@ -15,7 +15,7 @@ import { money } from '@/lib/numbers';
 export async function generateClientPriceListPdf({ states = [], pricing = {}, appConfig = {} }) {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
-  const company = appConfig.app_name || 'TLEC CARGO';
+  const company = appConfig.app_name || 'IMPORTADORA TLEC CARGO';
   const logoUrl = appConfig.invoice_logo_url || appConfig.app_logo_url;
   let y = 14;
 
