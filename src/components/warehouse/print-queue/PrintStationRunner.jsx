@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { getStationState, onStationState, resumeStationIfEnabled } from '@/lib/printStationRunner';
+import React, { useEffect, useState } from 'react';
+import { resumeStationIfEnabled } from '@/lib/printStationRunner';
 import SharedPrintQueueSheet from './SharedPrintQueueSheet';
 import { startOutboxFlusher } from '@/lib/printOutbox';
 
@@ -7,26 +7,17 @@ import { startOutboxFlusher } from '@/lib/printOutbox';
 export const OPEN_EVENT = 'tlec-open-station-queue';
 
 // Mantiene activa la estación de impresión mientras el operador navega por la app.
-// En el teléfono estación la ventana de la cola se abre sola: al activarse o retomarse
-// la estación, en cada pantalla, y de nuevo cada vez que empieza a imprimir un trabajo.
+// La ventana de la cola NO se abre sola: imprime y reconecta en segundo plano, y solo
+// se muestra cuando el operador la abre con el botón "Impresión".
 export default function PrintStationRunner() {
-  const [open, setOpen] = useState(() => getStationState().running);
-  const lastJobRef = useRef(getStationState().current?.id || null);
+  const [open, setOpen] = useState(false);
 
   useEffect(() => {
     resumeStationIfEnabled().catch(() => {});
     startOutboxFlusher();
-    let wasRunning = getStationState().running;
     const openNow = () => setOpen(true);
     window.addEventListener(OPEN_EVENT, openNow);
-    const off = onStationState((s) => {
-      if (s.running && !wasRunning) setOpen(true);
-      wasRunning = s.running;
-      const jobId = s.current?.id || null;
-      if (s.running && jobId && jobId !== lastJobRef.current) setOpen(true);
-      lastJobRef.current = jobId;
-    });
-    return () => { off(); window.removeEventListener(OPEN_EVENT, openNow); };
+    return () => window.removeEventListener(OPEN_EVENT, openNow);
   }, []);
 
   return <SharedPrintQueueSheet open={open} onOpenChange={setOpen} />;
