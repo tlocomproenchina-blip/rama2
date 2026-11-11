@@ -100,7 +100,7 @@ export default function AdminWarehouseIncidents() {
             </div>
             <IncidentSortControls mode={sortMode} dir={dateDir} onModeChange={setSortMode} onDirChange={setDateDir} />
           </div>
-          <IncidentFilterBar incidents={incidents} filters={filters} onChange={setFilters} />
+          <IncidentFilterBar filters={filters} onChange={setFilters} />
           <IncidentList incidents={filtered} loading={loading} onChanged={load} groupByType={sortMode === 'type'} />
         </TabsContent>
 
