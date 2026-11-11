@@ -1,11 +1,17 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { createPageUrl } from '@/utils';
 import { Headphones } from 'lucide-react';
 
 export default function Inicio2Header() {
-  const scrollTo = (id) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+  const navigate = useNavigate();
+  // En la portada baja a la sección; desde otra página pública vuelve a la portada.
+  const scrollTo = (id) => {
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: 'smooth' });
+    else navigate('/');
+  };
   return (
     <header className="sticky top-0 z-40 border-b border-white/10 bg-zinc-950/95 backdrop-blur">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3">
@@ -25,11 +31,12 @@ export default function Inicio2Header() {
           <button onClick={() => scrollTo('servicios2')} className="hover:text-white">Servicios</button>
           <button onClick={() => scrollTo('preguntas2')} className="hover:text-white">Preguntas</button>
           <Link to={createPageUrl('Blog')} className="hover:text-white">Blog</Link>
+          <Link to={createPageUrl('About')} className="hover:text-white">Nosotros</Link>
         </nav>
         <div className="flex items-center gap-2">
-          <a href="https://wa.me/" className="hidden items-center gap-1.5 text-sm text-zinc-300 hover:text-white lg:flex">
+          <Link to={createPageUrl('Contact')} className="hidden items-center gap-1.5 text-sm text-zinc-300 hover:text-white lg:flex">
             <Headphones className="h-4 w-4" /> Soporte
-          </a>
+          </Link>
           <button
             onClick={() => scrollTo('calculadora2')}
             className="hidden rounded-lg border border-orange-500/60 px-4 py-2 text-sm font-semibold text-orange-400 hover:bg-orange-500/10 sm:block">

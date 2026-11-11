@@ -42,7 +42,7 @@ export default function CityLandingSeoContent({ city }) {
           </h3>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <div className="flex gap-3 rounded-xl border border-slate-200 bg-slate-50/60 p-4">
-              <Boxes className="h-5 w-5 shrink-0 text-blue-600" />
+              <Boxes className="h-5 w-5 shrink-0 text-primary" />
               <div>
                 <p className="text-sm font-semibold text-slate-800">Menor costo por volumen</p>
                 <p className="mt-1 text-xs text-slate-500">
@@ -70,7 +70,7 @@ export default function CityLandingSeoContent({ city }) {
               </div>
             </div>
             <div className="flex gap-3 rounded-xl border border-slate-200 bg-slate-50/60 p-4">
-              <FileText className="h-5 w-5 shrink-0 text-sky-600" />
+              <FileText className="h-5 w-5 shrink-0 text-primary" />
               <div>
                 <p className="text-sm font-semibold text-slate-800">Facturación transparente</p>
                 <p className="mt-1 text-xs text-slate-500">
@@ -94,8 +94,8 @@ export default function CityLandingSeoContent({ city }) {
               { icon: Truck, title: `4. Entrega en ${city.city}`, text: `Tras la llegada y nacionalización, coordinamos la entrega puerta a puerta en ${city.city}. Recibes notificaciones push y por email en cada etapa.` },
             ].map((step, i) => (
               <li key={i} className="flex gap-4 rounded-xl border border-slate-200 p-4">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-100">
-                  <step.icon className="h-5 w-5 text-blue-600" />
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent">
+                  <step.icon className="h-5 w-5 text-primary" />
                 </div>
                 <div>
                   <p className="text-sm font-bold text-slate-900">{step.title}</p>

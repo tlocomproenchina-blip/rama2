@@ -7,10 +7,10 @@ export default function PageNotFound() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-sky-50 via-white to-blue-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="text-center max-w-md">
         <div className="mb-6">
-          <AlertCircle className="h-24 w-24 mx-auto text-blue-400 opacity-80" />
+          <AlertCircle className="h-24 w-24 mx-auto text-primary opacity-80" />
         </div>
         
         <h1 className="text-4xl font-bold text-foreground mb-2">404</h1>
@@ -21,7 +21,7 @@ export default function PageNotFound() {
         
         <Button 
           onClick={() => navigate('/')}
-          className="bg-blue-600 hover:bg-blue-700 w-full"
+          className="w-full"
         >
           <Home className="h-4 w-4 mr-2" />
           Volver al inicio

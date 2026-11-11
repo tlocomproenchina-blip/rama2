@@ -24,7 +24,7 @@ export default function CityLandingHero({ city }) {
             <Clock className="h-4 w-4 text-orange-400" /> Tránsito LCL: {city.transit_lcl}
           </span>
           <span className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-zinc-200">
-            <Anchor className="h-4 w-4 text-blue-400" /> Tránsito FCL: {city.transit_fcl}
+            <Anchor className="h-4 w-4 text-orange-400" /> Tránsito FCL: {city.transit_fcl}
           </span>
         </div>
       </div>

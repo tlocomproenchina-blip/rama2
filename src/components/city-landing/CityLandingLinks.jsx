@@ -21,9 +21,9 @@ export default function CityLandingLinks({ currentSlug }) {
             <Link
               key={c.slug}
               to={cityLandingPath(c.slug)}
-              className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2.5 text-sm font-medium text-slate-700 transition hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700"
+              className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2.5 text-sm font-medium text-slate-700 transition hover:border-primary/50 hover:bg-accent hover:text-accent-foreground"
             >
-              <MapPin className="h-4 w-4 shrink-0 text-blue-500" />
+              <MapPin className="h-4 w-4 shrink-0 text-primary" />
               <span className="truncate">{c.city}</span>
               <span className="ml-auto text-xs text-slate-400">{c.state_name}</span>
             </Link>

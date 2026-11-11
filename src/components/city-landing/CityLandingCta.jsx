@@ -14,17 +14,17 @@ export default function CityLandingCta({ city, user }) {
   return (
     <section className="bg-slate-50 py-14">
       <div className="mx-auto max-w-4xl px-4">
-        <div className="rounded-3xl bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-10 text-center text-white shadow-premium sm:px-12">
+        <div className="rounded-3xl bg-zinc-950 px-6 py-10 text-center text-white shadow-premium sm:px-12">
           <h2 className="font-display text-2xl font-extrabold sm:text-3xl">
             Regístrate y Abre tu Casillero Marítimo
           </h2>
-          <p className="mx-auto mt-2 max-w-md text-sm text-blue-100">
+          <p className="mx-auto mt-2 max-w-md text-sm text-zinc-300">
             Crea tu cuenta gratis en TLEC Cargo y empieza a recibir tus compras desde China en {city.city}.
             Tu ciudad se guarda automáticamente en tu perfil.
           </p>
           <button
             onClick={handleRegister}
-            className="mt-6 inline-flex items-center gap-2 rounded-xl bg-white px-8 py-3 text-sm font-bold text-blue-700 shadow-lg hover:bg-blue-50"
+            className="mt-6 inline-flex items-center gap-2 rounded-xl bg-primary px-8 py-3 text-sm font-bold text-primary-foreground shadow-lg hover:bg-primary-hover"
           >
             <UserPlus className="h-4 w-4" /> {user ? 'Ir a mi panel' : 'Crear Casillero Gratis'}
           </button>

@@ -7,8 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { base44 } from '@/api/base44Client';
-import HomeHeader from '@/components/home/HomeHeader';
-import HomeFooter from '@/components/home/HomeFooter';
+import PublicPageShell from '@/components/public/PublicPageShell';
 
 export default function Contact() {
   const [form, setForm] = useState({ name: '', email: '', message: '' });
@@ -37,29 +36,23 @@ export default function Contact() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <HomeHeader />
-      <main className="flex-1 max-w-5xl mx-auto px-6 py-12 md:py-16 w-full">
-        <header className="mb-10">
-          <h1 className="font-display text-4xl md:text-5xl font-bold text-slate-800">
-            Contáctanos
-          </h1>
-          <p className="mt-3 text-lg text-slate-500">
-            Estamos aquí para ayudarte. Escríbenos por el medio que prefieras.
-          </p>
-        </header>
+    <PublicPageShell
+      eyebrow="Contacto"
+      title="Contáctanos"
+      description="Estamos aquí para ayudarte. Escríbenos por el medio que prefieras."
+    >
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Contact methods */}
           <div className="space-y-4">
             <Card className="border-0 shadow-card">
               <CardContent className="p-5 flex items-start gap-4">
-                <div className="p-3 rounded-xl bg-blue-100 text-blue-600">
+                <div className="p-3 rounded-xl bg-accent text-accent-foreground">
                   <Mail className="h-5 w-5" />
                 </div>
                 <div>
                   <h3 className="font-semibold text-slate-800">Email</h3>
-                  <a href="mailto:soporte@tleccargo.com" className="text-blue-600 hover:underline text-sm">
+                  <a href="mailto:soporte@tleccargo.com" className="text-link hover:underline text-sm">
                     soporte@tleccargo.com
                   </a>
                 </div>
@@ -68,7 +61,7 @@ export default function Contact() {
 
             <Card className="border-0 shadow-card">
               <CardContent className="p-5 flex items-start gap-4">
-                <div className="p-3 rounded-xl bg-emerald-100 text-emerald-600">
+                <div className="p-3 rounded-xl bg-accent text-accent-foreground">
                   <MessageCircle className="h-5 w-5" />
                 </div>
                 <div>
@@ -78,7 +71,7 @@ export default function Contact() {
                     href="https://wa.me/584121234567"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-emerald-600 hover:underline text-sm"
+                    className="text-link hover:underline text-sm"
                   >
                     Iniciar chat
                   </a>
@@ -88,7 +81,7 @@ export default function Contact() {
 
             <Card className="border-0 shadow-card">
               <CardContent className="p-5 flex items-start gap-4">
-                <div className="p-3 rounded-xl bg-amber-100 text-amber-600">
+                <div className="p-3 rounded-xl bg-accent text-accent-foreground">
                   <Phone className="h-5 w-5" />
                 </div>
                 <div>
@@ -100,7 +93,7 @@ export default function Contact() {
 
             <Card className="border-0 shadow-card">
               <CardContent className="p-5 flex items-start gap-4">
-                <div className="p-3 rounded-xl bg-purple-100 text-purple-600">
+                <div className="p-3 rounded-xl bg-accent text-accent-foreground">
                   <MapPin className="h-5 w-5" />
                 </div>
                 <div>
@@ -149,7 +142,7 @@ export default function Contact() {
                     required
                   />
                 </div>
-                <Button type="submit" disabled={sending} className="w-full bg-blue-600 hover:bg-blue-700">
+                <Button type="submit" disabled={sending} className="w-full">
                   {sending ? (
                     <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Enviando...</>
                   ) : (
@@ -160,8 +153,6 @@ export default function Contact() {
             </CardContent>
           </Card>
         </div>
-      </main>
-      <HomeFooter />
-    </div>
+    </PublicPageShell>
   );
 }

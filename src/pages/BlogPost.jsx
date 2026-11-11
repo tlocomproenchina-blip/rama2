@@ -1,5 +1,9 @@
 import React from 'react';
 import { base44 } from '@/components/api/ApiQueueManager'; // Página pública para SEO
+import { Link } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
+import PublicPageShell from '@/components/public/PublicPageShell';
+import BlogMarkdown from '@/components/blog/BlogMarkdown';
 
 export default function BlogPost() {
   const [post, setPost] = React.useState(null);
@@ -78,22 +82,26 @@ export default function BlogPost() {
     load();
   }, []);
 
-  if (status === 'loading') return <div className="text-slate-600">Cargando…</div>;
-  if (status === 'not_found') return <div className="text-slate-600">Artículo no encontrado.</div>;
-  if (status === 'error') return <div className="text-slate-600">Error al cargar el artículo.</div>;
+  if (status !== 'ready') {
+    const message = status === 'loading' ? 'Cargando…' : status === 'not_found' ? 'Artículo no encontrado.' : 'Error al cargar el artículo.';
+    return <PublicPageShell eyebrow="Blog" title={message} width="max-w-3xl" />;
+  }
 
   return (
-    <article className="prose prose-slate max-w-3xl">
-      {post.cover_image_url && (
-        <img src={post.cover_image_url} alt={post.title} className="w-full rounded-xl border mb-6" />
-      )}
-      <h1>{post.title}</h1>
-      {post.excerpt && <p className="lead">{post.excerpt}</p>}
-      <div className="text-sm text-slate-500 mt-2">
-        {post.published_at ? new Date(post.published_at).toLocaleDateString() : ''}
-        {post.author_name ? ` • ${post.author_name}` : ''}
-      </div>
-      <div className="mt-6 whitespace-pre-wrap">{post.content}</div>
-    </article>
+    <PublicPageShell eyebrow="Blog" title={post.title} description={post.excerpt} width="max-w-3xl">
+      <article>
+        <p className="text-sm text-muted-foreground">
+          {post.published_at ? new Date(post.published_at).toLocaleDateString() : ''}
+          {post.author_name ? ` • ${post.author_name}` : ''}
+        </p>
+        {post.cover_image_url && (
+          <img src={post.cover_image_url} alt={post.title} className="mt-6 w-full rounded-2xl border border-border" />
+        )}
+        <BlogMarkdown content={post.content} />
+        <Link to="/Blog" className="mt-10 inline-flex items-center gap-1.5 text-sm font-semibold text-link hover:underline">
+          <ArrowLeft className="h-4 w-4" /> Volver al blog
+        </Link>
+      </article>
+    </PublicPageShell>
   );
 }
