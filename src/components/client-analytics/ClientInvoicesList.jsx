@@ -81,7 +81,7 @@ export default function ClientInvoicesList({ invoices, payments = [], client, on
     e.stopPropagation();
     const phone = client?.whatsapp || client?.phone;
     const name = (client?.first_name || client?.full_name || '').split(' ')[0] || 'estimado cliente';
-    const message = `Hola ${name}, le contactamos de IMPORTADORA TLEC CARGO. Tiene una factura pendiente de pago (${invoice.invoice_number || ''}) por un monto de $${invoicedAmount(invoice).toFixed(2)}. Agradecemos su pago a la brevedad para poder realizar el despacho de su carga. ¡Gracias!`;
+    const message = `Hola ${name}, le contactamos de IMPORTACIONES TLEC CARGO. Tiene una factura pendiente de pago (${invoice.invoice_number || ''}) por un monto de $${invoicedAmount(invoice).toFixed(2)}. Agradecemos su pago a la brevedad para poder realizar el despacho de su carga. ¡Gracias!`;
     const url = buildWhatsAppUrl(phone, message);
     if (!url) return;
     window.open(url, '_blank');

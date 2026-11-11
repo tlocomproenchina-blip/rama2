@@ -25,7 +25,7 @@ async function logEmailRecord(base44: any, params: { to: string; subject: string
   try {
     await base44.asServiceRole.entities.EmailLog.create({
       recipient_email: params.to,
-      from_name: params.from_name || 'IMPORTADORA TLEC CARGO',
+      from_name: params.from_name || 'IMPORTACIONES TLEC CARGO',
       subject: params.subject,
       body_preview: String(params.body || '').slice(0, 500),
       source: params.source || 'brevo',
@@ -113,7 +113,7 @@ export async function sendBrevoEmail(base44: any, params: SendEmailParams & { so
           'Accept': 'application/json',
         },
         body: JSON.stringify({
-          sender: { name: from_name || 'IMPORTADORA TLEC CARGO', email: brevoSender },
+          sender: { name: from_name || 'IMPORTACIONES TLEC CARGO', email: brevoSender },
           to: [{ email: to }],
           subject,
           htmlContent: isHtml ? rawBody : rawBody.replace(/\n/g, '<br>'),
@@ -143,7 +143,7 @@ export async function sendBrevoEmail(base44: any, params: SendEmailParams & { so
           to,
           subject,
           body: rawBody,
-          from_name: from_name || 'IMPORTADORA TLEC CARGO',
+          from_name: from_name || 'IMPORTACIONES TLEC CARGO',
         });
         await logDailyStat(base44, 'fallback', false, dailyLimit);
         await logEmailRecord(base44, { to, subject, body: rawBody, from_name, status: 'sent', via: 'fallback', source, campaign_name });
@@ -161,7 +161,7 @@ export async function sendBrevoEmail(base44: any, params: SendEmailParams & { so
       to,
       subject,
       body: rawBody,
-      from_name: from_name || 'IMPORTADORA TLEC CARGO',
+      from_name: from_name || 'IMPORTACIONES TLEC CARGO',
     });
     await logDailyStat(base44, 'fallback', quotaExceeded, dailyLimit);
     await logEmailRecord(base44, { to, subject, body: rawBody, from_name, status: 'sent', via: 'fallback', source, campaign_name });

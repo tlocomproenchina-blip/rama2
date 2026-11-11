@@ -14,7 +14,7 @@ export default function About() {
       <main className="flex-1 max-w-4xl mx-auto px-6 py-12 md:py-16">
         <header className="mb-10">
           <h1 className="font-display text-4xl md:text-5xl font-bold text-slate-800">
-            Sobre IMPORTADORA TLEC CARGO
+            Sobre IMPORTACIONES TLEC CARGO
           </h1>
           <p className="mt-3 text-lg text-slate-500">
             Quiénes somos, qué hacemos y para quién trabajamos.
@@ -23,7 +23,7 @@ export default function About() {
 
         <section className="prose prose-slate max-w-none space-y-5 text-slate-700 leading-relaxed">
           <p>
-            <strong>IMPORTADORA TLEC CARGO</strong> es una plataforma de logística internacional especializada
+            <strong>IMPORTACIONES TLEC CARGO</strong> es una plataforma de logística internacional especializada
             en consolidar y enviar paquetes desde China hacia Venezuela de forma rápida, segura y
             transparente. Conectamos a importadores, emprendedores y consumidores con almacenes,
             transportistas y operadores aduaneros, integrando todo el proceso —desde la pre-alerta
@@ -45,7 +45,7 @@ export default function About() {
             comunidad TLEC.
           </p>
           <p>
-            La plataforma es construida y operada por el equipo de <strong>IMPORTADORA TLEC CARGO</strong>, una
+            La plataforma es construida y operada por el equipo de <strong>IMPORTACIONES TLEC CARGO</strong>, una
             empresa con experiencia comprobada en logística entre Asia y Latinoamérica. Nuestro
             compromiso es ofrecer tarifas justas, soporte cercano por WhatsApp y tickets, y
             tecnología que elimine la incertidumbre típica del envío internacional.

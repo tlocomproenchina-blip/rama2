@@ -239,7 +239,7 @@ export default function AdminWholesalerClients() {
           <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
             <p className="text-sm text-foreground">
               <strong>{counts.pendientes}</strong> cliente(s) traídos del mayorista
-              {selectedConnection ? ` ${selectedName}` : ''} esperan su cuenta en IMPORTADORA TLEC CARGO.
+              {selectedConnection ? ` ${selectedName}` : ''} esperan su cuenta en IMPORTACIONES TLEC CARGO.
               Las cuentas se crean con un clic desde aquí (la app envía la invitación al cliente y le asigna su Shipping Mark).
             </p>
             <Button onClick={handleCreateAccounts} disabled={creating} className="gap-2">
@@ -312,7 +312,7 @@ export default function AdminWholesalerClients() {
         open={!!deletingClient}
         onOpenChange={(open) => { if (!open) setDeletingClient(null); }}
         title={`Eliminar el cliente ${deletingClient?.full_name || deletingClient?.email || ''}`}
-        description="Se borra este registro de la lista de clientes traídos del mayorista. La cuenta del cliente en IMPORTADORA TLEC CARGO, sus paquetes y sus facturas no se tocan."
+        description="Se borra este registro de la lista de clientes traídos del mayorista. La cuenta del cliente en IMPORTACIONES TLEC CARGO, sus paquetes y sus facturas no se tocan."
         onConfirm={handleDeleteClient}
       />
     </div>

@@ -23,7 +23,7 @@ export default function PublicProviderInvoice() {
   return (
     <div className="min-h-screen bg-background px-4 py-10">
       <div className="mx-auto max-w-2xl rounded-3xl border bg-card p-6 shadow-premium md:p-10">
-        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary/70">IMPORTADORA TLEC CARGO · Factura de proveedor</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary/70">IMPORTACIONES TLEC CARGO · Factura de proveedor</p>
         <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
           <h1 className="font-display text-3xl font-bold">{inv.invoice_code}</h1>
           <span className={`rounded-full px-3 py-1 text-sm font-semibold ${paid ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-800'}`}>{paid ? 'Pagada' : 'No pagada'}</span>

@@ -8,7 +8,7 @@ export default function FichaHero({ children }) {
         <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-accent" />
       </div>
       <div className="relative flex flex-col gap-3 animate-[ficha-rise_.7s_cubic-bezier(.2,.7,.2,1)_both]">
-        <span className="text-[11px] font-semibold uppercase tracking-[0.24em] text-link">IMPORTADORA TLEC CARGO · Clientes</span>
+        <span className="text-[11px] font-semibold uppercase tracking-[0.24em] text-link">IMPORTACIONES TLEC CARGO · Clientes</span>
         <h1 className="m-0 max-w-[760px] font-display text-3xl md:text-5xl leading-tight font-extrabold text-foreground">
           Analítica de clientes
         </h1>

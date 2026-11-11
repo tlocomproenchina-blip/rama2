@@ -33,7 +33,7 @@ export default function QuoteFeeConfigCard({ config, onSaved }) {
   const [emailSubject, setEmailSubject] = useState(config?.quote_fee_email_subject || '🎉 Tu enlace de presupuesto está listo');
   const [emailBody, setEmailBody] = useState(
     config?.quote_fee_email_body ||
-      'Hola {cliente_nombre},\n\n¡Gracias por tu pago! Tu solicitud de presupuesto fue recibida.\n\nN° de presupuesto: {numero_presupuesto}\n\nCompleta tus productos en el siguiente enlace:\n{enlace_presupuesto}\n\nIMPORTADORA TLEC CARGO'
+      'Hola {cliente_nombre},\n\n¡Gracias por tu pago! Tu solicitud de presupuesto fue recibida.\n\nN° de presupuesto: {numero_presupuesto}\n\nCompleta tus productos en el siguiente enlace:\n{enlace_presupuesto}\n\nIMPORTACIONES TLEC CARGO'
   );
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState(false);

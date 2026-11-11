@@ -32,7 +32,7 @@ export default function PageNotFound() {
 }
 
 /**
- * PERFORMANCE OPTIMIZATION GUIDE - IMPORTADORA TLEC CARGO PWA
+ * PERFORMANCE OPTIMIZATION GUIDE - IMPORTACIONES TLEC CARGO PWA
  * ================================================
  * 
  * ✅ MEJORAS IMPLEMENTADAS:

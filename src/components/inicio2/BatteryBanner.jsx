@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
 
 const DEFAULT_TITLE = 'Contamos con toda la permisología para la importación de baterías';
-const DEFAULT_HTML = 'En IMPORTADORA TLEC CARGO estamos autorizados para gestionar la importación de baterías de litio con todos los permisos y certificaciones vigentes. Tu carga viaja segura y cumpliendo con la normativa internacional.';
+const DEFAULT_HTML = 'En IMPORTACIONES TLEC CARGO estamos autorizados para gestionar la importación de baterías de litio con todos los permisos y certificaciones vigentes. Tu carga viaja segura y cumpliendo con la normativa internacional.';
 
 function simpleHash(str) {
   let h = 0;

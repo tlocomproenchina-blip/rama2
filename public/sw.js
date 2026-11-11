@@ -1,4 +1,4 @@
-/* IMPORTADORA TLEC CARGO Service Worker
+/* IMPORTACIONES TLEC CARGO Service Worker
  *
  * REGLA CRÍTICA: este SW NUNCA debe cachear ni interceptar JavaScript, CSS,
  * ni ningún asset del bundler. Cachear chunks provoca que el navegador mezcle
@@ -88,10 +88,10 @@ self.addEventListener('push', (event) => {
   try {
     payload = event.data ? event.data.json() : {};
   } catch (e) {
-    payload = { title: 'IMPORTADORA TLEC CARGO', body: event.data ? event.data.text() : '' };
+    payload = { title: 'IMPORTACIONES TLEC CARGO', body: event.data ? event.data.text() : '' };
   }
 
-  const title = payload.title || 'IMPORTADORA TLEC CARGO';
+  const title = payload.title || 'IMPORTACIONES TLEC CARGO';
   const options = {
     body: payload.body || payload.content || '',
     icon: payload.icon || '/icon-192.png',

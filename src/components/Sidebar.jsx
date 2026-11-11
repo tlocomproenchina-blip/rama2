@@ -156,7 +156,7 @@ export default function Sidebar({ user, currentPage, isOpen, onClose, initialCon
             </div>
           )}
           <div className="min-w-0 flex-1">
-            <p className="line-clamp-2 break-words leading-tight font-display text-sm font-bold text-foreground">{config?.app_name || 'IMPORTADORA TLEC CARGO'}</p>
+            <p className="line-clamp-2 break-words leading-tight font-display text-sm font-bold text-foreground">{config?.app_name || 'IMPORTACIONES TLEC CARGO'}</p>
             <p className="truncate text-[11px] text-muted-foreground">
               {isAdmin ? (roleConfig?.role_name || getAreaPreset(user?.custom_role)?.role_name || 'Administrador') : 'Cliente'}
             </p>

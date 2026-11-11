@@ -125,7 +125,7 @@ async function notifyClient(base44: any, { invoice, plan, clientName, emailEnabl
     to: plan.client_email,
     subject: fill(template.subject || `Cargo de almacenamiento - factura ${invoiceNumber}`),
     body: fill(template.body || ''),
-    from_name: 'IMPORTADORA TLEC CARGO',
+    from_name: 'IMPORTACIONES TLEC CARGO',
     source: 'almacenamiento',
   });
   return { sent: !!res?.sent, via: res?.via, error: res?.error };

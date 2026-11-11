@@ -1,6 +1,6 @@
 // Portal de Consulta Compartido: enlace de solo lectura con alcance configurable.
 // Reúne los trackings de los clientes mayoristas y los registros directos de
-// IMPORTADORA TLEC CARGO sin duplicar datos: consulta la entidad Package y el índice de
+// IMPORTACIONES TLEC CARGO sin duplicar datos: consulta la entidad Package y el índice de
 // clientes mayoristas que ya existe en la app.
 import { fetchAllFilter } from './paginatedFetch.ts';
 import { connectionKeyOf, connectionLabel, listWholesalerConnections } from './wholesalerCore.ts';
@@ -90,7 +90,7 @@ export function isoOrNull(value: any) {
 
 // Índice de clientes mayoristas: dice de quién es cada tracking y de qué
 // mayorista es ese cliente. Sin él, un tracking solo se puede leer como
-// registro directo de IMPORTADORA TLEC CARGO.
+// registro directo de IMPORTACIONES TLEC CARGO.
 // El índice de clientes mayoristas cambia con los cortes diarios, no con cada
 // consulta: se guarda unos minutos en memoria para que el portal responda rápido.
 let indexCache: { at: number; value: any } | null = null;
@@ -348,7 +348,7 @@ export async function codeMatches(link: any, code: any) {
 }
 
 export function portalErrorText(reason: any) {
-  if (reason === 'revocado') return 'Este enlace fue revocado por IMPORTADORA TLEC CARGO';
+  if (reason === 'revocado') return 'Este enlace fue revocado por IMPORTACIONES TLEC CARGO';
   if (reason === 'vencido') return 'Este enlace ya venció';
   if (reason === 'sin_token') return 'Falta el enlace de acceso';
   return 'El enlace no es válido';

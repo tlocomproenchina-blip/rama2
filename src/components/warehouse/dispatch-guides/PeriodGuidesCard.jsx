@@ -16,7 +16,7 @@ import PeriodGuidesSummary from './PeriodGuidesSummary';
 export default function PeriodGuidesCard({ onGenerated }) {
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
-  const [appName, setAppName] = useState('IMPORTADORA TLEC CARGO');
+  const [appName, setAppName] = useState('IMPORTACIONES TLEC CARGO');
   const [running, setRunning] = useState(false);
   const [printing, setPrinting] = useState('');
   const [result, setResult] = useState(null);

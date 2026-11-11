@@ -35,7 +35,7 @@ async function loadImageData(url) {
 }
 
 /**
- * Genera un PDF de factura de IMPORTADORA TLEC CARGO.
+ * Genera un PDF de factura de IMPORTACIONES TLEC CARGO.
  * @param {object} invoice - registro de factura
  * @param {object} appConfig - configuración de la app (datos de empresa)
  * @param {object|null} clientUser - usuario cliente (para nombre, dirección, teléfono)
@@ -50,7 +50,7 @@ export async function buildInvoicePdf(invoice, appConfig = {}, clientUser = null
   const colDark = [31, 41, 55];
   const colGray = [107, 114, 128];
 
-  const companyName = appConfig.invoice_company_name || 'IMPORTADORA TLEC CARGO';
+  const companyName = appConfig.invoice_company_name || 'IMPORTACIONES TLEC CARGO';
   const companyTagline = appConfig.invoice_company_tagline || 'Tu carga asegurada desde China hasta Venezuela';
   const companyAddress = appConfig.invoice_company_address || appConfig.warehouse_address || '';
   const companyDetailLines = [

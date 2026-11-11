@@ -122,7 +122,7 @@ export async function notifyShippingMarkAssigned(base44: any, targetUser: any, s
   const appConfig = appConfigs?.[0] || {};
   const templateRows = await base44.asServiceRole.entities.EmailTemplate.filter({ name: 'Base - Shipping Mark Asignado' }, '-updated_date', 1);
   const template = templateRows?.[0] || null;
-  const fromName = appConfig.invoice_company_name || appConfig.app_name || 'IMPORTADORA TLEC CARGO';
+  const fromName = appConfig.invoice_company_name || appConfig.app_name || 'IMPORTACIONES TLEC CARGO';
   const variables = {
     cliente_nombre: getPersonName(targetUser),
     shipping_mark: shippingMark,

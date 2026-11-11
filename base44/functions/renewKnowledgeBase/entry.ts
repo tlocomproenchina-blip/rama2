@@ -59,7 +59,7 @@ export default async function(req: Request): Promise<Response> {
     }
 
     // 6. Armar prompt para InvokeLLM
-    const prompt = `Eres un analista de soporte para IMPORTADORA TLEC CARGO, una empresa de envíos China-Venezuela.
+    const prompt = `Eres un analista de soporte para IMPORTACIONES TLEC CARGO, una empresa de envíos China-Venezuela.
 Analiza las interacciones de clientes (tickets de soporte) y el feedback de artículos existentes para renovar la base de conocimientos (KnowledgeBase).
 
 **Tickets de soporte de los últimos 30 días (preguntas reales de clientes):**

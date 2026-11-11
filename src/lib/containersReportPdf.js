@@ -45,7 +45,7 @@ function drawClientBand(doc, y, group) {
   return y + 11;
 }
 
-export async function generateContainersReportPdf(groups = [], appName = 'IMPORTADORA TLEC CARGO', mode = 'save') {
+export async function generateContainersReportPdf(groups = [], appName = 'IMPORTACIONES TLEC CARGO', mode = 'save') {
   const { jsPDF } = await import('jspdf');
   const doc = new jsPDF();
   const date = new Date();

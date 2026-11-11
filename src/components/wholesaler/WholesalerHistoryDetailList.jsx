@@ -23,7 +23,7 @@ const RESULTADOS = {
 };
 
 // Detalle de la última sincronización del historial: cada registro con su titular,
-// su estado en IMPORTADORA TLEC CARGO y cómo quedó su aviso al mayorista.
+// su estado en IMPORTACIONES TLEC CARGO y cómo quedó su aviso al mayorista.
 export default function WholesalerHistoryDetailList({ detail = [] }) {
   const [open, setOpen] = useState(false);
   const [soloAvisadas, setSoloAvisadas] = useState(false);

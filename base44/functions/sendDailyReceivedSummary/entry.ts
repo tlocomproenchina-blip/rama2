@@ -41,7 +41,7 @@ Deno.serve(async (req) => {
       byClient.set(p.client_email, list);
     }
 
-    const appName = cfg.app_name || 'IMPORTADORA TLEC CARGO';
+    const appName = cfg.app_name || 'IMPORTACIONES TLEC CARGO';
     let sent = 0;
     const errors = [];
 

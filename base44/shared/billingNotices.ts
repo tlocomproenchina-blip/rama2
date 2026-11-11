@@ -136,9 +136,9 @@ function layout({ ctx, headline, subheadline, tone, paragraphs, cta, legal }: an
 <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;font-family:Inter,Arial,sans-serif;">
 <tr><td style="background:#5c9eeb;padding:20px 28px;">
   <table role="presentation" cellpadding="0" cellspacing="0"><tr>
-    <td><img src="${LOGO}" width="44" height="44" alt="IMPORTADORA TLEC CARGO" style="display:block;border-radius:10px;"></td>
+    <td><img src="${LOGO}" width="44" height="44" alt="IMPORTACIONES TLEC CARGO" style="display:block;border-radius:10px;"></td>
     <td style="padding-left:12px;color:#000000;font-family:Manrope,Arial,sans-serif;">
-      <div style="font-size:16px;font-weight:800;">IMPORTADORA TLEC CARGO</div>
+      <div style="font-size:16px;font-weight:800;">IMPORTACIONES TLEC CARGO</div>
       <div style="font-size:12px;">Tu carga asegurada desde China hasta Venezuela</div>
     </td>
   </tr></table>
@@ -167,7 +167,7 @@ function layout({ ctx, headline, subheadline, tone, paragraphs, cta, legal }: an
 ${legal ? `<tr><td style="padding:12px 28px 8px;"><p style="margin:0;font-size:12px;line-height:1.6;color:#64748b;background:#f8fafc;border:1px solid #e5e7eb;border-radius:12px;padding:12px 14px;">${legal}</p></td></tr>` : ''}
 <tr><td style="padding:20px 28px 28px;border-top:1px solid #e5e7eb;">
   <p style="margin:0;font-size:12px;line-height:1.6;color:#64748b;">Si ya realizaste el pago, ignora este mensaje: los avisos se detienen cuando el pago queda registrado. Un pago parcial no detiene el calendario ni los cargos (cláusula 7.21). Para dudas, responde por tus canales habituales de atención o visita <a href="${APP_URL}" style="color:#2563eb;">tleccargo.com</a>.</p>
-  <p style="margin:8px 0 0;font-size:11px;color:#94a3b8;">TLEC GROUP LLC · IMPORTADORA TLEC CARGO · Términos y Condiciones del 5 de noviembre de 2026, sección VII.</p>
+  <p style="margin:8px 0 0;font-size:11px;color:#94a3b8;">TLEC GROUP LLC · IMPORTACIONES TLEC CARGO · Términos y Condiciones del 5 de noviembre de 2026, sección VII.</p>
 </td></tr>
 </table></td></tr></table></body></html>`;
 }
@@ -252,7 +252,7 @@ export function buildBillingEmail(stage: StageKey | 'emitida', ctx: Ctx) {
         `Por medio de este aviso, conforme a las cláusulas 7.11 y 7.12 de los Términos y Condiciones, te notificamos que la factura ${n} no ha sido pagada por completo 20 días después de su emisión. Este aviso es la notificación formal de incumplimiento y de presunto abandono contractual de la mercancía asociada.`,
         `<strong>Plazo para regularizar:</strong> del ${day21} hasta el cierre del ${day25} (días 21 al 25, ambos inclusive) puedes pagar el saldo de la factura, los cargos de almacenamiento y custodia acumulados y cualquier otro concepto exigible. Durante ese plazo la mercancía sigue bajo custodia y el cargo diario continúa.`,
         '<strong>Si pagas dentro del plazo</strong>, gestionaremos la liberación, despacho o entrega una vez verificados los fondos y los requisitos operativos y documentales.',
-        '<strong>Si no se regulariza al cierre del día 25</strong>, desde el día 26 IMPORTADORA TLEC CARGO podrá iniciar las actuaciones para disponer de la mercancía por los medios legalmente permitidos (cláusulas 7.16 y 7.17).',
+        '<strong>Si no se regulariza al cierre del día 25</strong>, desde el día 26 IMPORTACIONES TLEC CARGO podrá iniciar las actuaciones para disponer de la mercancía por los medios legalmente permitidos (cláusulas 7.16 y 7.17).',
       ],
       cta: 'Regularizar ahora',
       legal: LEGAL_ABANDONO,
@@ -278,7 +278,7 @@ export function buildBillingEmail(stage: StageKey | 'emitida', ctx: Ctx) {
       tone: 'alert',
       paragraphs: [
         `La factura ${n} y sus cargos suman ${money(ctx.balance + accrued)} a hoy.`,
-        'Si el pago completo no queda registrado al cierre de hoy, desde mañana (día 26) IMPORTADORA TLEC CARGO podrá iniciar el procedimiento de disposición de la mercancía por los medios legalmente permitidos.',
+        'Si el pago completo no queda registrado al cierre de hoy, desde mañana (día 26) IMPORTACIONES TLEC CARGO podrá iniciar el procedimiento de disposición de la mercancía por los medios legalmente permitidos.',
       ],
       cta: 'Pagar hoy',
       legal: LEGAL_ABANDONO,
@@ -287,11 +287,11 @@ export function buildBillingEmail(stage: StageKey | 'emitida', ctx: Ctx) {
     disposicion_d26: {
       subject: `Aviso sobre la mercancía de tu factura ${n}`,
       headline: 'Terminó el plazo para regularizar',
-      subheadline: 'IMPORTADORA TLEC CARGO podrá iniciar el procedimiento de disposición conforme a la ley.',
+      subheadline: 'IMPORTACIONES TLEC CARGO podrá iniciar el procedimiento de disposición conforme a la ley.',
       tone: 'alert',
       paragraphs: [
         `El plazo adicional de la factura ${n} cerró el ${day25} sin que se registrara el pago completo.`,
-        'Conforme a la cláusula 7.16, desde hoy IMPORTADORA TLEC CARGO podrá iniciar las actuaciones para disponer de la mercancía por los medios legalmente permitidos, siguiendo las notificaciones, autorizaciones, plazos y formalidades que exija la legislación del lugar donde se encuentre. Los cargos de almacenamiento y custodia siguen acumulándose mientras la mercancía permanezca bajo custodia (cláusula 7.10).',
+        'Conforme a la cláusula 7.16, desde hoy IMPORTACIONES TLEC CARGO podrá iniciar las actuaciones para disponer de la mercancía por los medios legalmente permitidos, siguiendo las notificaciones, autorizaciones, plazos y formalidades que exija la legislación del lugar donde se encuentre. Los cargos de almacenamiento y custodia siguen acumulándose mientras la mercancía permanezca bajo custodia (cláusula 7.10).',
         'Si deseas conocer el estado de tu operación o solicitar tu estado de cuenta actualizado, contáctanos de inmediato.',
       ],
       cta: 'Ver mi factura',

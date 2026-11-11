@@ -386,7 +386,7 @@ function QuoteEditor({ quote, config, onBack, onUpdate, saving, setSaving, copie
 <p><strong>Total: $${(totals.total_usd || 0).toFixed(2)} USD</strong></p>
 <p>Puedes verlo y aceptar el contrato en el siguiente enlace:</p>
 <p><a href="${publicUrl}" style="display:inline-block;padding:10px 20px;background:#F97316;color:#111827;border-radius:8px;text-decoration:none;font-weight:600;">Ver Presupuesto</a></p>
-<p style="margin-top:16px;color:#666;font-size:12px;">IMPORTADORA TLEC CARGO</p>`,
+<p style="margin-top:16px;color:#666;font-size:12px;">IMPORTACIONES TLEC CARGO</p>`,
           title: '📋 Tu presupuesto está listo',
           message: `Tu presupuesto por $${(totals.total_usd || 0).toFixed(2)} USD está disponible. Revisa y acepta el contrato.`,
           type: 'system',
@@ -408,7 +408,7 @@ function QuoteEditor({ quote, config, onBack, onUpdate, saving, setSaving, copie
   }));
 
   const handleCopyLink = () => {
-    const instructions = `¡Hola! Te compartimos tu enlace de presupuesto de IMPORTADORA TLEC CARGO.
+    const instructions = `¡Hola! Te compartimos tu enlace de presupuesto de IMPORTACIONES TLEC CARGO.
 
 🧾 Número de presupuesto: ${quote.quote_number}
 Guarda este número para cualquier consulta o seguimiento.
@@ -428,7 +428,7 @@ ${publicUrl}
 3. Notas para el administrador (opcional).
 4. Envía la solicitud y nuestro equipo te responderá con tu presupuesto.
 
-¡Gracias por confiar en IMPORTADORA TLEC CARGO!`;
+¡Gracias por confiar en IMPORTACIONES TLEC CARGO!`;
     navigator.clipboard.writeText(instructions);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);

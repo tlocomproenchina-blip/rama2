@@ -97,7 +97,7 @@ export function buildNotificationTemplateVariables({ client = {}, user = {}, ext
     : person?.full_name || person?.email || '';
 
   return {
-    app_name: 'IMPORTADORA TLEC CARGO',
+    app_name: 'IMPORTACIONES TLEC CARGO',
     app_url: PUBLIC_BASE_URL,
     cliente_nombre: clientName,
     chofer_nombre: clientName,

@@ -9,7 +9,7 @@ export const QUEUE_BATCH_SIZE = 25;
 export const QUEUE_MAX_ATTEMPTS = 3;
 
 export function queueFromName(cfg: any) {
-  return cfg?.invoice_company_name || cfg?.app_name || 'IMPORTADORA TLEC CARGO';
+  return cfg?.invoice_company_name || cfg?.app_name || 'IMPORTACIONES TLEC CARGO';
 }
 
 // Pendientes cuyo scheduled_at ya pasó (o sin programar).

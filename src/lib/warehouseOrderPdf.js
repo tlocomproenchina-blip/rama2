@@ -19,7 +19,7 @@ const fmtDateTime = (value) => {
 export async function generateWarehouseOrderPdf({
   invoice = {},
   order = {},
-  appName = 'IMPORTADORA TLEC CARGO',
+  appName = 'IMPORTACIONES TLEC CARGO',
   mode = 'save',
 }) {
   const { jsPDF } = await import('jspdf');

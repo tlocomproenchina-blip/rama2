@@ -34,7 +34,7 @@ async function notifyAdminsOfQuoteSubmission(base44: any, quote: any) {
 
     // Email a cada admin
     if (emailsEnabled) {
-      const appName = 'IMPORTADORA TLEC CARGO';
+      const appName = 'IMPORTACIONES TLEC CARGO';
       const body = `<h2>📋 Nuevo presupuesto completado por cliente</h2>
 <p>Hola,</p>
 <p>El cliente <strong>${quote.client_first_name} ${quote.client_last_name}</strong> ha completado sus datos para el presupuesto <strong>${quote.quote_number || quote.token.slice(0, 8)}</strong>.</p>

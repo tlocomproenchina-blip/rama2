@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 
 export default function Blog() {
   React.useEffect(() => {
-    document.title = 'Blog | Logística China → Venezuela | IMPORTADORA TLEC CARGO';
+    document.title = 'Blog | Logística China → Venezuela | IMPORTACIONES TLEC CARGO';
     const meta = document.querySelector('meta[name="description"]') || document.createElement('meta');
     meta.name = 'description';
     meta.content = 'Noticias y guías sobre envíos China → Venezuela: tarifas, tiempos, aduanas y mejores prácticas.';

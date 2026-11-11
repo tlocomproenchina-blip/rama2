@@ -380,8 +380,8 @@ export async function generateWarehouseInvoice({ client, selectedItems, totals, 
   try {
     await base44.functions.invoke('sendNotificationEmail', {
       to: client.client_email,
-      subject: `Nueva factura ${invoice.invoice_number} - IMPORTADORA TLEC CARGO`,
-      body: `Hola,\n\nTu factura ${invoice.invoice_number} para la carga disponible en almacén ya está disponible para el pago.\n\nEnvíos: ${labels.join(', ')}\n\nIngresa a tu portal de IMPORTADORA TLEC CARGO, en "Mis Facturas", y selecciona la factura: te preguntaremos si quieres retirar tu carga en nuestro almacén de Valencia o recibirla en la puerta de tu casa. Según tu elección verás el monto a pagar y tu factura digital.\n\nGracias.`,
+      subject: `Nueva factura ${invoice.invoice_number} - IMPORTACIONES TLEC CARGO`,
+      body: `Hola,\n\nTu factura ${invoice.invoice_number} para la carga disponible en almacén ya está disponible para el pago.\n\nEnvíos: ${labels.join(', ')}\n\nIngresa a tu portal de IMPORTACIONES TLEC CARGO, en "Mis Facturas", y selecciona la factura: te preguntaremos si quieres retirar tu carga en nuestro almacén de Valencia o recibirla en la puerta de tu casa. Según tu elección verás el monto a pagar y tu factura digital.\n\nGracias.`,
       in_app: {
         user_email: client.client_email,
         title: '🧾 Nueva factura disponible',

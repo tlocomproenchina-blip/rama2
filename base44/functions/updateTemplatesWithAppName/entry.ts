@@ -13,7 +13,7 @@ Deno.serve(async (req) => {
     // Get app config
     const configs = await base44.asServiceRole.entities.AppConfig.filter({ config_key: 'main' });
     const config = configs.length > 0 ? configs[0] : null;
-    const appName = config?.app_name || 'IMPORTADORA TLEC CARGO';
+    const appName = config?.app_name || 'IMPORTACIONES TLEC CARGO';
 
     // Get all email templates
     const templates = await base44.asServiceRole.entities.EmailTemplate.list();

@@ -28,7 +28,7 @@ export default function ShippingLabelGenerator({ user, config }) {
 
   const shippingMark = user?.shipping_mark || '';
   const logoUrl = config?.app_logo_url || config?.invoice_logo_url || '';
-  const companyName = config?.app_name || 'IMPORTADORA TLEC CARGO';
+  const companyName = config?.app_name || 'IMPORTACIONES TLEC CARGO';
 
   const boxCount = Math.max(1, Number(form.boxCount) || 1);
   const isMultiBox = boxCount > 1;

@@ -148,7 +148,7 @@ export default function PublicDispatchGuides() {
         more = !!data.has_more && page.length > 0;
         skip = Number(data.next_skip) || skip + page.length;
       }
-      await generateContainersReportPdf(toReportGroups(onlySelectedGuides(all)), 'IMPORTADORA TLEC CARGO', mode);
+      await generateContainersReportPdf(toReportGroups(onlySelectedGuides(all)), 'IMPORTACIONES TLEC CARGO', mode);
     } catch (err) {
       setError(err?.message || 'No se pudo generar el informe');
     } finally {
@@ -261,7 +261,7 @@ export default function PublicDispatchGuides() {
         )}
 
         <footer className="pt-2 text-center text-xs text-muted-foreground">
-          <p>Vista de solo lectura. IMPORTADORA TLEC CARGO · Tu carga asegurada desde China hasta Venezuela</p>
+          <p>Vista de solo lectura. IMPORTACIONES TLEC CARGO · Tu carga asegurada desde China hasta Venezuela</p>
         </footer>
       </div>
     </div>

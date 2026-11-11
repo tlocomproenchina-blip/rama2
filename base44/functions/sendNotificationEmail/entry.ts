@@ -38,9 +38,9 @@ Deno.serve(async (req) => {
       try {
         const cfgs = await base44.asServiceRole.entities.AppConfig.filter({ config_key: 'main' });
         const cfg = cfgs?.[0] || {};
-        resolvedFromName = cfg.invoice_company_name || cfg.app_name || 'IMPORTADORA TLEC CARGO';
+        resolvedFromName = cfg.invoice_company_name || cfg.app_name || 'IMPORTACIONES TLEC CARGO';
       } catch (_) {
-        resolvedFromName = 'IMPORTADORA TLEC CARGO';
+        resolvedFromName = 'IMPORTACIONES TLEC CARGO';
       }
     }
 

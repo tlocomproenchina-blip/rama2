@@ -1,8 +1,8 @@
-# IMPORTADORA TLEC CARGO
-> IMPORTADORA TLEC CARGO es una plataforma de logística y envíos internacionales que ayuda a clientes a gestionar paquetes, consolidaciones, facturas, pagos y soporte. El sitio permite rastrear envíos, prealertar paquetes y consultar información clave sobre procesos de importación y entrega.
+# IMPORTACIONES TLEC CARGO
+> IMPORTACIONES TLEC CARGO es una plataforma de logística y envíos internacionales que ayuda a clientes a gestionar paquetes, consolidaciones, facturas, pagos y soporte. El sitio permite rastrear envíos, prealertar paquetes y consultar información clave sobre procesos de importación y entrega.
 
 ## Secciones Clave
-- [Inicio](/): Presentación general de IMPORTADORA TLEC CARGO, servicios disponibles, beneficios, preguntas frecuentes y orientación para nuevos clientes.
+- [Inicio](/): Presentación general de IMPORTACIONES TLEC CARGO, servicios disponibles, beneficios, preguntas frecuentes y orientación para nuevos clientes.
 - [Calculadora de Envíos](/ShippingCalculator): Herramienta para estimar costos de envío según tipo de carga, destino y condiciones del servicio.
 - [Tarifas](/Rates): Información sobre tarifas de envíos y condiciones aplicables para distintos tipos de carga.
 - [Preguntas Frecuentes](/FAQ): Respuestas sobre envíos, pagos, tracking, consolidación, tiempos de entrega y uso de la plataforma.
@@ -30,7 +30,7 @@
 Este sitio está dirigido a clientes que necesitan gestionar envíos internacionales, consultar estados de paquetes, coordinar consolidaciones, revisar facturas y recibir soporte durante el proceso logístico.
 
 ## Nombre de la empresa
-IMPORTADORA TLEC CARGO
+IMPORTACIONES TLEC CARGO
 
 ## Idioma principal
 Español

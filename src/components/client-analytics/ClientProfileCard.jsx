@@ -32,7 +32,7 @@ export default function ClientProfileCard({ client }) {
       return;
     }
     const firstName = client.first_name || (client.full_name ? client.full_name.split(' ')[0] : 'estimado cliente');
-    const message = `Hola ${firstName}, le contactamos de IMPORTADORA TLEC CARGO.`;
+    const message = `Hola ${firstName}, le contactamos de IMPORTACIONES TLEC CARGO.`;
     const url = buildWhatsAppUrl(phone, message);
     if (!url) {
       toast.error('Número de WhatsApp inválido');

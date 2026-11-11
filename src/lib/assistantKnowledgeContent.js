@@ -69,7 +69,7 @@ const PROPUESTA = {
         { text: 'La configuración vigente del sistema (tarifas, estados, plazos y métodos de pago) manda sobre cualquier otra referencia.', status: 'confirmado', note: '' },
         { text: 'Los módulos y flujos tal como operan hoy en el sistema.', status: 'confirmado', note: '' },
         { text: 'Documentos internos que entregue el equipo: manuales de operación, políticas, contratos y condiciones.', status: 'provisional', note: 'Falta saber qué documentos existen y en qué versión.' },
-        { text: 'Las páginas públicas de IMPORTADORA TLEC CARGO (tarifas publicadas y preguntas frecuentes del sitio), siempre que coincidan con la configuración.', status: 'provisional', note: 'Hoy hay textos publicados con precios antiguos que hay que alinear.' },
+        { text: 'Las páginas públicas de IMPORTACIONES TLEC CARGO (tarifas publicadas y preguntas frecuentes del sitio), siempre que coincidan con la configuración.', status: 'provisional', note: 'Hoy hay textos publicados con precios antiguos que hay que alinear.' },
       ],
     },
     {
@@ -161,7 +161,7 @@ const PROPUESTA = {
 };
 
 const MANUAL = {
-  title: 'Manual operativo de IMPORTADORA TLEC CARGO (borrador para revisión)',
+  title: 'Manual operativo de IMPORTACIONES TLEC CARGO (borrador para revisión)',
   subtitle: 'Reglas con las que trabaja hoy el sistema: para revisar, corregir y luego usar como contexto del asistente.',
   purpose:
     'Cada punto está marcado como Confirmado, Provisional o Pendiente de validación. Corrige lo que esté mal: lo que quede aprobado es lo que el asistente podrá afirmar.',
@@ -170,7 +170,7 @@ const MANUAL = {
   sections: [
     {
       heading: '1. Alcance de este manual',
-      intro: 'Este manual reúne las reglas con las que trabaja IMPORTADORA TLEC CARGO hoy dentro del sistema.',
+      intro: 'Este manual reúne las reglas con las que trabaja IMPORTACIONES TLEC CARGO hoy dentro del sistema.',
       paragraphs: [],
       items: [
         { text: 'Un dato se marca como Confirmado solo cuando se puede comprobar en el sistema o en la configuración vigente.', status: 'confirmado', note: '' },

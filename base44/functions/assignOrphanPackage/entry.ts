@@ -101,7 +101,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // La carga ya pasó por el almacén (la escaneó o la fotografió IMPORTADORA TLEC CARGO): se
+    // La carga ya pasó por el almacén (la escaneó o la fotografió IMPORTACIONES TLEC CARGO): se
     // conserva recibida y se le completa la fecha de recepción que le falte. Una
     // pre-alerta sin evidencia de almacén sigue quedando como pre-alerta.
     const wasReceived = hasReceptionEvidence(pkg);

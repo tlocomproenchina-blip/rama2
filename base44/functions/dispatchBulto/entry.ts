@@ -117,13 +117,13 @@ export default async function(req: Request): Promise<Response> {
           `<p>Hola <strong>${clientName}</strong>,</p>` +
           `<p>Te informamos que tu bulto <strong>${displayLabel}</strong> con ${packageIds.length} paquete(s) fue despachado de nuestro almacén.</p>` +
           `<p>🚚 <strong>Transportista asignado</strong>: tu envío va en camino a su destino.</p>` +
-          `<p>Gracias por confiar en IMPORTADORA TLEC CARGO.</p>`;
+          `<p>Gracias por confiar en IMPORTACIONES TLEC CARGO.</p>`;
         try {
           await sendBrevoEmail(base44, {
             to: bulto.client_email,
             subject: '🚚 Transportista asignado — tu bulto fue despachado',
             body: emailBody,
-            from_name: 'IMPORTADORA TLEC CARGO',
+            from_name: 'IMPORTACIONES TLEC CARGO',
             source: 'dispatch_assigned',
           });
         } catch (_) {}

@@ -79,7 +79,7 @@ export async function fulfillQuoteFeePayment(base44, paymentId, transactionRef =
 
   let emailSubject = config.quote_fee_email_subject || '🎉 Tu enlace de presupuesto está listo';
   let emailBody = config.quote_fee_email_body ||
-    `Hola {cliente_nombre},\n\n¡Gracias por tu pago! Tu solicitud de presupuesto fue recibida.\n\nN° de presupuesto: {numero_presupuesto}\n\nCompleta tus productos en el siguiente enlace:\n{enlace_presupuesto}\n\nIMPORTADORA TLEC CARGO`;
+    `Hola {cliente_nombre},\n\n¡Gracias por tu pago! Tu solicitud de presupuesto fue recibida.\n\nN° de presupuesto: {numero_presupuesto}\n\nCompleta tus productos en el siguiente enlace:\n{enlace_presupuesto}\n\nIMPORTACIONES TLEC CARGO`;
 
   emailSubject = emailSubject.replace(/\{cliente_nombre\}/g, clientName).replace(/\{numero_presupuesto\}/g, quoteNumber).replace(/\{enlace_presupuesto\}/g, quoteUrl);
   emailBody = emailBody

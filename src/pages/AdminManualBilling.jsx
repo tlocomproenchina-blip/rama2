@@ -836,8 +836,8 @@ export default function AdminManualBilling({ user }) {
       try {
         await base44.functions.invoke('sendNotificationEmail', {
           to: client.email,
-          subject: `Nueva factura ${invoice.invoice_number} - IMPORTADORA TLEC CARGO`,
-          body: `Hola,\n\nTu factura ${invoice.invoice_number} ya está disponible para el pago.\n\nIngresa a tu portal de IMPORTADORA TLEC CARGO, en "Mis Facturas", y selecciona la factura: te preguntaremos si quieres retirar tu carga en nuestro almacén de Valencia o recibirla en la puerta de tu casa. Según tu elección verás el monto a pagar y tu factura digital.\n\nGracias.`,
+          subject: `Nueva factura ${invoice.invoice_number} - IMPORTACIONES TLEC CARGO`,
+          body: `Hola,\n\nTu factura ${invoice.invoice_number} ya está disponible para el pago.\n\nIngresa a tu portal de IMPORTACIONES TLEC CARGO, en "Mis Facturas", y selecciona la factura: te preguntaremos si quieres retirar tu carga en nuestro almacén de Valencia o recibirla en la puerta de tu casa. Según tu elección verás el monto a pagar y tu factura digital.\n\nGracias.`,
           in_app: {
             title: 'Nueva factura disponible',
             message: `Factura ${invoice.invoice_number} disponible para el pago`,

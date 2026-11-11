@@ -30,7 +30,7 @@ const cleanName = (value) =>
 
 export async function generatePeriodGuidesPdf({
   guides,
-  appName = 'IMPORTADORA TLEC CARGO',
+  appName = 'IMPORTACIONES TLEC CARGO',
   mode = 'save',
   periodFrom = '',
   periodTo = '',

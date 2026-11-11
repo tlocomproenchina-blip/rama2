@@ -24,7 +24,7 @@ export default function BlogPost() {
         setPost(data);
         setStatus('ready');
 
-        document.title = (data.seo_title || data.title) + ' | IMPORTADORA TLEC CARGO';
+        document.title = (data.seo_title || data.title) + ' | IMPORTACIONES TLEC CARGO';
         const pageUrl = window.location.href;
         const desc = data.seo_description || data.excerpt || '';
         const img = data.cover_image_url || '';
@@ -43,7 +43,7 @@ export default function BlogPost() {
         setMeta('property', 'og:type', 'article');
         setMeta('property', 'og:url', pageUrl);
         setMeta('property', 'og:image', img);
-        setMeta('property', 'og:site_name', 'IMPORTADORA TLEC CARGO');
+        setMeta('property', 'og:site_name', 'IMPORTACIONES TLEC CARGO');
         setMeta('name', 'twitter:card', 'summary_large_image');
         setMeta('name', 'twitter:title', titleSEO);
         setMeta('name', 'twitter:description', desc);
@@ -66,8 +66,8 @@ export default function BlogPost() {
           image: img ? [img] : undefined,
           datePublished: data.published_at,
           dateModified: data.published_at,
-          author: { '@type': 'Organization', name: data.author_name || 'IMPORTADORA TLEC CARGO' },
-          publisher: { '@type': 'Organization', name: 'IMPORTADORA TLEC CARGO' },
+          author: { '@type': 'Organization', name: data.author_name || 'IMPORTACIONES TLEC CARGO' },
+          publisher: { '@type': 'Organization', name: 'IMPORTACIONES TLEC CARGO' },
           mainEntityOfPage: { '@type': 'WebPage', '@id': pageUrl }
         });
         document.head.appendChild(script);

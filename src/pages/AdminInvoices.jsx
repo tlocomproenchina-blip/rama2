@@ -461,7 +461,7 @@ export default function AdminInvoices({ user }) {
   const handleNotifyPayment = (invoice) => {
     const phone = invoice.client_whatsapp;
     const name = (invoice.client_first_name || '').trim() || 'estimado cliente';
-    const message = `Hola ${name}, le contactamos de IMPORTADORA TLEC CARGO. Tiene una factura pendiente de pago (${invoice.invoice_number || ''}) por un monto de $${billableTotal(invoice).toFixed(2)}. Agradecemos su pago a la brevedad para poder realizar el despacho de su carga. ¡Gracias!`;
+    const message = `Hola ${name}, le contactamos de IMPORTACIONES TLEC CARGO. Tiene una factura pendiente de pago (${invoice.invoice_number || ''}) por un monto de $${billableTotal(invoice).toFixed(2)}. Agradecemos su pago a la brevedad para poder realizar el despacho de su carga. ¡Gracias!`;
     const url = buildWhatsAppUrl(phone, message);
     if (!url) {
       toast.error('Este cliente no tiene número de WhatsApp registrado');
@@ -921,7 +921,7 @@ export default function AdminInvoices({ user }) {
           </p>
           <OverdueInvoicesReportButton
             invoices={filteredInvoices}
-            appName={appConfig?.app_name || 'IMPORTADORA TLEC CARGO'}
+            appName={appConfig?.app_name || 'IMPORTACIONES TLEC CARGO'}
           />
         </div>
       )}

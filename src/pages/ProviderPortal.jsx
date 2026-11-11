@@ -25,7 +25,7 @@ export default function ProviderPortal() {
     <div className="min-h-screen bg-background px-4 py-8">
       <div className="mx-auto max-w-5xl space-y-6">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary/70">IMPORTADORA TLEC CARGO · Portal de proveedores</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary/70">IMPORTACIONES TLEC CARGO · Portal de proveedores</p>
           <h1 className="font-display text-3xl font-bold">Facturas de proveedor</h1>
           <p className="text-muted-foreground">Tarifa plana vigente: <b>{money(cfg.flat_rate)}</b> / CBM · Total = tarifa plana × CBM + otros gastos</p>
         </div>

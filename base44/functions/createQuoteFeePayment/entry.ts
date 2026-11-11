@@ -82,7 +82,7 @@ export default async function(req) {
     // Para PayPal: crear orden
     if (method === 'paypal') {
       const accessToken = await getPayPalAccessToken();
-      let brandName = 'IMPORTADORA TLEC CARGO';
+      let brandName = 'IMPORTACIONES TLEC CARGO';
       try {
         brandName = config.invoice_company_name || brandName;
       } catch (_) {}
@@ -92,7 +92,7 @@ export default async function(req) {
         purchase_units: [
           {
             reference_id: String(payment.id),
-            description: 'Tarifa de presupuesto - IMPORTADORA TLEC CARGO',
+            description: 'Tarifa de presupuesto - IMPORTACIONES TLEC CARGO',
             amount: {
               currency_code: 'USD',
               value: Number(amount).toFixed(2),

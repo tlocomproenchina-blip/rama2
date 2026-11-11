@@ -52,7 +52,7 @@ REGLAS SEO:
 - Estructura: H2 para secciones, H3 para subsecciones, listas, negritas
 - Keyword density: 1-2% (no keyword stuffing)
 - Tono: profesional pero accesible, venezolano
-- Menciona "IMPORTADORA TLEC CARGO" como referencia de servicio cuando sea natural
+- Menciona "IMPORTACIONES TLEC CARGO" como referencia de servicio cuando sea natural
 - No inventes precios; si mencionas tarifas, usa rangos generales`;
 
 export function getTopicSuggestions(): string[] {
