@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Mail, MessageCircle, Phone, MapPin, Send, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +12,12 @@ import PublicPageShell from '@/components/public/PublicPageShell';
 export default function Contact() {
   const [form, setForm] = useState({ name: '', email: '', message: '' });
   const [sending, setSending] = useState(false);
+  const [waNumber, setWaNumber] = useState('');
+
+  useEffect(() => {
+    base44.entities.AppConfig.filter({ config_key: 'main' }, '-updated_date', 1)
+      .then((rows) => setWaNumber(String(rows?.[0]?.whatsapp_number || '').replace(/\D/g, '')));
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -67,14 +73,18 @@ export default function Contact() {
                 <div>
                   <h3 className="font-semibold text-slate-800">WhatsApp</h3>
                   <p className="text-sm text-slate-500">Atención inmediata en horario laboral</p>
-                  <a
-                    href="https://wa.me/584121234567"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-link hover:underline text-sm"
-                  >
-                    Iniciar chat
-                  </a>
+                  {waNumber ? (
+                    <a
+                      href={`https://wa.me/${waNumber}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-link hover:underline text-sm"
+                    >
+                      Iniciar chat · +{waNumber}
+                    </a>
+                  ) : (
+                    <p className="text-sm text-slate-500">Próximamente</p>
+                  )}
                 </div>
               </CardContent>
             </Card>
