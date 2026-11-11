@@ -7,7 +7,7 @@ import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { generateDispatchGuidePdf } from '@/lib/dispatchGuidePdf';
 import DispatchGuideDetail from './DispatchGuideDetail';
-import { withVolumeOverrides } from '@/lib/guideVolume';
+import { CUBIC_FEET_PER_CBM, guideTotalCbm, withVolumeOverrides } from '@/lib/guideVolume';
 
 const SOURCE_LABELS = {
   periodo_pagos: 'Desde el período de pagos',
@@ -80,7 +80,11 @@ export default function DispatchGuideMiniCard({ guide }) {
               {totals.cajas} cajas consolidadas
             </span>
           )}
-          {Number(totals.cbm) > 0 && <span>{Number(totals.cbm).toFixed(3)} CBM</span>}
+          {(() => {
+            const { clients, totalOverride } = withVolumeOverrides(guide);
+            const cbm = guideTotalCbm(clients, totalOverride) || Number(totals.cbm) || 0;
+            return cbm > 0 ? <span>{cbm.toFixed(3)} CBM · {(cbm * CUBIC_FEET_PER_CBM).toFixed(2)} pies³</span> : null;
+          })()}
         </div>
 
         {dispatchOrders.length > 0 && (
