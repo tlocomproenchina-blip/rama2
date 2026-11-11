@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
-import { linkReferral, syncInvoice, accumulatedCbm, invoiceCbm, USD_PER_BLOCK } from '../../shared/referralSync.ts';
+import { linkReferral, syncInvoice, accumulatedCbm, invoiceCbm, USD_PER_BLOCK, PROGRAM_START, afterStart } from '../../shared/referralSync.ts';
 
 const METHODS = ['credito', 'usdt_trc20', 'usdt_bep20', 'pago_movil', 'efectivo'];
 
@@ -16,7 +16,7 @@ function genCode() {
 
 async function balance(sr: any, userId: string) {
   const acc = await accumulatedCbm(sr, userId);
-  const reqs = await sr.entities.ReferralPayoutRequest.filter({ referrer_user_id: userId }, '-created_date', 500);
+  const reqs = (await sr.entities.ReferralPayoutRequest.filter({ referrer_user_id: userId }, '-created_date', 500)).filter((r: any) => afterStart(r.created_date));
   const used = reqs.filter((r: any) => r.status !== 'rechazada').reduce((s: number, r: any) => s + (Number(r.cbm) || 0), 0);
   const free = Math.max(0, Math.round((acc - used) * 10000) / 10000);
   return { accumulated: acc, used, free, blocks: Math.floor(free), requests: reqs };
@@ -35,8 +35,8 @@ Deno.serve(async (req) => {
 
     if (action === 'me') {
       const profile = (await sr.entities.ReferrerProfile.filter({ user_id: me.id }, '-created_date', 1))[0] || null;
-      const shipments = await sr.entities.ReferralShipment.filter({ referrer_user_id: me.id }, '-created_date', 300);
-      const referred = await sr.entities.User.filter({ referred_by_user_id: me.id }, '-created_date', 300);
+      const shipments = (await sr.entities.ReferralShipment.filter({ referrer_user_id: me.id }, '-created_date', 300)).filter((s: any) => afterStart(s.created_date));
+      const referred = (await sr.entities.User.filter({ referred_by_user_id: me.id }, '-created_date', 300)).filter((u: any) => afterStart(u.referral_joined_at));
       const b = await balance(sr, me.id);
       let myCode = me.referral_code;
       if (!myCode) {
@@ -53,6 +53,7 @@ Deno.serve(async (req) => {
         for (const inv of invs) {
           const j = joinedBy[inv.client_email];
           if (j && inv.invoice_date && inv.invoice_date < j) continue;
+          if (!afterStart(inv.invoice_date || inv.created_date)) continue;
           cbmBy[inv.client_email] = (cbmBy[inv.client_email] || 0) + invoiceCbm(inv);
         }
       }
@@ -68,6 +69,7 @@ Deno.serve(async (req) => {
         profile, shipments, balance: { ...b, requests: undefined }, requests: b.requests, referrer,
         eligible: me.role === 'user' && me.is_active !== false,
         my_code: myCode,
+        program_start: PROGRAM_START,
         referred: referred.map((u: any) => ({
           id: u.id,
           name: [u.first_name, u.last_name].filter(Boolean).join(' ') || u.full_name || 'Cliente en registro',

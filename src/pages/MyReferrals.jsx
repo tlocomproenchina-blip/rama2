@@ -41,7 +41,7 @@ export default function MyReferrals() {
         eyebrow="Programa de referidos"
         title="Mis Referidos"
         description="Gana $50 USD por cada 1 CBM de flete marítimo que tus referidos paguen. Las fracciones se acumulan sin vencimiento."
-        badges={[`${data.referred.length} referidos`]}
+        badges={[`${data.referred.length} referidos`, `Conteo desde ${new Date(data.program_start || '2026-11-10T04:00:00.000Z').toLocaleDateString('es-VE', { timeZone: 'America/Caracas' })}`]}
         action={<Button variant="outline" onClick={() => setTermsOpen(true)}>Términos y condiciones</Button>}
       />
 

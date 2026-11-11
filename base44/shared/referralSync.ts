@@ -1,5 +1,8 @@
 // Lógica del programa de referidos: atribución, maduración y acumulación de CBM.
 export const USD_PER_BLOCK = 50;
+// Reinicio del programa: solo cuenta lo ocurrido desde el 10/11/2026 00:00 (hora de Caracas).
+export const PROGRAM_START = '2026-11-10T04:00:00.000Z';
+export const afterStart = (d?: string) => !!d && d >= PROGRAM_START;
 const SHIPPED_STATUSES = ['en_transito', 'disponible', 'despachado', 'entregado'];
 
 const round4 = (n: number) => Math.round((Number(n) || 0) * 10000) / 10000;
@@ -67,7 +70,7 @@ async function notify(sr: any, email: string, title: string, message: string, re
 
 export async function accumulatedCbm(sr: any, referrerId: string) {
   const rows = await sr.entities.ReferralShipment.filter({ referrer_user_id: referrerId, counted: true }, '-created_date', 1000);
-  return round4(rows.reduce((s: number, r: any) => s + (Number(r.cbm) || 0), 0));
+  return round4(rows.filter((r: any) => afterStart(r.counted_date)).reduce((s: number, r: any) => s + (Number(r.cbm) || 0), 0));
 }
 
 // Sincroniza una factura del cliente referido con su registro de seguimiento.
@@ -76,6 +79,8 @@ export async function syncInvoice(sr: any, inv: any) {
   const users = await sr.entities.User.filter({ email: inv.client_email });
   const client = users[0];
   if (!client?.referred_by_user_id) return { skipped: 'sin referidor' };
+  if (!afterStart(client.referral_joined_at)) return { skipped: 'vinculación anterior al reinicio' };
+  if (!afterStart(inv.invoice_date || inv.created_date)) return { skipped: 'factura anterior al reinicio' };
   if (client.referral_joined_at && inv.invoice_date && inv.invoice_date < client.referral_joined_at) return { skipped: 'anterior a la vinculación' };
   // Todo cliente registrado es referidor automáticamente; el perfil es opcional.
   const refUser = (await sr.entities.User.filter({ id: client.referred_by_user_id }))[0];
