@@ -28,10 +28,8 @@ export default function AdminDashboard({ user }) {
   const [data, setData] = useState({
     packages: [],
     consolidations: [],
-    users: [],
-    invoices: [],
     supportTickets: [],
-    notifications: [],
+    counts: {},
   });
 
   const loadData = useCallback(async () => {
@@ -39,19 +37,39 @@ export default function AdminDashboard({ user }) {
       setLoading(true);
       const now = new Date();
       const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-      const [packages, consolidations, users, invoices, supportTickets, notifications, totalAgg, monthAgg] = await Promise.all([
-        base44.entities.Package.list('-created_date', 120),
-        base44.entities.Consolidation.list('-created_date', 120),
-        base44.functions.invoke('listAllUsers', { role: 'user', limit: 200 }).then(r => r?.data?.users || []),
-        base44.entities.Invoice.list('-created_date', 120),
-        base44.entities.SupportTicket.list('-updated_date', 80),
-        user?.email ? base44.entities.Notification.filter({ user_email: user.email }, '-created_date', 20) : Promise.resolve([]),
+      const nowIso = now.toISOString();
+      const [
+        packages, consolidations, supportTickets, usersRes,
+        preAlerts, received, inTransit, availableConsolidations, pendingValidation, openTickets, overdueInvoices,
+        totalAgg, monthAgg,
+      ] = await Promise.all([
+        base44.entities.Package.list('-created_date', 6),
+        base44.entities.Consolidation.list('-created_date', 6),
+        base44.entities.SupportTicket.list('-updated_date', 5),
+        base44.functions.invoke('listAllUsers', { role: 'user', includeAdmins: false, limit: 5000 }).then(r => r?.data || {}),
+        base44.entities.Package.count({ status: 'pre_alerta' }),
+        base44.entities.Package.count({ status: 'recibido' }),
+        base44.entities.Package.count({ status: 'en_transito' }),
+        base44.entities.Consolidation.count({ status: 'disponible' }),
+        base44.entities.Consolidation.count({ payment_proof_url: { $exists: true, $ne: '' }, payment_validated: { $ne: true } }),
+        base44.entities.SupportTicket.count({ status: 'abierto' }),
+        base44.entities.Invoice.count({ status: 'pendiente', due_date: { $lt: nowIso } }),
         sdk.entities.Invoice.aggregate({ query: { status: 'pagada' }, sum: ['total'] }),
         sdk.entities.Invoice.aggregate({ query: { status: 'pagada', payment_date: { $gte: monthStart } }, sum: ['total'] }),
       ]);
 
+      const clients = usersRes.users || [];
+      const inactiveClients = clients.filter((item) => item.is_active === false).length;
+      const totalClients = Number(usersRes.total ?? clients.length);
+
       setData({
-        packages, consolidations, users, invoices, supportTickets, notifications,
+        packages, consolidations, supportTickets,
+        counts: {
+          activeClients: totalClients - inactiveClients,
+          inactiveClients,
+          preAlerts, received, inTransit, availableConsolidations,
+          pendingValidation, openTickets, overdueInvoices,
+        },
         totalRevenue: Number(totalAgg?.rows?.[0]?.sum_total || 0),
         monthRevenue: Number(monthAgg?.rows?.[0]?.sum_total || 0),
       });
@@ -67,18 +85,10 @@ export default function AdminDashboard({ user }) {
   }, [loadData]);
 
   const metrics = useMemo(() => {
-    const today = new Date();
-    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-
-    const activeClients = data.users.filter((item) => item.is_active !== false).length;
-    const inactiveClients = data.users.filter((item) => item.is_active === false).length;
-    const preAlerts = data.packages.filter((item) => item.status === 'pre_alerta').length;
-    const received = data.packages.filter((item) => item.status === 'recibido').length;
-    const inTransit = data.packages.filter((item) => item.status === 'en_transito').length;
-    const availableConsolidations = data.consolidations.filter((item) => item.status === 'disponible').length;
-    const pendingValidation = data.consolidations.filter((item) => item.payment_proof_url && !item.payment_validated).length;
-    const openTickets = data.supportTickets.filter((item) => item.status === 'abierto').length;
-    const overdueInvoices = data.invoices.filter((item) => item.status === 'pendiente' && item.due_date && new Date(item.due_date) < today).length;
+    const {
+      activeClients = 0, inactiveClients = 0, preAlerts = 0, received = 0, inTransit = 0,
+      availableConsolidations = 0, pendingValidation = 0, openTickets = 0, overdueInvoices = 0,
+    } = data.counts || {};
     const monthRevenue = data.monthRevenue || 0;
     const totalRevenue = data.totalRevenue || 0;
 
