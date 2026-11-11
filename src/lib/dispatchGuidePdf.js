@@ -4,7 +4,7 @@
 import { isUnregisteredLine, summarizeGuide } from './dispatchGuides';
 import { qrDataUrl } from './qrCode';
 import { clientRefsOf, palletCountFor, palletSequence, palletsTotalOf } from './guidePallets';
-import { clientCbm, volumeLabel } from './guideVolume';
+import { clientCbm, guideTotalCbm, volumeLabel } from './guideVolume';
 
 // Contenido del QR de la guía. El escáner de despacho lo reconoce por el prefijo.
 export const GUIDE_QR_PREFIX = 'GUIA:';
@@ -26,6 +26,7 @@ export async function generateDispatchGuidePdf({
   emittedAt = '',
   notes = '',
   pallets = [],
+  totalCbmOverride = null,
 }) {
   const { jsPDF } = await import('jspdf');
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
@@ -39,7 +40,7 @@ export async function generateDispatchGuidePdf({
   // Paletas físicas (lo que cuenta el transporte): solo aparecen si se anotaron.
   const palletsTotal = palletsTotalOf(pallets);
   const palletLabel = palletsTotal ? `${palletsTotal} paleta(s) · ` : '';
-  const totalCbm = list.reduce((sum, entry) => sum + clientCbm(entry), 0);
+  const totalCbm = guideTotalCbm(list, totalCbmOverride);
   const now = emittedAt ? new Date(emittedAt) : new Date();
   const left = 14;
   const right = 196;

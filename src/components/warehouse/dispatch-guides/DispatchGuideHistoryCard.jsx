@@ -22,7 +22,10 @@ import GuideBultoChips from './GuideBultoChips';
 import DeleteGuideButton from './DeleteGuideButton';
 import { Checkbox } from '@/components/ui/checkbox';
 import GuidePalletsDialog from './GuidePalletsDialog';
-import { CUBIC_FEET_PER_CBM, clientCbm } from '@/lib/guideVolume';
+import { CUBIC_FEET_PER_CBM, clientCbm, guideTotalCbm, withVolumeOverrides } from '@/lib/guideVolume';
+import { palletClientKey } from '@/lib/guidePallets';
+import { base44 } from '@/components/api/ApiQueueManager';
+import GuideVolumeEditor from './GuideVolumeEditor';
 import { palletCountFor, palletSequence, palletsTotalOf } from '@/lib/guidePallets';
 
 const fmtDate = (value) => {
@@ -63,7 +66,29 @@ export default function DispatchGuideHistoryCard({ guide, appName, highlighted =
   const palletsTotal = palletsTotalOf(guide.pallets);
   const [generating, setGenerating] = useState('');
 
-  const clients = Array.isArray(guide.clients) ? guide.clients : [];
+  const { clients, totalOverride } = withVolumeOverrides(guide);
+  const volumeOverride = guide.volume_override || {};
+  const totalCbm = guideTotalCbm(clients, totalOverride);
+
+  // Guarda el volumen corregido a mano (null = volver al calculado). Al corregir un
+  // cliente, el total vuelve a sumar los clientes.
+  const saveVolume = async (clientKey, value) => {
+    let next;
+    if (clientKey) {
+      const others = (volumeOverride.clients || []).filter((e) => e.client_key !== clientKey);
+      next = { clients: value === null ? others : [...others, { client_key: clientKey, cbm: value }] };
+    } else {
+      next = { clients: volumeOverride.clients || [] };
+      if (value !== null) next.total = value;
+    }
+    try {
+      await base44.entities.DispatchGuide.update(guide.id, { volume_override: next });
+      toast.success('Volumen de la guía actualizado');
+      onGuideUpdated?.();
+    } catch (error) {
+      toast.error(error?.message || 'No se pudo guardar el volumen');
+    }
+  };
   const delivered = guide.dispatch_status === 'entregada';
   // Órdenes de despacho que se generaron solas al emitir la guía a mano.
   const orders = Array.isArray(guide.dispatch_orders) ? guide.dispatch_orders : [];
@@ -85,6 +110,7 @@ export default function DispatchGuideHistoryCard({ guide, appName, highlighted =
         emittedAt: guide.emitted_date,
         notes: guide.delivery_notes || '',
         pallets: guide.pallets || [],
+        totalCbmOverride: totalOverride,
       });
     } catch (_) {
       toast.error('No se pudo generar el PDF de la guía');
@@ -182,16 +208,24 @@ export default function DispatchGuideHistoryCard({ guide, appName, highlighted =
         </div>
 
         <div className="space-y-0.5">
-          {clients.map((client) => {
+          {clients.length > 1 && clients.map((client) => {
             const cbm = clientCbm(client);
             if (!(cbm > 0)) return null;
             return (
               <p key={`vol-${client.client_key || client.client_email || client.client_name}`} className="text-xs font-semibold text-slate-800">
-                {clients.length > 1 ? `${client.shipping_mark || client.client?.shipping_mark || client.client_name || 'Cliente'}: ` : 'Volumen: '}
+                {`${client.shipping_mark || client.client?.shipping_mark || client.client_name || 'Cliente'}: `}
                 {cbm.toFixed(2)} CBM · {(cbm * CUBIC_FEET_PER_CBM).toFixed(2)} pies cúbicos
               </p>
             );
           })}
+          {clients.length > 0 && (
+            <GuideVolumeEditor
+              label="Volumen total"
+              cbm={totalCbm}
+              edited={totalOverride !== null}
+              onSave={(value) => saveVolume(null, value)}
+            />
+          )}
         </div>
 
         {delivered && (
@@ -260,9 +294,12 @@ export default function DispatchGuideHistoryCard({ guide, appName, highlighted =
                   {(() => {
                     const cbm = clientCbm(client);
                     return (
-                      <p className="text-[11px] font-semibold text-slate-700">
-                        Volumen: {cbm.toFixed(2)} CBM · {(cbm * CUBIC_FEET_PER_CBM).toFixed(2)} pies cúbicos
-                      </p>
+                      <GuideVolumeEditor
+                        label="Volumen"
+                        cbm={cbm}
+                        edited={client.cbm_override !== undefined}
+                        onSave={(value) => saveVolume(palletClientKey(client), value)}
+                      />
                     );
                   })()}
                   {palletCountFor(guide.pallets, client) > 0 && (

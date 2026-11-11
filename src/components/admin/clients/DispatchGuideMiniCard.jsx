@@ -7,6 +7,7 @@ import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { generateDispatchGuidePdf } from '@/lib/dispatchGuidePdf';
 import DispatchGuideDetail from './DispatchGuideDetail';
+import { withVolumeOverrides } from '@/lib/guideVolume';
 
 const SOURCE_LABELS = {
   periodo_pagos: 'Desde el período de pagos',
@@ -25,8 +26,10 @@ export default function DispatchGuideMiniCard({ guide }) {
   const handleDownload = async () => {
     setDownloading(true);
     try {
+      const { clients, totalOverride } = withVolumeOverrides(guide);
       await generateDispatchGuidePdf({
-        clients: Array.isArray(guide.clients) ? guide.clients : [],
+        clients,
+        totalCbmOverride: totalOverride,
         mode: 'save',
         guideNumber: guide.guide_number,
         emittedAt: guide.emitted_date,

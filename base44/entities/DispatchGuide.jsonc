@@ -251,6 +251,29 @@
       "format": "date-time",
       "description": "Fecha y hora de la \u00faltima anotaci\u00f3n de paletas"
     },
+    "volume_override": {
+      "type": "object",
+      "description": "Volumen CBM corregido a mano en la gu\u00eda. total: CBM total de la gu\u00eda; clients: CBM por cliente (client_key igual al de las paletas). Si no existe, se usa el volumen calculado de los bultos o de la factura.",
+      "properties": {
+        "total": {
+          "type": "number"
+        },
+        "clients": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "client_key": {
+                "type": "string"
+              },
+              "cbm": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      }
+    },
     "client_names": {
       "type": "array",
       "default": [],
