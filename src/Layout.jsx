@@ -249,9 +249,11 @@ export default function Layout({ children, currentPageName }) {
 
       // Redirect admin when landing on Home/Dashboard or no page specified.
       // El empleado con área entra a un módulo de su área; el administrador al
-      // Resumen Diario. En app nativa también se sale de las páginas públicas.
+      // Resumen Diario. En la portada pública solo se redirige al empleado con
+      // área: el administrador puede quedarse a verla. En app nativa también se
+      // sale de las páginas públicas.
       const nativePublicPages = ['ShippingCalculator', 'Blog', 'BlogPost', 'About', 'Contact', 'Inicio2', 'CityLanding'];
-      if (currentUser.role === 'admin' && (!currentPageName || currentPageName === 'Dashboard' || currentPageName === 'Inicio2' || ((isApkApp || isNative) && nativePublicPages.includes(currentPageName)))) {
+      if (currentUser.role === 'admin' && (!currentPageName || currentPageName === 'Dashboard' || (currentPageName === 'Inicio2' && isAreaEmployee(currentUser)) || ((isApkApp || isNative) && nativePublicPages.includes(currentPageName)))) {
         const landing = isAreaEmployee(currentUser)
           ? pickLandingPage(allowedPagesFor(currentUser, resolvedRoleConfig))
           : 'AdminDailySummary';
