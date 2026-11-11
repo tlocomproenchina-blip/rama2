@@ -5,6 +5,7 @@
 
 import { qrModuleCount } from '@/lib/qrCode';
 import { containerLine } from '@/lib/labelContainerLine';
+import { getOperatorLabel } from '@/lib/operatorCode';
 
 const enc = new TextEncoder();
 
@@ -29,6 +30,15 @@ const centerX = (text, font, xMult) => {
   const cw = FONT_WIDTH[font] || 8;
   const w = String(text ?? '').length * cw * (xMult || 1);
   return Math.max(10, Math.floor((LABEL_W - w) / 2));
+};
+
+// Código del operador (OP 01) en la esquina inferior derecha. Se reserva ese espacio
+// al repartir el contenido para que nunca se encime con el resto de la etiqueta.
+const OP_RESERVE = 56;
+const operatorLines = (text) => {
+  if (!text) return [];
+  const x = Math.max(10, LABEL_W - 30 - text.length * FONT_WIDTH['2'] * 2);
+  return [`TEXT ${x},${LABEL_W - 20 - 48},${q('2')},0,2,2,${q(text)}`];
 };
 
 // Concatenate Uint8Arrays into one (for batch printing)
@@ -82,7 +92,7 @@ const qrBlock = (code, { targetH = 190, maxCell = 10 } = {}) => {
 // Todas las etiquetas llevan código QR, también al reimprimir.
 // Returns Uint8Array ready for Web Bluetooth writeValue.
 // copies: cuántas copias idénticas imprime la impresora de esta etiqueta.
-export const buildBultoLabelPayload = (bulto, copies = 1) => {
+export const buildBultoLabelPayload = (bulto, copies = 1, operatorLabel = getOperatorLabel()) => {
   const cs = bulto.client_snapshot || {};
   const estado = (cs.state || 'SIN ESTADO').toUpperCase();
   const labelCode = bulto.label_code || '';
@@ -91,7 +101,7 @@ export const buildBultoLabelPayload = (bulto, copies = 1) => {
 
   // Métricas verticales (dots @203dpi). Altura real de cada texto + respiro.
   const MARGIN = 20;
-  const PRINTABLE_H = LABEL_W - MARGIN * 2; // 760 dots de alto útil
+  const PRINTABLE_H = LABEL_W - MARGIN * 2 - (operatorLabel ? OP_RESERVE : 0); // alto útil (sin la franja del operador)
 
   const nameCedula = [cs.full_name, cs.cedula ? `C.I. ${cs.cedula}` : ''].filter(Boolean).join(' - ');
   const cityState = [cs.city, cs.state].filter(Boolean).join(', ');
@@ -149,6 +159,7 @@ export const buildBultoLabelPayload = (bulto, copies = 1) => {
     lines.push(...b.render(y));
     y += b.h;
   }
+  lines.push(...operatorLines(operatorLabel));
 
   lines.push(`PRINT 1,${Math.max(1, copies)}`);
   lines.push('END');
@@ -174,6 +185,7 @@ export const buildContinuousLabelPayload = ({
   packageCount = 0,
   cbm = 0,
   copies = 1,
+  operatorLabel = getOperatorLabel(),
 }) => {
   const cs = client || {};
   const counter = `${index}/${total}`;
@@ -185,7 +197,7 @@ export const buildContinuousLabelPayload = ({
   const footer = [guideNumber ? `GUIA ${guideNumber}` : '', dateStr].filter(Boolean).join('  ·  ');
 
   const MARGIN = 20;
-  const PRINTABLE_H = LABEL_W - MARGIN * 2;
+  const PRINTABLE_H = LABEL_W - MARGIN * 2 - (operatorLabel ? OP_RESERVE : 0);
 
   // Armazón de una etiqueta de 100×100 mm. `compact` recorta la dirección y las filas
   // grandes a una sola línea, y `counterLimit` deja achicar el X/N: entre los dos el
@@ -278,6 +290,7 @@ export const buildContinuousLabelPayload = ({
     lines.push(...b.render(y));
     y += b.h;
   }
+  lines.push(...operatorLines(operatorLabel));
   lines.push(`PRINT 1,${Math.max(1, copies)}`);
   lines.push('END');
 

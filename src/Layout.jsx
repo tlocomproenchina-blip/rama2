@@ -34,6 +34,7 @@ import SyncCenterButton from '@/components/store-forward/SyncCenterButton';
 import PrintStationRunner from '@/components/warehouse/print-queue/PrintStationRunner';
 import SharedPrintQueueButton from '@/components/warehouse/print-queue/SharedPrintQueueButton';
 import { isStaff } from '@/lib/staffAccess';
+import { syncOperatorCode } from '@/lib/operatorCode';
 
 // Lazy loaded onboarding tour
 const GuidedTour = lazy(() =>
@@ -191,6 +192,7 @@ export default function Layout({ children, currentPageName }) {
     try {
       const currentUser = await base44.auth.me();
       setUser(currentUser);
+      syncOperatorCode(currentUser).catch(() => {});
 
       let resolvedRoleConfig = null;
       if (isAreaEmployee(currentUser)) {

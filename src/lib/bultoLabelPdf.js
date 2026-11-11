@@ -1,5 +1,6 @@
 import { labelSymbolImage } from '@/lib/labelSymbol';
 import { containerLine } from '@/lib/labelContainerLine';
+import { getOperatorLabel } from '@/lib/operatorCode';
 
 // Etiqueta de bulto en PDF para impresión térmica de 100 × 100 mm.
 // Todo el contenido se ajusta al área imprimible: los textos largos reducen su
@@ -8,7 +9,8 @@ import { containerLine } from '@/lib/labelContainerLine';
 const PAGE_SIZE = 100;
 const MARGIN = 4;
 const CONTENT_W = PAGE_SIZE - MARGIN * 2;
-const PRINTABLE_H = PAGE_SIZE - MARGIN * 2;
+const BASE_PRINTABLE_H = PAGE_SIZE - MARGIN * 2;
+const OP_RESERVE = 7;
 
 const QR_SIZE = 38;
 
@@ -29,6 +31,8 @@ function fitSize(doc, text, maxWidth, maxSize, minSize, style = 'bold', family =
 }
 
 async function drawLabel(doc, bulto) {
+  const operatorLabel = getOperatorLabel();
+  const PRINTABLE_H = BASE_PRINTABLE_H - (operatorLabel ? OP_RESERVE : 0);
   const cs = bulto.client_snapshot || {};
   const estado = String(cs.state || 'SIN ESTADO').toUpperCase();
   const nameCedula = [cs.full_name, cs.cedula ? `C.I. ${cs.cedula}` : ''].filter(Boolean).join(' - ');
@@ -129,6 +133,13 @@ async function drawLabel(doc, bulto) {
     setFont(doc, Math.max(6, mm(8)));
     doc.text(cityState, MARGIN, y + mm(cityH) * 0.75);
     y += mm(cityH);
+  }
+
+  // Código del operador que imprime, en la esquina inferior derecha
+  if (operatorLabel) {
+    doc.setTextColor(0);
+    setFont(doc, 12);
+    doc.text(operatorLabel, PAGE_SIZE - MARGIN, PAGE_SIZE - MARGIN, { align: 'right' });
   }
 }
 

@@ -3,12 +3,14 @@
 // solo archivo, con la misma información que la etiqueta térmica: el código QR de la
 // etiqueta nueva, estado del cliente, N° de contenedor y datos de entrega.
 import { labelSymbolImage } from '@/lib/labelSymbol';
+import { getOperatorLabel } from '@/lib/operatorCode';
 
 export async function downloadCombinedBultoLabelsPdf({ bultos = [], nameHint = 'bultos' }) {
   if (!bultos.length) return 0;
 
   const { default: jsPDF } = await import('jspdf');
   const doc = new jsPDF({ unit: 'mm', format: [100, 100] });
+  const operatorLabel = getOperatorLabel();
 
   for (let idx = 0; idx < bultos.length; idx += 1) {
     const bulto = bultos[idx];
@@ -79,6 +81,13 @@ export async function downloadCombinedBultoLabelsPdf({ bultos = [], nameHint = '
     }
     const cityState = [cs.city, cs.state].filter(Boolean).join(', ');
     if (cityState) { doc.text(cityState, 5, y); }
+
+    // Código del operador que imprime, en la esquina inferior derecha
+    if (operatorLabel) {
+      doc.setFontSize(12);
+      doc.setFont(undefined, 'bold');
+      doc.text(operatorLabel, 96, 96, { align: 'right' });
+    }
   }
 
   const safeName = String(nameHint || 'bultos').replace(/[^a-zA-Z0-9]/g, '');

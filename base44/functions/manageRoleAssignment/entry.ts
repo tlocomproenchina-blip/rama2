@@ -1,6 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.41';
 import { sanitizeUser } from '../../shared/userSanitize.ts';
 import { ROLE_PRESETS } from '../../shared/roleAreas.ts';
+import { ensureOperatorCode } from '../../shared/operatorCode.ts';
 
 // Asigna un área (custom_role) a un administrador desde el backend.
 // - Valida permisos del solicitante (admin)
@@ -75,6 +76,15 @@ Deno.serve(async (req) => {
 
     // Actualizar custom_role
     await base44.asServiceRole.entities.User.update(targetUserId, { custom_role: newRoleValue });
+
+    // Operadores de almacén: asignar su código consecutivo (OP 01, OP 02...)
+    if (nextRole === 'almacen') {
+      try {
+        await ensureOperatorCode(base44.asServiceRole.entities, { ...targetUser, custom_role: 'almacen' });
+      } catch (e) {
+        console.error('operator code error:', e.message);
+      }
+    }
 
     // Asegurar RoleConfig con permisos predeterminados
     let roleConfig = null;

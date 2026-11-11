@@ -17,6 +17,10 @@
       ],
       "description": "Rol por \u00e1rea operativa"
     },
+    "operator_code": {
+      "type": "string",
+      "description": "C\u00f3digo consecutivo del operador de almac\u00e9n (01, 02...). Se imprime como OP 01 en las etiquetas que env\u00eda a imprimir."
+    },
     "billing_use_registration": {
       "type": "boolean",
       "default": true,
