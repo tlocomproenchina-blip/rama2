@@ -98,8 +98,9 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'request_payout') {
-      const profile = (await sr.entities.ReferrerProfile.filter({ user_id: me.id, status: 'activo' }, '-created_date', 1))[0];
-      if (!profile) return Response.json({ error: 'Tu registro de referidor no está activo.' }, { status: 403 });
+      const profile = (await sr.entities.ReferrerProfile.filter({ user_id: me.id }, '-created_date', 1))[0];
+      if (profile?.status === 'suspendido') return Response.json({ error: 'Tu participación está suspendida.' }, { status: 403 });
+      if (me.is_active === false) return Response.json({ error: 'Tu cuenta está desactivada.' }, { status: 403 });
       const { method, payout_details } = body;
       const blocks = Math.floor(Number(body.blocks) || 0);
       if (!METHODS.includes(method)) return Response.json({ error: 'Método inválido.' }, { status: 400 });
@@ -107,7 +108,7 @@ Deno.serve(async (req) => {
       const b = await balance(sr, me.id);
       if (blocks < 1 || blocks > b.blocks) return Response.json({ error: `Puedes solicitar hasta ${b.blocks} bloque(s).` }, { status: 400 });
       const r = await sr.entities.ReferralPayoutRequest.create({
-        referrer_user_id: me.id, referrer_email: me.email, referrer_name: profile.full_name,
+        referrer_user_id: me.id, referrer_email: me.email, referrer_name: profile?.full_name || [me.first_name, me.last_name].filter(Boolean).join(' ') || me.full_name || me.email,
         blocks, cbm: blocks, amount: blocks * USD_PER_BLOCK, method, payout_details: payout_details || '', status: 'pendiente',
       });
       return Response.json({ request: r });

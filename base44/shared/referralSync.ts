@@ -77,9 +77,11 @@ export async function syncInvoice(sr: any, inv: any) {
   const client = users[0];
   if (!client?.referred_by_user_id) return { skipped: 'sin referidor' };
   if (client.referral_joined_at && inv.invoice_date && inv.invoice_date < client.referral_joined_at) return { skipped: 'anterior a la vinculación' };
-  const refs = await sr.entities.ReferrerProfile.filter({ user_id: client.referred_by_user_id }, '-created_date', 1);
-  const ref = refs[0];
-  if (!ref) return { skipped: 'referidor sin registro' };
+  // Todo cliente registrado es referidor automáticamente; el perfil es opcional.
+  const refUser = (await sr.entities.User.filter({ id: client.referred_by_user_id }))[0];
+  if (!refUser) return { skipped: 'referidor no existe' };
+  const refProfile = (await sr.entities.ReferrerProfile.filter({ user_id: refUser.id }, '-created_date', 1))[0];
+  const ref = { user_id: refUser.id, user_email: refUser.email, status: refProfile?.status || 'activo' };
 
   const pkgs = await invoicePackages(sr, inv);
   const cbm = invoiceCbm(inv);
