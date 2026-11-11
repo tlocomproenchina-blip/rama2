@@ -4,7 +4,7 @@
 import { isUnregisteredLine, summarizeGuide } from './dispatchGuides';
 import { qrDataUrl } from './qrCode';
 import { clientRefsOf, palletCountFor, palletSequence, palletsTotalOf } from './guidePallets';
-import { sumCbm, volumeLabel } from './guideVolume';
+import { clientCbm, volumeLabel } from './guideVolume';
 
 // Contenido del QR de la guía. El escáner de despacho lo reconoce por el prefijo.
 export const GUIDE_QR_PREFIX = 'GUIA:';
@@ -39,7 +39,7 @@ export async function generateDispatchGuidePdf({
   // Paletas físicas (lo que cuenta el transporte): solo aparecen si se anotaron.
   const palletsTotal = palletsTotalOf(pallets);
   const palletLabel = palletsTotal ? `${palletsTotal} paleta(s) · ` : '';
-  const totalCbm = list.reduce((sum, entry) => sum + sumCbm(entry.bultos), 0);
+  const totalCbm = list.reduce((sum, entry) => sum + clientCbm(entry), 0);
   const now = emittedAt ? new Date(emittedAt) : new Date();
   const left = 14;
   const right = 196;
@@ -249,7 +249,7 @@ export async function generateDispatchGuidePdf({
     doc.text(`${clientPallets ? 'Contenido cliente' : 'Total cliente'}: ${clientBultos} bulto(s)`, right, y, { align: 'right' });
     y += 5.5;
     doc.setFontSize(10.5);
-    doc.text(`Volumen: ${volumeLabel(sumCbm(bultos))}`, right, y, { align: 'right' });
+    doc.text(`Volumen: ${volumeLabel(clientCbm(entry))}`, right, y, { align: 'right' });
     y += 5;
     if (clientUnregistered) {
       doc.setFont('helvetica', 'normal');

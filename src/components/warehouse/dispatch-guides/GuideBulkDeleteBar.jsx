@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { CUBIC_FEET_PER_CBM, sumCbm } from '@/lib/guideVolume';
+import { CUBIC_FEET_PER_CBM, clientCbm } from '@/lib/guideVolume';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -18,7 +18,7 @@ export default function GuideBulkDeleteBar({ guides, selectedIds, onSelectAll, o
   const allSelected = guides.length > 0 && guides.every((g) => selectedIds.includes(g.id));
   const selectedCbm = guides
     .filter((g) => selectedIds.includes(g.id))
-    .reduce((sum, g) => sum + (g.clients || []).reduce((s, c) => s + (Number(c.totals?.cbm) || sumCbm(c.bultos)), 0), 0);
+    .reduce((sum, g) => sum + (g.clients || []).reduce((s, c) => s + clientCbm(c), 0), 0);
 
   const handleDelete = async (e) => {
     e.preventDefault();

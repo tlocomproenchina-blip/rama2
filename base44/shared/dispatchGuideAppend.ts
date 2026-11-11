@@ -140,7 +140,11 @@ export const recomputeGuideTotals = (clients: any[]) => {
     // Líneas de carga sin bulto registrado (emitidas por su N° de contenedor).
     unregistered: rows.filter((b: any) => b?.unregistered || !b?.label_code).length,
     cajas: rows.filter((b: any) => b?.is_caja).length,
-    cbm: Number(rows.reduce((sum: number, b: any) => sum + (Number(b.cbm) || 0), 0).toFixed(4)),
+    // Si los bultos no traen CBM, se conserva el CBM facturado guardado en cada cliente.
+    cbm: Number(list.reduce((sum: number, c: any) => {
+      const own = (c.bultos || []).reduce((s: number, b: any) => s + (Number(b.cbm) || 0), 0);
+      return sum + (own > 0 ? own : Number(c.totals?.cbm) || 0);
+    }, 0).toFixed(4)),
   };
 };
 

@@ -105,7 +105,10 @@ export async function createInvoiceDispatchGuide(base44: any, { invoiceId, mode,
     totals: {},
   };
   const clients = [client];
-  const totals = recomputeGuideTotals(clients);
+  const rowTotals = recomputeGuideTotals(clients);
+  // Los bultos no traen CBM propio: se usa el CBM facturado de la factura vinculada.
+  const invoiceCbm = Number(invoice.billed_cbm) || Number(invoice.total_cbm) || 0;
+  const totals = { ...rowTotals, cbm: rowTotals.cbm > 0 ? rowTotals.cbm : Number(invoiceCbm.toFixed(4)) };
   client.totals = {
     bultos: rows.length,
     packages: totals.packages,
