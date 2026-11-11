@@ -1,11 +1,11 @@
 import React from 'react';
 import { format } from 'date-fns';
-import { X } from 'lucide-react';
+import { Search, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-export const EMPTY_FILTERS = { client: 'all', type: 'all', date: '' };
+export const EMPTY_FILTERS = { client: 'all', type: 'all', date: '', search: '' };
 
 const TYPE_OPTIONS = [
   { value: 'faltante', label: 'Contenido faltante' },
@@ -30,8 +30,14 @@ export function clientOptions(incidents = []) {
 }
 
 // Aplica cliente, tipo y fecha de reporte (día local) combinados.
-export function applyIncidentFilters(incidents = [], f) {
+export function applyIncidentFilters(incidents = [], f, labelByBulto = {}) {
+  const q = (f.search || '').trim().toLowerCase();
   return incidents.filter((i) => {
+    if (q) {
+      const hay = [i.client_name, i.client_code, i.client_email, i.tracking_number, i.container_number, labelByBulto[i.bulto_id]]
+        .filter(Boolean).join(' ').toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
     if (f.client !== 'all' && clientKey(i) !== f.client) return false;
     if (f.type !== 'all' && i.incident_type !== f.type) return false;
     if (f.date) {
@@ -44,11 +50,20 @@ export function applyIncidentFilters(incidents = [], f) {
 
 export default function IncidentFilterBar({ incidents, filters, onChange }) {
   const clients = clientOptions(incidents);
-  const active = filters.client !== 'all' || filters.type !== 'all' || filters.date;
+  const active = filters.client !== 'all' || filters.type !== 'all' || filters.date || filters.search;
   const set = (patch) => onChange({ ...filters, ...patch });
 
   return (
     <div className="grid gap-2 rounded-2xl border border-border bg-card p-3 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_auto_auto]">
+      <div className="relative sm:col-span-2 lg:col-span-4">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          value={filters.search}
+          onChange={(e) => set({ search: e.target.value })}
+          placeholder="Buscar por cliente, tracking o código de bulto"
+          className="pl-10"
+        />
+      </div>
       <Select value={filters.client} onValueChange={(v) => set({ client: v })}>
         <SelectTrigger><SelectValue placeholder="Cliente" /></SelectTrigger>
         <SelectContent>

@@ -21,7 +21,22 @@ export default function AdminWarehouseIncidents() {
   const [sortMode, setSortMode] = useState('type');
   const [dateDir, setDateDir] = useState('desc');
   const [filters, setFilters] = useState(EMPTY_FILTERS);
-  const filtered = applyIncidentFilters(incidents, filters);
+  const [labelByBulto, setLabelByBulto] = useState({});
+  const filtered = applyIncidentFilters(incidents, filters, labelByBulto);
+
+  // Códigos de etiqueta de los bultos de las incidencias, para poder buscarlos.
+  useEffect(() => {
+    const ids = [...new Set(incidents.map((i) => i.bulto_id).filter(Boolean))];
+    if (ids.length === 0) { setLabelByBulto({}); return; }
+    let cancelled = false;
+    base44.entities.Bulto.filter({ id: { $in: ids } }, { limit: 500 }).then((page) => {
+      if (cancelled) return;
+      const map = {};
+      (page?.items || []).forEach((b) => { map[b.id] = b.label_code; });
+      setLabelByBulto(map);
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [incidents]);
 
   const load = useCallback(async () => {
     setLoading(true);
