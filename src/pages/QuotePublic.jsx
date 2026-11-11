@@ -9,6 +9,7 @@ import { Loader2, Check, FileText, Package, AlertCircle } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import QuoteProductForm from '@/components/quotes/QuoteProductForm';
 import QuoteSummary from '@/components/quotes/QuoteSummary';
+import PasswordGate from '@/components/common/PasswordGate';
 import {
   Dialog,
   DialogContent,
@@ -41,25 +42,36 @@ export default function QuotePublic() {
   const [notes, setNotes] = useState('');
   const [items, setItems] = useState([]);
 
+  // Contraseña de ingreso (solo si el presupuesto está protegido)
+  const pwKey = `quote-pw:${token}`;
+  const [password, setPassword] = useState(() => sessionStorage.getItem(pwKey) || '');
+  const [gate, setGate] = useState(null); // { error, loading }
+
+  async function load(pw) {
+    try {
+      const res = await base44.functions.invoke('getPublicQuote', { token, password: pw });
+      const data = res.data || res;
+      if (pw) sessionStorage.setItem(pwKey, pw);
+      setPassword(pw);
+      setGate(null);
+      return data;
+    } catch (err) {
+      const data = err?.response?.data;
+      if (data?.password_required) {
+        sessionStorage.removeItem(pwKey);
+        setGate({ error: pw ? data.error : '', loading: false });
+        return null;
+      }
+      throw err;
+    }
+  }
+
   useEffect(() => {
     const timer = setTimeout(() => setLoadTimeout(true), 15000);
-    async function load() {
+    async function initialLoad() {
       try {
-        const res = await base44.functions.invoke('getPublicQuote', { token });
-        const data = res.data || res;
-        setQuote(data.quote);
-        setContractText(data.contract_text || '');
-        setContractFileUrl(data.contract_file_url || data.quote?.contract_file_url || '');
-        setClientRegistered(!!data.client_registered);
-        if (data.quote) {
-          setFirstName(data.quote.client_first_name || '');
-          setLastName(data.quote.client_last_name || '');
-          setEmail(data.quote.client_email || '');
-          setCity(data.quote.client_city || '');
-          setPhone(data.quote.client_phone || '');
-          setNotes(data.quote.notes || '');
-          setItems(data.quote.items || []);
-        }
+        const data = await load(password);
+        if (data) applyData(data);
       } catch (err) {
         console.error('Error loading quote:', err);
       } finally {
@@ -67,9 +79,35 @@ export default function QuotePublic() {
         setLoading(false);
       }
     }
-    load();
+    initialLoad();
     return () => clearTimeout(timer);
   }, [token]);
+
+  function applyData(data) {
+    setQuote(data.quote);
+    setContractText(data.contract_text || '');
+    setContractFileUrl(data.contract_file_url || data.quote?.contract_file_url || '');
+    setClientRegistered(!!data.client_registered);
+    if (data.quote) {
+      setFirstName(data.quote.client_first_name || '');
+      setLastName(data.quote.client_last_name || '');
+      setEmail(data.quote.client_email || '');
+      setCity(data.quote.client_city || '');
+      setPhone(data.quote.client_phone || '');
+      setNotes(data.quote.notes || '');
+      setItems(data.quote.items || []);
+    }
+  }
+
+  const submitPassword = async (pw) => {
+    setGate({ error: '', loading: true });
+    try {
+      const data = await load(pw);
+      if (data) applyData(data);
+    } catch (err) {
+      setGate({ error: 'No se pudo abrir el presupuesto. Intenta de nuevo.', loading: false });
+    }
+  };
 
   const isClientStage = quote?.status === 'esperando_cliente' || quote?.status === 'cliente_completo';
   const isCompleted = quote?.status === 'completado' || quote?.status === 'enviado';
@@ -94,6 +132,7 @@ export default function QuotePublic() {
       setSubmitting(true);
       const res = await base44.functions.invoke('submitPublicQuote', {
         token,
+        password,
         client_first_name: firstName,
         client_last_name: lastName,
         client_email: email,
@@ -114,7 +153,7 @@ export default function QuotePublic() {
 
   const handleAcceptContract = async () => {
     try {
-      const res = await base44.functions.invoke('acceptQuoteContract', { token });
+      const res = await base44.functions.invoke('acceptQuoteContract', { token, password });
       const data = res.data || res;
       setQuote(data.quote);
       setAccepted(true);
@@ -141,6 +180,10 @@ export default function QuotePublic() {
         )}
       </div>
     );
+  }
+
+  if (gate) {
+    return <PasswordGate title="Presupuesto protegido" error={gate.error} loading={gate.loading} onSubmit={submitPassword} />;
   }
 
   if (!quote) {

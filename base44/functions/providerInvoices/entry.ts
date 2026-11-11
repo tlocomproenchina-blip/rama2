@@ -1,6 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.57';
 import { uploadBase64ToBunny, BunnyUploadError } from '../../shared/bunnyUpload.ts';
 import { searchClientsByQuery } from '../../shared/bultoScan.ts';
+import { passwordFields, passwordError, passwordDenied } from '../../shared/accessPassword.ts';
 
 // Facturas de proveedor. Acciones: config, setRate, searchClients, upload, create, list, markPaid, public.
 const isProvider = (u: any) => String(u?.custom_role || '').trim().toLowerCase() === 'proveedor';
@@ -37,6 +38,8 @@ Deno.serve(async (req) => {
       }
       const links = await sr.entities.ProviderPortalLink.filter({ token: String(body.portal_token), active: true }, '-created_date', 1);
       if (!links?.[0]) return Response.json({ error: 'Enlace inválido' }, { status: 403 });
+      const denied = await passwordError(links[0], body.portal_password);
+      if (denied) return passwordDenied(denied);
       user = { email: 'portal-proveedor', full_name: 'Portal de proveedor', custom_role: 'proveedor' };
     } else {
       user = await base44.auth.me().catch(() => null);
@@ -46,11 +49,25 @@ Deno.serve(async (req) => {
     if (action === 'getPortalLink' || action === 'regeneratePortalLink') {
       if (!isFullAdmin(user)) return Response.json({ error: 'Solo el administrador' }, { status: 403 });
       const existing = await sr.entities.ProviderPortalLink.filter({ active: true }, '-created_date', 1);
-      if (action === 'getPortalLink' && existing?.[0]) return Response.json({ token: existing[0].token });
-      if (existing?.[0]) await sr.entities.ProviderPortalLink.updateMany({ active: true }, { $set: { active: false } });
+      const prev = existing?.[0];
+      if (action === 'getPortalLink' && prev) return Response.json({ token: prev.token, password_set: !!prev.access_password_hash });
+      if (prev) await sr.entities.ProviderPortalLink.updateMany({ active: true }, { $set: { active: false } });
       const token = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
-      await sr.entities.ProviderPortalLink.create({ token, active: true, created_by: user.email });
-      return Response.json({ token });
+      // Al regenerar se conserva la contraseña del enlace anterior.
+      await sr.entities.ProviderPortalLink.create({
+        token, active: true, created_by: user.email,
+        access_password_hash: prev?.access_password_hash || '', access_password_salt: prev?.access_password_salt || '',
+      });
+      return Response.json({ token, password_set: !!prev?.access_password_hash });
+    }
+
+    if (action === 'setPortalPassword') {
+      if (!isFullAdmin(user)) return Response.json({ error: 'Solo el administrador' }, { status: 403 });
+      const rows = await sr.entities.ProviderPortalLink.filter({ active: true }, '-created_date', 1);
+      if (!rows?.[0]) return Response.json({ error: 'Primero genera el enlace del portal' }, { status: 400 });
+      const fields = await passwordFields(body.password);
+      await sr.entities.ProviderPortalLink.update(rows[0].id, fields);
+      return Response.json({ password_set: !!fields.access_password_hash });
     }
 
     if (action === 'config') {

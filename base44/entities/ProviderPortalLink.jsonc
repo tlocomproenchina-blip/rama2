@@ -14,6 +14,14 @@
     "created_by": {
       "type": "string",
       "description": "Email del administrador que gener\u00f3 el enlace"
+    },
+    "access_password_hash": {
+      "type": "string",
+      "description": "Hash de la contrase\u00f1a de ingreso al portal (vac\u00edo = sin contrase\u00f1a)"
+    },
+    "access_password_salt": {
+      "type": "string",
+      "description": "Sal usada para el hash de la contrase\u00f1a"
     }
   },
   "required": [

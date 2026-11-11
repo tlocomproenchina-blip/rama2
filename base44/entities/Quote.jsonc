@@ -153,6 +153,14 @@
     "created_by_email": {
       "type": "string",
       "description": "Email del admin que cre\u00f3 el presupuesto"
+    },
+    "access_password_hash": {
+      "type": "string",
+      "description": "Hash de la contrase\u00f1a de ingreso al enlace p\u00fablico (vac\u00edo = sin contrase\u00f1a)"
+    },
+    "access_password_salt": {
+      "type": "string",
+      "description": "Sal usada para el hash de la contrase\u00f1a"
     }
   },
   "required": [

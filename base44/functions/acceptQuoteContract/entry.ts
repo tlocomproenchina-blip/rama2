@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 import { sendBrevoEmail } from '../../shared/brevoEmail.ts';
+import { passwordError, passwordDenied, stripPassword } from '../../shared/accessPassword.ts';
 import { INVOICE_IMMUTABLE_REASON } from '../../shared/invoiceLock.ts';
 
 async function notifyAdminsOfContractAcceptance(base44: any, quote: any) {
@@ -57,6 +58,8 @@ export default async function(req) {
     if (!quotes.length) return Response.json({ error: 'Presupuesto no encontrado' }, { status: 404 });
 
     const quote = quotes[0];
+    const denied = await passwordError(quote, body.password);
+    if (denied) return passwordDenied(denied);
     if (quote.contract_accepted) {
       return Response.json({ error: 'El contrato ya fue aceptado' }, { status: 400 });
     }
@@ -131,7 +134,7 @@ export default async function(req) {
     // Notificar a administradores que el cliente aceptó el contrato
     await notifyAdminsOfContractAcceptance(base44, updated);
 
-    return Response.json({ quote: updated, invoice: invoiceCreated });
+    return Response.json({ quote: stripPassword(updated), invoice: invoiceCreated });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

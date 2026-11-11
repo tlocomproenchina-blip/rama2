@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 import { sendBrevoEmail } from '../../shared/brevoEmail.ts';
+import { passwordError, passwordDenied, stripPassword } from '../../shared/accessPassword.ts';
 
 async function notifyAdminsOfQuoteSubmission(base44: any, quote: any) {
   try {
@@ -60,6 +61,8 @@ export default async function(req) {
     if (!quotes.length) return Response.json({ error: 'Presupuesto no encontrado' }, { status: 404 });
 
     const quote = quotes[0];
+    const denied = await passwordError(quote, body.password);
+    if (denied) return passwordDenied(denied);
     // Solo permitir editar si está en estado esperando_cliente
     if (quote.status === 'completado' || quote.status === 'enviado') {
       return Response.json({ error: 'Este presupuesto ya fue completado y no puede modificarse' }, { status: 403 });
@@ -130,7 +133,7 @@ export default async function(req) {
       await notifyAdminsOfQuoteSubmission(base44, updated);
     }
 
-    return Response.json({ quote: updated });
+    return Response.json({ quote: stripPassword(updated) });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

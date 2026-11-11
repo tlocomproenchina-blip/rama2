@@ -5,20 +5,43 @@ import { Loader2 } from 'lucide-react';
 import ProviderInvoiceForm from '@/components/provider-invoices/ProviderInvoiceForm';
 import ProviderInvoiceHistory from '@/components/provider-invoices/ProviderInvoiceHistory';
 import { piCall, setPortalToken, money } from '@/lib/providerInvoicesApi';
+import PasswordGate from '@/components/common/PasswordGate';
 
 export default function ProviderPortal() {
   const { token } = useParams();
   const [cfg, setCfg] = useState(null);
   const [invalid, setInvalid] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [gate, setGate] = useState(null); // { error, loading } mientras pide contraseña
+  const storageKey = `provider-portal-pw:${token}`;
+
+  const tryLoad = (password) => {
+    setPortalToken(token, password);
+    return piCall('config').then((c) => {
+      if (password) sessionStorage.setItem(storageKey, password);
+      setGate(null);
+      setCfg(c);
+    }).catch((err) => {
+      const data = err?.response?.data;
+      if (data?.password_required) {
+        sessionStorage.removeItem(storageKey);
+        setGate({ error: password ? data.error : '', loading: false });
+      } else setInvalid(true);
+    });
+  };
 
   useEffect(() => {
-    setPortalToken(token);
-    piCall('config').then(setCfg).catch(() => setInvalid(true));
+    tryLoad(sessionStorage.getItem(storageKey) || '');
     return () => setPortalToken(null);
   }, [token]);
 
   if (invalid) return <p className="py-20 text-center text-muted-foreground">Este enlace no es válido o fue reemplazado.</p>;
+  if (gate) {
+    return (
+      <PasswordGate title="Portal de proveedores" error={gate.error} loading={gate.loading}
+        onSubmit={(pw) => { setGate({ error: '', loading: true }); tryLoad(pw); }} />
+    );
+  }
   if (!cfg) return <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
 
   return (

@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
+import { passwordError, passwordDenied, stripPassword } from '../../shared/accessPassword.ts';
 
 export default async function(req) {
   try {
@@ -10,7 +11,12 @@ export default async function(req) {
     const quotes = await base44.asServiceRole.entities.Quote.filter({ token }, '-created_date', 1);
     if (!quotes.length) return Response.json({ error: 'Presupuesto no encontrado' }, { status: 404 });
 
-    const quote = quotes[0];
+    const user = await base44.auth.me().catch(() => null);
+    if (user?.role !== 'admin') {
+      const denied = await passwordError(quotes[0], body.password);
+      if (denied) return passwordDenied(denied);
+    }
+    const quote = stripPassword(quotes[0]);
     // Contrato: usar el contrato específico del presupuesto si existe, si no el global
     let contractText = quote.contract_text || '';
     let contractFileUrl = quote.contract_file_url || '';

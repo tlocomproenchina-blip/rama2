@@ -4,10 +4,12 @@ import { compressImageFile } from '@/lib/imageCompression';
 
 // Cuando la pantalla se abre desde el enlace público del portal, cada llamada lleva su clave.
 let portalToken = null;
-export const setPortalToken = (t) => { portalToken = t || null; };
+let portalPassword = '';
+export const setPortalToken = (t, password = '') => { portalToken = t || null; portalPassword = password || ''; };
 
 export async function piCall(action, payload = {}) {
-  const res = await base44.functions.invoke('providerInvoices', { action, ...payload, ...(portalToken ? { portal_token: portalToken } : {}) });
+  const portal = portalToken ? { portal_token: portalToken, portal_password: portalPassword } : {};
+  const res = await base44.functions.invoke('providerInvoices', { action, ...payload, ...portal });
   return res.data;
 }
 

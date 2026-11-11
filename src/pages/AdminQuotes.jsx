@@ -23,6 +23,7 @@ import QuoteSummary from '@/components/quotes/QuoteSummary';
 import GlobalContractModal from '@/components/quotes/GlobalContractModal';
 import QuoteFeeConfigCard from '@/components/quotes/QuoteFeeConfigCard';
 import QuoteFeePaymentsList from '@/components/quotes/QuoteFeePaymentsList';
+import AccessPasswordEditor from '@/components/common/AccessPasswordEditor';
 import { generateQuoteToken, calcQuoteTotals, calcItemTotals, buildWhatsAppMessage, buildWhatsAppLink } from '@/lib/quoteUtils';
 
 const STATUS_LABELS = {
@@ -483,6 +484,16 @@ ${publicUrl}
       </div>
 
       {/* Datos del Cliente */}
+      <div className="rounded-xl border border-gray-200 bg-white p-5">
+        <AccessPasswordEditor
+          isSet={!!quote.access_password_hash}
+          onSave={async (password) => {
+            const res = await base44.functions.invoke('setQuotePassword', { quote_id: quote.id, password });
+            onUpdate(res.data.quote);
+          }}
+        />
+      </div>
+
       <div className="rounded-xl border border-gray-200 bg-white p-5">
         <h3 className="mb-4 text-sm font-bold" style={{ color: '#c52899' }}>Datos del Cliente</h3>
         {!hasClientData && (
