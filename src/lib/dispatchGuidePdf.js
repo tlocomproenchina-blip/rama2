@@ -4,7 +4,7 @@
 import { isUnregisteredLine, summarizeGuide } from './dispatchGuides';
 import { qrDataUrl } from './qrCode';
 import { clientRefsOf, palletCountFor, palletSequence, palletsTotalOf } from './guidePallets';
-import { clientCbm, guideTotalCbm, volumeLabel } from './guideVolume';
+import { guideTotalCbm, volumeLabel } from './guideVolume';
 
 // Contenido del QR de la guía. El escáner de despacho lo reconoce por el prefijo.
 export const GUIDE_QR_PREFIX = 'GUIA:';
@@ -249,9 +249,6 @@ export async function generateDispatchGuidePdf({
     doc.setFontSize(17);
     doc.text(`${clientPallets ? 'Contenido cliente' : 'Total cliente'}: ${clientBultos} bulto(s)`, right, y, { align: 'right' });
     y += 5.5;
-    doc.setFontSize(10.5);
-    doc.text(`Volumen: ${volumeLabel(clientCbm(entry))}`, right, y, { align: 'right' });
-    y += 5;
     if (clientUnregistered) {
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(8.5);
