@@ -1,0 +1,46 @@
+{
+  "name": "Referidos - Maduraci\u00f3n diaria",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "0 6 * * *",
+      "one_time_date": null,
+      "timezone": "America/Caracas",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "referidos_maduracion_diaria",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "sync_referrals": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "referralProgram",
+            "args": {
+              "action": "admin_sync"
+            }
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Actualizar env\u00edos referidos"
+          }
+        }
+      }
+    ]
+  },
+  "description": "Revisa cada d\u00eda las facturas de clientes referidos para registrar llegadas a Valencia y pagos completos, y sumar CBM a los referidores."
+}

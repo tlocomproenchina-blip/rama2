@@ -1,0 +1,104 @@
+{
+  "name": "ReferralShipment",
+  "type": "object",
+  "properties": {
+    "invoice_id": {
+      "type": "string",
+      "description": "Factura de flete del referido"
+    },
+    "invoice_number": {
+      "type": "string"
+    },
+    "referrer_user_id": {
+      "type": "string"
+    },
+    "referrer_email": {
+      "type": "string"
+    },
+    "referred_user_id": {
+      "type": "string"
+    },
+    "referred_email": {
+      "type": "string"
+    },
+    "referred_name": {
+      "type": "string"
+    },
+    "cbm": {
+      "type": "number",
+      "default": 0,
+      "description": "CBM neto de flete mar\u00edtimo facturado"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "in_transit",
+        "arrived",
+        "paid",
+        "excluded"
+      ],
+      "enumColors": [
+        "blue",
+        "yellow",
+        "green",
+        "gray"
+      ],
+      "default": "in_transit",
+      "description": "in_transit: en camino; arrived: en almac\u00e9n Valencia sin pago completo; paid: lleg\u00f3 y factura pagada (computa); excluded: no computa"
+    },
+    "counted": {
+      "type": "boolean",
+      "default": false,
+      "description": "Ya sum\u00f3 al acumulado del referidor"
+    },
+    "counted_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "arrived_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "exclusion_reason": {
+      "type": "string"
+    },
+    "invoice_date": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "invoice_id",
+    "referrer_user_id",
+    "referred_user_id"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "data.referrer_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

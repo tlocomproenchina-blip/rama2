@@ -1,0 +1,101 @@
+{
+  "name": "ReferrerProfile",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "Usuario cliente que participa como referidor"
+    },
+    "user_email": {
+      "type": "string",
+      "description": "Email de la cuenta del referidor"
+    },
+    "full_name": {
+      "type": "string",
+      "description": "Nombre completo"
+    },
+    "id_number": {
+      "type": "string",
+      "description": "C\u00e9dula o identificaci\u00f3n"
+    },
+    "phone": {
+      "type": "string",
+      "description": "Tel\u00e9fono de contacto"
+    },
+    "contact_email": {
+      "type": "string",
+      "description": "Correo de contacto"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pendiente",
+        "activo",
+        "rechazado",
+        "suspendido"
+      ],
+      "enumColors": [
+        "yellow",
+        "green",
+        "red",
+        "gray"
+      ],
+      "default": "pendiente"
+    },
+    "referral_code": {
+      "type": "string",
+      "description": "C\u00f3digo asignado al habilitarlo"
+    },
+    "terms_accepted_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "reviewed_by": {
+      "type": "string"
+    },
+    "reviewed_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "review_notes": {
+      "type": "string",
+      "maxLength": 1000
+    }
+  },
+  "required": [
+    "user_id",
+    "user_email",
+    "full_name",
+    "id_number",
+    "phone"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "data.user_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

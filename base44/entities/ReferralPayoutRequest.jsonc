@@ -1,0 +1,122 @@
+{
+  "name": "ReferralPayoutRequest",
+  "type": "object",
+  "properties": {
+    "referrer_user_id": {
+      "type": "string"
+    },
+    "referrer_email": {
+      "type": "string"
+    },
+    "referrer_name": {
+      "type": "string"
+    },
+    "blocks": {
+      "type": "number",
+      "description": "Bloques de 1 CBM solicitados"
+    },
+    "cbm": {
+      "type": "number"
+    },
+    "amount": {
+      "type": "number",
+      "description": "USD (50 por bloque)"
+    },
+    "method": {
+      "type": "string",
+      "enum": [
+        "credito",
+        "usdt_trc20",
+        "usdt_bep20",
+        "pago_movil",
+        "efectivo"
+      ],
+      "enumColors": [
+        "purple",
+        "green",
+        "green",
+        "blue",
+        "yellow"
+      ]
+    },
+    "payout_details": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "Billetera, datos de Pago M\u00f3vil o nota"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pendiente",
+        "aprobada",
+        "pagada",
+        "rechazada"
+      ],
+      "enumColors": [
+        "yellow",
+        "blue",
+        "green",
+        "red"
+      ],
+      "default": "pendiente"
+    },
+    "admin_notes": {
+      "type": "string",
+      "maxLength": 1000
+    },
+    "reviewed_by": {
+      "type": "string"
+    },
+    "reviewed_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "due_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "L\u00edmite de 5 d\u00edas h\u00e1biles para retiros monetarios"
+    },
+    "paid_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "payment_reference": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "referrer_user_id",
+    "blocks",
+    "amount",
+    "method"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "data.referrer_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
