@@ -185,6 +185,9 @@ export default function Layout({ children, currentPageName }) {
   }
 
   async function loadUser() {
+    // Guarda el código del enlace de referido para aplicarlo tras el registro
+    const urlRef = new URLSearchParams(window.location.search).get('ref');
+    if (urlRef) { try { localStorage.setItem('tlec-pending-ref', urlRef); } catch (_) {} }
     try {
       const currentUser = await base44.auth.me();
       setUser(currentUser);
@@ -222,13 +225,12 @@ export default function Layout({ children, currentPageName }) {
       setRoleConfig(resolvedRoleConfig);
 
       // Handle referral code in URL (e.g., ?ref=TLEC-XXXXXX)
-      try {
-        const params = new URLSearchParams(window.location.search);
-        const ref = params.get('ref');
-        if (ref) {
-          await base44.functions.invoke('setReferralByCode', { code: ref });
-        }
-      } catch (_) {}
+      let pendingRef = null;
+      try { pendingRef = localStorage.getItem('tlec-pending-ref'); } catch (_) {}
+      if (pendingRef && currentUser.role === 'user' && !currentUser.referred_by_user_id) {
+        await base44.functions.invoke('setReferralByCode', { code: pendingRef }).catch(() => {});
+      }
+      if (pendingRef) { try { localStorage.removeItem('tlec-pending-ref'); } catch (_) {} }
 
       // Auto-generate referral_code for approved clients if missing
       if (currentUser && currentUser.role === 'user' && !currentUser.referral_code) {
@@ -295,6 +297,11 @@ export default function Layout({ children, currentPageName }) {
       } catch (_) {}
       // Allow specific public pages without login (browser only — native app always requires login)
       // BultoOrderScan: enlace directo de trabajo del almacén (igual que BodegaScan), sin login.
+      // Enlace de referido: llevar directo al registro
+      if (urlRef) {
+        base44.auth.redirectToLogin(window.location.origin + '/Dashboard');
+        return;
+      }
       const publicPages = ['ShippingCalculator', 'Blog', 'BlogPost', 'About', 'Contact', 'Inicio2', 'CityLanding', 'BultoOrderScan'];
       if (!isApkApp && !isNative && publicPages.includes(currentPageName)) {
         setUser(null);

@@ -8,12 +8,12 @@ import { publicAppUrl } from '@/lib/publicLinks';
 export default function ReferralCodeCard({ code }) {
   const link = publicAppUrl(`/?ref=${encodeURIComponent(code)}`);
   const copy = async (t) => { await navigator.clipboard.writeText(t); toast.success('Copiado'); };
-  const share = () => window.open(`https://wa.me/?text=${encodeURIComponent(`Envía tu carga desde China con TLEC CARGO. Usa mi código ${code} al registrar tu primera guía: ${link}`)}`, '_blank');
+  const share = () => window.open(`https://wa.me/?text=${encodeURIComponent(`Envía tu carga desde China con TLEC CARGO. Regístrate con mi enlace: ${link}`)}`, '_blank');
   return (
     <Card className="border-border/70 shadow-card">
       <CardContent className="flex flex-col gap-4 p-6 md:flex-row md:items-center md:justify-between">
         <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">Tu código</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">Tu enlace de referido</p>
           <p className="mt-1 font-display text-3xl font-bold tracking-tight">{code}</p>
           <p className="mt-1 truncate text-sm text-muted-foreground">{link}</p>
         </div>

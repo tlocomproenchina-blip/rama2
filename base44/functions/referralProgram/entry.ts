@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
-import { linkReferral, syncInvoice, accumulatedCbm, USD_PER_BLOCK } from '../../shared/referralSync.ts';
+import { linkReferral, syncInvoice, accumulatedCbm, invoiceCbm, USD_PER_BLOCK } from '../../shared/referralSync.ts';
 
 const METHODS = ['credito', 'usdt_trc20', 'usdt_bep20', 'pago_movil', 'efectivo'];
 
@@ -38,15 +38,42 @@ Deno.serve(async (req) => {
       const shipments = await sr.entities.ReferralShipment.filter({ referrer_user_id: me.id }, '-created_date', 300);
       const referred = await sr.entities.User.filter({ referred_by_user_id: me.id }, '-created_date', 300);
       const b = await balance(sr, me.id);
+      let myCode = me.referral_code;
+      if (!myCode) {
+        myCode = genCode();
+        for (let i = 0; i < 5 && (await sr.entities.User.filter({ referral_code: myCode })).length; i++) myCode = genCode();
+        await sr.entities.User.update(me.id, { referral_code: myCode });
+      }
+      // CBM enviado por cada referido desde que se vinculó
+      const cbmBy: Record<string, number> = {};
+      const emails = referred.map((u: any) => u.email).filter(Boolean);
+      if (emails.length) {
+        const invs = await sr.entities.Invoice.filter({ client_email: { $in: emails }, status: { $ne: 'cancelada' } }, '-created_date', 2000);
+        const joinedBy: Record<string, string> = Object.fromEntries(referred.map((u: any) => [u.email, u.referral_joined_at || '']));
+        for (const inv of invs) {
+          const j = joinedBy[inv.client_email];
+          if (j && inv.invoice_date && inv.invoice_date < j) continue;
+          cbmBy[inv.client_email] = (cbmBy[inv.client_email] || 0) + invoiceCbm(inv);
+        }
+      }
       let referrer = null;
       if (me.referred_by_user_id) {
         const p = (await sr.entities.ReferrerProfile.filter({ user_id: me.referred_by_user_id }, '-created_date', 1))[0];
-        referrer = p ? { name: p.full_name, code: p.referral_code } : { name: 'Registrado', code: me.referral_code_used || '' };
+        const ru = p ? null : (await sr.entities.User.filter({ id: me.referred_by_user_id }))[0];
+        referrer = p
+          ? { name: p.full_name, code: p.referral_code }
+          : { name: [ru?.first_name, ru?.last_name].filter(Boolean).join(' ') || ru?.full_name || 'Cliente TLEC', code: me.referral_code_used || '' };
       }
       return Response.json({
         profile, shipments, balance: { ...b, requests: undefined }, requests: b.requests, referrer,
         eligible: me.role === 'user' && me.is_active !== false,
-        referred: referred.map((u: any) => ({ id: u.id, name: [u.first_name, u.last_name].filter(Boolean).join(' ') || u.full_name, email: u.email, joined: u.referral_joined_at })),
+        my_code: myCode,
+        referred: referred.map((u: any) => ({
+          id: u.id,
+          name: [u.first_name, u.last_name].filter(Boolean).join(' ') || u.full_name || 'Cliente en registro',
+          joined: u.referral_joined_at || u.created_date,
+          cbm: Math.round((cbmBy[u.email] || 0) * 10000) / 10000,
+        })),
       });
     }
 

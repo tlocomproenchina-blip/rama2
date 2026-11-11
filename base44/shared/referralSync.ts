@@ -25,9 +25,19 @@ export async function linkReferral(sr: any, me: any, code: string) {
   if (me.referred_by_user_id) return { error: 'Tu cuenta ya tiene un referidor registrado.', status: 409 };
   const clean = String(code || '').trim().toUpperCase();
   if (!clean) return { error: 'Indica un código de referidor.', status: 400 };
-  const profiles = await sr.entities.ReferrerProfile.filter({ referral_code: clean, status: 'activo' }, '-created_date', 1);
-  const ref = profiles[0];
-  if (!ref) return { error: 'El código no corresponde a un referidor activo.', status: 404 };
+  // Todo cliente registrado tiene un código propio (User.referral_code).
+  const owner = (await sr.entities.User.filter({ referral_code: clean }))[0];
+  const profile = owner
+    ? (await sr.entities.ReferrerProfile.filter({ user_id: owner.id }, '-created_date', 1))[0]
+    : (await sr.entities.ReferrerProfile.filter({ referral_code: clean, status: 'activo' }, '-created_date', 1))[0];
+  if (!owner && !profile) return { error: 'El código de referido no existe.', status: 404 };
+  const ref = {
+    user_id: owner?.id || profile.user_id,
+    user_email: owner?.email || profile.user_email,
+    contact_email: profile?.contact_email || '',
+    phone: profile?.phone || owner?.whatsapp || owner?.phone || '',
+    full_name: profile?.full_name || [owner?.first_name, owner?.last_name].filter(Boolean).join(' ') || owner?.full_name || 'Cliente TLEC',
+  };
   const myPhone = String(me.whatsapp || me.phone || '').replace(/\D/g, '');
   const refPhone = String(ref.phone || '').replace(/\D/g, '');
   if (ref.user_id === me.id || ref.user_email === me.email || ref.contact_email === me.email || (myPhone && myPhone === refPhone)) {

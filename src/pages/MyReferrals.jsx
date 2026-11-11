@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import ClientPageHero from '@/components/client-portal/ClientPageHero';
 import ReferrerRegisterCard from '@/components/referrals/ReferrerRegisterCard';
 import ReferralCodeCard from '@/components/referrals/ReferralCodeCard';
+import ReferredList from '@/components/referrals/ReferredList';
 import LinkReferrerCard from '@/components/referrals/LinkReferrerCard';
 import ProgressCard from '@/components/referrals/ProgressCard';
 import PayoutRequestDialog from '@/components/referrals/PayoutRequestDialog';
@@ -62,7 +63,8 @@ export default function MyReferrals() {
         </CardContent></Card>
       )}
 
-      {active && <ReferralCodeCard code={p.referral_code} />}
+      {data.my_code && <ReferralCodeCard code={data.my_code} />}
+      <ReferredList referred={data.referred} />
       {(active || data.shipments.length > 0) && (
         <>
           <ProgressCard balance={data.balance} canRequest={active} onRequest={() => setPayOpen(true)} />
