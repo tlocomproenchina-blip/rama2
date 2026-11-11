@@ -255,6 +255,15 @@ export default function usePackUnit({
       let pkg = await findLocalPackage(value);
       if (!pkg) {
         if (await blockDuplicate(value)) return;
+        // Caja consolidada: un código sin registrar pertenece a esa caja y a su cliente,
+        // se agrega directo sin pedir cliente.
+        const openCaja = activeUnitRef.current;
+        if (openCaja?.is_caja) {
+          const updatedCaja = await addPackageToUnit(openCaja, { code: value });
+          await activateUnit(updatedCaja);
+          toast.success(`Código ${value} agregado a la caja de ${updatedCaja.client_snapshot?.full_name || updatedCaja.client_email || 'este cliente'}`, { duration: 1500 });
+          return updatedCaja;
+        }
         setPendingCode({ code: value, reason: 'no está registrado en el sistema' });
         return;
       }

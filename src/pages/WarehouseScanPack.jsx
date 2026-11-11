@@ -37,6 +37,7 @@ import usePackUnit from '@/hooks/usePackUnit';
 import { localCajasOfClient } from '@/lib/cajaLocal';
 import { del, put, bulkPut, findPackageByTracking } from '@/lib/offlineDb';
 import PackageReviewPanel from '@/components/warehouse/PackageReviewPanel';
+import { getCajaContainer, setCajaContainer } from '@/lib/cajaContainer';
 import ReviewQueueCard from '@/components/warehouse/ReviewQueueCard';
 import useReviewQueue from '@/hooks/useReviewQueue';
 import useSharedPackUnits from '@/hooks/useSharedPackUnits';
@@ -402,9 +403,11 @@ export default function WarehouseScanPack({ user }) {
           review={review}
           unitLabel={activeUnit && activeUnit.client_email === review.pkg?.client_email ? activeUnit.label_code : ''}
           client={review.client}
+          knownContainer={activeUnit?.is_caja && activeUnit.client_email === review.pkg?.client_email ? getCajaContainer(activeUnit) : ''}
           onCancel={() => setReview(null)}
           onDone={async (withIncident, summary) => {
             const value = review.code;
+            if (activeUnit?.is_caja && activeUnit.client_email === review.pkg?.client_email) setCajaContainer(activeUnit, summary?.container);
             setReview(null);
             setLastReview(summary);
             toast.success(withIncident ? 'Incidencia guardada. Paquete empacado.' : 'Revisión guardada. Paquete empacado.');

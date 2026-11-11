@@ -13,10 +13,11 @@ import { isOpenBox, OPEN_BOX_LABEL } from '@/lib/incidentTone';
 import ExistingIncidentNotice from './ExistingIncidentNotice';
 
 // Revisión obligatoria de cada paquete escaneado antes de añadirlo a la unidad activa.
-export default function PackageReviewPanel({ review, unitLabel, client, onDone, onCancel }) {
+export default function PackageReviewPanel({ review, unitLabel, client, knownContainer = '', onDone, onCancel }) {
   const { code, pkg } = review;
   const keyRef = useRef(`${code}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`);
-  const [container, setContainer] = useState('');
+  const [container, setContainer] = useState(knownContainer);
+  const [editContainer, setEditContainer] = useState(false);
   const [photos, setPhotos] = useState([]);
   const [hasIncident, setHasIncident] = useState(false);
   const [type, setType] = useState('');
@@ -85,10 +86,17 @@ export default function PackageReviewPanel({ review, unitLabel, client, onDone, 
           </p>
           <p className="text-xs text-muted-foreground">Va a: {unitLabel || 'unidad que se abra para el cliente'}</p>
         </div>
-        <div className="space-y-1.5">
-          <Label>N° de contenedor (obligatorio)</Label>
-          <Input value={container} onChange={(e) => setContainer(e.target.value.toUpperCase())} placeholder="Ej: TLLU1234567" />
-        </div>
+        {knownContainer && !editContainer ? (
+          <div className="flex items-center justify-between gap-2 rounded-xl border border-border px-3 py-2 text-sm">
+            <span>Contenedor de la caja: <b className="font-mono">{container}</b></span>
+            <Button type="button" size="sm" variant="ghost" onClick={() => setEditContainer(true)}>Cambiar</Button>
+          </div>
+        ) : (
+          <div className="space-y-1.5">
+            <Label>N° de contenedor (obligatorio)</Label>
+            <Input value={container} onChange={(e) => setContainer(e.target.value.toUpperCase())} placeholder="Ej: TLLU1234567" />
+          </div>
+        )}
         <div className="space-y-1.5">
           <Label>Foto del contenido (obligatoria)</Label>
           <MultiPhotoPicker files={photos} onChange={setPhotos} max={1} hint="Fotografía el contenido del paquete. Uso interno." />
