@@ -49,6 +49,27 @@
     "origin_city_name": {
       "type": "string",
       "description": "Nombre legible de la ciudad de origen del cliente"
+    },
+    "referral_code": {
+      "type": "string",
+      "description": "C\u00f3digo de referidor del usuario"
+    },
+    "referred_by_user_id": {
+      "type": "string",
+      "description": "ID del usuario que lo refiri\u00f3"
+    },
+    "referral_joined_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha de vinculaci\u00f3n con el referidor"
+    },
+    "referral_code_used": {
+      "type": "string",
+      "description": "C\u00f3digo de referidor usado al vincularse"
+    },
+    "referral_first_order": {
+      "type": "string",
+      "description": "Primera gu\u00eda al momento de vincularse"
     }
   },
   "required": [
