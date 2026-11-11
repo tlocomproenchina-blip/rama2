@@ -8,6 +8,7 @@ import InventoryReviewCard from '@/components/warehouse/incidents/InventoryRevie
 import ReviewPhotoHistory from '@/components/warehouse/incidents/ReviewPhotoHistory';
 import IncidentList from '@/components/warehouse/incidents/IncidentList';
 import IncidentSortControls from '@/components/warehouse/incidents/IncidentSortControls';
+import IncidentFilterBar, { EMPTY_FILTERS, applyIncidentFilters } from '@/components/warehouse/incidents/IncidentFilterBar';
 import { downloadWarehouseIncidents } from '@/lib/warehouseIncidentsExport';
 
 // Incidencias de almacén: paquetes que llegan abiertos desde China dentro de un
@@ -19,6 +20,8 @@ export default function AdminWarehouseIncidents() {
   const [exporting, setExporting] = useState(false);
   const [sortMode, setSortMode] = useState('type');
   const [dateDir, setDateDir] = useState('desc');
+  const [filters, setFilters] = useState(EMPTY_FILTERS);
+  const filtered = applyIncidentFilters(incidents, filters);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -78,11 +81,12 @@ export default function AdminWarehouseIncidents() {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-baseline gap-3">
               <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-muted-foreground">Historial</h2>
-              <span className="text-xs text-muted-foreground">{incidents.length} incidencia(s)</span>
+              <span className="text-xs text-muted-foreground">{filtered.length === incidents.length ? `${incidents.length} incidencia(s)` : `${filtered.length} de ${incidents.length} incidencia(s)`}</span>
             </div>
             <IncidentSortControls mode={sortMode} dir={dateDir} onModeChange={setSortMode} onDirChange={setDateDir} />
           </div>
-          <IncidentList incidents={incidents} loading={loading} onChanged={load} groupByType={sortMode === 'type'} />
+          <IncidentFilterBar incidents={incidents} filters={filters} onChange={setFilters} />
+          <IncidentList incidents={filtered} loading={loading} onChanged={load} groupByType={sortMode === 'type'} />
         </TabsContent>
 
         <TabsContent value="fotos">
