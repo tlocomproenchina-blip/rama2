@@ -30,7 +30,7 @@ export default function DeliveryChoiceDialog({ invoice, open, onClose, onChosen 
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>¿Cómo quieres recibir tu carga?</DialogTitle>
-          <DialogDescription>Según tu elección calculamos el monto a pagar de la factura {invoice?.invoice_number}. Esta elección no se puede cambiar después.</DialogDescription>
+          <DialogDescription>Según tu elección calculamos el monto a pagar de la factura {invoice?.invoice_number}. Podrás volver atrás y cambiarla mientras no hayas enviado el pago.</DialogDescription>
         </DialogHeader>
         <div className="grid gap-3">
           {OPTIONS.map(({ value, icon: Icon, title, text }) => (

@@ -17,6 +17,7 @@ import ClientSectionHeader from '@/components/client-portal/ClientSectionHeader'
 import CreditBalanceWidget from '@/components/client-portal/CreditBalanceWidget';
 import PendingDeliveryInvoiceCard from '@/components/invoice/delivery/PendingDeliveryInvoiceCard';
 import DeliveryChoiceDialog from '@/components/invoice/delivery/DeliveryChoiceDialog';
+import DeliveryChoiceBanner from '@/components/invoice/delivery/DeliveryChoiceBanner';
 import { isDeliveryChoicePending, DELIVERY_OPTION_LABELS } from '@/lib/invoiceDeliveryChoice';
 
 export default function MyInvoices({ user }) {
@@ -104,6 +105,16 @@ export default function MyInvoices({ user }) {
     setHighlightId(updated.id);
     if (hasOtherMethodsConfigured) openOtherPay(updated);
   };
+
+  // El cliente se arrepintió: la factura vuelve a "elegir entrega" y se reabre la elección
+  const handleDeliveryReverted = (reverted) => {
+    setPaymentOpen(false);
+    setInvoices((prev) => prev.map((inv) => (inv.id === reverted.id ? reverted : inv)));
+    setChoosingInvoice(reverted);
+  };
+
+  const canChangeDelivery = (inv) =>
+    inv.delivery_choice_status === 'elegida' && inv.status === 'pendiente' && !(Number(inv.paid_amount) > 0);
 
   const handlePayPal = async (invoice) => {
     setSelectedInvoice(invoice);
@@ -297,6 +308,8 @@ export default function MyInvoices({ user }) {
               {isDeliveryChoicePending(invoice) && invoice.status === 'pendiente' ? (
                 <PendingDeliveryInvoiceCard invoice={invoice} onChoose={setChoosingInvoice} />
               ) : (
+              <>
+              {canChangeDelivery(invoice) && <DeliveryChoiceBanner invoice={invoice} onReverted={handleDeliveryReverted} />}
               <InvoiceCard
                 invoice={invoice}
                 user={user}
@@ -308,6 +321,7 @@ export default function MyInvoices({ user }) {
                 onOtherPay={openOtherPay}
                 showOtherMethodsButton={hasOtherMethodsConfigured}
               />
+              </>
               )}
               </div>
             ))}
