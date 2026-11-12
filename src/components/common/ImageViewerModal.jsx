@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ZoomIn, ZoomOut, Maximize2, RotateCcw } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import { downloadFile } from '@/components/common/FileViewerModal';
+import { ZoomIn, ZoomOut, Maximize2, RotateCcw, Download } from 'lucide-react';
 
 const MIN_SCALE = 1;
 const MAX_SCALE = 5;
@@ -69,8 +71,13 @@ export default function ImageViewerModal({ open, imageUrl, onClose, title = 'Ima
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden p-0">
-        <DialogHeader className="px-6 pt-5 pb-3">
-          <DialogTitle>{title}</DialogTitle>
+        <DialogHeader className="flex-row items-center justify-between space-y-0 px-6 pt-5 pb-3 pr-12">
+          <DialogTitle className="truncate">{title}</DialogTitle>
+          {imageUrl && (
+            <Button type="button" variant="outline" size="sm" onClick={() => downloadFile(imageUrl, `${title || 'imagen'}.jpg`)}>
+              <Download className="h-4 w-4 mr-1" /> Descargar
+            </Button>
+          )}
         </DialogHeader>
 
         <div

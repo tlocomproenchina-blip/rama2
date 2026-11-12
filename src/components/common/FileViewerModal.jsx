@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Download, ExternalLink, FileText, ZoomIn, ZoomOut, Maximize, RotateCcw } from 'lucide-react';
+import { Download, FileText, ZoomIn, ZoomOut, Maximize, RotateCcw } from 'lucide-react';
 
 // Detecta el tipo de archivo desde la URL o el nombre
 export function getFileKind(url) {
@@ -12,19 +12,24 @@ export function getFileKind(url) {
   return 'other';
 }
 
-// Fuerza la descarga del archivo (sin abrir nueva pestaña)
-function downloadFile(url, filename) {
-  try {
+// Fuerza la descarga del archivo sin salir de la app: lo baja como archivo y lo guarda.
+export async function downloadFile(url, filename) {
+  const save = (href) => {
     const a = document.createElement('a');
-    a.href = url;
+    a.href = href;
     a.download = filename || 'archivo';
-    a.target = '_blank';
-    a.rel = 'noopener noreferrer';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
+  };
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('descarga');
+    const blobUrl = URL.createObjectURL(await res.blob());
+    save(blobUrl);
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 4000);
   } catch (_) {
-    window.open(url, '_blank', 'noopener,noreferrer');
+    save(url);
   }
 }
 
@@ -115,26 +120,14 @@ export default function FileViewerModal({ open, fileUrl, onClose, title = 'Archi
           <DialogTitle className="truncate pr-2">{title}</DialogTitle>
           <div className="flex items-center gap-2 shrink-0">
             {fileUrl && (
-              <>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => downloadFile(fileUrl, filename)}
-                >
-                  <Download className="h-4 w-4 mr-1" /> Descargar
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  asChild
-                >
-                  <a href={fileUrl} target="_blank" rel="noopener noreferrer">
-                    <ExternalLink className="h-4 w-4 mr-1" /> Abrir
-                  </a>
-                </Button>
-              </>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => downloadFile(fileUrl, filename)}
+              >
+                <Download className="h-4 w-4 mr-1" /> Descargar
+              </Button>
             )}
           </div>
         </DialogHeader>

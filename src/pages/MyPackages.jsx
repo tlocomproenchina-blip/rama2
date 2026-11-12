@@ -25,6 +25,7 @@ import {
   X
 } from 'lucide-react';
 import StatusBadge from '@/components/StatusBadge';
+import { openImageViewer } from '@/components/common/GlobalImageViewer';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -165,7 +166,7 @@ export default function MyPackages({ user }) {
   const viewSellerPhoto = (pkg) => {
     const url = String(pkg?.seller_delivery_photo_uri || '').trim();
     if (!/^https?:\/\//i.test(url)) { toast.error('Esta foto no tiene enlace permanente. Vuelve a subirla.'); return; }
-    window.open(url, '_blank', 'noopener,noreferrer');
+    openImageViewer(url, 'Foto de entrega del vendedor');
   };
 
   const saveSellerDate = async () => {
