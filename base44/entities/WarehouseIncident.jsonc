@@ -49,14 +49,16 @@
       "enum": [
         "abierto",
         "faltante",
-        "danado"
+        "danado",
+        "cerrado"
       ],
       "enumColors": [
-        "green",
         "red",
-        "purple"
+        "red",
+        "red",
+        "green"
       ],
-      "description": "Tipo de problema (abierto = caja abierta para verificaci\u00f3n, procedimiento normal)"
+      "description": "Tipo de problema: abierto (caja abierta), faltante y danado son incidencias (rojo). cerrado = cerrado para verificaci\u00f3n, hist\u00f3rico de la revisi\u00f3n normal (verde); las nuevas revisiones normales ya no generan incidencia."
     },
     "photo_uri": {
       "type": "string",

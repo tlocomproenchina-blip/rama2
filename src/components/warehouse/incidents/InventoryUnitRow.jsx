@@ -1,6 +1,6 @@
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
-import { isOpenBox, OPEN_BOX_SHORT, OPEN_BOX_BADGE } from '@/lib/incidentTone';
+import { isClosedBox, CLOSED_BOX_LABEL, CLOSED_BOX_BADGE } from '@/lib/incidentTone';
 
 const RESULT = {
   recibida: { label: 'Revisada', cls: 'border-emerald-200 bg-emerald-50 text-emerald-700' },
@@ -9,8 +9,8 @@ const RESULT = {
 
 // Caja del cliente con su contenido declarado; se toca para elegirla en la revisión.
 export default function InventoryUnitRow({ unit, selected, onSelect }) {
-  const openBox = unit.review?.result === 'recibida_con_incidencia' && isOpenBox(unit.review.incident_type);
-  const result = openBox ? { label: OPEN_BOX_SHORT, cls: OPEN_BOX_BADGE } : unit.review ? RESULT[unit.review.result] : null;
+  const closedBox = isClosedBox(unit.review?.incident_type);
+  const result = closedBox ? { label: CLOSED_BOX_LABEL, cls: CLOSED_BOX_BADGE } : unit.review ? RESULT[unit.review.result] : null;
   return (
     <button type="button" onClick={onSelect}
       className={`w-full space-y-2 rounded-2xl border p-3 text-left transition-colors ${selected ? 'border-primary bg-accent' : 'border-border/70 bg-card'}`}>

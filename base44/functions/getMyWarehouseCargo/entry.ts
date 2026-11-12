@@ -51,12 +51,14 @@ export default async function (req: Request): Promise<Response> {
     if (bultoList.length) {
       const reviews = await base44.asServiceRole.entities.CajaInventoryReview.filter(
         { bulto_id: { $in: bultoList.map((b) => b.id) }, client_email: user.email }, '-reviewed_date', 500);
-      // Solo las revisiones con incidencia son visibles para el cliente.
+      // Son visibles para el cliente las revisiones con incidencia y las cerradas para verificación.
       for (const r of reviews) {
-        if (r.result !== 'recibida_con_incidencia' || !r.incident_id) continue;
+        const closed = r.incident_type === 'cerrado';
+        if (!closed && (r.result !== 'recibida_con_incidencia' || !r.incident_id)) continue;
         if (!reviewByBulto[r.bulto_id]) reviewByBulto[r.bulto_id] = r;
       }
       for (const r of Object.values(reviewByBulto)) {
+        if (!r.incident_id) { r._photo_urls = []; r._type = r.incident_type || ''; continue; }
         const inc = await base44.asServiceRole.entities.WarehouseIncident.get(r.incident_id).catch(() => null);
         if (inc?.client_email !== user.email) { delete reviewByBulto[r.bulto_id]; continue; }
         const uris = (inc.photo_uris?.length ? inc.photo_uris : [inc.photo_uri]).filter(Boolean);

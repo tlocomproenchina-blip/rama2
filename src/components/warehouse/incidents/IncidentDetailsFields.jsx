@@ -5,7 +5,7 @@ import MultiPhotoPicker from './MultiPhotoPicker';
 
 const TYPES = [['abierto', 'Caja abierta'], ['faltante', 'Faltante'], ['danado', 'Dañado']];
 
-// Campos que aparecen solo cuando se marca "Hay incidencia".
+// Campos que aparecen solo cuando se marca "Hay incidencia". Todos los tipos son incidencias (rojo).
 export default function IncidentDetailsFields({ type, onType, notes, onNotes, photos, onPhotos }) {
   return (
     <div className="space-y-3 rounded-2xl border border-red-200 bg-red-50/50 p-3">
@@ -14,7 +14,7 @@ export default function IncidentDetailsFields({ type, onType, notes, onNotes, ph
         <div className="grid grid-cols-3 gap-2">
           {TYPES.map(([v, l]) => (
             <button key={v} type="button" onClick={() => onType(v)}
-              className={`rounded-xl border px-2 py-2 text-sm font-medium ${type !== v ? 'border-border bg-card' : v === 'abierto' ? 'border-success bg-success text-destructive-foreground' : 'border-destructive bg-destructive text-destructive-foreground'}`}>
+              className={`rounded-xl border px-2 py-2 text-sm font-medium ${type !== v ? 'border-border bg-card' : 'border-destructive bg-destructive text-destructive-foreground'}`}>
               {l}
             </button>
           ))}

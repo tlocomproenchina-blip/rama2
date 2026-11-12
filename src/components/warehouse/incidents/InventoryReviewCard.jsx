@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Textarea } from '@/components/ui/textarea';
 import { ClipboardCheck, Loader2, Save, ScanLine } from 'lucide-react';
 import InventoryScanDialog from './InventoryScanDialog';
 import { toast } from 'sonner';
@@ -88,7 +89,7 @@ export default function InventoryReviewCard({ onChanged }) {
         action: 'review', bulto_id: unitId, tracking_number: String(tracking || '').trim(), container_number: container, content_photo_uri,
         has_incident: hasIncident, incident_type: type, notes, damage_photo_uris,
       });
-      toast.success(hasIncident ? 'Revisión con incidencia guardada' : 'Revisión guardada');
+      toast.success(hasIncident ? 'Revisión con incidencia guardada' : 'Guardada como cerrado para verificación');
       setUnitId(''); setContentPhotos([]); setHasIncident(false); setType(''); setNotes(''); setDamagePhotos([]);
       load(); onChanged?.();
     } catch (e) {
@@ -146,7 +147,13 @@ export default function InventoryReviewCard({ onChanged }) {
         </label>
         {hasIncident ? (
           <IncidentDetailsFields type={type} onType={setType} notes={notes} onNotes={setNotes} photos={damagePhotos} onPhotos={setDamagePhotos} />
-        ) : null}
+        ) : (
+          <div className="space-y-1.5 rounded-2xl border border-emerald-200 bg-emerald-50/60 p-3">
+            <p className="text-sm font-semibold text-emerald-700">Cerrado para verificación</p>
+            <Label>Descripción (opcional)</Label>
+            <Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Se registra automáticamente, sin abrir una incidencia." />
+          </div>
+        )}
         {error ? <p className="text-sm text-destructive">{error}</p> : null}
         <Button className="w-full" disabled={saving} onClick={save}>
           {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Guardar revisión

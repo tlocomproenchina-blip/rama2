@@ -9,7 +9,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { ClipboardCheck, FileText, Loader2, PackagePlus, X } from 'lucide-react';
 import MultiPhotoPicker from '@/components/warehouse/incidents/MultiPhotoPicker';
 import IncidentDetailsFields from '@/components/warehouse/incidents/IncidentDetailsFields';
-import { isOpenBox, OPEN_BOX_LABEL } from '@/lib/incidentTone';
+import { Textarea } from '@/components/ui/textarea';
+import { CLOSED_BOX_LABEL } from '@/lib/incidentTone';
 import ExistingIncidentNotice from './ExistingIncidentNotice';
 
 // Revisión obligatoria de cada paquete escaneado antes de añadirlo a la unidad activa.
@@ -101,12 +102,18 @@ export default function PackageReviewPanel({ review, unitLabel, client, knownCon
           <Label>Foto del contenido (obligatoria)</Label>
           <MultiPhotoPicker files={photos} onChange={setPhotos} max={1} hint="Fotografía el contenido del paquete. Uso interno." />
         </div>
-        <p className={`rounded-xl px-3 py-2 text-sm font-semibold ${hasIncident && !isOpenBox(type) ? 'bg-rose-50 text-rose-700' : 'bg-emerald-50 text-emerald-700'}`}>
-          Estado: {hasIncident ? (isOpenBox(type) ? OPEN_BOX_LABEL : 'Con incidencia') : 'Sin incidencia'}
+        <p className={`rounded-xl px-3 py-2 text-sm font-semibold ${hasIncident ? 'bg-rose-50 text-rose-700' : 'bg-emerald-50 text-emerald-700'}`}>
+          Estado: {hasIncident ? 'Con incidencia' : CLOSED_BOX_LABEL}
         </p>
         <label className="flex items-center gap-2 rounded-xl border border-border p-3 text-sm font-medium">
           <Checkbox checked={hasIncident} onCheckedChange={(v) => setHasIncident(!!v)} /> Hay incidencia
         </label>
+        {!hasIncident && (
+          <div className="space-y-1.5">
+            <Label>Descripción (opcional)</Label>
+            <Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Se registra como cerrado para verificación, sin incidencia." />
+          </div>
+        )}
         {hasIncident && <IncidentDetailsFields type={type} onType={setType} notes={notes} onNotes={setNotes} photos={damage} onPhotos={setDamage} />}
         {existing && (
           <ExistingIncidentNotice

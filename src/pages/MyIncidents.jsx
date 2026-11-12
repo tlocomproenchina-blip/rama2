@@ -12,6 +12,7 @@ const TYPES = [
   { value: 'abierto', label: 'Caja abierta' },
   { value: 'faltante', label: 'Contenido faltante' },
   { value: 'danado', label: 'Paquete dañado' },
+  { value: 'cerrado', label: 'Cerrado para verificación' },
 ];
 
 export default function MyIncidents({ user }) {

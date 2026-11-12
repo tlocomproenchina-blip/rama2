@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { ChevronDown, ChevronRight, Hash } from 'lucide-react';
 import { format } from 'date-fns';
 import { unitKindLabel } from '@/lib/unitKind';
-import { isOpenBox, OPEN_BOX_SHORT, OPEN_BOX_BADGE } from '@/lib/incidentTone';
+import { isClosedBox, CLOSED_BOX_SHORT, CLOSED_BOX_BADGE } from '@/lib/incidentTone';
 import ClientBultoContents from './ClientBultoContents';
 import ClientBultoReception from './ClientBultoReception';
 
@@ -40,11 +40,11 @@ export default function ClientBultoCard({ bulto }) {
             <p className="font-mono text-sm font-medium text-slate-800">{bulto.label_code || 'Sin etiqueta'}</p>
             <Badge variant="outline" className={`text-xs ${bulto.is_caja ? 'border-violet-200 bg-violet-50 text-violet-700' : 'border-slate-200 bg-slate-50 text-slate-600'}`}>{kind}</Badge>
             <Badge variant="outline" className={`text-xs ${status.cls}`}>{status.label}</Badge>
-            {bulto.reception?.result === 'recibida_con_incidencia' && (
-              isOpenBox(bulto.reception.incident_type)
-                ? <Badge variant="outline" className={`text-xs ${OPEN_BOX_BADGE}`}>{OPEN_BOX_SHORT}</Badge>
-                : <Badge variant="outline" className="text-xs border-red-200 bg-red-50 text-red-700">Con incidencia</Badge>
-            )}
+            {isClosedBox(bulto.reception?.incident_type)
+              ? <Badge variant="outline" className={`text-xs ${CLOSED_BOX_BADGE}`}>{CLOSED_BOX_SHORT}</Badge>
+              : bulto.reception?.result === 'recibida_con_incidencia'
+                ? <Badge variant="outline" className="text-xs border-red-200 bg-red-50 text-red-700">Con incidencia</Badge>
+                : null}
           </div>
           <span className="shrink-0 whitespace-nowrap text-xs text-slate-500">
             {bulto.package_count || 0} {(bulto.package_count || 0) === 1 ? 'paquete' : 'paquetes'}

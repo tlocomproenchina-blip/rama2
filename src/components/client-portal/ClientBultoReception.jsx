@@ -1,21 +1,21 @@
 import React from 'react';
 import { format } from 'date-fns';
 import { AlertTriangle, CheckCircle2 } from 'lucide-react';
-import { isOpenBox, OPEN_BOX_LABEL } from '@/lib/incidentTone';
+import { isClosedBox, CLOSED_BOX_LABEL } from '@/lib/incidentTone';
 
-const TYPES = { abierto: OPEN_BOX_LABEL, faltante: 'Contenido faltante', danado: 'Contenido dañado' };
+const TYPES = { abierto: 'Caja abierta', faltante: 'Contenido faltante', danado: 'Contenido dañado', cerrado: CLOSED_BOX_LABEL };
 
-// Incidencia registrada en la revisión de la caja al llegar el contenedor.
-// "Caja abierta" es la verificación normal y se muestra en verde.
+// Resultado de la revisión de la caja al llegar el contenedor.
+// "Cerrado para verificación" es la revisión normal (verde); lo demás es incidencia (rojo).
 export default function ClientBultoReception({ reception }) {
-  if (!reception || reception.result !== 'recibida_con_incidencia') return null;
+  const closed = isClosedBox(reception?.incident_type);
+  if (!reception || (reception.result !== 'recibida_con_incidencia' && !closed)) return null;
   const date = reception.date ? format(new Date(reception.date), 'dd/MM/yyyy') : '';
   const photos = reception.photo_urls || [];
-  const routine = isOpenBox(reception.incident_type);
   return (
-    <div className={`space-y-2 rounded-xl border p-3 text-xs ${routine ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-red-200 bg-red-50 text-red-800'}`}>
+    <div className={`space-y-2 rounded-xl border p-3 text-xs ${closed ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-red-200 bg-red-50 text-red-800'}`}>
       <p className="flex items-center gap-1.5 font-semibold">
-        {routine
+        {closed
           ? <><CheckCircle2 className="h-4 w-4" /> Verificada {date}</>
           : <><AlertTriangle className="h-4 w-4" /> Recibida con incidencia {date}</>}
       </p>

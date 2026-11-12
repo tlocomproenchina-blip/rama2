@@ -2,7 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.59';
 
 // Devuelve al cliente autenticado sus revisiones de almacén y las incidencias
 // reportadas en sus paquetes (tipo, detalle y fotos con enlace temporal).
-const TYPE_LABEL: Record<string, string> = { abierto: 'Caja abierta para verificación', faltante: 'Contenido faltante', danado: 'Paquete dañado' };
+const TYPE_LABEL: Record<string, string> = { abierto: 'Caja abierta', faltante: 'Contenido faltante', danado: 'Paquete dañado', cerrado: 'Cerrado para verificación' };
 
 const cleanNotes = (notes: string) => String(notes || '').replace(/^\[[^\]]*\]\s*/, '').trim();
 
@@ -34,19 +34,22 @@ export default async function (req: Request): Promise<Response> {
     const usedIncidents = new Set<string>();
 
     const items = reviews.map((r) => {
-      const hasIssue = r.result === 'recibida_con_incidencia';
       const inc = r.incident_id ? incidentById.get(r.incident_id) : null;
       if (inc) usedIncidents.add(inc.id);
+      const type = inc?.incident_type || r.incident_type || '';
+      const closed = type === 'cerrado';
+      const hasIssue = r.result === 'recibida_con_incidencia' && !closed;
+      const show = hasIssue || closed;
       return {
         id: r.id,
         tracking_number: r.tracking_number || inc?.tracking_number || r.label_code || '',
         container_number: r.container_number || inc?.container_number || '',
         date: r.reviewed_date || r.created_date,
-        result: r.result,
-        incident_type: hasIssue ? (inc?.incident_type || r.incident_type || 'otro') : null,
-        incident_label: hasIssue ? (TYPE_LABEL[inc?.incident_type || r.incident_type] || 'Incidencia registrada') : null,
-        detail: hasIssue ? cleanNotes(inc?.notes || r.notes) : '',
-        _incident: hasIssue ? inc : null,
+        result: closed ? 'recibida' : r.result,
+        incident_type: show ? (type || 'otro') : null,
+        incident_label: show ? (TYPE_LABEL[type] || 'Incidencia registrada') : null,
+        detail: show ? cleanNotes(inc?.notes || r.notes) : '',
+        _incident: show ? inc : null,
       };
     });
 
@@ -58,7 +61,7 @@ export default async function (req: Request): Promise<Response> {
         tracking_number: inc.tracking_number || '',
         container_number: inc.container_number || '',
         date: inc.reported_date || inc.created_date,
-        result: 'recibida_con_incidencia',
+        result: inc.incident_type === 'cerrado' ? 'recibida' : 'recibida_con_incidencia',
         incident_type: inc.incident_type || 'otro',
         incident_label: TYPE_LABEL[inc.incident_type] || 'Incidencia registrada',
         detail: cleanNotes(inc.notes),

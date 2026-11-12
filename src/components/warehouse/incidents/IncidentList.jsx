@@ -7,7 +7,8 @@ import IncidentEditDialog from './IncidentEditDialog';
 const TYPE_GROUPS = [
   { key: 'faltante', label: 'Contenido faltante', dot: 'bg-destructive' },
   { key: 'danado', label: 'Paquete dañado', dot: 'bg-primary' },
-  { key: 'abierto', label: 'Caja abierta para verificación', dot: 'bg-success' },
+  { key: 'abierto', label: 'Caja abierta', dot: 'bg-destructive' },
+  { key: 'cerrado', label: 'Cerrado para verificación', dot: 'bg-success' },
   { key: 'otro', label: 'Sin tipo', dot: 'bg-muted-foreground' },
 ];
 
@@ -39,7 +40,7 @@ export default function IncidentList({ incidents = [], loading, onChanged, group
       {groupByType ? (
         <div className="space-y-6">
           {TYPE_GROUPS.map((group) => {
-            const known = ['faltante', 'danado', 'abierto'];
+            const known = ['faltante', 'danado', 'abierto', 'cerrado'];
             const rows = incidents.filter((i) =>
               group.key === 'otro' ? !known.includes(i.incident_type) : i.incident_type === group.key
             );

@@ -2,7 +2,7 @@ import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import IncidentPhotoThumb from './IncidentPhotoThumb';
 import { CalendarClock, UserCheck } from 'lucide-react';
-import { isOpenBox, OPEN_BOX_SHORT, OPEN_BOX_BADGE } from '@/lib/incidentTone';
+import { isClosedBox, CLOSED_BOX_LABEL, CLOSED_BOX_BADGE } from '@/lib/incidentTone';
 
 const fmt = (d) => new Date(d).toLocaleString('es-VE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
@@ -13,9 +13,9 @@ const STATES = {
 };
 
 export default function ReviewPhotoRow({ review, bulto }) {
-  const openBox = review?.result === 'recibida_con_incidencia' && isOpenBox(review.incident_type);
-  const state = openBox
-    ? { label: OPEN_BOX_SHORT, cls: OPEN_BOX_BADGE }
+  const closedBox = isClosedBox(review?.incident_type);
+  const state = closedBox
+    ? { label: CLOSED_BOX_LABEL, cls: CLOSED_BOX_BADGE }
     : STATES[review ? review.result : 'sin_revisar'] || STATES.sin_revisar;
   const label = review?.label_code || bulto?.label_code || '—';
   const client = review?.client_name || review?.client_email || bulto?.client_snapshot?.full_name || bulto?.client_email || bulto?.shipping_mark;

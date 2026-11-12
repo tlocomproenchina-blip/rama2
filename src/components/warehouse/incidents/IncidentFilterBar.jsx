@@ -10,7 +10,8 @@ export const EMPTY_FILTERS = { type: 'all', date: '', search: '' };
 const TYPE_OPTIONS = [
   { value: 'faltante', label: 'Contenido faltante' },
   { value: 'danado', label: 'Paquete dañado' },
-  { value: 'abierto', label: 'Caja abierta para verificación' },
+  { value: 'abierto', label: 'Caja abierta' },
+  { value: 'cerrado', label: 'Cerrado para verificación' },
 ];
 
 // Aplica búsqueda, tipo y fecha de reporte (día local) combinados.
