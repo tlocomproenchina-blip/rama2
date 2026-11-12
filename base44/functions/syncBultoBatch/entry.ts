@@ -4,6 +4,7 @@ import { planCombinedSources, deleteCombinedSources } from '../../shared/combine
 import { isSameWork, reassignLabelCode, settleCreateRace } from '../../shared/labelConflict.ts';
 import { findTrackingOwners, publicOwner, settleTrackingRace } from '../../shared/trackingDuplicates.ts';
 import { dedupeUnitContents } from '../../shared/unitDedupe.ts';
+import { hasContainer, containerRequiredResponse } from '../../shared/containerRequired.ts';
 
 // Sincroniza un bulto cerrado (creado offline) con todos sus paquetes al servidor.
 // Recibe:
@@ -146,6 +147,9 @@ export default async function(req: Request): Promise<Response> {
     const mergedOrderNumbers = [
       ...new Set([...finalOrderNumbers, ...(combined?.order_numbers || [])]),
     ];
+
+    // El N° de contenedor es obligatorio: un bulto sin él no se registra.
+    if (!hasContainer(mergedOrderNumbers)) return containerRequiredResponse();
 
     // Crear el bulto en el servidor
     let newBulto = await base44.asServiceRole.entities.Bulto.create({

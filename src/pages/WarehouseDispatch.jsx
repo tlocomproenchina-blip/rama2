@@ -110,6 +110,7 @@ export default function WarehouseDispatch({ user }) {
           invoice_paid: bulto.invoice_paid || false,
           invoice_status: bulto.invoice_status || '',
           invoice_number: bulto.invoice_number || '',
+          cbm_order_numbers: bulto.cbm_order_numbers || [],
           warehouse_id: bulto.warehouse_id || '',
           created_by: bulto.created_by || user?.email || '',
           closed_at: bulto.closed_at || now,

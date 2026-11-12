@@ -420,11 +420,14 @@ export default function BultoOrderScan({ user }) {
                   variant="outline"
                   onClick={async () => {
                     try {
-                      const res = await base44.functions.invoke('updateBulto', {
-                        bulto_id: bulto.id,
-                        cbm_order_numbers: bulto.cbm_order_numbers || [],
-                      });
-                      if (res?.data?.error) { toast.error(res.data.error); return; }
+                      // Un bulto antiguo sin contenedor se desbloquea igual: ahí se le escribe.
+                      if ((bulto.cbm_order_numbers || []).length) {
+                        const res = await base44.functions.invoke('updateBulto', {
+                          bulto_id: bulto.id,
+                          cbm_order_numbers: bulto.cbm_order_numbers,
+                        });
+                        if (res?.data?.error) { toast.error(res.data.error); return; }
+                      }
                       // updateBulto no toca order_locked; usamos assignBultoOrderNumbers solo si está desbloqueado.
                       // Para desbloquear, hacemos un update directo vía SDK.
                       const unlocked = await base44.entities.Bulto.update(bulto.id, { order_locked: false });

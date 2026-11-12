@@ -532,6 +532,17 @@ export default function usePackUnit({
         ? ordersOverride
         : (unit.cbm_order_numbers || []).filter(Boolean);
       if (!orders.length) orders = ordersText.split(',').map((s) => s.trim()).filter(Boolean);
+      // Sin N° de contenedor a mano: se busca por los trackings de la caja.
+      if (!orders.length) {
+        orders = (await lookupContainerNumbers(unit.client_email, unit.package_trackings))
+          .map((o) => String(o || '').trim()).filter(Boolean);
+      }
+      // El N° de contenedor es obligatorio: sin él la caja no se cierra ni se imprime.
+      if (!orders.length) {
+        setError('El N° de contenedor es obligatorio para cerrar la caja.');
+        toast.error('El N° de contenedor es obligatorio para cerrar la caja.');
+        return null;
+      }
       setBusy(true);
       busyRef.current = true;
       setError('');

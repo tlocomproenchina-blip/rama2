@@ -1,6 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 import { describeBultoForAbsorption } from '../../shared/bultoAbsorption.ts';
 import { nextBultoNumber } from '../../shared/bultoNumber.ts';
+import { hasContainer, containerRequiredResponse } from '../../shared/containerRequired.ts';
 
 // Combinar unidades ya registradas desde el historial.
 //
@@ -44,6 +45,10 @@ export default async function (req: Request): Promise<Response> {
         error: `La unidad ${text(blocked.label_code)} ya está facturada o despachada y no se puede combinar.`,
       }, { status: 400 });
     }
+
+    // El N° de contenedor es obligatorio: la unidad nueva hereda el de las originales.
+    const combinedOrders = uniq(sources.flatMap((s) => s.cbm_order_numbers || []));
+    if (!hasContainer(combinedOrders)) return containerRequiredResponse();
 
     const number = await nextBultoNumber(base44);
     if (!number) {
@@ -134,7 +139,7 @@ export default async function (req: Request): Promise<Response> {
       package_ids: packageIds,
       package_trackings: packageTrackings,
       unregistered_codes: uniq(sources.flatMap((s) => s.unregistered_codes || [])),
-      cbm_order_numbers: uniq(sources.flatMap((s) => s.cbm_order_numbers || [])),
+      cbm_order_numbers: combinedOrders,
       absorbed_bultos: absorbedBultos,
       client_snapshot: sources[0].client_snapshot || {},
       warehouse_id: sources[0].warehouse_id || '',

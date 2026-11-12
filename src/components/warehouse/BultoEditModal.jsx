@@ -12,6 +12,7 @@ import AbsorbedBultosHistory from '@/components/warehouse/AbsorbedBultosHistory'
 import { packageCountForDispatch } from '@/lib/bultoCounts';
 import UnregisteredCodesEditor from '@/components/warehouse/UnregisteredCodesEditor';
 import BultoNumberField, { labelNumber } from '@/components/warehouse/BultoNumberField';
+import ContainerField, { parseContainers, CONTAINER_REQUIRED_MESSAGE } from '@/components/warehouse/ContainerField';
 
 // Modal de edición completa de un bulto: paquetes incluidos, snapshot del cliente y estado.
 export default function BultoEditModal({ bulto, open, onClose, onSaved }) {
@@ -31,6 +32,7 @@ export default function BultoEditModal({ bulto, open, onClose, onSaved }) {
   const [loadingPkgs, setLoadingPkgs] = useState(false);
   const [saving, setSaving] = useState(false);
   const [orderNumbers, setOrderNumbers] = useState('');
+  const [orderError, setOrderError] = useState('');
   // Avisos cuando el cambio no pudo aplicarse al recibo de contabilidad.
   const [syncWarnings, setSyncWarnings] = useState([]);
   // Correcciones de cantidad: paquetes que realmente hay dentro del bulto y total de
@@ -71,6 +73,7 @@ export default function BultoEditModal({ bulto, open, onClose, onSaved }) {
     setStatus(bulto.status === 'cerrado' ? 'en_almacen_ve' : (bulto.status || 'activo'));
     setSelectedIds(bulto.package_ids || []);
     setOrderNumbers(Array.isArray(bulto.cbm_order_numbers) ? bulto.cbm_order_numbers.join(', ') : '');
+    setOrderError('');
     setClientPackages([]);
     setBultoPkgs([]);
     setOtherBultoMap({});
@@ -190,6 +193,10 @@ export default function BultoEditModal({ bulto, open, onClose, onSaved }) {
       toast.error('El número de bulto no está disponible');
       return;
     }
+    if (!parseContainers(orderNumbers).length) {
+      setOrderError(CONTAINER_REQUIRED_MESSAGE);
+      return;
+    }
     setSaving(true);
     try {
       const parsedOrders = orderNumbers.trim()
@@ -213,6 +220,7 @@ export default function BultoEditModal({ bulto, open, onClose, onSaved }) {
       const res = await base44.functions.invoke('updateBulto', payload).catch((e) => ({ data: e?.response?.data || { error: 'Error al actualizar el bulto' } }));
       if (res?.data?.error) {
         if (res.data.field === 'bulto_number') setNumberError(res.data.error);
+        if (res.data.field === 'cbm_order_numbers') setOrderError(res.data.error);
         toast.error(res.data.error);
         return;
       }
@@ -382,15 +390,15 @@ export default function BultoEditModal({ bulto, open, onClose, onSaved }) {
                 </select>
               </div>
               <div className="sm:col-span-2">
-                <Label className="mb-1 block text-xs">Números de contenedor (CbmIngreso)</Label>
-                <Input
+                <ContainerField
+                  id="edit-bulto-container"
+                  label="Números de contenedor (CbmIngreso)"
                   value={orderNumbers}
-                  onChange={(e) => setOrderNumbers(e.target.value)}
+                  onChange={(v) => { setOrderNumbers(v); if (orderError) setOrderError(''); }}
+                  error={orderError}
                   placeholder="Separar con comas si son varias"
+                  hint="Obligatorio. Número(s) de contenedor asignado(s) en el almacén de China. Se muestran en la etiqueta y al cliente."
                 />
-                <p className="text-[10px] text-slate-400 mt-1">
-                  Número(s) de contenedor asignado(s) en el almacén de China. Se muestran en la etiqueta y al cliente.
-                </p>
               </div>
             </div>
 

@@ -17,6 +17,7 @@ import { planCombinedSources, deleteCombinedSources } from '../../shared/combine
 import { isSameWork, reassignLabelCode, settleCreateRace } from '../../shared/labelConflict.ts';
 import { findTrackingOwners, publicOwner } from '../../shared/trackingDuplicates.ts';
 import { findCajaMergeTarget } from '../../shared/cajaMerge.ts';
+import { cleanContainers, hasContainer, containerRequiredResponse } from '../../shared/containerRequired.ts';
 
 // Registra en el servidor una caja consolidada armada en el almacén de Venezuela.
 //
@@ -303,6 +304,10 @@ export default async function (req: Request): Promise<Response> {
     });
 
     const orderNumbers = [...new Set([...manualOrders, ...movedOrders, ...plan.order_numbers])];
+    // Una caja ya registrada conserva su contenedor si este envío no trae ninguno.
+    if (!orderNumbers.length) orderNumbers.push(...cleanContainers(existing?.cbm_order_numbers));
+    // El N° de contenedor es obligatorio: una caja sin él no se registra.
+    if (!hasContainer(orderNumbers)) return containerRequiredResponse();
     const packageTrackings = [...plan.trackings, ...plan.unregistered_codes];
     // Conteo real de la caja: solo los paquetes registrados que quedaron dentro (los que
     // aportó cada bulto absorbido, sin repetir). Las etiquetas de los bultos fusionados y

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,8 @@ import UniversalClientSearch from '@/components/warehouse/UniversalClientSearch'
 import BultoHistory from '@/components/warehouse/BultoHistory';
 import { realPackageCount } from '@/lib/bultoCounts';
 import BultoStatusAuditPanel from '@/components/warehouse/BultoStatusAuditPanel';
+import ContainerField, { parseContainers, CONTAINER_REQUIRED_MESSAGE } from '@/components/warehouse/ContainerField';
+import { lookupContainerNumbers } from '@/lib/containerLookup';
 
 export default function WarehouseBultos({ user }) {
   const { allowed, loading: loadingAccess } = useWarehouseAccess(user, 'WarehouseBultos');
@@ -26,6 +28,8 @@ export default function WarehouseBultos({ user }) {
   const [activeClient, setActiveClient] = useState(null);
   const [selectedIds, setSelectedIds] = useState([]);
   const [creating, setCreating] = useState(false);
+  const [containerText, setContainerText] = useState('');
+  const [containerError, setContainerError] = useState('');
   const [lastCreated, setLastCreated] = useState(null); // bulto data for immediate print
   const [historyRefreshKey, setHistoryRefreshKey] = useState(0); // fuerza refresh del historial tras crear/editar/eliminar
 
@@ -91,19 +95,37 @@ export default function WarehouseBultos({ user }) {
     });
   };
 
+  // Propone el contenedor que ya consta para los trackings elegidos (se puede corregir).
+  useEffect(() => {
+    if (!activeClient?.email || !selectedIds.length) return;
+    const trackings = clientPackages.filter((p) => selectedIds.includes(p.id)).map((p) => p.tracking_number);
+    let cancelled = false;
+    lookupContainerNumbers(activeClient.email, trackings).then((found) => {
+      if (!cancelled && found.length) setContainerText((t) => t || found.join(', '));
+    });
+    return () => { cancelled = true; };
+  }, [selectedIds, activeClient, clientPackages]);
+
   const handleCreateBulto = async () => {
     if (!selectedIds.length) {
       toast.error('Selecciona al menos un paquete');
       return;
     }
+    const containers = parseContainers(containerText);
+    if (!containers.length) {
+      setContainerError(CONTAINER_REQUIRED_MESSAGE);
+      return;
+    }
+    setContainerError('');
     setCreating(true);
     try {
-      const res = await base44.functions.invoke('createBulto', { package_ids: selectedIds });
+      const res = await base44.functions.invoke('createBulto', { package_ids: selectedIds, cbm_order_numbers: containers });
       const data = res?.data;
       if (data?.error) {
         toast.error(data.error);
         return;
       }
+      setContainerText('');
       toast.success(`Bulto ${data.bulto_number}/${data.total_bultos} creado`);
       setLastCreated(data);
       // Refresh bultos and packages
@@ -112,7 +134,9 @@ export default function WarehouseBultos({ user }) {
       setSelectedIds([]);
       setHistoryRefreshKey((k) => k + 1); // refrescar historial
     } catch (e) {
-      toast.error('Error al crear el bulto');
+      const message = e?.response?.data?.error || 'Error al crear el bulto';
+      if (e?.response?.data?.field === 'cbm_order_numbers') setContainerError(message);
+      else toast.error(message);
     } finally {
       setCreating(false);
     }
@@ -328,10 +352,21 @@ export default function WarehouseBultos({ user }) {
               {/* Create + Print */}
               {selectedIds.length > 0 && (
                 <Card className="shadow-sm border-blue-200">
-                  <CardContent className="p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <p className="font-medium text-slate-800">{selectedIds.length} paquete(s) seleccionado(s)</p>
-                      <p className="text-sm text-slate-500">Se creará un nuevo bulto con estos paquetes.</p>
+                  <CardContent className="p-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="space-y-3 sm:flex-1">
+                      <div>
+                        <p className="font-medium text-slate-800">{selectedIds.length} paquete(s) seleccionado(s)</p>
+                        <p className="text-sm text-slate-500">Se creará un nuevo bulto con estos paquetes.</p>
+                      </div>
+                      <div className="sm:max-w-sm">
+                        <ContainerField
+                          id="new-bulto-container"
+                          value={containerText}
+                          onChange={(v) => { setContainerText(v); if (containerError) setContainerError(''); }}
+                          error={containerError}
+                          disabled={creating}
+                        />
+                      </div>
                     </div>
                     <div className="flex items-center gap-2">
                       <Button onClick={handleCreateBulto} disabled={creating} className="bg-blue-600 hover:bg-blue-700">

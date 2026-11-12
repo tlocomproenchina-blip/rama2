@@ -5,6 +5,7 @@ import {
   markPackagesReceivedIfMissing,
   syncClientBultoTotals,
 } from '../../shared/bultoScan.ts';
+import { cleanContainers, hasContainer, containerRequiredResponse } from '../../shared/containerRequired.ts';
 
 // Crea un bulto (caja física) que agrupa varios paquetes recibidos de un mismo cliente.
 // Recibe: { package_ids: string[] }
@@ -69,8 +70,8 @@ export default async function(req: Request): Promise<Response> {
 
     // Auto-lookup CbmIngreso order numbers by tracking intersection
     const packageTrackings = selectedPackages.map((p) => p.tracking_number || '').filter(Boolean);
-    const cbmOrderNumbers: string[] = [];
-    if (packageTrackings.length > 0) {
+    const cbmOrderNumbers: string[] = cleanContainers(body.cbm_order_numbers);
+    if (!cbmOrderNumbers.length && packageTrackings.length > 0) {
       try {
         const cbms = await base44.asServiceRole.entities.CbmIngreso.filter(
           { client_email: clientEmail }, '-fecha', 200
@@ -84,6 +85,9 @@ export default async function(req: Request): Promise<Response> {
         }
       } catch (_) {}
     }
+
+    // El N° de contenedor es obligatorio: sin él no se crea el bulto.
+    if (!hasContainer(cbmOrderNumbers)) return containerRequiredResponse();
 
     // Create the bulto record
     const newBulto = await base44.asServiceRole.entities.Bulto.create({

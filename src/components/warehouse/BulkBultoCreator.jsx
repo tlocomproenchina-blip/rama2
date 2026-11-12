@@ -9,6 +9,7 @@ import UniversalClientSearch from '@/components/warehouse/UniversalClientSearch'
 import BulkBultoResultPanel from '@/components/warehouse/BulkBultoResultPanel';
 import { downloadCombinedBultoLabelsPdf } from '@/lib/bulkBultoLabelsPdf';
 import { getAll, bulkPut, put } from '@/lib/offlineDb';
+import ContainerField, { CONTAINER_REQUIRED_MESSAGE } from '@/components/warehouse/ContainerField';
 
 // Crea N bultos vacíos en secuencia para un cliente (offline-first).
 // Reutiliza el bloque de números global (getNextNumber) para asignar bulto_number únicos.
@@ -35,6 +36,7 @@ export default function BulkBultoCreator({
   const [client, setClient] = useState(null);
   const [count, setCount] = useState(1);
   const [orders, setOrders] = useState('');
+  const [ordersError, setOrdersError] = useState('');
   const [creating, setCreating] = useState(false);
   const [createdBultos, setCreatedBultos] = useState([]);
   const [statusById, setStatusById] = useState({});
@@ -80,6 +82,11 @@ export default function BulkBultoCreator({
       toast.error('El cliente no tiene shipping mark asignado');
       return;
     }
+    if (!orderList.length) {
+      setOrdersError(CONTAINER_REQUIRED_MESSAGE);
+      return;
+    }
+    setOrdersError('');
     const n = Math.max(1, Math.min(50, Math.floor(Number(count) || 1)));
     if (n !== Number(count)) setCount(n);
 
@@ -309,18 +316,18 @@ export default function BulkBultoCreator({
 
               {/* Paso 3: número de contenedor del lote */}
               <div className="space-y-2">
-                <Label className="text-xs font-semibold text-slate-600">3. N° de contenedor (opcional)</Label>
-                <Input
+                <ContainerField
+                  id="bulk-bulto-container"
+                  label="3. N° de contenedor"
                   value={orders}
-                  onChange={(e) => setOrders(e.target.value)}
+                  onChange={(v) => { setOrders(v); if (ordersError) setOrdersError(''); }}
+                  error={ordersError}
                   placeholder="Ej: 12345 o 12345, 67890"
                   disabled={creating}
-                />
-                <p className="text-xs text-slate-500">
-                  {orderList.length
+                  hint={orderList.length
                     ? `Se guarda en todas las etiquetas del lote y sale impreso junto al estado: ${orderList.join(', ')}.`
-                    : 'Se aplica a todas las etiquetas del lote (puedes escribir varios separados por coma).'}
-                </p>
+                    : 'Obligatorio. Se aplica a todas las etiquetas del lote (puedes escribir varios separados por coma).'}
+                />
               </div>
 
               <Button

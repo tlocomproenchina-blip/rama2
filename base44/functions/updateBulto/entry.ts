@@ -8,6 +8,7 @@ import {
 import { markPackagesReceivedIfMissing } from '../../shared/bultoScan.ts';
 import { syncGuidesAfterBultoChange } from '../../shared/bultoCountSync.ts';
 import { checkBultoNumber, labelNumber, renameCodeInGuides } from '../../shared/bultoRenumber.ts';
+import { hasContainer, containerRequiredResponse } from '../../shared/containerRequired.ts';
 
 // Actualiza un bulto existente. Recibe: { bulto_id, package_ids?, client_snapshot?, status? }
 // - Valida que los package_ids sean del mismo cliente del bulto.
@@ -123,6 +124,13 @@ export default async function(req: Request): Promise<Response> {
     // --- Números de contenedor manuales (override) ---
     if (Array.isArray(body.cbm_order_numbers)) {
       update.cbm_order_numbers = body.cbm_order_numbers.filter(Boolean);
+    }
+
+    // El N° de contenedor es obligatorio: al editar el contenido o los números de contenedor
+    // el bulto no puede quedar sin ninguno (los demás ajustes, como CBM o estado, no lo tocan).
+    if (update.cbm_order_numbers !== undefined || update.package_ids !== undefined) {
+      const finalOrders = update.cbm_order_numbers !== undefined ? update.cbm_order_numbers : bulto.cbm_order_numbers;
+      if (!hasContainer(finalOrders)) return containerRequiredResponse();
     }
 
     // --- CBM oficial y conteo de paquetes (Carga en almacén) ---
