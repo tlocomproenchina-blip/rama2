@@ -11,6 +11,8 @@ import IncidentSortControls from '@/components/warehouse/incidents/IncidentSortC
 import IncidentFilterBar, { EMPTY_FILTERS, applyIncidentFilters } from '@/components/warehouse/incidents/IncidentFilterBar';
 import { downloadWarehouseIncidents } from '@/lib/warehouseIncidentsExport';
 
+const PAGE_SIZE = 200;
+
 // Incidencias de almacén: paquetes que llegan abiertos desde China dentro de un
 // contenedor. Uso interno: se registra la foto, el N° de contenedor y el cliente
 // con su código, y el historial se puede editar y exportar a Excel.
@@ -22,6 +24,9 @@ export default function AdminWarehouseIncidents() {
   const [dateDir, setDateDir] = useState('desc');
   const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [labelByBulto, setLabelByBulto] = useState({});
+  const [cursor, setCursor] = useState(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const sortField = dateDir === 'asc' ? 'reported_date' : '-reported_date';
   const filtered = applyIncidentFilters(incidents, filters, labelByBulto);
 
   // Códigos de etiqueta de los bultos de las incidencias, para poder buscarlos.
@@ -41,13 +46,25 @@ export default function AdminWarehouseIncidents() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const sort = dateDir === 'asc' ? 'reported_date' : '-reported_date';
-      const page = await base44.entities.WarehouseIncident.list({ sort, limit: 200 });
+      const page = await base44.entities.WarehouseIncident.list({ sort: sortField, limit: PAGE_SIZE });
       setIncidents(page?.items || []);
+      setCursor(page?.has_more ? page.next_cursor : null);
     } finally {
       setLoading(false);
     }
-  }, [dateDir]);
+  }, [sortField]);
+
+  const loadMore = async () => {
+    if (!cursor) return;
+    setLoadingMore(true);
+    try {
+      const page = await base44.entities.WarehouseIncident.list({ sort: sortField, limit: PAGE_SIZE, cursor });
+      setIncidents((prev) => [...prev, ...(page?.items || [])]);
+      setCursor(page?.has_more ? page.next_cursor : null);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   useEffect(() => {
     load();
@@ -102,6 +119,14 @@ export default function AdminWarehouseIncidents() {
           </div>
           <IncidentFilterBar filters={filters} onChange={setFilters} />
           <IncidentList incidents={filtered} loading={loading} onChanged={load} groupByType={sortMode === 'type'} />
+          {cursor && !loading && (
+            <div className="flex justify-center pt-2">
+              <Button variant="outline" onClick={loadMore} disabled={loadingMore}>
+                {loadingMore && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Cargar más incidencias
+              </Button>
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="fotos">
