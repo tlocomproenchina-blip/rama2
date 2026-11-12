@@ -1,5 +1,4 @@
 import React from 'react';
-import { format } from 'date-fns';
 import { Search, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,24 +13,6 @@ const TYPE_OPTIONS = [
   { value: 'cerrado', label: 'Cerrado para verificación' },
 ];
 
-// Aplica búsqueda, tipo y fecha de reporte (día local) combinados.
-export function applyIncidentFilters(incidents = [], f, labelByBulto = {}) {
-  const q = (f.search || '').trim().toLowerCase();
-  return incidents.filter((i) => {
-    if (q) {
-      const hay = [i.client_name, i.client_code, i.client_email, i.tracking_number, i.container_number, labelByBulto[i.bulto_id]]
-        .filter(Boolean).join(' ').toLowerCase();
-      if (!hay.includes(q)) return false;
-    }
-    if (f.type !== 'all' && i.incident_type !== f.type) return false;
-    if (f.date) {
-      if (!i.reported_date) return false;
-      if (format(new Date(i.reported_date), 'yyyy-MM-dd') !== f.date) return false;
-    }
-    return true;
-  });
-}
-
 export default function IncidentFilterBar({ filters, onChange }) {
   const active = filters.type !== 'all' || filters.date || filters.search;
   const set = (patch) => onChange({ ...filters, ...patch });
@@ -43,7 +24,7 @@ export default function IncidentFilterBar({ filters, onChange }) {
         <Input
           value={filters.search}
           onChange={(e) => set({ search: e.target.value })}
-          placeholder="Buscar por cliente, tracking o código de bulto"
+          placeholder="Buscar por cliente, contenedor, tracking o código de bulto"
           className="pl-10"
         />
       </div>

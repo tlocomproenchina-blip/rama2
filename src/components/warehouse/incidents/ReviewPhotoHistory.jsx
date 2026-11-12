@@ -28,7 +28,7 @@ export default function ReviewPhotoHistory({ refreshKey }) {
       const rx = q ? { $regex: esc(q), $options: 'i' } : null;
       let out = [];
       if (status !== 'sin_revisar') {
-        const query = rx ? { $or: ['client_name', 'client_email', 'label_code', 'tracking_number'].map((f) => ({ [f]: rx })) } : {};
+        const query = rx ? { $or: ['client_name', 'client_email', 'label_code', 'tracking_number', 'container_number'].map((f) => ({ [f]: rx })) } : {};
         if (status !== 'all') query.result = status;
         const page = await base44.entities.CajaInventoryReview.filter(query, { sort: '-reviewed_date', limit: 100 });
         out = (page?.items || []).map((r) => ({ key: r.id, review: r }));
@@ -56,7 +56,7 @@ export default function ReviewPhotoHistory({ refreshKey }) {
       </div>
       <div className="relative">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar por cliente, bulto/caja o tracking…" className="pl-10" />
+        <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar por cliente, contenedor, bulto/caja o tracking…" className="pl-10" />
       </div>
       <div className="flex flex-wrap gap-2">
         {FILTERS.map((f) => (

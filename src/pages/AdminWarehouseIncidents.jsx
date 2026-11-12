@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import PageHero from '@/components/common/PageHero';
 import { Button } from '@/components/ui/button';
@@ -8,7 +8,8 @@ import InventoryReviewCard from '@/components/warehouse/incidents/InventoryRevie
 import ReviewPhotoHistory from '@/components/warehouse/incidents/ReviewPhotoHistory';
 import IncidentList from '@/components/warehouse/incidents/IncidentList';
 import IncidentSortControls from '@/components/warehouse/incidents/IncidentSortControls';
-import IncidentFilterBar, { EMPTY_FILTERS, applyIncidentFilters } from '@/components/warehouse/incidents/IncidentFilterBar';
+import IncidentFilterBar, { EMPTY_FILTERS } from '@/components/warehouse/incidents/IncidentFilterBar';
+import { buildIncidentQuery } from '@/components/warehouse/incidents/incidentQuery';
 import { downloadWarehouseIncidents } from '@/lib/warehouseIncidentsExport';
 
 const PAGE_SIZE = 200;
@@ -23,42 +24,45 @@ export default function AdminWarehouseIncidents() {
   const [sortMode, setSortMode] = useState('type');
   const [dateDir, setDateDir] = useState('desc');
   const [filters, setFilters] = useState(EMPTY_FILTERS);
-  const [labelByBulto, setLabelByBulto] = useState({});
+  const [search, setSearch] = useState('');
+  const [total, setTotal] = useState(0);
   const [cursor, setCursor] = useState(null);
   const [loadingMore, setLoadingMore] = useState(false);
+  const queryRef = useRef({});
+  const reqRef = useRef(0);
   const sortField = dateDir === 'asc' ? 'reported_date' : '-reported_date';
-  const filtered = applyIncidentFilters(incidents, filters, labelByBulto);
 
-  // Códigos de etiqueta de los bultos de las incidencias, para poder buscarlos.
+  // El texto se aplica con una pequeña pausa para no consultar en cada tecla.
   useEffect(() => {
-    const ids = [...new Set(incidents.map((i) => i.bulto_id).filter(Boolean))];
-    if (ids.length === 0) { setLabelByBulto({}); return; }
-    let cancelled = false;
-    base44.entities.Bulto.filter({ id: { $in: ids } }, { limit: 500 }).then((page) => {
-      if (cancelled) return;
-      const map = {};
-      (page?.items || []).forEach((b) => { map[b.id] = b.label_code; });
-      setLabelByBulto(map);
-    }).catch(() => {});
-    return () => { cancelled = true; };
-  }, [incidents]);
+    const t = setTimeout(() => setSearch(filters.search), 350);
+    return () => clearTimeout(t);
+  }, [filters.search]);
 
+  // La búsqueda, el tipo y la fecha se consultan en el servidor sobre todo el historial.
   const load = useCallback(async () => {
+    const req = ++reqRef.current;
     setLoading(true);
     try {
-      const page = await base44.entities.WarehouseIncident.list({ sort: sortField, limit: PAGE_SIZE });
+      const query = await buildIncidentQuery({ ...filters, search });
+      queryRef.current = query;
+      const [page, count] = await Promise.all([
+        base44.entities.WarehouseIncident.filter(query, { sort: sortField, limit: PAGE_SIZE }),
+        base44.entities.WarehouseIncident.count(query),
+      ]);
+      if (req !== reqRef.current) return;
       setIncidents(page?.items || []);
+      setTotal(count);
       setCursor(page?.has_more ? page.next_cursor : null);
     } finally {
-      setLoading(false);
+      if (req === reqRef.current) setLoading(false);
     }
-  }, [sortField]);
+  }, [filters.type, filters.date, search, sortField]);
 
   const loadMore = async () => {
     if (!cursor) return;
     setLoadingMore(true);
     try {
-      const page = await base44.entities.WarehouseIncident.list({ sort: sortField, limit: PAGE_SIZE, cursor });
+      const page = await base44.entities.WarehouseIncident.filter(queryRef.current, { sort: sortField, limit: PAGE_SIZE, cursor });
       setIncidents((prev) => [...prev, ...(page?.items || [])]);
       setCursor(page?.has_more ? page.next_cursor : null);
     } finally {
@@ -113,12 +117,12 @@ export default function AdminWarehouseIncidents() {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-baseline gap-3">
               <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-muted-foreground">Historial</h2>
-              <span className="text-xs text-muted-foreground">{filtered.length === incidents.length ? `${incidents.length} incidencia(s)` : `${filtered.length} de ${incidents.length} incidencia(s)`}</span>
+              <span className="text-xs text-muted-foreground">{loading ? 'Buscando…' : incidents.length < total ? `Mostrando ${incidents.length} de ${total} incidencia(s)` : `${total} incidencia(s)`}</span>
             </div>
             <IncidentSortControls mode={sortMode} dir={dateDir} onModeChange={setSortMode} onDirChange={setDateDir} />
           </div>
           <IncidentFilterBar filters={filters} onChange={setFilters} />
-          <IncidentList incidents={filtered} loading={loading} onChanged={load} groupByType={sortMode === 'type'} />
+          <IncidentList incidents={incidents} loading={loading} onChanged={load} groupByType={sortMode === 'type'} />
           {cursor && !loading && (
             <div className="flex justify-center pt-2">
               <Button variant="outline" onClick={loadMore} disabled={loadingMore}>
