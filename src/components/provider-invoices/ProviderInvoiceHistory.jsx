@@ -8,9 +8,10 @@ import ProviderInvoiceTotals from './ProviderInvoiceTotals';
 import ProviderSelectionBar from './ProviderSelectionBar';
 import ProviderPayDialog from './ProviderPayDialog';
 import { piCall } from '@/lib/providerInvoicesApi';
+import { CANONICAL_STATE_NAMES } from '@/components/utils/states';
 
 export default function ProviderInvoiceHistory({ isAdmin, refreshKey }) {
-  const [filters, setFilters] = useState({ client: '', from: '', to: '', status: 'todas' });
+  const [filters, setFilters] = useState({ client: '', from: '', to: '', status: 'todas', state: 'todos' });
   const [items, setItems] = useState([]);
   const [totals, setTotals] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -37,7 +38,7 @@ export default function ProviderInvoiceHistory({ isAdmin, refreshKey }) {
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-3 md:grid-cols-4">
+      <div className="grid gap-3 md:grid-cols-5">
         <Input placeholder="Cliente, Shipping Mark o contenedor" value={filters.client} onChange={(e) => set('client', e.target.value)} />
         <Input type="date" value={filters.from} onChange={(e) => set('from', e.target.value)} />
         <Input type="date" value={filters.to} onChange={(e) => set('to', e.target.value)} />
@@ -47,6 +48,13 @@ export default function ProviderInvoiceHistory({ isAdmin, refreshKey }) {
             <SelectItem value="todas">Todas</SelectItem>
             <SelectItem value="pagada">Pagadas</SelectItem>
             <SelectItem value="pendiente">No pagadas</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={filters.state} onValueChange={(v) => set('state', v)}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todos los estados</SelectItem>
+            {Object.entries(CANONICAL_STATE_NAMES).map(([code, name]) => <SelectItem key={code} value={code}>{name}</SelectItem>)}
           </SelectContent>
         </Select>
       </div>

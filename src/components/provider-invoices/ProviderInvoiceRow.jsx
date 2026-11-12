@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Link2, ExternalLink, FileText, CheckCircle2, Loader2 } from 'lucide-react';
+import { Link2, ExternalLink, FileText, CheckCircle2, Loader2, MapPin } from 'lucide-react';
+import { CANONICAL_STATE_NAMES } from '@/components/utils/states';
 import { toast } from 'sonner';
 import ProviderInvoiceRowActions from './ProviderInvoiceRowActions';
 import { piCall, money, publicInvoiceUrl } from '@/lib/providerInvoicesApi';
@@ -27,6 +28,12 @@ export default function ProviderInvoiceRow({ inv, isAdmin, onChanged, selected, 
           <div>
             <p className="font-display text-lg font-semibold">{inv.invoice_code}</p>
             <p className="text-sm text-muted-foreground">{inv.shipping_mark} · {inv.client_name} · Carga {inv.load_date || '—'}</p>
+            {(inv.client_address || inv.client_state) && (
+              <p className="mt-0.5 flex items-start gap-1 text-sm text-muted-foreground">
+                <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                <span>{[inv.client_address, inv.client_city, CANONICAL_STATE_NAMES[inv.client_state] || inv.client_state].filter(Boolean).join(', ')}</span>
+              </p>
+            )}
           </div>
         </div>
         <div className="text-right">

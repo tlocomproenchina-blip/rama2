@@ -121,7 +121,25 @@ Deno.serve(async (req) => {
         const re = String(body.client).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         q.$or = [{ shipping_mark: { $regex: re, $options: 'i' } }, { client_name: { $regex: re, $options: 'i' } }, { invoice_code: { $regex: re, $options: 'i' } }];
       }
+      // Filtro por estado del cliente (el estado vive en el usuario, no en la factura).
+      if (body.state && body.state !== 'todos') {
+        const allUsers = await sr.entities.User.list('-created_date', 5000);
+        const emails = (allUsers || []).filter((u: any) => u.state === body.state).map((u: any) => u.email).filter(Boolean);
+        if (!emails.length) return Response.json({ items: [], totals: { pending: 0, paid: 0, pending_count: 0, paid_count: 0 } });
+        q.client_email = { $in: emails };
+      }
       const items = await sr.entities.ProviderInvoice.filter(q, '-created_date', 200);
+      // Estado, ciudad y dirección del cliente para mostrarlos en la tarjeta.
+      const clientEmails = [...new Set(items.map((i: any) => i.client_email).filter(Boolean))];
+      if (clientEmails.length) {
+        const users = await sr.entities.User.filter({ email: { $in: clientEmails } }, '-created_date', 2000);
+        const byEmail: any = {};
+        for (const u of users || []) byEmail[String(u.email).toLowerCase()] = u;
+        for (const i of items) {
+          const u = byEmail[String(i.client_email || '').toLowerCase()];
+          if (u) { i.client_state = u.state || ''; i.client_city = u.city || ''; i.client_address = u.address || ''; }
+        }
+      }
       const totals = { pending: 0, paid: 0, pending_count: 0, paid_count: 0 };
       for (const i of items) {
         if (i.status === 'pagada') { totals.paid += Number(i.total) || 0; totals.paid_count++; }
