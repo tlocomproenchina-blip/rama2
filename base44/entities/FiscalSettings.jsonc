@@ -1,0 +1,62 @@
+{
+  "name": "FiscalSettings",
+  "type": "object",
+  "properties": {
+    "config_key": {
+      "type": "string",
+      "default": "main"
+    },
+    "issuer_rif": {
+      "type": "string",
+      "description": "RIF del emisor"
+    },
+    "issuer_extra_info": {
+      "type": "string",
+      "description": "Informaci\u00f3n fiscal adicional del emisor"
+    },
+    "footer_note": {
+      "type": "string",
+      "maxLength": 400,
+      "description": "Datos fiscales obligatorios adicionales para el pie de los documentos"
+    },
+    "last_request_seq": {
+      "type": "number",
+      "default": 0,
+      "description": "\u00daltimo consecutivo de solicitud asignado"
+    }
+  },
+  "required": [
+    "config_key"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        }
+      ]
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

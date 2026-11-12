@@ -1,0 +1,242 @@
+{
+  "name": "FiscalInvoiceRequest",
+  "type": "object",
+  "properties": {
+    "request_number": {
+      "type": "string",
+      "description": "N\u00famero \u00fanico y referencial de la solicitud (FF-000001)"
+    },
+    "invoice_id": {
+      "type": "string",
+      "description": "ID de la factura original (Invoice)"
+    },
+    "invoice_number": {
+      "type": "string",
+      "description": "N\u00famero de la factura original (cache para mostrar y buscar)"
+    },
+    "client_user_id": {
+      "type": "string",
+      "description": "ID real del usuario propietario"
+    },
+    "client_email": {
+      "type": "string",
+      "description": "Email del cliente propietario"
+    },
+    "client_name": {
+      "type": "string",
+      "description": "Nombre del cliente"
+    },
+    "shipping_mark": {
+      "type": "string",
+      "description": "Shipping Mark del cliente al crear la solicitud"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "borrador",
+        "pago_iva_en_verificacion",
+        "comprobante_rechazado",
+        "pendiente_revision_fiscal",
+        "requiere_correccion",
+        "aprobada",
+        "emitida",
+        "rechazada"
+      ],
+      "enumColors": [
+        "gray",
+        "yellow",
+        "red",
+        "blue",
+        "yellow",
+        "green",
+        "green",
+        "red"
+      ],
+      "default": "borrador"
+    },
+    "legal_name": {
+      "type": "string",
+      "description": "Nombre o raz\u00f3n social del receptor"
+    },
+    "rif": {
+      "type": "string",
+      "description": "RIF normalizado (J-12345678-9)"
+    },
+    "fiscal_address": {
+      "type": "string",
+      "description": "Direcci\u00f3n fiscal"
+    },
+    "rif_document_uri": {
+      "type": "string",
+      "description": "Archivo privado del RIF"
+    },
+    "rif_document_type": {
+      "type": "string",
+      "description": "image o pdf"
+    },
+    "lines": {
+      "type": "array",
+      "default": [],
+      "description": "L\u00edneas de detalle, recalculadas por el servidor",
+      "items": {
+        "type": "object",
+        "properties": {
+          "quantity": {
+            "type": "number"
+          },
+          "description": {
+            "type": "string"
+          },
+          "unit_price": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "subtotal": {
+      "type": "number",
+      "default": 0
+    },
+    "vat_rate": {
+      "type": "number",
+      "default": 16,
+      "description": "Porcentaje de IVA aplicado"
+    },
+    "vat_amount": {
+      "type": "number",
+      "default": 0
+    },
+    "total": {
+      "type": "number",
+      "default": 0
+    },
+    "vat_payment": {
+      "type": "object",
+      "description": "Pago del IVA, independiente del pago de la factura original",
+      "properties": {
+        "method_id": {
+          "type": "string"
+        },
+        "method_name": {
+          "type": "string"
+        },
+        "method_snapshot": {
+          "type": "object"
+        },
+        "amount_paid": {
+          "type": "number"
+        },
+        "reference": {
+          "type": "string"
+        },
+        "payment_date": {
+          "type": "string"
+        },
+        "proof_uri": {
+          "type": "string"
+        },
+        "proof_type": {
+          "type": "string"
+        },
+        "proof_id": {
+          "type": "string"
+        },
+        "verification_status": {
+          "type": "string",
+          "enum": [
+            "sin_comprobante",
+            "en_verificacion",
+            "rechazado",
+            "verificado"
+          ]
+        },
+        "verified_amount": {
+          "type": "number"
+        },
+        "verified_by": {
+          "type": "string"
+        },
+        "verified_by_name": {
+          "type": "string"
+        },
+        "verified_date": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "verification_notes": {
+          "type": "string"
+        }
+      }
+    },
+    "original_payment_proof": {
+      "type": "string",
+      "description": "Referencia al comprobante de pago de la factura original (solo lectura)"
+    },
+    "correction_notes": {
+      "type": "string",
+      "description": "Correcciones pedidas al cliente"
+    },
+    "rejection_reason": {
+      "type": "string",
+      "description": "Motivo de rechazo de la solicitud"
+    },
+    "submitted_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "issued_number": {
+      "type": "string",
+      "description": "N\u00famero del documento fiscal emitido (referencial)"
+    },
+    "issued_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "issued_by": {
+      "type": "string"
+    },
+    "issued_document_uri": {
+      "type": "string",
+      "description": "Copia privada del documento fiscal definitivo"
+    },
+    "issued_document_type": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "invoice_id",
+    "client_email"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "data.client_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

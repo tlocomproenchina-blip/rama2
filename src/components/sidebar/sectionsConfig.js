@@ -36,6 +36,7 @@ export const ADMIN_SECTIONS = [
     p('AdminInvoices', 'Facturas'), p('AdminManualBilling', 'Facturación manual'), p('AdminQuotes', 'Presupuestos'),
     p('AdminPayments', 'Validar pagos'), p('AdminAssistedPayments', 'Pagos asistidos'), p('AdminClientCredits', 'Saldo cliente'),
     p('AdminPaymentAlerts', 'Alertas de pago'), p('ProviderInvoices', 'Facturas de proveedor'),
+    p('AdminFiscalInvoices', 'Facturas fiscales'),
   ] },
   { id: 'proveedores', label: 'Proveedores', icon: Building2, pages: [
     p('AdminProviders', 'Proveedores'), p('AdminAccountsPayable', 'Cuentas por pagar'), p('AdminProviderPayments', 'Pagos'),
@@ -72,7 +73,7 @@ export const CLIENT_SECTIONS = [
     p('MyPackages', 'Paquetes'), p('MyIncidents', 'Mis incidencias'), p('MyWarehouseMerchandise', 'Almacén Venezuela'), p('MyCbm', 'Mis CBM'),
     p('PreAlert', 'Pre-alerta'), p('RequestConsolidation', 'Solicitar consolidación'),
   ], subPages: ['MyConsolidations'] },
-  { id: 'c-facturas', label: 'Facturas y pagos', icon: CreditCard, pages: [p('MyInvoices', 'Mis facturas'), p('AssistedPayment', 'Pago asistido')] },
+  { id: 'c-facturas', label: 'Facturas y pagos', icon: CreditCard, pages: [p('MyInvoices', 'Mis facturas'), p('MyFiscalInvoices', 'Facturas fiscales'), p('AssistedPayment', 'Pago asistido')], subPages: ['FiscalInvoiceRequest'] },
   { id: 'c-seguimiento', label: 'Seguimiento', icon: Truck, pages: [p('ShipmentTracking', 'Seguimiento')] },
   { id: 'c-cotizar', label: 'Cotizar', icon: Calculator, pages: [p('ShippingCalculator', 'Calculadora'), p('Rates', 'Tarifas')] },
   { id: 'c-ayuda', label: 'Ayuda', icon: HelpCircle, pages: [p('FAQ', 'FAQ'), p('Support', 'Soporte'), p('Contract', 'Contrato')] },

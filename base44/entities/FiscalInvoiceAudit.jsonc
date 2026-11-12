@@ -1,0 +1,69 @@
+{
+  "name": "FiscalInvoiceAudit",
+  "type": "object",
+  "properties": {
+    "request_id": {
+      "type": "string"
+    },
+    "request_number": {
+      "type": "string"
+    },
+    "action": {
+      "type": "string",
+      "description": "intent, save_draft, submit, vat_approved, vat_rejected, vat_hold, request_approved, request_rejected, correction_requested, admin_edit, issued"
+    },
+    "actor_email": {
+      "type": "string"
+    },
+    "actor_name": {
+      "type": "string"
+    },
+    "actor_type": {
+      "type": "string",
+      "enum": [
+        "cliente",
+        "admin",
+        "sistema"
+      ]
+    },
+    "from_status": {
+      "type": "string"
+    },
+    "to_status": {
+      "type": "string"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "changes": {
+      "type": "object",
+      "description": "Antes y despu\u00e9s de importes u otros campos modificados"
+    }
+  },
+  "required": [
+    "request_id",
+    "action"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

@@ -9,6 +9,9 @@ import { uploadImageNoCredits } from '@/lib/imgbbUpload';
 import { Wallet, Copy, Upload, CheckCircle, Loader2, DollarSign } from 'lucide-react';
 import { toast } from 'sonner';
 import PagoMovilBsDisplay from '@/components/payments/PagoMovilBsDisplay';
+import { useNavigate } from 'react-router-dom';
+import FiscalInvoiceChoice from '@/components/fiscal/FiscalInvoiceChoice';
+import { fiscalCall } from '@/lib/fiscalApi';
 
 export default function PaymentModal({ open, onClose, consolidation, onPaymentSubmitted }) {
   const [config, setConfig] = useState(null);
@@ -19,6 +22,8 @@ export default function PaymentModal({ open, onClose, consolidation, onPaymentSu
   const [loading, setLoading] = useState(true);
   const [availableMethods, setAvailableMethods] = useState([]);
   const [invoiceTotal, setInvoiceTotal] = useState(null);
+  const [wantsFiscal, setWantsFiscal] = useState('no');
+  const navigate = useNavigate();
 
   // Total efectivo: usa el de la consolidación y, si falta o es 0, el de la factura
   const effectiveTotal = (Number(consolidation?.total_cost) > 0)
@@ -73,6 +78,10 @@ export default function PaymentModal({ open, onClose, consolidation, onPaymentSu
       setAmount(effectiveTotal.toFixed(2));
     }
   }, [open, effectiveTotal]);
+
+  useEffect(() => {
+    if (open) setWantsFiscal('no');
+  }, [open]);
 
   const getWalletAddress = () => {
     if (!config) return '';
@@ -199,8 +208,20 @@ export default function PaymentModal({ open, onClose, consolidation, onPaymentSu
         entity_type: 'Invoice'
       }).catch(err => console.error('Admin notification error:', err));
 
+      // Factura fiscal (opcional): el pago ya quedó registrado; esto no lo altera.
+      let fiscalRequestId = null;
+      if (wantsFiscal === 'si') {
+        try {
+          const res = await fiscalCall('registerIntent', { invoice_id: consolidation.invoice_id, consolidation_id: consolidationId });
+          fiscalRequestId = res?.request?.id || null;
+        } catch (_) {
+          toast.warning('Tu pago se registró, pero no pudimos abrir la solicitud fiscal. Puedes iniciarla desde Mis facturas fiscales.');
+        }
+      }
+
       onPaymentSubmitted();
       onClose();
+      if (fiscalRequestId) navigate(`/FiscalInvoiceRequest?request=${fiscalRequestId}`);
     } catch (error) {
       console.error('Error submitting payment:', error);
       toast.error(error?.message || 'Error al enviar el pago. Intenta de nuevo.');
@@ -336,6 +357,8 @@ export default function PaymentModal({ open, onClose, consolidation, onPaymentSu
                 </label>
               </div>
           </div>
+
+          <FiscalInvoiceChoice value={wantsFiscal} onChange={setWantsFiscal} />
         </div>
 
         <DialogFooter className="flex gap-3">

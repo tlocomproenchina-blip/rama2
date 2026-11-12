@@ -1,0 +1,104 @@
+{
+  "name": "FiscalVatProof",
+  "type": "object",
+  "properties": {
+    "request_id": {
+      "type": "string"
+    },
+    "request_number": {
+      "type": "string"
+    },
+    "client_email": {
+      "type": "string"
+    },
+    "file_uri": {
+      "type": "string",
+      "description": "Comprobante privado del pago del IVA"
+    },
+    "file_type": {
+      "type": "string",
+      "description": "image o pdf"
+    },
+    "method_id": {
+      "type": "string"
+    },
+    "method_name": {
+      "type": "string"
+    },
+    "amount": {
+      "type": "number"
+    },
+    "reference": {
+      "type": "string"
+    },
+    "payment_date": {
+      "type": "string"
+    },
+    "uploaded_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "en_verificacion",
+        "verificado",
+        "rechazado",
+        "reemplazado"
+      ],
+      "enumColors": [
+        "yellow",
+        "green",
+        "red",
+        "gray"
+      ],
+      "default": "en_verificacion"
+    },
+    "review_notes": {
+      "type": "string"
+    },
+    "reviewed_by": {
+      "type": "string"
+    },
+    "reviewed_by_name": {
+      "type": "string"
+    },
+    "reviewed_date": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "request_id",
+    "file_uri"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "data.client_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

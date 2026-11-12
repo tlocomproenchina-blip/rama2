@@ -24,7 +24,7 @@ export const ROLE_PRESETS: Record<string, { role_name: string; description: stri
   contabilidad: {
     role_name: 'Contabilidad',
     description: 'Facturación, pagos, proveedores y cuentas por pagar.',
-    visible_pages: ['AdminDashboard', 'AccountingDashboard', 'AdminInvoices', 'AdminPayments', 'AdminAssistedPayments', 'AdminAccountsPayable', 'AdminProviderPayments', 'AdminProviders', 'AdminPaymentAlerts'],
+    visible_pages: ['AdminDashboard', 'AccountingDashboard', 'AdminInvoices', 'AdminFiscalInvoices', 'AdminPayments', 'AdminAssistedPayments', 'AdminAccountsPayable', 'AdminProviderPayments', 'AdminProviders', 'AdminPaymentAlerts'],
   },
   soporte: {
     role_name: 'Soporte',

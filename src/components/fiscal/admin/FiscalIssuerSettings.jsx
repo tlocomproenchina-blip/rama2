@@ -30,7 +30,7 @@ export default function FiscalIssuerSettings() {
   const save = async () => {
     setSaving(true);
     try {
-      const { id, created_date, updated_date, created_by_id, ...data } = settings;
+      const { id, created_date, updated_date, created_by_id, is_sample, last_request_seq, ...data } = settings;
       const saved = id ? await base44.entities.FiscalSettings.update(id, data) : await base44.entities.FiscalSettings.create(data);
       setSettings(saved);
       toast.success('Datos del emisor guardados');

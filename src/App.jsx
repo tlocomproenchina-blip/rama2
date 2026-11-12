@@ -100,6 +100,9 @@ const ProviderInvoices = lazy(() => import('./pages/ProviderInvoices'));
 const PublicProviderInvoice = lazy(() => import('./pages/PublicProviderInvoice'));
 const ProviderPortal = lazy(() => import('./pages/ProviderPortal'));
 const MyIncidents = lazy(() => import('./pages/MyIncidents'));
+const MyFiscalInvoices = lazy(() => import('./pages/MyFiscalInvoices'));
+const FiscalInvoiceRequest = lazy(() => import('./pages/FiscalInvoiceRequest'));
+const AdminFiscalInvoices = lazy(() => import('./pages/AdminFiscalInvoices'));
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -162,6 +165,9 @@ const AuthenticatedApp = () => {
       )}
       <Route path="/MyWarehouseMerchandise" element={lazyRoute(MyWarehouseMerchandise, "MyWarehouseMerchandise")} />
       <Route path="/MyIncidents" element={lazyRoute(MyIncidents, "MyIncidents")} />
+      <Route path="/MyFiscalInvoices" element={lazyRoute(MyFiscalInvoices, "MyFiscalInvoices")} />
+      <Route path="/FiscalInvoiceRequest" element={lazyRoute(FiscalInvoiceRequest, "FiscalInvoiceRequest")} />
+      <Route path="/AdminFiscalInvoices" element={lazyRoute(AdminFiscalInvoices, "AdminFiscalInvoices")} />
       <Route path="/WarehouseReceive" element={lazyRoute(WarehouseReceive, "WarehouseReceive")} />
       <Route path="/WarehouseLocations" element={lazyRoute(WarehouseLocations, "WarehouseLocations")} />
       <Route path="/WarehouseDashboard" element={lazyRoute(WarehouseDashboard, "WarehouseDashboard")} />

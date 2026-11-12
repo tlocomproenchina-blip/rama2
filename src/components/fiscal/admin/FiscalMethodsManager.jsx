@@ -28,7 +28,7 @@ export default function FiscalMethodsManager() {
   };
 
   const save = (values) => guard(async () => {
-    const { id, created_date, updated_date, created_by_id, ...data } = values;
+    const { id, created_date, updated_date, created_by_id, is_sample, ...data } = values;
     if (id) await base44.entities.FiscalVatPaymentMethod.update(id, data);
     else {
       const max = (methods || []).reduce((m, x) => Math.max(m, x.sort_order || 0), 0);

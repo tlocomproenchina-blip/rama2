@@ -21,7 +21,7 @@ export const ROLE_PRESETS = {
     role_code: 'contabilidad',
     role_name: 'Contabilidad',
     description: 'Facturación, pagos, proveedores y cuentas por pagar.',
-    visible_pages: ['AdminDashboard', 'AccountingDashboard', 'AdminInvoices', 'AdminPayments', 'AdminAssistedPayments', 'AdminAccountsPayable', 'AdminProviderPayments', 'AdminProviders', 'AdminPaymentAlerts']
+    visible_pages: ['AdminDashboard', 'AccountingDashboard', 'AdminInvoices', 'AdminFiscalInvoices', 'AdminPayments', 'AdminAssistedPayments', 'AdminAccountsPayable', 'AdminProviderPayments', 'AdminProviders', 'AdminPaymentAlerts']
   },
   soporte: {
     role_code: 'soporte',
@@ -108,6 +108,7 @@ export const PAGE_LABELS = {
   AdminRevenueDashboard: 'Dashboard Ingresos',
   AdminInvoices: 'Facturas',
   AdminManualBilling: 'Facturación Manual',
+  AdminFiscalInvoices: 'Facturas Fiscales',
   AdminQuotes: 'Presupuestos',
   AdminPayments: 'Validar Pagos',
   AdminAssistedPayments: 'Pagos Asistidos',
