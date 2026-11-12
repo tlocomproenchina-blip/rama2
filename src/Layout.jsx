@@ -7,7 +7,7 @@ import Sidebar from '@/components/Sidebar';
 import SectionTabs from '@/components/sidebar/SectionTabs';
 import NotificationBell from '@/components/NotificationBell';
 import AdminNotificationCenter from '@/components/AdminNotificationCenter';
-import { allowedPagesFor, getAreaPreset, isAreaEmployee, pickLandingPage } from '@/lib/areaAccess';
+import { allowedPagesFor, getAreaPreset, isAreaEmployee, menuPagesFor, pickLandingPage } from '@/lib/areaAccess';
 
 
 
@@ -255,10 +255,21 @@ export default function Layout({ children, currentPageName }) {
       // área: el administrador puede quedarse a verla. En app nativa también se
       // sale de las páginas públicas.
       const nativePublicPages = ['ShippingCalculator', 'Blog', 'BlogPost', 'About', 'Contact', 'Inicio2', 'CityLanding'];
-      if (currentUser.role === 'admin' && (!currentPageName || currentPageName === 'Dashboard' || (currentPageName === 'Inicio2' && isAreaEmployee(currentUser)) || ((isApkApp || isNative) && nativePublicPages.includes(currentPageName)))) {
-        const landing = isAreaEmployee(currentUser)
-          ? pickLandingPage(allowedPagesFor(currentUser, resolvedRoleConfig))
-          : 'AdminDailySummary';
+      // Al entrar a la raíz del sitio (inicio de sesión) se abre el primer módulo
+      // permitido del menú; la portada solo se ve si el usuario la selecciona
+      // (/Inicio2), porque esta lógica corre una sola vez al cargar la app.
+      const isRootEntry = window.location.pathname === '/';
+      if (currentUser.role === 'admin' && (!currentPageName || currentPageName === 'Dashboard' || (currentPageName === 'Inicio2' && (isRootEntry || isAreaEmployee(currentUser))) || ((isApkApp || isNative) && nativePublicPages.includes(currentPageName)))) {
+        let landing;
+        if (isAreaEmployee(currentUser)) {
+          landing = pickLandingPage(allowedPagesFor(currentUser, resolvedRoleConfig));
+        } else {
+          let hiddenCfg = config;
+          if (!hiddenCfg) {
+            try { hiddenCfg = (await base44.entities.AppConfig.filter({ config_key: 'main' }, '-updated_date', 1))[0]; } catch (_) {}
+          }
+          landing = menuPagesFor(currentUser, hiddenCfg, null)[0];
+        }
         navigate(createPageUrl(landing || 'AdminDailySummary'));
         setLoading(false);
         return;
