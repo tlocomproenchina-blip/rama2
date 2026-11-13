@@ -128,6 +128,13 @@ export function buildFiscalPdf({ request, appConfig, settings }) {
   doc.text(money(request.total), W - M - 2, y + 6, { align: 'right' });
   y += 17;
 
+  // Aviso de entrega
+  doc.setTextColor(17, 24, 39);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.text('SU FACTURA FISCAL ESTARÁ DENTRO DE SU CARGA EN UN SOBRE COLOR MANILA', W / 2, y, { align: 'center' });
+  y += 9;
+
   // Datos de referencia
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8.5);

@@ -21,6 +21,7 @@ export default function FiscalRequestStatusView({ request, justSubmitted }) {
         <div className="flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-900">
           <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" />
           <p className="text-sm font-medium">{SUBMITTED_MESSAGE}</p>
+          <p className="mt-2 text-sm font-extrabold uppercase">SU FACTURA FISCAL ESTARÁ DENTRO DE SU CARGA EN UN SOBRE COLOR MANILA</p>
         </div>
       ) : null}
       <Card>
