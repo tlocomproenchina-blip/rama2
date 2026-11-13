@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
 import { base44 } from '@/api/base44Client';
 import { pagesConfig } from '@/pages.config';
+import { isAreaEmployee } from '@/lib/areaAccess';
 
 const SESSION_KEY = 'employee_activity_session_id';
 const IDLE_THRESHOLD_MS = 60000;
@@ -67,10 +68,10 @@ export default function NavigationTracker() {
     const [trackingEnabled, setTrackingEnabled] = useState(false);
 
     // Lee flag global de AppConfig (cacheado 5 min en localStorage para evitar lecturas repetidas)
-    // NOTA: Solo se rastrea a empleados/admins. Los clientes (role === 'user') quedan excluidos.
+    // NOTA: Solo se rastrea a empleados con un área asignada. Administradores y clientes quedan excluidos.
     useEffect(() => {
         if (!isAuthenticated) return;
-        if (user?.role === 'user') {
+        if (!isAreaEmployee(user)) {
             setTrackingEnabled(false);
             return;
         }
@@ -96,7 +97,7 @@ export default function NavigationTracker() {
             })
             .catch(() => setTrackingEnabled(false));
         return () => { cancelled = true; };
-    }, [isAuthenticated, user?.role]);
+    }, [isAuthenticated, user?.role, user?.custom_role]);
 
     const pageName = useMemo(() => {
         const pathname = location.pathname;
