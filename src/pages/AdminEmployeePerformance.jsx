@@ -14,15 +14,9 @@ import EmployeePerformanceLeaderboard from '@/components/employee-performance/Em
 import EmployeePerformanceAlertsPanel from '@/components/employee-performance/EmployeePerformanceAlertsPanel';
 import EmployeePerformanceTable from '@/components/employee-performance/EmployeePerformanceTable';
 import EmployeePerformanceDetail from '@/components/employee-performance/EmployeePerformanceDetail';
-
-function getTodayInCaracas() {
-  return new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'America/Caracas',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(new Date());
-}
+import PeriodFilter from '@/components/employee-performance/PeriodFilter';
+import EmployeeOperationsPanel from '@/components/employee-performance/EmployeeOperationsPanel';
+import { getTodayInCaracas, rangeForPreset, formatRangeLabel } from '@/lib/periodRange';
 
 export default function AdminEmployeePerformance({ user }) {
   const [loading, setLoading] = useState(true);
@@ -30,18 +24,40 @@ export default function AdminEmployeePerformance({ user }) {
   const [alerts, setAlerts] = useState([]);
   const [trackingEnabled, setTrackingEnabled] = useState(true);
   const [loadError, setLoadError] = useState('');
-  const [selectedDate, setSelectedDate] = useState(getTodayInCaracas());
+  const [preset, setPreset] = useState('hoy');
+  const [custom, setCustom] = useState({ from: getTodayInCaracas(), to: getTodayInCaracas() });
+  const [employeeFilter, setEmployeeFilter] = useState('all');
+  const [operations, setOperations] = useState([]);
+  const [opsLoading, setOpsLoading] = useState(true);
+  const [opsError, setOpsError] = useState('');
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [selectedEmail, setSelectedEmail] = useState('');
 
+  const range = useMemo(() => rangeForPreset(preset, custom), [preset, custom]);
+  const rangeValid = range.from <= range.to;
+  const rangeLabel = formatRangeLabel(range);
+
   useEffect(() => {
+    if (!rangeValid) return undefined;
+    let active = true;
+    setOpsLoading(true);
+    setOpsError('');
+    base44.functions.invoke('getEmployeeOperations', { date: range.from, date_to: range.to })
+      .then((res) => { if (active) setOperations(res?.data?.employees || []); })
+      .catch(() => { if (active) { setOperations([]); setOpsError('No se pudo cargar el trabajo por empleado. Intenta de nuevo.'); } })
+      .finally(() => { if (active) setOpsLoading(false); });
+    return () => { active = false; };
+  }, [range.from, range.to, rangeValid]);
+
+  useEffect(() => {
+    if (!rangeValid) return undefined;
     let active = true;
     const loadMetrics = async () => {
       setLoading(true);
       setLoadError('');
       try {
-        const res = await base44.functions.invoke('getEmployeePerformance', { date: selectedDate });
+        const res = await base44.functions.invoke('getEmployeePerformance', { date: range.from, date_to: range.to });
         if (!active) return;
         setMetrics(res?.data?.metrics || []);
         setAlerts(res?.data?.alerts || []);
@@ -56,16 +72,22 @@ export default function AdminEmployeePerformance({ user }) {
     };
     loadMetrics();
     return () => { active = false; };
-  }, [selectedDate]);
+  }, [range.from, range.to, rangeValid]);
+
+  const visibleOperations = useMemo(
+    () => operations.filter((e) => employeeFilter === 'all' || e.email === employeeFilter),
+    [operations, employeeFilter]
+  );
 
   const filteredMetrics = useMemo(() => {
     const term = String(search || '').toLowerCase();
     return (metrics || []).filter((item) => {
-      const matchesRole = roleFilter === 'all' || item.employee_role === roleFilter;
+      const matchesEmployee = employeeFilter === 'all' || item.employee_email === employeeFilter;
+      const matchesRole = matchesEmployee && (roleFilter === 'all' || item.employee_role === roleFilter);
       const haystack = [item.employee_name, item.employee_email, item.employee_role].map((value) => String(value || '').toLowerCase()).join(' ');
       return matchesRole && (!term || haystack.includes(term));
     });
-  }, [metrics, roleFilter, search]);
+  }, [metrics, roleFilter, search, employeeFilter]);
 
   useEffect(() => {
     if (!filteredMetrics.length) {
@@ -107,13 +129,24 @@ export default function AdminEmployeePerformance({ user }) {
         badge="Rendimiento y hábitos del equipo"
         title="Dashboard de rendimiento de empleados"
         description="Analiza tiempo activo, eficiencia, sesiones, actividad por módulo y señales de seguimiento por empleado."
-        actions={
-          <div className="flex flex-wrap gap-3">
-            <Input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="w-[190px]" />
-            <Button asChild variant="outline"><Link to="/AdminEmployeeAudit"><History className="h-4 w-4" /> Ver auditoría</Link></Button>
-          </div>
-        }
+        actions={<Button asChild variant="outline"><Link to="/AdminEmployeeAudit"><History className="h-4 w-4" /> Ver auditoría</Link></Button>}
       />
+
+      <Card className="border-0 shadow-lg">
+        <CardContent className="grid gap-4 p-5 md:grid-cols-[1fr,280px]">
+          <PeriodFilter preset={preset} onPresetChange={setPreset} custom={custom} onCustomChange={setCustom} />
+          <Select value={employeeFilter} onValueChange={setEmployeeFilter}>
+            <SelectTrigger><SelectValue placeholder="Todos los empleados" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos los empleados</SelectItem>
+              {operations.map((e) => <SelectItem key={e.email} value={e.email}>{e.name} · {e.area_name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          {!rangeValid && <p className="text-sm text-rose-600 md:col-span-2">La fecha inicial no puede ser posterior a la final.</p>}
+        </CardContent>
+      </Card>
+
+      <EmployeeOperationsPanel employees={visibleOperations} loading={opsLoading} error={opsError} rangeLabel={rangeLabel} />
 
       {!trackingEnabled && (
         <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
@@ -131,7 +164,7 @@ export default function AdminEmployeePerformance({ user }) {
       ) : (
       <>
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <PerformanceMetricCard title="Empleados activos" value={summary.totalEmployees} subtitle="Con métricas para la fecha seleccionada" accent="bg-blue-100 text-blue-700" />
+        <PerformanceMetricCard title="Empleados activos" value={summary.totalEmployees} subtitle="Con métricas de uso en el periodo seleccionado" accent="bg-blue-100 text-blue-700" />
         <PerformanceMetricCard title="Horas activas" value={summary.totalActiveHours} subtitle="Suma total del tiempo productivo" accent="bg-emerald-100 text-emerald-700" />
         <PerformanceMetricCard title="Eficiencia promedio" value={`${summary.averageEfficiency}%`} subtitle="Tiempo activo sobre tiempo medido" accent="bg-amber-100 text-amber-700" />
         <PerformanceMetricCard title="Revisión sugerida" value={summary.reviewCount} subtitle={`Mayor carga: ${summary.topPerformer}`} accent="bg-rose-100 text-rose-700" />

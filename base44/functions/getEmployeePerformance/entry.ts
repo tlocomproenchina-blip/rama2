@@ -1,30 +1,15 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.54';
 import { ROLE_PRESETS, AREA_ROLE_CODES } from '../../shared/roleAreas.ts';
 import { fetchAllFilter, BATCH } from '../../shared/paginatedFetch.ts';
+import { caracasRange, parseDates, toMs } from '../../shared/caracasRange.ts';
 
 // Métricas diarias de rendimiento, calculadas al vuelo a partir de los registros
 // de actividad (EmployeeAuditLog y ActivityAuditLog). Solo cuentan los
 // empleados: cuentas con acceso al panel y un área operativa asignada. Los
 // administradores y los clientes quedan fuera.
 
-const CARACAS_OFFSET_HOURS = 4; // Caracas = UTC-4, sin horario de verano
 const REVIEW_EFFICIENCY_PCT = 50;
 const MIN_MEASURED_MS = 60000; // menos de 1 min medido no permite juzgar la eficiencia
-
-function dayRange(date: string) {
-  const start = new Date(`${date}T00:00:00.000Z`);
-  start.setUTCHours(CARACAS_OFFSET_HOURS);
-  const end = new Date(start.getTime() + 24 * 3600 * 1000);
-  // Las fechas guardadas no llevan zona: se compara con el mismo formato.
-  const fmt = (d: Date) => d.toISOString().replace('Z', '');
-  return { from: fmt(start), to: fmt(end) };
-}
-
-function toMs(value: any) {
-  if (!value) return NaN;
-  const s = String(value);
-  return new Date(/[zZ]|[+-]\d\d:?\d\d$/.test(s) ? s : `${s}Z`).getTime();
-}
 
 function bump(map: Record<string, number>, key: string) {
   if (!key) return;
@@ -81,10 +66,11 @@ export default async function (req: Request): Promise<Response> {
     if (user.role !== 'admin') return Response.json({ error: 'Forbidden' }, { status: 403 });
 
     const body = await req.json().catch(() => ({}));
-    const date = String(body?.date || '');
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-      return Response.json({ error: 'date (YYYY-MM-DD) is required' }, { status: 400 });
-    }
+    // Un día (date) o un periodo (date + date_to), en hora de Caracas.
+    const dates = parseDates(body);
+    if ('error' in dates) return Response.json({ error: dates.error }, { status: 400 });
+    const date = dates.dateFrom;
+    const dateTo = dates.dateTo;
 
     const db = base44.asServiceRole.entities;
 
@@ -103,7 +89,7 @@ export default async function (req: Request): Promise<Response> {
     }
     const emails = employees.map((e: any) => e.email);
 
-    const { from, to } = dayRange(date);
+    const { from, to } = caracasRange(date, dateTo);
     const range = { $gte: from, $lt: to };
 
     const auditLogs: any[] = [];
@@ -189,13 +175,19 @@ export default async function (req: Request): Promise<Response> {
       })
       .sort((a: any, b: any) => b.total_active_time_ms - a.total_active_time_ms);
 
-    const alertRows = await fetchAllFilter(db.EmployeePerformanceAlert, { metric_date: date }, '-updated_date');
+    const alertRows = await fetchAllFilter(db.EmployeePerformanceAlert, { metric_date: { $gte: date, $lte: dateTo } }, '-updated_date');
     const alerts = alertRows.filter((a: any) => byEmail[String(a.employee_email || '').toLowerCase()]);
 
     const cfg = await db.AppConfig.filter({ config_key: 'main' }, '-updated_date', 1);
 
     return Response.json({
       date,
+      date_to: dateTo,
+      employees: employees.map((e: any) => ({
+        email: e.email,
+        name: e.full_name || e.email,
+        role: ROLE_PRESETS[String(e.custom_role || '').toLowerCase()]?.role_name || e.custom_role || '',
+      })),
       metrics: rows,
       alerts,
       employees_total: employees.length,
