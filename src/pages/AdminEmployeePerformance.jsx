@@ -24,7 +24,7 @@ export default function AdminEmployeePerformance({ user }) {
   const [alerts, setAlerts] = useState([]);
   const [trackingEnabled, setTrackingEnabled] = useState(true);
   const [loadError, setLoadError] = useState('');
-  const [preset, setPreset] = useState('hoy');
+  const [preset, setPreset] = useState('todo');
   const [custom, setCustom] = useState({ from: getTodayInCaracas(), to: getTodayInCaracas() });
   const [employeeFilter, setEmployeeFilter] = useState('all');
   const [operations, setOperations] = useState([]);

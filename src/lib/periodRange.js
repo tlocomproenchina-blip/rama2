@@ -15,7 +15,11 @@ function shiftDays(dateStr, days) {
   return d.toISOString().slice(0, 10);
 }
 
+// Inicio del histórico: anterior a los primeros registros de la app.
+export const HISTORY_START = '2025-01-01';
+
 export const PERIOD_PRESETS = [
+  { value: 'todo', label: 'Todo el historial' },
   { value: 'hoy', label: 'Hoy' },
   { value: 'semana', label: 'Esta semana' },
   { value: 'mes', label: 'Este mes' },
@@ -25,6 +29,7 @@ export const PERIOD_PRESETS = [
 // Devuelve { from, to } (YYYY-MM-DD, ambos incluidos). La semana empieza el lunes.
 export function rangeForPreset(preset, custom) {
   const today = getTodayInCaracas();
+  if (preset === 'todo') return { from: HISTORY_START, to: today };
   if (preset === 'hoy') return { from: today, to: today };
   if (preset === 'semana') {
     const weekday = new Date(`${today}T00:00:00.000Z`).getUTCDay(); // 0 = domingo

@@ -1,7 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.54';
 import { ROLE_PRESETS, AREA_ROLE_CODES } from '../../shared/roleAreas.ts';
 import { fetchAllFilter, BATCH } from '../../shared/paginatedFetch.ts';
-import { caracasRange, parseDates, toMs } from '../../shared/caracasRange.ts';
+import { splitWindows, parseDates, toMs } from '../../shared/caracasRange.ts';
 
 // Métricas diarias de rendimiento, calculadas al vuelo a partir de los registros
 // de actividad (EmployeeAuditLog y ActivityAuditLog). Solo cuentan los
@@ -89,19 +89,21 @@ export default async function (req: Request): Promise<Response> {
     }
     const emails = employees.map((e: any) => e.email);
 
-    const { from, to } = caracasRange(date, dateTo);
-    const range = { $gte: from, $lt: to };
-
+    // Periodos largos (histórico completo): se consulta por ventanas de 31 días, unas pocas a la vez.
+    const windows = splitWindows(date, dateTo);
     const auditLogs: any[] = [];
     const entityLogs: any[] = [];
-    for (let i = 0; i < emails.length; i += BATCH) {
-      const chunk = emails.slice(i, i + BATCH);
-      const [a, b] = await Promise.all([
-        fetchAllFilter(db.EmployeeAuditLog, { actor_email: { $in: chunk }, created_date: range }, 'created_date'),
-        fetchAllFilter(db.ActivityAuditLog, { actor_email: { $in: chunk }, created_date: range }, 'created_date'),
-      ]);
-      auditLogs.push(...a);
-      entityLogs.push(...b);
+    const jobs: { chunk: string[]; range: any }[] = [];
+    for (const w of windows) {
+      for (let i = 0; i < emails.length; i += BATCH) jobs.push({ chunk: emails.slice(i, i + BATCH), range: { $gte: w.from, $lt: w.to } });
+    }
+    const PARALLEL = 4;
+    for (let i = 0; i < jobs.length; i += PARALLEL) {
+      const results = await Promise.all(jobs.slice(i, i + PARALLEL).map(async ({ chunk, range }) => ([
+        await fetchAllFilter(db.EmployeeAuditLog, { actor_email: { $in: chunk }, created_date: range }, 'created_date'),
+        await fetchAllFilter(db.ActivityAuditLog, { actor_email: { $in: chunk }, created_date: range }, 'created_date'),
+      ])));
+      for (const [a, b] of results) { auditLogs.push(...a); entityLogs.push(...b); }
     }
 
     const touch = (m: any, log: any) => {
