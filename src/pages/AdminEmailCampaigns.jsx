@@ -82,13 +82,12 @@ export default function AdminEmailCampaigns({ user }) {
 
   useEffect(() => {
     const init = async () => {
-      await Promise.all([
-        loadConfig(),
-        loadClients(),
-        loadEmailStats(),
-        loadTemplates(),
-        loadPreviousMarks()
-      ]);
+      const loaders = { loadConfig, loadClients, loadEmailStats, loadTemplates, loadPreviousMarks };
+      const results = await Promise.allSettled(Object.values(loaders).map((fn) => fn()));
+      results.forEach((r, i) => {
+        if (r.status === 'rejected') console.error(`Error en ${Object.keys(loaders)[i]}:`, r.reason);
+      });
+      setLoading(false);
     };
     init();
   }, []);
