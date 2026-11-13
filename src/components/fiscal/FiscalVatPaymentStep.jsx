@@ -75,7 +75,7 @@ export default function FiscalVatPaymentStep({ form, setForm, methods, vatAmount
         <FiscalField label="Fecha del pago *" error={errors.payment_date}>
           <Input type="date" value={vat.payment_date} onChange={(e) => setVat({ payment_date: e.target.value })} />
         </FiscalField>
-        <FiscalField label="Monto pagado (USD) *" error={errors.amount_paid}>
+        <FiscalField label="Monto pagado (Bs.) *" error={errors.amount_paid}>
           <Input type="number" inputMode="decimal" min="0" step="0.01" value={vat.amount_paid} onChange={(e) => setVat({ amount_paid: e.target.value.replace(/-/g, '') })} />
         </FiscalField>
       </div>

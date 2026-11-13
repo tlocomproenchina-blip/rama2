@@ -30,7 +30,7 @@ export default function FiscalDetailInfo({ request, invoice }) {
           <Item label="Factura original">
             <span className="inline-flex flex-wrap items-center gap-2">
               {request.invoice_number}
-              {invoice ? <span className="text-xs font-normal text-muted-foreground">({invoice.status}, {money(invoice.total)})</span> : null}
+              {invoice ? <span className="text-xs font-normal text-muted-foreground">({invoice.status}, ${Number(invoice.total || 0).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})</span> : null}
               <Link to="/AdminInvoices" className="inline-flex items-center gap-1 text-xs text-primary underline"><ExternalLink className="h-3 w-3" /> Ver facturas</Link>
             </span>
           </Item>

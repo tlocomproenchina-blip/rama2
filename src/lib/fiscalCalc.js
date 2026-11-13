@@ -20,8 +20,9 @@ export const toMilli = (v) => {
   return Number.isNaN(n) ? NaN : Math.round((n + Number.EPSILON) * 1000);
 };
 
+// Los importes fiscales se expresan en bolívares (VES).
 export const money = (n) =>
-  `$${Number(n || 0).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  `Bs. ${Number(n || 0).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 export const isBlankLine = (l) =>
   !String(l.quantity ?? '').trim() && !String(l.description ?? '').trim() && !String(l.unit_price ?? '').trim();

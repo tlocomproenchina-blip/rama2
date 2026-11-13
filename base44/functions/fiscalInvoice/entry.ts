@@ -18,7 +18,7 @@ class HttpError extends Error {
 const lower = (v: any) => String(v || '').trim().toLowerCase();
 const isUri = (v: any) => typeof v === 'string' && v.length > 0 && v.length <= 600 && !/\s/.test(v);
 const fileType = (v: any) => (v === 'pdf' ? 'pdf' : 'image');
-const money = (n: any) => `$${Number(n || 0).toFixed(2)}`;
+const money = (n: any) => `Bs. ${Number(n || 0).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 async function audit(sr: any, r: any, actor: any, actorType: string, action: string, fromStatus: string, toStatus: string, notes = '', changes: any = undefined) {
   await sr.entities.FiscalInvoiceAudit.create({
