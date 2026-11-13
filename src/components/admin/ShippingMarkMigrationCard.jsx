@@ -2,7 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Loader2, ArrowRightLeft } from 'lucide-react';
+import { Loader2, ArrowRightLeft, FileSpreadsheet } from 'lucide-react';
+import { toast } from 'sonner';
+import { exportMigratedClients } from '@/lib/migratedClientsExport';
 import ShippingMarkMigrationResults from './ShippingMarkMigrationResults';
 
 // Migración de la serie 50000+ a la serie 5000 (continúa en 5011).
@@ -13,12 +15,22 @@ export default function ShippingMarkMigrationCard() {
   const [total, setTotal] = useState(0);
   const [records, setRecords] = useState(null);
   const [error, setError] = useState('');
+  const [exporting, setExporting] = useState(false);
 
   const invoke = async (payload) => (await base44.functions.invoke('migrateShippingMarkSeries', payload)).data;
   const loadPreview = async () => setPreview(await invoke({ action: 'preview' }));
   const loadRecords = async () => setRecords((await invoke({ action: 'list' })).records);
 
   useEffect(() => { loadPreview(); }, []);
+
+  const downloadExcel = async () => {
+    setExporting(true); setError('');
+    const list = (await invoke({ action: 'list' })).records;
+    setRecords(list);
+    const count = exportMigratedClients(list);
+    setExporting(false);
+    toast.success(`Excel descargado con ${count} clientes migrados`);
+  };
 
   const run = async () => {
     const msg = `Se migrarán ${preview.pending} clientes de la serie 50000+ a la serie 5000, empezando en ${preview.next_number}. Sus paquetes, recibos, bultos y demás registros pasarán al nuevo Shipping Mark. ¿Continuar?`;
@@ -74,6 +86,10 @@ export default function ShippingMarkMigrationCard() {
           {preview?.migrated ? 'Continuar migración' : 'Iniciar migración'}
         </Button>
         <Button variant="outline" onClick={loadRecords} disabled={running}>Ver resultados</Button>
+        <Button variant="outline" onClick={downloadExcel} disabled={running || exporting}>
+          {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileSpreadsheet className="h-4 w-4" />}
+          Descargar Excel
+        </Button>
       </div>
       {records && <ShippingMarkMigrationResults records={records} />}
     </div>
