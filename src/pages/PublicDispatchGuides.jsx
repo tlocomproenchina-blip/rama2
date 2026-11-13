@@ -8,9 +8,12 @@ import PublicGuidesHeader from '@/components/public-guides/PublicGuidesHeader';
 import PublicClientContainersCard from '@/components/public-guides/PublicClientContainersCard';
 import GuideSelectionPanel from '@/components/public-guides/GuideSelectionPanel';
 import { generateContainersReportPdf } from '@/lib/containersReportPdf';
+import PasswordGate from '@/components/common/PasswordGate';
 import { normalizeContainerDescription } from '@/lib/containersByClientReport';
 
 const PAGE_SIZE = 12;
+const PW_KEY = 'tlec-public-guides-pw';
+const storedPw = () => { try { return sessionStorage.getItem(PW_KEY) || ''; } catch (_) { return ''; } };
 
 // Misma descripción visible que en el informe administrativo: las descripciones
 // genéricas se muestran como "Artículos varios".
@@ -51,6 +54,7 @@ export default function PublicDispatchGuides() {
   const [selectedGuides, setSelectedGuides] = useState([]);
   const [error, setError] = useState('');
   const nextSkip = useRef(0);
+  const [gate, setGate] = useState(null);
 
   const runQuery = useCallback(async ({ query, skip = 0, append = false }) => {
     if (append) setLoadingMore(true);
@@ -61,7 +65,9 @@ export default function PublicDispatchGuides() {
         query,
         limit: PAGE_SIZE,
         skip,
+        password: storedPw(),
       });
+      setGate(null);
       const data = res?.data || {};
       if (data?.error) throw new Error(data.error);
       const incoming = normalizeClients(Array.isArray(data.clients) ? data.clients : []);
@@ -73,6 +79,10 @@ export default function PublicDispatchGuides() {
       setHasMore(!!data.has_more);
       nextSkip.current = Number(data.next_skip) || 0;
     } catch (err) {
+      if (err?.response?.data?.password_required) {
+        setGate({ error: storedPw() ? err.response.data.error : '' });
+        return;
+      }
       setError(err?.response?.data?.error || err?.message || 'No se pudieron consultar las guías');
       if (!append) {
         setClients([]);
@@ -140,7 +150,7 @@ export default function PublicDispatchGuides() {
       let skip = 0;
       let more = true;
       while (more) {
-        const res = await base44.functions.invoke('publicDispatchGuides', { query: applied, limit: 60, skip });
+        const res = await base44.functions.invoke('publicDispatchGuides', { query: applied, limit: 60, skip, password: storedPw() });
         const data = res?.data || {};
         if (data?.error) throw new Error(data.error);
         const page = Array.isArray(data.clients) ? data.clients : [];
@@ -169,6 +179,13 @@ export default function PublicDispatchGuides() {
     { label: 'Contenedores', value: totals.containers },
     { label: 'Bultos en guías de despacho', value: totals.bultos },
   ];
+
+  if (gate) {
+    return (
+      <PasswordGate title="Guías de despacho" error={gate.error} loading={loading}
+        onSubmit={(pw) => { try { sessionStorage.setItem(PW_KEY, pw); } catch (_) {} runQuery({ query: applied }); }} />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">

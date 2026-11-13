@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { base44 } from '@/api/base44Client';
+import AccessPasswordEditor from '@/components/common/AccessPasswordEditor';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +14,11 @@ export const PUBLIC_GUIDES_PATH = '/GuiasPublicas';
 export default function PublicGuidesLinkCard() {
   const [copied, setCopied] = useState(false);
   const link = publicAppUrl(PUBLIC_GUIDES_PATH);
+  const [pwSet, setPwSet] = useState(false);
+  useEffect(() => {
+    base44.functions.invoke('setPublicGuidesPassword', { action: 'status' })
+      .then((res) => setPwSet(!!res?.data?.access_password_set));
+  }, []);
 
   const copy = async () => {
     try {
@@ -32,7 +39,7 @@ export default function PublicGuidesLinkCard() {
             <p className="text-sm font-semibold text-foreground">Enlace público de consulta</p>
             <p className="text-xs text-muted-foreground">
               Comparte esta dirección para que consulten las guías emitidas: buscador por cliente,
-              número de contenedor y bultos. No pide cuenta ni clave.
+              número de contenedor y bultos. Si defines una contraseña, la pedirá al entrar.
             </p>
           </div>
         </div>
@@ -49,6 +56,11 @@ export default function PublicGuidesLinkCard() {
             </Button>
           </div>
         </div>
+
+        <AccessPasswordEditor isSet={pwSet} onSave={async (password) => {
+          const res = await base44.functions.invoke('setPublicGuidesPassword', { password });
+          setPwSet(!!res?.data?.access_password_set);
+        }} />
       </CardContent>
     </Card>
   );

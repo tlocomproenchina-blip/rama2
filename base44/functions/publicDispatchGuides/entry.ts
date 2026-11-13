@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.54';
+import { passwordError, passwordDenied } from '../../shared/accessPassword.ts';
 import { fetchAllFilter, errorMessage, normTracking } from '../../shared/paginatedFetch.ts';
 
 // =====================================================================
@@ -33,6 +34,10 @@ export default async function (req: Request): Promise<Response> {
     const base44 = createClientFromRequest(req);
     const body = await req.json().catch(() => ({}));
     const svc = base44.asServiceRole.entities;
+
+    const [access] = await svc.PublicGuidesAccess.filter({ config_key: 'main' }, '-updated_date', 1);
+    const denied = await passwordError(access, body?.password);
+    if (denied) return passwordDenied(denied);
 
     const query = text(body?.query ?? body?.search);
     const from = text(body?.from);
