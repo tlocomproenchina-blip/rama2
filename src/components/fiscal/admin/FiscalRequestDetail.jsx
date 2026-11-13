@@ -68,7 +68,7 @@ export default function FiscalRequestDetail({ requestId, onClose, onChanged }) {
               request={r}
               proofs={data.proofs}
               busy={busy}
-              onDecision={(decision, notes) => act('reviewVat', { decision, notes }, decision === 'approve' ? 'Pago del IVA aprobado' : decision === 'reject' ? 'Comprobante rechazado' : 'Se mantiene en verificación')}
+              onDecision={(decision, notes) => act('reviewVat', { decision, notes }, decision === 'approve' ? 'Pago del IVA aprobado. Ahora pulsa "Aprobar solicitud" para validar los datos fiscales.' : decision === 'reject' ? 'Comprobante rechazado' : 'Se mantiene en verificación')}
             />
             <FiscalAdminActions request={r} busy={busy} onAct={act} onIssue={() => setDialog('issue')} onEdit={() => setDialog('edit')} />
             {r.status === 'emitida' ? (
