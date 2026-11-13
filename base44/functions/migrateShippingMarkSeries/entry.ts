@@ -172,11 +172,23 @@ export default async function (req) {
     }
 
     if (action === 'list') {
+      const usersById = new Map(state.users.map((u) => [u.id, u]));
+      const usersByEmail = new Map(state.users.map((u) => [String(u.email || '').toLowerCase(), u]));
       return Response.json({
-        records: state.records.map((r) => ({
-          old_mark: r.old_mark, new_mark: r.new_mark, status: r.status, client_email: r.client_email,
-          client_name: r.client_name, error: r.error, related_updates: r.related_updates,
-        })),
+        records: state.records.map((r) => {
+          const u = usersById.get(r.user_id) || usersByEmail.get(String(r.client_email || '').toLowerCase()) || {};
+          return {
+            old_mark: r.old_mark, new_mark: r.new_mark, status: r.status, client_email: r.client_email,
+            client_name: r.client_name, error: r.error, related_updates: r.related_updates,
+            migrated_date: r.migrated_date,
+            profile: {
+              first_name: u.first_name, last_name: u.last_name, cedula: u.cedula, whatsapp: u.whatsapp,
+              address: u.address, city: u.city, state: u.state, created_date: u.created_date,
+              contract_accepted: u.contract_accepted, profile_completed: u.profile_completed,
+              is_active: u.is_active, referral_code: u.referral_code,
+            },
+          };
+        }),
       });
     }
 
