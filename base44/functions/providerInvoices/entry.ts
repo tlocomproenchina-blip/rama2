@@ -14,6 +14,29 @@ async function currentRate(sr: any) {
   return Number(rows?.[0]?.flat_rate || 0);
 }
 
+const EPS = 0.005;
+const sumOf = (rows: any[]) => round((rows || []).reduce((s: number, r: any) => s + (Number(r.amount) || 0), 0));
+
+// Abonos de una factura, del más antiguo al más reciente.
+async function installmentsFor(sr: any, ids: string[]) {
+  if (!ids.length) return [];
+  const rows = await sr.entities.ProviderInvoiceInstallment.filter({ invoice_id: { $in: ids } }, 'created_date', 5000);
+  return rows || [];
+}
+
+// Agrega a la factura lo abonado y el saldo restante.
+function withBalance(inv: any, rows: any[]) {
+  const paidAbonos = sumOf(rows);
+  const total = Number(inv.total) || 0;
+  const paid = inv.status === 'pagada';
+  inv.installments = rows.map((r: any) => ({
+    id: r.id, amount: r.amount, payment_date: r.payment_date, proof_url: r.proof_url, registered_by_name: r.registered_by_name || '',
+  }));
+  inv.paid_amount = paid ? total : Math.min(paidAbonos, total);
+  inv.balance = paid ? 0 : Math.max(round(total - paidAbonos), 0);
+  return inv;
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -140,10 +163,14 @@ Deno.serve(async (req) => {
           if (u) { i.client_state = u.state || ''; i.client_city = u.city || ''; i.client_address = u.address || ''; }
         }
       }
+      const allRows = await installmentsFor(sr, items.map((i: any) => i.id));
+      const rowsByInvoice: any = {};
+      for (const r of allRows) (rowsByInvoice[r.invoice_id] ||= []).push(r);
+      for (const i of items) withBalance(i, rowsByInvoice[i.id] || []);
       const totals = { pending: 0, paid: 0, pending_count: 0, paid_count: 0 };
       for (const i of items) {
         if (i.status === 'pagada') { totals.paid += Number(i.total) || 0; totals.paid_count++; }
-        else { totals.pending += Number(i.total) || 0; totals.pending_count++; }
+        else { totals.pending += i.balance; totals.pending_count++; }
       }
       totals.pending = round(totals.pending); totals.paid = round(totals.paid);
       return Response.json({ items, totals });
@@ -178,6 +205,53 @@ Deno.serve(async (req) => {
       if (patch.status === 'pagada') { patch.paid_date = new Date().toISOString(); patch.paid_by = user.email; }
       const invoice = await sr.entities.ProviderInvoice.update(body.id, patch);
       return Response.json({ invoice });
+    }
+    if (action === 'listInstallments') {
+      if (!isFullAdmin(user)) return Response.json({ error: 'Solo el administrador' }, { status: 403 });
+      const inv = await sr.entities.ProviderInvoice.get(body.id);
+      if (!inv) return Response.json({ error: 'Factura no encontrada' }, { status: 404 });
+      const rows = await installmentsFor(sr, [body.id]);
+      return Response.json({ invoice: withBalance(inv, rows) });
+    }
+    if (action === 'addInstallment') {
+      if (!isFullAdmin(user)) return Response.json({ error: 'Solo el administrador' }, { status: 403 });
+      const amount = round(Number(body.amount));
+      if (!body.id || !(amount > 0)) return Response.json({ error: 'Indica un monto válido' }, { status: 400 });
+      if (!body.proof_url) return Response.json({ error: 'Falta el comprobante del abono' }, { status: 400 });
+      const inv = await sr.entities.ProviderInvoice.get(body.id);
+      if (!inv) return Response.json({ error: 'Factura no encontrada' }, { status: 404 });
+      if (inv.status === 'pagada') return Response.json({ error: 'La factura ya está pagada' }, { status: 400 });
+      const before = sumOf(await installmentsFor(sr, [body.id]));
+      const total = Number(inv.total) || 0;
+      const balance = round(total - before);
+      if (amount > balance + EPS) return Response.json({ error: `El abono supera el saldo pendiente (${balance.toFixed(2)})` }, { status: 400 });
+      const date = /^\d{4}-\d{2}-\d{2}$/.test(String(body.payment_date || '')) ? body.payment_date : new Date().toISOString().slice(0, 10);
+      await sr.entities.ProviderInvoiceInstallment.create({
+        invoice_id: body.id, amount, payment_date: date, proof_url: String(body.proof_url),
+        registered_by: user.email, registered_by_name: user.full_name || '',
+      });
+      if (round(before + amount) >= total - EPS) {
+        await sr.entities.ProviderInvoice.update(body.id, {
+          status: 'pagada', payment_proof_url: String(body.proof_url), paid_date: `${date}T12:00:00.000Z`, paid_by: user.email,
+        });
+      }
+      const fresh = await sr.entities.ProviderInvoice.get(body.id);
+      return Response.json({ invoice: withBalance(fresh, await installmentsFor(sr, [body.id])) });
+    }
+    if (action === 'deleteInstallment') {
+      if (!isFullAdmin(user)) return Response.json({ error: 'Solo el administrador' }, { status: 403 });
+      const row = await sr.entities.ProviderInvoiceInstallment.get(body.installment_id);
+      if (!row) return Response.json({ error: 'Abono no encontrado' }, { status: 404 });
+      const inv = await sr.entities.ProviderInvoice.get(row.invoice_id);
+      const before = sumOf(await installmentsFor(sr, [row.invoice_id]));
+      await sr.entities.ProviderInvoiceInstallment.delete(row.id);
+      const after = round(before - (Number(row.amount) || 0));
+      // Si el abono era el que completaba el pago, la factura vuelve a quedar pendiente.
+      if (inv?.status === 'pagada' && before >= (Number(inv.total) || 0) - EPS && after < (Number(inv.total) || 0) - EPS) {
+        await sr.entities.ProviderInvoice.update(inv.id, { status: 'pendiente' });
+      }
+      const fresh = await sr.entities.ProviderInvoice.get(row.invoice_id);
+      return Response.json({ invoice: withBalance(fresh, await installmentsFor(sr, [row.invoice_id])) });
     }
     if (action === 'markPaidBulk') {
       if (!isFullAdmin(user)) return Response.json({ error: 'Solo el administrador' }, { status: 403 });

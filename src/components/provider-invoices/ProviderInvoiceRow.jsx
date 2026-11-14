@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Link2, ExternalLink, FileText, CheckCircle2, Loader2, MapPin } from 'lucide-react';
+import { Link2, ExternalLink, FileText, CheckCircle2, Loader2, MapPin, Wallet } from 'lucide-react';
+import ProviderInstallmentsDialog from './ProviderInstallmentsDialog';
 import { CANONICAL_STATE_NAMES } from '@/components/utils/states';
 import { toast } from 'sonner';
 import ProviderInvoiceRowActions from './ProviderInvoiceRowActions';
@@ -10,6 +11,7 @@ import { piCall, money, publicInvoiceUrl } from '@/lib/providerInvoicesApi';
 
 export default function ProviderInvoiceRow({ inv, isAdmin, onChanged, selected, onToggle, onPay }) {
   const [busy, setBusy] = useState(false);
+  const [abonos, setAbonos] = useState(false);
   const paid = inv.status === 'pagada';
 
   const copy = async () => { await navigator.clipboard.writeText(publicInvoiceUrl(inv.public_token)); toast.success('Enlace copiado'); };
@@ -40,6 +42,9 @@ export default function ProviderInvoiceRow({ inv, isAdmin, onChanged, selected, 
           <p className="font-display text-xl font-bold">{money(inv.total)}</p>
           <Badge className={paid ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-800'}>{paid ? 'Pagada' : 'No pagada'}</Badge>
           {paid && inv.paid_date && <p className="mt-1 text-xs text-muted-foreground">Pago {String(inv.paid_date).slice(0, 10)}</p>}
+          {!paid && (inv.installments || []).length > 0 && (
+            <p className="mt-1 text-xs text-muted-foreground">Abonado {money(inv.paid_amount)} · <span className="font-semibold text-destructive">Saldo {money(inv.balance)}</span></p>
+          )}
         </div>
       </div>
       <p className="mt-2 text-sm text-muted-foreground">{money(inv.flat_rate)} × {inv.cbm} CBM + otros {money(inv.other_total)}
@@ -50,6 +55,10 @@ export default function ProviderInvoiceRow({ inv, isAdmin, onChanged, selected, 
         <Button variant="outline" size="sm" asChild><a href={publicInvoiceUrl(inv.public_token)} target="_blank" rel="noreferrer"><ExternalLink />Ver enlace público</a></Button>
         <Button variant="outline" size="sm" onClick={copy}><Link2 />Copiar enlace</Button>
         <ProviderInvoiceRowActions inv={inv} onChanged={onChanged} />
+        {isAdmin && (!paid || (inv.installments || []).length > 0) && (
+          <Button size="sm" variant="outline" onClick={() => setAbonos(true)}><Wallet />Abonos{(inv.installments || []).length > 0 ? ` (${inv.installments.length})` : ''}</Button>
+        )}
+        {abonos && <ProviderInstallmentsDialog inv={inv} open={abonos} onOpenChange={setAbonos} onChanged={onChanged} />}
         {isAdmin && (paid
           ? <Button size="sm" variant="outline" onClick={markUnpaid} disabled={busy}>{busy && <Loader2 className="animate-spin" />}Marcar no pagada</Button>
           : <Button size="sm" onClick={onPay}><CheckCircle2 />Marcar pagada</Button>)}

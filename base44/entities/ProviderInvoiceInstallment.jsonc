@@ -1,0 +1,56 @@
+{
+  "name": "ProviderInvoiceInstallment",
+  "type": "object",
+  "properties": {
+    "invoice_id": {
+      "type": "string",
+      "description": "Factura de proveedor a la que pertenece el abono"
+    },
+    "amount": {
+      "type": "number",
+      "description": "Monto del abono (USD)"
+    },
+    "payment_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Fecha del pago"
+    },
+    "proof_url": {
+      "type": "string",
+      "description": "Comprobante del abono (Bunny)"
+    },
+    "registered_by": {
+      "type": "string"
+    },
+    "registered_by_name": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "invoice_id",
+    "amount",
+    "proof_url"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
