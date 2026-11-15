@@ -69,11 +69,13 @@ export default function InvoiceCbmOrders({ invoice }) {
       <div className="mt-2 flex justify-between gap-3 border-t border-slate-200 pt-1.5 font-semibold text-slate-800">
         <span>Total</span>
         <span className="flex shrink-0 gap-6">
-          <span>Costo ${(() => {
+          <span>Costo pendiente ${(() => {
             const seen = new Set();
             return rows.flatMap((r) => costsFor(r.order_number)).reduce((s, c) => {
               const k = c.id || `${c.container}-${c.total}`;
-              if (seen.has(k)) return s; seen.add(k); return s + Number(c.total || 0);
+              if (seen.has(k)) return s; seen.add(k);
+              if (c.status === 'pagada' || c.balance <= 0) return s;
+              return s + Number(c.total || 0);
             }, 0).toFixed(2);
           })()}</span>
           <span>{formatCbm(total)} CBM</span>
