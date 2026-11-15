@@ -41,6 +41,7 @@ export default function ProviderInvoiceRow({ inv, isAdmin, onChanged, selected, 
         <div className="text-right">
           <p className="font-display text-xl font-bold">{money(inv.total)}</p>
           <Badge className={paid ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-800'}>{paid ? 'Pagada' : 'No pagada'}</Badge>
+          {paid && <p className="mt-1 text-xs font-semibold text-green-700">Total pagado {money(inv.paid_amount ?? inv.total)}</p>}
           {paid && inv.paid_date && <p className="mt-1 text-xs text-muted-foreground">Pago {String(inv.paid_date).slice(0, 10)}</p>}
           {!paid && (inv.installments || []).length > 0 && (
             <p className="mt-1 text-xs text-muted-foreground">Abonado {money(inv.paid_amount)} · <span className="font-semibold text-destructive">Saldo {money(inv.balance)}</span></p>
