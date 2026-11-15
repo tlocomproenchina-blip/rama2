@@ -1,0 +1,57 @@
+{
+  "name": "WholesalerPortalUser",
+  "type": "object",
+  "properties": {
+    "wholesaler_key": {
+      "type": "string",
+      "description": "Conexi\u00f3n (WholesalerSync.config_key) a la que pertenece la cuenta"
+    },
+    "wholesaler_name": {
+      "type": "string"
+    },
+    "email": {
+      "type": "string",
+      "description": "Email de la cuenta individual del mayorista (min\u00fasculas)"
+    },
+    "full_name": {
+      "type": "string"
+    },
+    "active": {
+      "type": "boolean",
+      "default": true
+    },
+    "added_by": {
+      "type": "string"
+    },
+    "last_access_date": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "wholesaler_key",
+    "email"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

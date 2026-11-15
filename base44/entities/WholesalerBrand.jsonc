@@ -1,0 +1,48 @@
+{
+  "name": "WholesalerBrand",
+  "type": "object",
+  "properties": {
+    "wholesaler_key": {
+      "type": "string"
+    },
+    "display_name": {
+      "type": "string",
+      "description": "Nombre visible del portal del mayorista"
+    },
+    "logo_url": {
+      "type": "string"
+    },
+    "domain": {
+      "type": "string",
+      "description": "Dominio propio del mayorista (referencia para la transici\u00f3n)"
+    },
+    "updated_by": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "wholesaler_key"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
