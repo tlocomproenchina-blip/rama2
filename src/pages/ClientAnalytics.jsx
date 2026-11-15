@@ -17,6 +17,7 @@ import ClientProfileCard from '@/components/client-analytics/ClientProfileCard';
 import ClientStateRatesCard from '@/components/manual-billing/ClientStateRatesCard';
 import ClientPackagesTable from '@/components/client-analytics/ClientPackagesTable';
 import ClientCbmHistory from '@/components/client-analytics/ClientCbmHistory';
+import CbmAdjustmentEditor from '@/components/client-analytics/CbmAdjustmentEditor';
 import ClientInvoicesList from '@/components/client-analytics/ClientInvoicesList';
 import ClientCargoPanel from '@/components/client-cargo/ClientCargoPanel';
 import ClientGuidesPanel from '@/components/client-cargo/ClientGuidesPanel';
@@ -36,6 +37,14 @@ export default function ClientAnalytics() {
   const [packages, setPackages] = useState([]);
   const [insurancePayments, setInsurancePayments] = useState([]);
   const [cbmIngresos, setCbmIngresos] = useState([]);
+  const [cbmAdjustment, setCbmAdjustment] = useState(0);
+  useEffect(() => {
+    setCbmAdjustment(0);
+    if (!selectedClient?.email) return;
+    base44.entities.User.filter({ email: selectedClient.email }, '-created_date', 1)
+      .then(([u]) => setCbmAdjustment(Number(u?.cbm_historical_adjustment || 0)))
+      .catch(() => {});
+  }, [selectedClient?.email]);
   const [dispatchOrders, setDispatchOrders] = useState([]);
   const [dispatchError, setDispatchError] = useState(false);
   const [incidents, setIncidents] = useState([]);
@@ -239,8 +248,8 @@ export default function ClientAnalytics() {
         },
         {
           title: 'CBM total',
-          value: metrics.totalCbm.toFixed(3),
-          subtitle: `${metrics.receiptCount} recibos`,
+          value: (metrics.totalCbm + cbmAdjustment).toFixed(3),
+          subtitle: `${metrics.receiptCount} recibos${cbmAdjustment ? ` + ajuste ${cbmAdjustment}` : ''}`,
           icon: Boxes,
           accent: 'bg-purple-100 text-purple-700'
         },
@@ -257,9 +266,12 @@ export default function ClientAnalytics() {
 
       {selectedClient && (
         <FichaSection title="Historial CBM" count={cbmIngresos.length} onDownload={dl('Recibos CBM')}>
+        <div className="mb-3">
+          <CbmAdjustmentEditor clientEmail={selectedClient.email} value={cbmAdjustment} onSaved={setCbmAdjustment} />
+        </div>
         <ClientCbmHistory
           ingresos={cbmIngresos}
-          totalCbm={cbmIngresos.reduce((s, i) => s + Number(i.cbm || 0), 0)}
+          totalCbm={cbmIngresos.reduce((s, i) => s + Number(i.cbm || 0), 0) + cbmAdjustment}
           client={selectedClient}
           dispatchOrders={dispatchOrders}
           onRefresh={() => loadData(selectedClient?.email)}

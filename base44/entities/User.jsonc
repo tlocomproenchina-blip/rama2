@@ -74,6 +74,11 @@
     "referral_first_order": {
       "type": "string",
       "description": "Primera gu\u00eda al momento de vincularse"
+    },
+    "cbm_historical_adjustment": {
+      "type": "number",
+      "default": 0,
+      "description": "CBM sumado a mano al total hist\u00f3rico del cliente en la Anal\u00edtica de clientes"
     }
   },
   "required": [
