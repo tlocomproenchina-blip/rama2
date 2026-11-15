@@ -1,0 +1,88 @@
+{
+  "name": "AppRelease",
+  "type": "object",
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Versi\u00f3n etiquetada (ej: v1.4.0)"
+    },
+    "title": {
+      "type": "string"
+    },
+    "notes": {
+      "type": "string",
+      "maxLength": 4000,
+      "description": "Cambios incluidos"
+    },
+    "repo_ref": {
+      "type": "string",
+      "description": "Etiqueta o commit del repositorio con los cambios"
+    },
+    "scope": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "description": "Partes permitidas: interfaz, funciones, estructura"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "borrador",
+        "validada",
+        "publicada"
+      ],
+      "enumColors": [
+        "gray",
+        "yellow",
+        "green"
+      ],
+      "default": "borrador"
+    },
+    "validated_by": {
+      "type": "string"
+    },
+    "validated_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "published_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "recipients": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "description": "config_key de los mayoristas destinatarios"
+    }
+  },
+  "required": [
+    "version"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

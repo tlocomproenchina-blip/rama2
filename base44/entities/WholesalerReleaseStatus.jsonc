@@ -1,0 +1,72 @@
+{
+  "name": "WholesalerReleaseStatus",
+  "type": "object",
+  "properties": {
+    "release_id": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string"
+    },
+    "wholesaler_key": {
+      "type": "string"
+    },
+    "wholesaler_name": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pendiente",
+        "recibida",
+        "aplicada",
+        "fallida"
+      ],
+      "enumColors": [
+        "gray",
+        "blue",
+        "green",
+        "red"
+      ],
+      "default": "pendiente"
+    },
+    "message": {
+      "type": "string",
+      "maxLength": 1000
+    },
+    "received_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "reported_date": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "release_id",
+    "wholesaler_key"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

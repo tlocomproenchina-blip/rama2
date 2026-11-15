@@ -15,6 +15,7 @@ import WholesalerMovementsList from '@/components/wholesaler/WholesalerMovements
 import WholesalerOutboundPanel from '@/components/wholesaler/WholesalerOutboundPanel';
 import DeleteWholesalerConfirmDialog from '@/components/wholesaler/DeleteWholesalerConfirmDialog';
 import WholesalerBillingPanel from '@/components/wholesaler/billing/WholesalerBillingPanel';
+import WholesalerReleasesPanel from '@/components/wholesaler/releases/WholesalerReleasesPanel';
 
 const RANGES = [
   { key: 'hoy', label: 'Hoy', hours: 24 },
@@ -282,7 +283,12 @@ export default function AdminWholesalerClients() {
           <TabsTrigger value="envios">Envíos</TabsTrigger>
           <TabsTrigger value="facturacion">Facturación</TabsTrigger>
           <TabsTrigger value="movimientos">Movimientos</TabsTrigger>
+          <TabsTrigger value="actualizaciones">Actualizaciones</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="actualizaciones">
+          <WholesalerReleasesPanel />
+        </TabsContent>
 
         <TabsContent value="facturacion" className="space-y-3">
           <WholesalerBillingPanel initialWholesaler={wholesaler} />
