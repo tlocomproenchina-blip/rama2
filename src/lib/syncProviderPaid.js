@@ -1,8 +1,9 @@
 import { base44 } from '@/api/base44Client';
+import { buildProviderCostMap } from '@/lib/invoiceProfit';
 
 // Marca/desmarca "pagado al proveedor" en las facturas de cliente según si
 // todas las facturas de proveedor de sus contenedores están pagadas.
-// Devuelve un mapa { invoiceId: boolean } con los cambios aplicados.
+// Devuelve { changes: { invoiceId: boolean }, costMap }.
 export async function syncProviderPaid(invoices) {
   const res = await base44.functions.invoke('providerCostCross', {});
   const rows = res?.data?.rows || [];
@@ -24,5 +25,5 @@ export async function syncProviderPaid(invoices) {
         provider_paid_date: state[inv.id] ? now : null,
       });
     }));
-  return changes;
+  return { changes, costMap: buildProviderCostMap(rows) };
 }

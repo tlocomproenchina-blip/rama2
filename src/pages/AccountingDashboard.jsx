@@ -12,6 +12,7 @@ import ReceivablesOverview from '@/components/accounting/ReceivablesOverview';
 import ProviderPaymentsOverview from '@/components/accounting/ProviderPaymentsOverview';
 import AccountingExportButtons from '@/components/accounting/AccountingExportButtons';
 import PageHero from '@/components/common/PageHero';
+import RealProfitPanel from '@/components/accounting/RealProfitPanel';
 
 function sumAmounts(items, getValue) {
   return (items || []).reduce((total, item) => total + Number(getValue(item) || 0), 0);
@@ -49,6 +50,10 @@ function buildMonthlySeries(invoices, payables) {
 
 export default function AccountingDashboard({ user }) {
   const [loading, setLoading] = React.useState(true);
+  const monthStart = React.useMemo(() => {
+    const d = new Date();
+    return { from: new Date(d.getFullYear(), d.getMonth(), 1).toISOString(), to: new Date(d.getFullYear(), d.getMonth() + 1, 1).toISOString() };
+  }, []);
   const [report, setReport] = React.useState({
     metrics: {
       monthRevenue: 0,
@@ -173,6 +178,8 @@ export default function AccountingDashboard({ user }) {
         <AccountingMetricCard title="Pagos a proveedores" value={`$${report.metrics.providerPaymentsMonth.toFixed(2)}`} subtitle="Abonos registrados este mes" icon={CreditCard} accent="bg-teal-100 text-teal-700" />
         <AccountingMetricCard title="CBM facturados" value={report.metrics.billedCbm.toFixed(4)} subtitle="Total de CBM facturado" icon={Package} accent="bg-indigo-100 text-indigo-700" />
       </section>
+
+      <RealProfitPanel fromIso={monthStart.from} toIso={monthStart.to} title="Beneficio real del mes" />
 
       <section className="grid gap-6 xl:grid-cols-[1.2fr,0.8fr]">
         <MonthlyRevenueChart data={report.monthlyRevenue} />

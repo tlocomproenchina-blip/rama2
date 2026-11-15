@@ -9,6 +9,7 @@ import RevenueClientTable from '@/components/revenue/RevenueClientTable';
 import RevenueMonthFilter from '@/components/revenue/RevenueMonthFilter';
 import RevenueInvoiceStatusChart from '@/components/revenue/RevenueInvoiceStatusChart';
 import RevenueCumulativeChart from '@/components/revenue/RevenueCumulativeChart';
+import RealProfitPanel from '@/components/accounting/RealProfitPanel';
 
 function computePreviousPeriod(startMonth, endMonth) {
   if (!startMonth || !endMonth) return null;
@@ -129,6 +130,11 @@ export default function AdminRevenueDashboard({ user }) {
       ) : (
         <>
           <RevenueSummaryCards summary={data?.summary} previousSummary={prevData?.summary} />
+          <RealProfitPanel
+            fromIso={startMonth ? new Date(`${startMonth}-01T00:00:00`).toISOString() : null}
+            toIso={endMonth ? (() => { const [y, m] = endMonth.split('-').map(Number); return new Date(y, m, 1).toISOString(); })() : null}
+            title="Beneficio real del período"
+          />
           <RevenueMonthlyChart data={data?.monthlyData} />
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <div className="lg:col-span-2">

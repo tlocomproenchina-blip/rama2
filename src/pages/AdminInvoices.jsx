@@ -81,6 +81,7 @@ export default function AdminInvoices({ user }) {
   // Facturas pagadas del período consultadas por FECHA DE PAGO (no por la página cargada).
   const [paidRange, setPaidRange] = useState(null);
   const [paidRangeLoading, setPaidRangeLoading] = useState(false);
+  const [providerCostMap, setProviderCostMap] = useState(null);
 
   // Con el filtro de Pagadas y un período elegido, el listado y sus totales salen de la
   // consulta por fecha de pago: es el mismo criterio que la Orden de Despacho, así los
@@ -195,7 +196,8 @@ export default function AdminInvoices({ user }) {
     if (append) setLoadingMore(false); else setLoading(false);
 
     // Pagado al proveedor automático según las facturas de proveedor de sus contenedores
-    syncProviderPaid(baseList).then((changes) => {
+    syncProviderPaid(baseList).then(({ changes, costMap }) => {
+      setProviderCostMap(costMap);
       if (!Object.keys(changes).length) return;
       setInvoices(prev => prev.map(i => (i.id in changes ? { ...i, provider_paid: changes[i.id] } : i)));
     }).catch(() => {});
@@ -978,6 +980,7 @@ export default function AdminInvoices({ user }) {
                         invoice={invoice}
                         onSaveCost={handleSaveProviderCost}
                         onTogglePaid={handleToggleProviderPaid}
+                        costMap={providerCostMap}
                         onDeleteAbono={handleDeleteProviderAbono}
                         onEditAbono={handleEditProviderAbono}
                       />
