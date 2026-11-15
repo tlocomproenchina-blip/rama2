@@ -1,5 +1,6 @@
 import { base44 } from '@/api/base44Client';
 import { billableTotal } from '@/lib/storageLines';
+import { isExcludedEmail } from '@/lib/excludedAccounts';
 
 // Costo real del proveedor por factura de cliente, a partir del cruce por contenedor.
 // Si una factura de proveedor coincide con varias facturas de cliente, se reparte en partes iguales.
@@ -34,7 +35,7 @@ export function invoiceProfit(invoice, costMap) {
 export function summarizeProfit(invoices, costMap) {
   const t = { revenue: 0, costPaid: 0, costPending: 0, profit: 0, count: 0 };
   for (const inv of invoices || []) {
-    if (inv.status !== 'pagada') continue;
+    if (inv.status !== 'pagada' || isExcludedEmail(inv.client_email)) continue;
     const p = invoiceProfit(inv, costMap);
     t.revenue += p.revenue; t.costPaid += p.costPaid; t.costPending += p.costPending; t.profit += p.profit; t.count++;
   }

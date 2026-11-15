@@ -13,6 +13,7 @@ import ProviderPaymentsOverview from '@/components/accounting/ProviderPaymentsOv
 import AccountingExportButtons from '@/components/accounting/AccountingExportButtons';
 import PageHero from '@/components/common/PageHero';
 import RealProfitPanel from '@/components/accounting/RealProfitPanel';
+import { EXCLUDED_QUERY, withoutExcluded } from '@/lib/excludedAccounts';
 
 function sumAmounts(items, getValue) {
   return (items || []).reduce((total, item) => total + Number(getValue(item) || 0), 0);
@@ -75,11 +76,12 @@ export default function AccountingDashboard({ user }) {
     const loadDashboard = async () => {
       setLoading(true);
 
-      const [invoices, payables] = await Promise.all([
-        base44.entities.Invoice.list('-updated_date', 300),
+      const [invoicesAll, payables] = await Promise.all([
+        base44.entities.Invoice.filter(EXCLUDED_QUERY, '-updated_date', 300),
         base44.entities.AccountsPayable.list('-updated_date', 300),
       ]);
 
+      const invoices = withoutExcluded(invoicesAll);
       const now = new Date();
       const receivableStatuses = ['pendiente', 'revision', 'vencida'];
       const receivableInvoices = (invoices || []).filter((invoice) => receivableStatuses.includes(invoice.status));

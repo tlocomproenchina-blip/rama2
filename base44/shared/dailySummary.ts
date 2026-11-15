@@ -2,6 +2,8 @@
 // Usada por getDailySummary (API del panel admin) y sendDailyAdminDigest (email diario).
 // Evita duplicar las consultas y el filtrado de las últimas 24h + conteos de pendientes.
 
+import { withoutExcluded } from './excludedAccounts.ts';
+
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /**
@@ -13,19 +15,7 @@ export async function fetchDailySummaryMetrics(base44) {
   const now = new Date();
   const since = new Date(now.getTime() - DAY_MS).toISOString();
 
-  const [
-    recentPackages,
-    recentUsers,
-    recentPayments,
-    recentTickets,
-    recentInvoices,
-    pendingPayments,
-    pendingAssisted,
-    openTickets,
-    pendingQuotes,
-    reviewInvoices,
-    pendingConsolidations,
-  ] = await Promise.all([
+  const raw = await Promise.all([
     base44.asServiceRole.entities.Package.list('-created_date', 500),
     base44.asServiceRole.entities.User.list('-created_date', 500),
     base44.asServiceRole.entities.InvoicePayment.list('-approved_date', 500),
@@ -38,6 +28,20 @@ export async function fetchDailySummaryMetrics(base44) {
     base44.asServiceRole.entities.Invoice.filter({ status: 'revision' }, '-invoice_date', 1000),
     base44.asServiceRole.entities.Consolidation.filter({ status: 'pago_pendiente_validacion' }, '-created_date', 1000),
   ]);
+  // La cuenta interna excluida no cuenta en el resumen (User se filtra por email).
+  const [
+    recentPackages,
+    recentUsers,
+    recentPayments,
+    recentTickets,
+    recentInvoices,
+    pendingPayments,
+    pendingAssisted,
+    openTickets,
+    pendingQuotes,
+    reviewInvoices,
+    pendingConsolidations,
+  ] = raw.map((list, i) => withoutExcluded(list, i === 1 ? 'email' : 'client_email'));
 
   // === Filtrado por las últimas 24h (server-side, no viaja al cliente) ===
   const newPackages = (recentPackages || []).filter((p) => p.created_date && p.created_date >= since);

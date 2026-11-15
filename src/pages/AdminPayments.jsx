@@ -24,6 +24,7 @@ import useEntitySubscription from '@/hooks/useEntitySubscription';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import PaymentReportDownloadButton from '@/components/admin/PaymentReportDownloadButton';
 import PaymentReportDateExport from '@/components/admin/PaymentReportDateExport';
+import { EXCLUDED_QUERY } from '@/lib/excludedAccounts';
 
 const HISTORY_PAGE = 200;
 
@@ -82,9 +83,9 @@ export default function AdminPayments({ user }) {
         base44.entities.Consolidation.filter({ status: 'pago_pendiente_validacion' }, '-created_date', 500),
         base44.entities.Consolidation.filter({ status: { $ne: 'pago_pendiente_validacion' } }, '-created_date', limit),
         base44.entities.Invoice.filter({ status: 'revision' }, '-invoice_date', 200),
-        base44.entities.Consolidation.count({ status: 'pago_pendiente_validacion' }),
-        base44.entities.Consolidation.count({ payment_validated: true }),
-        base44.entities.Consolidation.aggregate({ query: { payment_validated: true }, sum: ['payment_amount'] }),
+        base44.entities.Consolidation.count({ ...EXCLUDED_QUERY, status: 'pago_pendiente_validacion' }),
+        base44.entities.Consolidation.count({ ...EXCLUDED_QUERY, payment_validated: true }),
+        base44.entities.Consolidation.aggregate({ query: { ...EXCLUDED_QUERY, payment_validated: true }, sum: ['payment_amount'] }),
       ]);
       const cons = [...pendingCons, ...recentCons];
       setHasMoreCons(recentCons.length === limit);

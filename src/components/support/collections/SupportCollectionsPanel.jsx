@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { AlertTriangle, DollarSign, Loader2, RefreshCw, Search, Users } from 'lucide-react';
 import { fetchAllPaginated } from '@/lib/fetchAllPaginated';
+import { withoutExcluded } from '@/lib/excludedAccounts';
 import { invoiceAging, invoiceBalance, invoiceClientName, OVERDUE_DAYS, PENDING_STATUSES } from '@/lib/collections';
 import CollectionsInvoiceCard from './CollectionsInvoiceCard';
 
@@ -34,7 +35,7 @@ export default function SupportCollectionsPanel() {
       });
 
       const now = Date.now();
-      let list = invoices
+      let list = withoutExcluded(invoices)
         .map((invoice) => {
           const aging = invoiceAging(invoice, now);
           return {

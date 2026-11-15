@@ -10,6 +10,7 @@ import AdminDashboardMetricCard from '@/components/dashboard/AdminDashboardMetri
 import AdminDashboardSectionCard from '@/components/dashboard/AdminDashboardSectionCard';
 import AdminDashboardQuickLink from '@/components/dashboard/AdminDashboardQuickLink';
 import StatusBadge from '@/components/StatusBadge';
+import { EXCLUDED_QUERY, withoutExcluded } from '@/lib/excludedAccounts';
 import {
   ArrowRight,
   CheckCircle2,
@@ -47,20 +48,21 @@ export default function AdminDashboard({ user }) {
         base44.entities.Consolidation.list('-created_date', 6),
         base44.entities.SupportTicket.list('-updated_date', 5),
         base44.functions.invoke('listAllUsers', { role: 'user', includeAdmins: false, limit: 5000 }).then(r => r?.data || {}),
-        base44.entities.Package.count({ status: 'pre_alerta' }),
-        base44.entities.Package.count({ status: 'recibido' }),
-        base44.entities.Package.count({ status: 'en_transito' }),
-        base44.entities.Consolidation.count({ status: 'disponible' }),
-        base44.entities.Consolidation.count({ payment_proof_url: { $exists: true, $ne: '' }, payment_validated: { $ne: true } }),
-        base44.entities.SupportTicket.count({ status: 'abierto' }),
-        base44.entities.Invoice.count({ status: 'pendiente', due_date: { $lt: nowIso } }),
-        sdk.entities.Invoice.aggregate({ query: { status: 'pagada' }, sum: ['total'] }),
-        sdk.entities.Invoice.aggregate({ query: { status: 'pagada', payment_date: { $gte: monthStart } }, sum: ['total'] }),
+        base44.entities.Package.count({ ...EXCLUDED_QUERY, status: 'pre_alerta' }),
+        base44.entities.Package.count({ ...EXCLUDED_QUERY, status: 'recibido' }),
+        base44.entities.Package.count({ ...EXCLUDED_QUERY, status: 'en_transito' }),
+        base44.entities.Consolidation.count({ ...EXCLUDED_QUERY, status: 'disponible' }),
+        base44.entities.Consolidation.count({ ...EXCLUDED_QUERY, payment_proof_url: { $exists: true, $ne: '' }, payment_validated: { $ne: true } }),
+        base44.entities.SupportTicket.count({ ...EXCLUDED_QUERY, status: 'abierto' }),
+        base44.entities.Invoice.count({ ...EXCLUDED_QUERY, status: 'pendiente', due_date: { $lt: nowIso } }),
+        sdk.entities.Invoice.aggregate({ query: { ...EXCLUDED_QUERY, status: 'pagada' }, sum: ['total'] }),
+        sdk.entities.Invoice.aggregate({ query: { ...EXCLUDED_QUERY, status: 'pagada', payment_date: { $gte: monthStart } }, sum: ['total'] }),
       ]);
 
-      const clients = usersRes.users || [];
+      const allClients = usersRes.users || [];
+      const clients = withoutExcluded(allClients, 'email');
       const inactiveClients = clients.filter((item) => item.is_active === false).length;
-      const totalClients = Number(usersRes.total ?? clients.length);
+      const totalClients = Number(usersRes.total ?? allClients.length) - (allClients.length - clients.length);
 
       setData({
         packages, consolidations, supportTickets,

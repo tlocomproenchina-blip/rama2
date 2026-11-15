@@ -36,6 +36,7 @@ import { ensureInvoicePaymentForPaidInvoice } from '@/lib/invoicePaymentSync';
 import StateFilter from '@/components/common/StateFilter';
 import ProviderCrossTab from '@/components/invoice/provider-cross/ProviderCrossTab';
 import { syncProviderPaid } from '@/lib/syncProviderPaid';
+import { withoutExcluded } from '@/lib/excludedAccounts';
 
 export default function AdminInvoices({ user }) {
   const [invoices, setInvoices] = useState([]);
@@ -106,6 +107,7 @@ export default function AdminInvoices({ user }) {
 
   const computeStats = (list) => {
     let paid = 0, pending = 0, revenue = 0, profit = 0, insuranceCollected = 0;
+    list = withoutExcluded(list);
     for (const i of list) {
       if (i.status === 'pagada') {
         paid++; revenue += billableTotal(i);

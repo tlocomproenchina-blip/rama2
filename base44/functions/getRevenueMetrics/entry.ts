@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
+import { withoutExcluded } from '../../shared/excludedAccounts.ts';
 
 async function fetchAll(entity, sortBy = '-created_date', batchSize = 200) {
   let all = [];
@@ -34,12 +35,15 @@ Deno.serve(async (req) => {
     const { startMonth, endMonth } = payload; // format: "YYYY-MM"
 
     // Fetch all data in parallel
-    const [cbmRecords, invoices, users, appConfigs] = await Promise.all([
+    const [cbmAll, invoicesAll, usersAll, appConfigs] = await Promise.all([
       fetchAll(base44.asServiceRole.entities.CbmIngreso),
       fetchAll(base44.asServiceRole.entities.Invoice),
       fetchAll(base44.asServiceRole.entities.User),
       base44.asServiceRole.entities.AppConfig.filter({ config_key: 'main' }),
     ]);
+    const cbmRecords = withoutExcluded(cbmAll);
+    const invoices = withoutExcluded(invoicesAll);
+    const users = withoutExcluded(usersAll, 'email');
     const providerInsurancePct = Number(appConfigs?.[0]?.provider_insurance_percentage) || 0;
 
     // Build user name map

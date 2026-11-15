@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
+import { withoutExcluded } from '../../shared/excludedAccounts.ts';
 import { buildReportText, caracasDay, dailyReportFileName } from '../../shared/paymentReport.ts';
 
 // Informe TXT acumulado de los pagos aprobados en un día (por defecto hoy,
@@ -17,9 +18,9 @@ export default async function(req: Request): Promise<Response> {
     const requested = String(payload?.day || '').trim();
     const day = /^\d{4}-\d{2}-\d{2}$/.test(requested) ? requested : caracasDay();
 
-    const entries = await base44.asServiceRole.entities.ApprovedPaymentReport
+    const entries = withoutExcluded(await base44.asServiceRole.entities.ApprovedPaymentReport
       .filter({ approval_day: day }, 'approved_date', 500)
-      .catch(() => []);
+      .catch(() => []));
 
     if (!entries || entries.length === 0) {
       return Response.json({

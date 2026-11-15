@@ -13,7 +13,7 @@ const splitList = (value) => String(value || '')
 // Los contenedores y trackings salen de los recibos de la factura (manual_recibos);
 // cuando la factura no tiene recibos se usa su consolidación como referencia.
 export function overdueReportRows(invoices = []) {
-  return invoices.map((invoice) => {
+  return withoutExcluded(invoices).map((invoice) => {
     const recibos = Array.isArray(invoice.manual_recibos) ? invoice.manual_recibos : [];
     const containers = unique(recibos.map((recibo) => recibo?.invoice_number));
     const trackings = unique(recibos.flatMap((recibo) => (Array.isArray(recibo?.tracking_numbers) ? recibo.tracking_numbers : [])));
@@ -64,6 +64,7 @@ export const overdueTotals = (rows = []) => ({
 });
 
 import { money } from '@/lib/numbers';
+import { withoutExcluded } from '@/lib/excludedAccounts';
 
 const formatDate = (value) => {
   if (!value) return '—';

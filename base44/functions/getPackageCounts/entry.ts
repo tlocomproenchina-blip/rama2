@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.54';
+import { EXCLUDED_QUERY } from '../../shared/excludedAccounts.ts';
 
 // Conteos globales de paquetes calculados en vivo por el servidor (una agrupación por
 // estado y dos conteos). Siempre coinciden con los registros: no dependen de un
@@ -13,9 +14,9 @@ export default async function (req: Request): Promise<Response> {
     const P = base44.entities.Package;
     const staleThreshold = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
     const [agg, preNoRecibido, stale] = await Promise.all([
-      P.aggregate({ groupBy: 'status' }),
-      P.count({ status: 'pre_alerta', received_date: { $in: [null] } }),
-      P.count({ status: 'pre_alerta', created_date: { $lte: staleThreshold } }),
+      P.aggregate({ query: EXCLUDED_QUERY, groupBy: 'status' }),
+      P.count({ ...EXCLUDED_QUERY, status: 'pre_alerta', received_date: { $in: [null] } }),
+      P.count({ ...EXCLUDED_QUERY, status: 'pre_alerta', created_date: { $lte: staleThreshold } }),
     ]);
 
     const byStatus: Record<string, number> = {};
