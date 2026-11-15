@@ -9,9 +9,10 @@ export default function ContainerProviderCost({ rows, loading, onOpen }) {
   return rows.map((r) => (
     <div key={r.id} className="ml-3 flex flex-wrap items-center justify-end gap-x-4 gap-y-1 border-l-2 border-primary/30 pl-3 text-xs">
       <span className="mr-auto text-slate-500">Proveedor{r.shared_container ? ` · compartido (${r.shared_container})` : ''}</span>
-      <span className="text-slate-700">Costo {money(r.total)}</span>
-      <span className="text-success">Pagado {money(r.paid)}</span>
-      <span className="font-semibold text-warning">Saldo {money(r.balance)}</span>
+      <span className="font-semibold text-slate-800">Costo total {money(r.total)}</span>
+      {r.status === 'pagada' || r.balance <= 0
+        ? <span className="rounded-full bg-success-bg px-2 py-0.5 font-semibold text-success">Pagado</span>
+        : <span className="rounded-full bg-warning-bg px-2 py-0.5 font-semibold text-warning">Pendiente</span>}
       <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={(e) => { e.stopPropagation(); onOpen(r); }}>Documentos</Button>
     </div>
   ));

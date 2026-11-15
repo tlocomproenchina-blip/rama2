@@ -12,10 +12,11 @@ export default function ProviderCrossDetail({ row, onClose }) {
       <DialogContent className="max-w-lg">
         <DialogHeader><DialogTitle>Contenedor {row.container} · {row.client_name || row.client_email}</DialogTitle></DialogHeader>
         <div className="space-y-4 text-sm">
-          <div className="grid grid-cols-3 gap-2 text-center">
-            <div className="rounded-xl bg-muted p-2"><p className="text-xs text-muted-foreground">Costo</p><p className="font-bold">{money(row.total)}</p></div>
-            <div className="rounded-xl bg-success-bg p-2"><p className="text-xs text-muted-foreground">Pagado</p><p className="font-bold text-success">{money(row.paid)}</p></div>
-            <div className="rounded-xl bg-warning-bg p-2"><p className="text-xs text-muted-foreground">Debe</p><p className="font-bold text-warning">{money(row.balance)}</p></div>
+          <div className="flex items-center justify-between rounded-xl bg-muted p-3">
+            <div><p className="text-xs text-muted-foreground">Costo total</p><p className="font-bold">{money(row.total)}</p></div>
+            {row.status === 'pagada' || row.balance <= 0
+              ? <span className="rounded-full bg-success-bg px-3 py-1 text-xs font-semibold text-success">Pagado</span>
+              : <span className="rounded-full bg-warning-bg px-3 py-1 text-xs font-semibold text-warning">Pendiente</span>}
           </div>
           {row.invoice_file_url ? (
             <Button variant="outline" className="w-full" onClick={() => openImageViewer(row.invoice_file_url, `Factura proveedor ${row.container}`)}>

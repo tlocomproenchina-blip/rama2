@@ -29,7 +29,9 @@ export default function InvoiceCbmOrders({ invoice }) {
   const { data, isLoading } = useQuery({
     queryKey: ['providerCostCross'],
     queryFn: () => base44.functions.invoke('providerCostCross', {}).then((r) => r.data.rows || []),
-    staleTime: 60000,
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
   });
   const linked = (data || []).filter((r) => r.client_invoices.some((i) => i.id === invoice?.id));
   const norm = (v) => String(v || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
