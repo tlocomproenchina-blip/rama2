@@ -61,7 +61,7 @@ export default async function (req: Request): Promise<Response> {
     // por CBM y la puerta a puerta por bulto. Si su conexión ya no existe, se usan
     // las que mandó la pantalla. La factura sale solo al correo del mayorista.
     const ratePerCbm = num(live?.rate_per_cbm ?? body?.rate_per_cbm);
-    const ratePerBulto = num(live?.rate_per_bulto ?? body?.rate_per_bulto);
+    const ratePerBulto = num(live?.door_to_door_per_cbm ?? body?.door_to_door_per_cbm);
     const invoiceEmail = String(live?.invoice_email || body?.invoice_email || '').trim();
 
     const emails = requested.map((row: any) => emailKeyOf(row?.client_email)).filter(Boolean);
@@ -207,7 +207,8 @@ export default async function (req: Request): Promise<Response> {
         client_name: label || email,
         shipping_mark: String(raw?.shipping_mark || '').trim(),
         rate_per_cbm: round2(ratePerCbm),
-        rate_per_bulto: round2(ratePerBulto),
+        door_to_door_per_cbm: round2(ratePerBulto),
+        handling_fee: HANDLING_FEE,
         cbm,
         bultos,
         received_trackings: trackings,

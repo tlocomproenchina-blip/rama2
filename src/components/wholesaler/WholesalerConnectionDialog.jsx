@@ -12,7 +12,7 @@ const EMPTY = {
   wholesaler_name: '',
   invoice_email: '',
   rate_per_cbm: '',
-  rate_per_bulto: '',
+  door_to_door_per_cbm: '',
   clients_feed_url: '',
   history_feed_url: '',
   history_sync_enabled: true,
@@ -63,7 +63,7 @@ export default function WholesalerConnectionDialog({ open, connection, onClose, 
         notify_enabled: !!form.notify_enabled,
         invoice_email: String(form.invoice_email || '').trim(),
         rate_per_cbm: Number(String(form.rate_per_cbm ?? '').replace(',', '.')) || 0,
-        rate_per_bulto: Number(String(form.rate_per_bulto ?? '').replace(',', '.')) || 0,
+        door_to_door_per_cbm: Number(String(form.door_to_door_per_cbm ?? '').replace(',', '.')) || 0,
       };
 
       if (connection?.id) await base44.entities.WholesalerSync.update(connection.id, payload);
@@ -114,22 +114,22 @@ export default function WholesalerConnectionDialog({ open, connection, onClose, 
               />
             </div>
             <div className="space-y-2">
-              <Label>Puerta a puerta (USD por bulto)</Label>
+              <Label>Costo puerta a puerta (USD por CBM)</Label>
               <Input
                 type="number"
                 min="0"
                 step="0.01"
                 inputMode="decimal"
-                value={form.rate_per_bulto ?? ''}
-                onChange={(e) => set({ rate_per_bulto: e.target.value })}
-                placeholder="Ej: 12"
+                value={form.door_to_door_per_cbm ?? ''}
+                onChange={(e) => set({ door_to_door_per_cbm: e.target.value })}
+                placeholder="Ej: 40"
               />
             </div>
           </div>
 
           <p className="text-xs text-muted-foreground">
             Estas tarifas rigen para todos los clientes de este mayorista: el servicio de envío se cobra por CBM y la
-            puerta a puerta por bulto.
+            puerta a puerta también por CBM.
           </p>
 
           <div className="space-y-2">

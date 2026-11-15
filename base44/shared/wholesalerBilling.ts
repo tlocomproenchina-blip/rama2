@@ -69,7 +69,8 @@ export function trackingKeyOf(value: any) {
 // por cada tracking recibido.
 export function clientAmounts(params: any) {
   const shipping = round2(num(params?.cbm) * num(params?.shippingRate));
-  const doorToDoor = round2(num(params?.bultos) * num(params?.doorRate));
+  // Puerta a puerta: USD por CBM (ya no por bulto).
+  const doorToDoor = round2(num(params?.cbm) * num(params?.doorRate));
   const handling = round2(num(params?.trackings) * num(params?.handlingFee ?? HANDLING_FEE));
   return { shipping, doorToDoor, handling, total: round2(shipping + doorToDoor + handling) };
 }
@@ -268,13 +269,13 @@ export function invoiceEmailHtml(params: any) {
           </tr>
           <tr>
             <td style="padding:9px 14px;border-bottom:1px solid #e5e7eb;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#0f172a;">
-              Servicio puerta a puerta<br /><span style="color:#64748b;font-size:11px;">${num(client.bultos)} bulto(s) × ${money(client.rate_per_bulto)} por bulto</span>
+              Servicio puerta a puerta<br /><span style="color:#64748b;font-size:11px;">${client.door_to_door_per_cbm != null ? `${cbmText(client.cbm)} CBM × ${money(client.door_to_door_per_cbm)} por CBM` : `${num(client.bultos)} bulto(s) × ${money(client.rate_per_bulto)} por bulto`}</span>
             </td>
             <td align="right" style="padding:9px 14px;border-bottom:1px solid #e5e7eb;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#0f172a;">${money(client.door_to_door_amount)}</td>
           </tr>
           <tr>
             <td style="padding:9px 14px;border-bottom:1px solid #e5e7eb;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#0f172a;">
-              Manejo de paquetes<br /><span style="color:#64748b;font-size:11px;">${num(client.received_trackings)} tracking(s) recibido(s) × ${money(HANDLING_FEE)}</span>
+              Manejo de paquetes<br /><span style="color:#64748b;font-size:11px;">${num(client.received_trackings)} paquete(s) × ${money(client.handling_fee ?? HANDLING_FEE)}</span>
             </td>
             <td align="right" style="padding:9px 14px;border-bottom:1px solid #e5e7eb;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#0f172a;">${money(client.handling_amount)}</td>
           </tr>

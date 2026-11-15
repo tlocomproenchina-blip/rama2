@@ -76,7 +76,7 @@ export default function WholesalerBillingClientCard({ draft, rates, onChange, on
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
           <span className="font-medium text-foreground">Tarifa del mayorista</span>
           <span>Envío ${Number(rates?.rate_per_cbm || 0).toFixed(2)} por CBM</span>
-          <span>Puerta a puerta ${Number(rates?.rate_per_bulto || 0).toFixed(2)} por bulto</span>
+          <span>Puerta a puerta ${Number(rates?.door_to_door_per_cbm || 0).toFixed(2)} por CBM</span>
         </div>
 
         <div className="space-y-2">
@@ -108,7 +108,7 @@ export default function WholesalerBillingClientCard({ draft, rates, onChange, on
           />
           <MoneyLine
             label="Servicio puerta a puerta"
-            detail={`${amounts.bultos} bulto(s) × $${Number(rates?.rate_per_bulto || 0).toFixed(2)} por bulto`}
+            detail={`${cbmText(amounts.cbm)} CBM × $${Number(rates?.door_to_door_per_cbm || 0).toFixed(2)} por CBM`}
             value={amounts.doorToDoor}
           />
           <MoneyLine

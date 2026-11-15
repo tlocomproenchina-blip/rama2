@@ -90,7 +90,7 @@ export default function WholesalerBillingHistory({ invoices, loading }) {
                               {String(Number(client.cbm || 0).toFixed(4)).replace(/\.?0+$/, '') || '0'} CBM ·{' '}
                               {client.bultos || 0} bulto(s) · {client.received_trackings || 0} tracking(s) recibido(s)
                               {client.rate_per_cbm !== undefined
-                                ? ` · envío $${Number(client.rate_per_cbm || 0).toFixed(2)}/CBM · puerta a puerta $${Number(client.rate_per_bulto || 0).toFixed(2)}/bulto`
+                                ? ` · envío $${Number(client.rate_per_cbm || 0).toFixed(2)}/CBM · puerta a puerta ${client.door_to_door_per_cbm != null ? `$${Number(client.door_to_door_per_cbm).toFixed(2)}/CBM` : `$${Number(client.rate_per_bulto || 0).toFixed(2)}/bulto`}`
                                 : ''}
                             </p>
                           </div>

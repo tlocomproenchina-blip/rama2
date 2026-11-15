@@ -159,7 +159,7 @@ export default async function (req: Request): Promise<Response> {
         key: wantedKey,
         name: group.name,
         rate_per_cbm: num(live?.rate_per_cbm),
-        rate_per_bulto: num(live?.rate_per_bulto),
+        door_to_door_per_cbm: num(live?.door_to_door_per_cbm),
         invoice_email: String(live?.invoice_email || '').trim(),
       },
       groups,

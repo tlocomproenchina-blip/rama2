@@ -31,7 +31,7 @@ export function draftAmounts(draft, rates) {
   const bultos = orders.reduce((sum, o) => sum + (Number(o.bultos) || 0), 0);
   const received = orders.reduce((sum, o) => sum + (Number(o.received) || 0) + (o.picked?.length || 0), 0);
   const shipping = round2(cbm * (Number(rates?.rate_per_cbm) || 0));
-  const doorToDoor = round2(bultos * (Number(rates?.rate_per_bulto) || 0));
+  const doorToDoor = round2(cbm * (Number(rates?.door_to_door_per_cbm) || 0));
   const handling = round2(received * HANDLING_FEE);
   return {
     orders: orders.length,

@@ -72,7 +72,7 @@ export default function WholesalerConnectionStatusCard({ connection, probing, on
         </p>
         <p className="truncate">
           Tarifas: envío ${Number(connection?.rate_per_cbm || 0).toFixed(2)}/CBM · puerta a puerta $
-          {Number(connection?.rate_per_bulto || 0).toFixed(2)}/bulto
+          {Number(connection?.door_to_door_per_cbm || 0).toFixed(2)}/CBM
         </p>
         <p className="truncate">
           Factura a: {connection?.invoice_email || 'falta el correo del mayorista'}

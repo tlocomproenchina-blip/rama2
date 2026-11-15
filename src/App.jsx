@@ -99,6 +99,7 @@ const PublicDispatchGuides = lazy(() => import('./pages/PublicDispatchGuides'));
 const ProviderInvoices = lazy(() => import('./pages/ProviderInvoices'));
 const PublicProviderInvoice = lazy(() => import('./pages/PublicProviderInvoice'));
 const ProviderPortal = lazy(() => import('./pages/ProviderPortal'));
+const WholesalerPortal = lazy(() => import('./pages/WholesalerPortal'));
 const MyIncidents = lazy(() => import('./pages/MyIncidents'));
 const MyFiscalInvoices = lazy(() => import('./pages/MyFiscalInvoices'));
 const FiscalInvoiceRequest = lazy(() => import('./pages/FiscalInvoiceRequest'));
@@ -273,6 +274,7 @@ const AuthenticatedApp = () => {
           </Suspense>
         }
       />
+      <Route path="/PortalMayorista/:token" element={<Suspense fallback={<RouteFallback />}><WholesalerPortal /></Suspense>} />
       <Route path="/Quote/:token" element={<Suspense fallback={<RouteFallback />}><QuotePublic /></Suspense>} />
       <Route path="/QuoteFeePayment" element={<Suspense fallback={<RouteFallback />}><QuoteFeePayment /></Suspense>} />
       <Route path="/BodegaScan" element={<Suspense fallback={<RouteFallback />}><BodegaScan /></Suspense>} />

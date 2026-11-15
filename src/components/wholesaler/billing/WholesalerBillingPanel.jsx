@@ -45,7 +45,7 @@ export default function WholesalerBillingPanel({ initialWholesaler }) {
   const [clients, setClients] = useState([]);
   // Tarifas y correo de la factura: salen del perfil del mayorista y rigen para
   // todos sus clientes.
-  const [rates, setRates] = useState({ rate_per_cbm: 0, rate_per_bulto: 0, invoice_email: '' });
+  const [rates, setRates] = useState({ rate_per_cbm: 0, door_to_door_per_cbm: 0, invoice_email: '' });
   const [selected, setSelected] = useState([]);
   const [drafts, setDrafts] = useState({});
   const [loading, setLoading] = useState(false);
@@ -84,7 +84,7 @@ export default function WholesalerBillingPanel({ initialWholesaler }) {
       setClients(data.clients || []);
       setRates({
         rate_per_cbm: Number(data.wholesaler?.rate_per_cbm) || 0,
-        rate_per_bulto: Number(data.wholesaler?.rate_per_bulto) || 0,
+        door_to_door_per_cbm: Number(data.wholesaler?.door_to_door_per_cbm) || 0,
         invoice_email: data.wholesaler?.invoice_email || '',
       });
     } catch (error) {
@@ -203,7 +203,7 @@ export default function WholesalerBillingPanel({ initialWholesaler }) {
         wholesaler_key: wholesaler,
         wholesaler_name: currentGroup?.name || '',
         rate_per_cbm: rates.rate_per_cbm,
-        rate_per_bulto: rates.rate_per_bulto,
+        door_to_door_per_cbm: rates.door_to_door_per_cbm,
         invoice_email: rates.invoice_email,
         clients: payloadClients,
         notes,

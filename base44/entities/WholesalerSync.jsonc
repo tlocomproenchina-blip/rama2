@@ -5,64 +5,58 @@
     "config_key": {
       "type": "string",
       "default": "main",
-      "description": "Clave \u00fanica de la conexi\u00f3n con ese cliente mayorista. La conexi\u00f3n de siempre conserva 'main'; las conexiones nuevas usan una clave propia (ws-...)."
+      "description": "Clave \u00fanica de la conexi\u00f3n con ese cliente mayorista ('main' o ws-...)"
     },
     "wholesaler_name": {
       "type": "string",
-      "default": "Cliente mayorista",
-      "description": "Nombre del cliente mayorista, usado en el panel, en los avisos y en el informe"
+      "default": "Cliente mayorista"
     },
     "invoice_email": {
       "type": "string",
-      "description": "Correo del mayorista al que se le env\u00edan las facturas de sus clientes. Es el \u00fanico destinatario: las facturas no se mandan a los correos de los clientes."
+      "description": "Correo del mayorista al que se le env\u00edan las facturas de sus clientes"
     },
     "rate_per_cbm": {
       "type": "number",
-      "description": "Tarifa del servicio de env\u00edo por CBM (USD/CBM) que rige para todos los clientes de este mayorista"
+      "description": "Tarifa del servicio de env\u00edo (USD por CBM)"
+    },
+    "door_to_door_per_cbm": {
+      "type": "number",
+      "description": "Tarifa de puerta a puerta (USD por CBM)"
     },
     "rate_per_bulto": {
       "type": "number",
-      "description": "Tarifa de puerta a puerta por bulto (USD/bulto) que rige para todos los clientes de este mayorista"
+      "description": "DEPRECATED: tarifa de puerta a puerta por bulto, reemplazada por door_to_door_per_cbm"
     },
     "clients_feed_url": {
-      "type": "string",
-      "description": "Direcci\u00f3n de la app del mayorista a la que esta app le pide sus clientes nuevos cada 24 horas"
+      "type": "string"
     },
     "history_feed_url": {
-      "type": "string",
-      "description": "Direcci\u00f3n de la app del mayorista a la que esta app le pide su historial completo de pre-alertas (paginado). Se consulta todos los d\u00edas a las 3:00 a.m. (Caracas) y cuando un administrador lo pide desde el panel."
+      "type": "string"
     },
     "history_sync_enabled": {
       "type": "boolean",
-      "default": true,
-      "description": "Activa la consulta diaria del historial completo de pre-alertas de ese mayorista"
+      "default": true
     },
     "notify_url": {
-      "type": "string",
-      "description": "Direcci\u00f3n de la app del mayorista a la que esta app avisa cuando su carga se recibi\u00f3 en el almac\u00e9n de China"
+      "type": "string"
     },
     "inbound_key": {
-      "type": "string",
-      "description": "Clave con la que ese mayorista llama a esta app (consultar tracking, recepcionar, reportar pre-alerta, pedir clientes). Si est\u00e1 vac\u00eda se usa la clave de Secretos, para no romper la conexi\u00f3n que ya estaba emparejada."
+      "type": "string"
     },
     "outbound_key": {
-      "type": "string",
-      "description": "Clave con la que esta app llama a ese mayorista (pedirle sus clientes, pedirle su historial de pre-alertas y avisarle las recepciones). Si est\u00e1 vac\u00eda se usa la clave de Secretos."
+      "type": "string"
     },
     "intake_enabled": {
       "type": "boolean",
-      "default": true,
-      "description": "Activa la consulta diaria de clientes nuevos en la app de ese mayorista"
+      "default": true
     },
     "report_email_enabled": {
       "type": "boolean",
-      "default": true,
-      "description": "Activa el env\u00edo del informe diario por correo a los administradores"
+      "default": true
     },
     "notify_enabled": {
       "type": "boolean",
-      "default": true,
-      "description": "Activa el aviso inmediato a ese mayorista cuando su carga se recibe en China"
+      "default": true
     },
     "connection_status": {
       "type": "string",
@@ -71,48 +65,39 @@
         "error",
         "sin_probar"
       ],
-      "default": "sin_probar",
-      "description": "Estado de la conexi\u00f3n: conectado (respondi\u00f3), error (no respondi\u00f3) o sin_probar (todav\u00eda no se ha probado)"
+      "default": "sin_probar"
     },
     "connection_checked_date": {
       "type": "string",
-      "format": "date-time",
-      "description": "Fecha de la \u00faltima verificaci\u00f3n de la conexi\u00f3n (prueba desde el panel o corte diario)"
+      "format": "date-time"
     },
     "connection_message": {
       "type": "string",
-      "maxLength": 1000,
-      "description": "Detalle del \u00faltimo estado de la conexi\u00f3n"
+      "maxLength": 1000
     },
     "connection_clients_count": {
       "type": "number",
-      "default": 0,
-      "description": "Clientes que respondi\u00f3 la app del mayorista en la \u00faltima verificaci\u00f3n"
+      "default": 0
     },
     "consecutive_failures": {
       "type": "number",
-      "default": 0,
-      "description": "Intentos seguidos sin respuesta. Vuelve a cero cuando la conexi\u00f3n responde."
+      "default": 0
     },
     "alerted_message": {
       "type": "string",
-      "maxLength": 1000,
-      "description": "Motivo del \u00faltimo aviso enviado a los administradores: evita repetir el mismo aviso en cada intento"
+      "maxLength": 1000
     },
     "alerted_date": {
       "type": "string",
-      "format": "date-time",
-      "description": "Fecha del \u00faltimo aviso enviado a los administradores por esta conexi\u00f3n"
+      "format": "date-time"
     },
     "last_cursor": {
       "type": "string",
-      "format": "date-time",
-      "description": "Fecha del \u00faltimo corte entregado al mayorista: en la pr\u00f3xima consulta se le piden los clientes desde ese momento, para no repetir ni perder ninguno"
+      "format": "date-time"
     },
     "last_run_date": {
       "type": "string",
-      "format": "date-time",
-      "description": "Fecha de la \u00faltima consulta de clientes nuevos"
+      "format": "date-time"
     },
     "last_run_status": {
       "type": "string",
@@ -121,23 +106,19 @@
         "error",
         "nunca"
       ],
-      "default": "nunca",
-      "description": "Resultado de la \u00faltima consulta de clientes nuevos"
+      "default": "nunca"
     },
     "last_run_message": {
       "type": "string",
-      "maxLength": 1000,
-      "description": "Detalle del resultado de la \u00faltima consulta"
+      "maxLength": 1000
     },
     "last_run_clients_count": {
       "type": "number",
-      "default": 0,
-      "description": "Clientes tra\u00eddos en la \u00faltima consulta"
+      "default": 0
     },
     "last_history_run_date": {
       "type": "string",
-      "format": "date-time",
-      "description": "Fecha de la \u00faltima sincronizaci\u00f3n del historial de pre-alertas de ese mayorista"
+      "format": "date-time"
     },
     "last_history_status": {
       "type": "string",
@@ -146,68 +127,55 @@
         "error",
         "nunca"
       ],
-      "default": "nunca",
-      "description": "Resultado de la \u00faltima sincronizaci\u00f3n del historial: ok (se consult\u00f3), error (no respondi\u00f3) o nunca (todav\u00eda no se ha intentado)"
+      "default": "nunca"
     },
     "last_history_message": {
       "type": "string",
-      "maxLength": 1000,
-      "description": "Detalle de la \u00faltima sincronizaci\u00f3n del historial: cu\u00e1ntas pre-alertas se registraron, se completaron o ya estaban alineadas, cu\u00e1ntas cargas quedaron con su titular y cu\u00e1ntas coincidencias se le devolvieron al mayorista"
+      "maxLength": 1000
     },
     "last_history_total": {
       "type": "number",
-      "default": 0,
-      "description": "Pre-alertas que trajo el historial en la \u00faltima sincronizaci\u00f3n"
+      "default": 0
     },
     "last_history_new": {
       "type": "number",
-      "default": 0,
-      "description": "Pre-alertas nuevas registradas en la \u00faltima sincronizaci\u00f3n del historial"
+      "default": 0
     },
     "last_history_updated": {
       "type": "number",
-      "default": 0,
-      "description": "Pre-alertas que ya exist\u00edan y se completaron con datos que faltaban en la \u00faltima sincronizaci\u00f3n del historial"
+      "default": 0
     },
     "last_history_skipped": {
       "type": "number",
-      "default": 0,
-      "description": "Pre-alertas que ya estaban alineadas: no se tocaron en la \u00faltima sincronizaci\u00f3n del historial"
+      "default": 0
     },
     "last_history_errors": {
       "type": "number",
-      "default": 0,
-      "description": "Pre-alertas que no se pudieron procesar en la \u00faltima sincronizaci\u00f3n del historial"
+      "default": 0
     },
     "last_history_pages": {
       "type": "number",
-      "default": 0,
-      "description": "P\u00e1ginas del historial que se consultaron en la \u00faltima sincronizaci\u00f3n"
+      "default": 0
     },
     "last_history_assigned": {
       "type": "number",
-      "default": 0,
-      "description": "Registros que quedaron con su titular asignado en la \u00faltima sincronizaci\u00f3n del historial"
+      "default": 0
     },
     "last_history_notified": {
       "type": "number",
-      "default": 0,
-      "description": "Coincidencias ya recibidas en el almac\u00e9n que se le devolvieron al mayorista en la \u00faltima sincronizaci\u00f3n del historial, para que su app marque esas cargas como recibidas"
+      "default": 0
     },
     "last_history_notify_failed": {
       "type": "number",
-      "default": 0,
-      "description": "Avisos de esas coincidencias que no se pudieron entregar al mayorista en la \u00faltima sincronizaci\u00f3n del historial"
+      "default": 0
     },
     "last_history_notify_pending": {
       "type": "number",
-      "default": 0,
-      "description": "Coincidencias ya recibidas en el almac\u00e9n que todav\u00eda no se le devolvieron al mayorista: o les falta la foto de recepci\u00f3n, o quedaron para la corrida siguiente"
+      "default": 0
     },
     "last_history_detail": {
       "type": "array",
       "default": [],
-      "description": "Ficha de cada registro de la \u00faltima sincronizaci\u00f3n del historial: su tracking, el titular al que qued\u00f3 asignada la carga, su estado en TLEC CARGO y c\u00f3mo qued\u00f3 su aviso al mayorista. Es lo que muestra el detalle del panel.",
       "items": {
         "type": "object",
         "properties": {
@@ -215,8 +183,7 @@
             "type": "string"
           },
           "client_email": {
-            "type": "string",
-            "description": "Titular al que qued\u00f3 asignada la carga. Vac\u00edo cuando todav\u00eda no tiene titular."
+            "type": "string"
           },
           "shipping_mark": {
             "type": "string"
@@ -231,17 +198,14 @@
               "completado",
               "alineado",
               "con_error"
-            ],
-            "description": "Qu\u00e9 hizo la sincronizaci\u00f3n con este registro"
+            ]
           },
           "estado": {
-            "type": "string",
-            "description": "Estado de la carga en TLEC CARGO"
+            "type": "string"
           },
           "asignado": {
             "type": "boolean",
-            "default": false,
-            "description": "Indica que esta carga qued\u00f3 con su titular en esta corrida"
+            "default": false
           },
           "aviso": {
             "type": "string",
@@ -253,30 +217,25 @@
               "sin_foto",
               "no_recibido",
               "no_aplica"
-            ],
-            "description": "C\u00f3mo qued\u00f3 el aviso de recepci\u00f3n a la app del mayorista: enviado, fallido, omitido (ya avisado), pendiente, sin_foto (falta la foto de la carga), no_recibido o no_aplica (no hay carga registrada)"
+            ]
           },
           "fotos": {
-            "type": "number",
-            "description": "Fotos de la carga que iban en el aviso"
+            "type": "number"
           },
           "fecha": {
             "type": "string",
-            "format": "date-time",
-            "description": "Fecha del aviso de recepci\u00f3n al mayorista que corresponde a este registro. En las cargas que ya se le hab\u00edan avisado antes es la fecha de ese aviso; se muestra junto a la carga."
+            "format": "date-time"
           },
           "mensaje": {
             "type": "string",
-            "maxLength": 300,
-            "description": "Detalle del resultado de este registro"
+            "maxLength": 300
           }
         }
       }
     },
     "last_report_date": {
       "type": "string",
-      "format": "date-time",
-      "description": "Fecha del \u00faltimo informe de clientes nuevos"
+      "format": "date-time"
     },
     "last_report_status": {
       "type": "string",
@@ -286,55 +245,44 @@
         "fallido",
         "nunca"
       ],
-      "default": "nunca",
-      "description": "Resultado del \u00faltimo informe: enviado, sin_clientes (no se env\u00eda correo), fallido"
+      "default": "nunca"
     },
     "last_report_clients_count": {
       "type": "number",
-      "default": 0,
-      "description": "Clientes incluidos en el \u00faltimo informe"
+      "default": 0
     },
     "last_report_message": {
       "type": "string",
-      "maxLength": 1000,
-      "description": "Detalle del resultado del \u00faltimo informe"
+      "maxLength": 1000
     },
     "last_reception_date": {
       "type": "string",
-      "format": "date-time",
-      "description": "Fecha de la \u00faltima carga de ese mayorista marcada como recibida en el almac\u00e9n de China"
+      "format": "date-time"
     },
     "last_reception_tracking": {
-      "type": "string",
-      "description": "Tracking de la \u00faltima carga recibida"
+      "type": "string"
     },
     "last_reception_status": {
-      "type": "string",
-      "description": "Resultado de la \u00faltima recepci\u00f3n pedida por el mayorista"
+      "type": "string"
     },
     "last_notify_date": {
       "type": "string",
-      "format": "date-time",
-      "description": "Fecha del \u00faltimo aviso enviado a la app del mayorista"
+      "format": "date-time"
     },
     "last_notify_status": {
-      "type": "string",
-      "description": "Resultado del \u00faltimo aviso enviado al mayorista"
+      "type": "string"
     },
     "last_notify_message": {
       "type": "string",
-      "maxLength": 1000,
-      "description": "Detalle del \u00faltimo aviso enviado al mayorista"
+      "maxLength": 1000
     },
     "pending_notifications": {
       "type": "number",
-      "default": 0,
-      "description": "Recepciones de ese mayorista que todav\u00eda no se han podido avisar a su app"
+      "default": 0
     },
     "description": {
       "type": "string",
-      "maxLength": 1000,
-      "description": "Descripci\u00f3n opcional"
+      "maxLength": 1000
     }
   },
   "required": [
