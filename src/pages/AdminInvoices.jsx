@@ -974,12 +974,6 @@ export default function AdminInvoices({ user }) {
                         onDeleteAbono={handleDeleteProviderAbono}
                         onEditAbono={handleEditProviderAbono}
                       />
-                      <div onClick={(e) => e.stopPropagation()}>
-                        <ProviderInvoiceUploader
-                          value={invoice.provider_invoice_image_url || ''}
-                          onChange={(url) => handleSaveProviderInvoiceImage(invoice, url)}
-                        />
-                      </div>
                     </div>
                   )}
                 />
@@ -1185,11 +1179,6 @@ export default function AdminInvoices({ user }) {
                   placeholder="Ej: ID de transacción, voucher, etc."
                 />
               </div>
-
-              <ProviderInvoiceUploader
-                value={editingInvoice.provider_invoice_image_url || ''}
-                onChange={(url) => setEditingInvoice({ ...editingInvoice, provider_invoice_image_url: url })}
-              />
             </div>
           )}
           <DialogFooter>
