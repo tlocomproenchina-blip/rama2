@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import InvoiceCard from '@/components/invoice/InvoiceCard';
 import ProviderCostControl from '@/components/invoice/ProviderCostControl';
+import InvoiceProviderCosts from '@/components/invoice/provider-cross/InvoiceProviderCosts';
 import ProviderInvoiceUploader from '@/components/manual-billing/ProviderInvoiceUploader';
 import DispatchReceiptModal from '@/components/invoice/DispatchReceiptModal';
 import { FileText, Search, Loader2, Download, Edit, Trash2, PackageX, Package, MessageCircle, Truck, ClipboardList, Calculator, ShieldCheck, Lock } from 'lucide-react';
@@ -967,6 +968,7 @@ export default function AdminInvoices({ user }) {
                           <MessageCircle className="h-4 w-4" /> Notificar pago
                         </button>
                       )}
+                      <InvoiceProviderCosts invoice={invoice} />
                       <ProviderCostControl
                         invoice={invoice}
                         onSaveCost={handleSaveProviderCost}
