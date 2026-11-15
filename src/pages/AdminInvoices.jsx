@@ -35,6 +35,7 @@ import { toast } from 'sonner';
 import { ensureInvoicePaymentForPaidInvoice } from '@/lib/invoicePaymentSync';
 import StateFilter from '@/components/common/StateFilter';
 import ProviderCrossTab from '@/components/invoice/provider-cross/ProviderCrossTab';
+import { syncProviderPaid } from '@/lib/syncProviderPaid';
 
 export default function AdminInvoices({ user }) {
   const [invoices, setInvoices] = useState([]);
@@ -192,6 +193,12 @@ export default function AdminInvoices({ user }) {
     setInvoices(baseList);
     setHasMore(data.length === pageSize);
     if (append) setLoadingMore(false); else setLoading(false);
+
+    // Pagado al proveedor automático según las facturas de proveedor de sus contenedores
+    syncProviderPaid(baseList).then((changes) => {
+      if (!Object.keys(changes).length) return;
+      setInvoices(prev => prev.map(i => (i.id in changes ? { ...i, provider_paid: changes[i.id] } : i)));
+    }).catch(() => {});
 
     // FASE 2: enriquecer con datos del cliente en segundo plano
     const clientEmails = Array.from(new Set((data || []).map(inv => inv.client_email).filter(Boolean)));
