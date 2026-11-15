@@ -67,8 +67,17 @@ export default function InvoiceCbmOrders({ invoice }) {
       <ProviderCrossDetail row={open} onClose={() => setOpen(null)} />
 
       <div className="mt-2 flex justify-between gap-3 border-t border-slate-200 pt-1.5 font-semibold text-slate-800">
-        <span>Total CBM</span>
-        <span className="shrink-0">{formatCbm(total)} CBM</span>
+        <span>Total</span>
+        <span className="flex shrink-0 gap-6">
+          <span>Costo ${(() => {
+            const seen = new Set();
+            return rows.flatMap((r) => costsFor(r.order_number)).reduce((s, c) => {
+              const k = c.id || `${c.container}-${c.total}`;
+              if (seen.has(k)) return s; seen.add(k); return s + Number(c.total || 0);
+            }, 0).toFixed(2);
+          })()}</span>
+          <span>{formatCbm(total)} CBM</span>
+        </span>
       </div>
     </div>
   );
