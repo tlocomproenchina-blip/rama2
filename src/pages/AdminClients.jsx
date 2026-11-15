@@ -17,8 +17,11 @@ import EditClientDialog from '@/components/admin/clients/EditClientDialog';
 import DeleteClientDialog from '@/components/admin/clients/DeleteClientDialog';
 import useClientExports from '@/hooks/useClientExports';
 import useAddClientPackage from '@/hooks/useAddClientPackage';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import WholesalerAuditPanel from '@/components/wholesaler/audit/WholesalerAuditPanel';
 
 export default function AdminClients({ user }) {
+  const [view, setView] = useState('propios');
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -391,6 +394,13 @@ Email: ${client.email}`;
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
+      <Tabs value={view} onValueChange={setView}>
+        <TabsList>
+          <TabsTrigger value="propios">Clientes propios</TabsTrigger>
+          <TabsTrigger value="mayoristas">Mayoristas</TabsTrigger>
+        </TabsList>
+      </Tabs>
+      {view === 'mayoristas' ? <WholesalerAuditPanel /> : <>
       <ClientsHeaderActions
         canExport={canExport}
         onOpenImport={() => setImportModalOpen(true)}
@@ -505,6 +515,7 @@ Email: ${client.email}`;
         saving={saving}
         onSave={handleSave}
       />
+      </>}
     </div>
   );
 }
