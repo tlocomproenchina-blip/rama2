@@ -34,6 +34,7 @@ import { buildWhatsAppUrl } from '@/lib/whatsappContact';
 import { toast } from 'sonner';
 import { ensureInvoicePaymentForPaidInvoice } from '@/lib/invoicePaymentSync';
 import StateFilter from '@/components/common/StateFilter';
+import ProviderCrossTab from '@/components/invoice/provider-cross/ProviderCrossTab';
 
 export default function AdminInvoices({ user }) {
   const [invoices, setInvoices] = useState([]);
@@ -822,6 +823,7 @@ export default function AdminInvoices({ user }) {
             <TabsTrigger value="pagada">Pagadas</TabsTrigger>
             <TabsTrigger value="vencida">Vencidas</TabsTrigger>
             <TabsTrigger value="provider_unpaid">No pagadas al proveedor</TabsTrigger>
+            <TabsTrigger value="cruce_proveedor">Cruce proveedor</TabsTrigger>
             <TabsTrigger value="carga_almacen">
               <Truck className="h-3.5 w-3.5 mr-1" />
               Carga en almacén
@@ -903,7 +905,9 @@ export default function AdminInvoices({ user }) {
       )}
 
       {/* Carga en almacén pendiente de facturar */}
-      {statusFilter === 'carga_almacen' ? (
+      {statusFilter === 'cruce_proveedor' ? (
+        <ProviderCrossTab search={search} />
+      ) : statusFilter === 'carga_almacen' ? (
         <WarehouseBillingTab search={search} />
       ) : statusFilter === 'en_almacen' ? (
         <WarehousePaidTable
