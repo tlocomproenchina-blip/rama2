@@ -14,6 +14,8 @@ import AccountingExportButtons from '@/components/accounting/AccountingExportBut
 import PageHero from '@/components/common/PageHero';
 import RealProfitPanel from '@/components/accounting/RealProfitPanel';
 import { EXCLUDED_QUERY, withoutExcluded } from '@/lib/excludedAccounts';
+import { fetchAllPaginated } from '@/lib/fetchAllPaginated';
+import { reconciledCbm } from '@/lib/cbmReconciliation';
 
 function sumAmounts(items, getValue) {
   return (items || []).reduce((total, item) => total + Number(getValue(item) || 0), 0);
@@ -76,9 +78,10 @@ export default function AccountingDashboard({ user }) {
     const loadDashboard = async () => {
       setLoading(true);
 
-      const [invoicesAll, payables] = await Promise.all([
+      const [invoicesAll, payables, cbmAll] = await Promise.all([
         base44.entities.Invoice.filter(EXCLUDED_QUERY, '-updated_date', 300),
         base44.entities.AccountsPayable.list('-updated_date', 300),
+        fetchAllPaginated('CbmIngreso', { sort: '-fecha' }),
       ]);
 
       const invoices = withoutExcluded(invoicesAll);
@@ -128,7 +131,7 @@ export default function AccountingDashboard({ user }) {
             overdueCount: overdueInvoices.length,
             overdueAmount: sumAmounts(overdueInvoices, balanceOf),
             providerPaymentsMonth: sumAmounts(providerPaidThisMonth, (item) => item.amount_paid),
-            billedCbm: sumAmounts(invoices, (invoice) => invoice.billed_cbm),
+            billedCbm: reconciledCbm(withoutExcluded(cbmAll || [])),
           },
           monthlyRevenue,
           receivables,
@@ -178,7 +181,7 @@ export default function AccountingDashboard({ user }) {
         <AccountingMetricCard title="Por cobrar" value={`$${report.metrics.receivablesAmount.toFixed(2)}`} subtitle="Facturas pendientes y en revisión" icon={Wallet} accent="bg-blue-100 text-blue-700" />
         <AccountingMetricCard title="Facturas vencidas" value={String(report.metrics.overdueCount)} subtitle={`$${report.metrics.overdueAmount.toFixed(2)} en riesgo`} icon={AlertTriangle} accent="bg-amber-100 text-amber-700" />
         <AccountingMetricCard title="Pagos a proveedores" value={`$${report.metrics.providerPaymentsMonth.toFixed(2)}`} subtitle="Abonos registrados este mes" icon={CreditCard} accent="bg-teal-100 text-teal-700" />
-        <AccountingMetricCard title="CBM facturados" value={report.metrics.billedCbm.toFixed(4)} subtitle="Total de CBM facturado" icon={Package} accent="bg-indigo-100 text-indigo-700" />
+        <AccountingMetricCard title="CBM conciliado" value={report.metrics.billedCbm.toFixed(4)} subtitle="Facturas 1–380 + ajuste, criterio Excel China" icon={Package} accent="bg-indigo-100 text-indigo-700" />
       </section>
 
       <RealProfitPanel fromIso={monthStart.from} toIso={monthStart.to} title="Beneficio real del mes" />

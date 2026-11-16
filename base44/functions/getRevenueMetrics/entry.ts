@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
 import { withoutExcluded } from '../../shared/excludedAccounts.ts';
+import { isReconAdjustment, reconciledCbm } from '../../shared/cbmReconciliation.ts';
 
 async function fetchAll(entity, sortBy = '-created_date', batchSize = 200) {
   let all = [];
@@ -68,6 +69,8 @@ Deno.serve(async (req) => {
     let totalCbm = 0;
 
     cbmRecords.forEach(r => {
+      // El ajuste de conciliación no pertenece a un mes real
+      if (isReconAdjustment(r)) return;
       const month = r.mes || getMonthKey(r.fecha);
       if (!inRange(month)) return;
 
@@ -208,6 +211,7 @@ Deno.serve(async (req) => {
         totalProviderCost: Math.round(totalProviderCost * 100) / 100,
         totalPending: Math.round(totalPending * 100) / 100,
         totalCbm: Math.round(totalCbm * 100) / 100,
+        reconciledCbm: Math.round(reconciledCbm(cbmRecords) * 10000) / 10000,
         totalInvoices: invoices.filter(inv => { const m = getMonthKey(inv.invoice_date); return inRange(m); }).length,
         totalClients: clientData.length,
       },

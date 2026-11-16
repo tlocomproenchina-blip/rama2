@@ -10,4 +10,11 @@ export const isReconAdjustment = (item) =>
 export const rangeCoversRecon = (fromNum, toNum) =>
   (fromNum === null || fromNum <= RECON_RANGE.from) && (toNum === null || toNum >= RECON_RANGE.to);
 
+export const reconciledCbm = (records) =>
+  (records || []).reduce((s, r) => {
+    const n = parseFloat(r.invoice_number);
+    const inRange = Number.isFinite(n) && n >= RECON_RANGE.from && n <= RECON_RANGE.to;
+    return inRange || isReconAdjustment(r) ? s + Number(r.cbm || 0) : s;
+  }, 0);
+
 export const sumCbm = (list) => (list || []).reduce((s, i) => s + Number(i.cbm || 0), 0);

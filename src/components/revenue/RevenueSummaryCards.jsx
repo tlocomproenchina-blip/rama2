@@ -6,7 +6,8 @@ const cards = [
   { key: 'shippingProfit', label: 'Ganancia Envíos', sublabelKey: 'totalProviderCost', icon: Ship, color: 'text-cyan-600 bg-cyan-50 border-cyan-100', prefix: '$', isCurrency: true },
   { key: 'insuranceProfit', label: 'Seguros Cobrados', icon: Shield, color: 'text-teal-600 bg-teal-50 border-teal-100', prefix: '$', isCurrency: true },
   { key: 'totalPending', label: 'Pendiente de Cobro', icon: Clock, color: 'text-orange-600 bg-orange-50 border-orange-100', prefix: '$', isCurrency: true },
-  { key: 'totalCbm', label: 'CBM Procesados', icon: Package, color: 'text-blue-600 bg-blue-50 border-blue-100', suffix: ' CBM', decimals: 2 },
+  { key: 'totalCbm', label: 'CBM Procesados (por mes de registro)', icon: Package, color: 'text-blue-600 bg-blue-50 border-blue-100', suffix: ' CBM', decimals: 2 },
+  { key: 'reconciledCbm', label: 'CBM conciliado Excel (facturas 1–380)', icon: Package, color: 'text-blue-600 bg-blue-50 border-blue-100', suffix: ' CBM', decimals: 4 },
   { key: 'totalInvoices', label: 'Facturas Emitidas', icon: FileText, color: 'text-purple-600 bg-purple-50 border-purple-100' },
   { key: 'totalClients', label: 'Clientes Activos', icon: Users, color: 'text-indigo-600 bg-indigo-50 border-indigo-100' },
 ];

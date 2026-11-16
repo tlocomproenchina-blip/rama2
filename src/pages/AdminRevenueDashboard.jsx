@@ -49,9 +49,8 @@ export default function AdminRevenueDashboard({ user }) {
       }
       return result;
     },
-    staleTime: 0,
-    gcTime: 0,
-    refetchOnMount: 'always',
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   // Fetch previous period for comparison
@@ -68,9 +67,8 @@ export default function AdminRevenueDashboard({ user }) {
       return result;
     },
     enabled: !!prevPeriod,
-    staleTime: 0,
-    gcTime: 0,
-    refetchOnMount: 'always',
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   const handleRefresh = useCallback(() => refetch(), [refetch]);
