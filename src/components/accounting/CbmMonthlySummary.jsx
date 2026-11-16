@@ -5,6 +5,7 @@ import { es } from 'date-fns/locale';
 import { Card, CardContent } from '@/components/ui/card';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { CalendarDays } from 'lucide-react';
+import { isReconAdjustment } from '@/lib/cbmReconciliation';
 
 export default function CbmMonthlySummary({ currentMonth }) {
   const [chartData, setChartData] = useState([]);
@@ -23,7 +24,7 @@ export default function CbmMonthlySummary({ currentMonth }) {
     const grouped = {};
     months.forEach(m => { grouped[m] = 0; });
     (all || []).forEach(item => {
-      if (grouped[item.mes] !== undefined) {
+      if (grouped[item.mes] !== undefined && !isReconAdjustment(item)) {
         grouped[item.mes] += Number(item.cbm || 0);
       }
     });

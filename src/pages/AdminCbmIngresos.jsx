@@ -21,6 +21,7 @@ import CbmClientSummary from '@/components/accounting/CbmClientSummary';
 import CbmStateCostPanel from '@/components/accounting/CbmStateCostPanel';
 import CbmBulkEditDialog from '@/components/admin/CbmBulkEditDialog';
 import CbmImportDialog from '@/components/admin/CbmImportDialog';
+import { isReconAdjustment, rangeCoversRecon, sumCbm } from '@/lib/cbmReconciliation';
 
 export default function AdminCbmIngresos({ user }) {
    
@@ -60,7 +61,7 @@ export default function AdminCbmIngresos({ user }) {
     const fromDate = new Date(dateFrom + 'T00:00:00');
     const toDate = new Date(dateTo + 'T23:59:59');
     const filtered = (all || []).filter(item => {
-      if (!item.fecha) return false;
+      if (!item.fecha || isReconAdjustment(item)) return false;
       const d = new Date(item.fecha);
       return d >= fromDate && d <= toDate;
     });
@@ -127,6 +128,7 @@ export default function AdminCbmIngresos({ user }) {
     if (q || hasRange) {
       return sortByOrderDesc((allIngresos || []).filter((item) => {
         const num = parseFloat(item.invoice_number);
+        if (isReconAdjustment(item) && !q) return hasRange && rangeCoversRecon(fromNum, toNum);
         if (q && !String(item.invoice_number || '').toLowerCase().includes(q)) return false;
         if (hasRange) {
           if (!Number.isFinite(num)) return false;
@@ -482,7 +484,7 @@ export default function AdminCbmIngresos({ user }) {
             <div>
               <p className="text-sm text-blue-700 font-medium">Total CBM del mes</p>
               <p className="text-3xl font-bold text-blue-900">{totalCbm.toFixed(5)}</p>
-              <p className="text-xs text-blue-600">{ingresos.length} registro(s)</p>
+              <p className="text-xs text-blue-600">{ingresos.length} registro(s) · por fecha de registro del período, sin ajustes de conciliación</p>
             </div>
           </CardContent>
         </Card>
@@ -537,7 +539,8 @@ export default function AdminCbmIngresos({ user }) {
           )}
           {(orderSearch.trim() || orderFrom !== '' || orderTo !== '') && (
             <p className="text-xs text-slate-500">
-              Buscando en todo el histórico · {filteredIngresos.length} resultado(s)
+              Buscando en todo el histórico · {filteredIngresos.length} resultado(s) · Total {sumCbm(filteredIngresos).toFixed(4)} CBM
+              {filteredIngresos.some(isReconAdjustment) && ' (incluye ajuste de conciliación sin cliente de facturas 1–380)'}
             </p>
           )}
           {!loading && !orderSearch.trim() && orderFrom === '' && orderTo === '' && (
