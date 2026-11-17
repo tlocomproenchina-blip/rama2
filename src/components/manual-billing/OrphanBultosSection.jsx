@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import useOrphanBultos from '@/hooks/useOrphanBultos';
 import BultosReceiptDialog from './BultosReceiptDialog';
-import { bultoCbm, bultoPackages, createReceiptFromBultos } from '@/lib/receiptFromBultos';
+import { assignBultosToReceipt, bultoCbm, bultoPackages, createReceiptFromBultos } from '@/lib/receiptFromBultos';
 
 // Bultos en almacén sin recibo ni factura: se seleccionan y se agrupan en un recibo del cliente.
 export default function OrphanBultosSection({ client, version, onCreated }) {
@@ -19,19 +19,28 @@ export default function OrphanBultosSection({ client, version, onCreated }) {
   const chosen = items.filter((b) => selected.has(b.id));
   const toggle = (id) => setSelected((prev) => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
-  const confirm = async ({ invoiceNumber, cbm }) => {
+  const confirm = ({ invoiceNumber, cbm }) => run(async () => {
+    await createReceiptFromBultos({ client, bultoIds: chosen.map((b) => b.id), invoiceNumber, cbm });
+    return `Recibo ${invoiceNumber.trim()} creado con ${chosen.length} bulto(s)`;
+  });
+
+  const assign = (receiptId) => run(async () => {
+    const r = await assignBultosToReceipt({ client, bultoIds: chosen.map((b) => b.id), receiptId });
+    return `${chosen.length} bulto(s) asignados al recibo ${r.invoice_number}`;
+  });
+
+  const run = async (action) => {
     if (busy.current) return;
     busy.current = true;
     setSaving(true);
     try {
-      await createReceiptFromBultos({ client, bultoIds: chosen.map((b) => b.id), invoiceNumber, cbm });
-      toast.success(`Recibo ${invoiceNumber.trim()} creado con ${chosen.length} bulto(s)`);
+      toast.success(await action());
       setOpen(false);
       setSelected(new Set());
       await reload();
       onCreated?.();
     } catch (e) {
-      toast.error(e?.message || 'No se pudo crear el recibo');
+      toast.error(e?.message || 'No se pudo guardar el recibo');
       reload();
     } finally {
       busy.current = false;
@@ -56,7 +65,7 @@ export default function OrphanBultosSection({ client, version, onCreated }) {
           <span className="text-xs text-muted-foreground">{bultoPackages(b)} paq · {bultoCbm(b) > 0 ? `${bultoCbm(b)} CBM` : 'sin CBM'}{(b.cbm_order_numbers || []).length ? ` · ${b.cbm_order_numbers.join(', ')}` : ''}</span>
         </label>
       ))}
-      <BultosReceiptDialog open={open} onOpenChange={setOpen} bultos={chosen} saving={saving} onConfirm={confirm} />
+      <BultosReceiptDialog open={open} onOpenChange={setOpen} bultos={chosen} saving={saving} onConfirm={confirm} onAssign={assign} clientEmail={client?.email} />
     </div>
   );
 }

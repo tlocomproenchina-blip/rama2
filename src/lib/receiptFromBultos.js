@@ -38,6 +38,39 @@ export function prefillFromBultos(bultos) {
   };
 }
 
+// Recibos existentes del cliente a los que se pueden asignar bultos.
+export async function loadClientReceipts(email) {
+  return base44.entities.CbmIngreso.filter({ client_email: email }, '-fecha', 200);
+}
+
+// Vincula los bultos a un recibo ya creado (sin crear otro). Suma sus trackings
+// y paquetes nuevos al recibo; no cambia su CBM.
+export async function assignBultosToReceipt({ client, bultoIds, receiptId }) {
+  const [fresh, index, receipts] = await Promise.all([
+    base44.entities.Bulto.filter({ id: { $in: bultoIds } }, '-created_date', bultoIds.length + 5),
+    loadClientReceiptIndex(client.email),
+    base44.entities.CbmIngreso.filter({ id: receiptId }, '-fecha', 1),
+  ]);
+  const receipt = receipts[0];
+  if (!receipt || receipt.client_email !== client.email) throw new Error('El recibo seleccionado ya no existe.');
+  const stillOrphan = fresh.filter((b) => b.client_email === client.email && isOrphanBulto(b, index.codes, index.trackings));
+  if (stillOrphan.length !== bultoIds.length) throw new Error('Algunos bultos ya quedaron vinculados a un recibo o factura. Los datos cambiaron, revisa la lista.');
+
+  const code = clean(receipt.invoice_number);
+  const pre = prefillFromBultos(stillOrphan);
+  const current = (receipt.tracking_numbers || []).map(up);
+  const added = pre.trackings.filter((t) => !current.includes(t));
+  await base44.entities.CbmIngreso.update(receipt.id, {
+    tracking_numbers: [...(receipt.tracking_numbers || []), ...added],
+    package_count: num(receipt.package_count) + pre.package_count || undefined,
+    notas: [clean(receipt.notas), `Bultos asignados: ${stillOrphan.map((b) => b.label_code).filter(Boolean).join(', ')}`].filter(Boolean).join(' · '),
+  });
+  await Promise.all(stillOrphan.map((b) => base44.entities.Bulto.update(b.id, {
+    cbm_order_numbers: [...new Set([...(b.cbm_order_numbers || []), code])],
+  })));
+  return receipt;
+}
+
 // Revalida al confirmar, crea el recibo y vincula los bultos con su N° de contenedor.
 export async function createReceiptFromBultos({ client, bultoIds, invoiceNumber, cbm }) {
   const code = clean(invoiceNumber);

@@ -5,15 +5,20 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { prefillFromBultos } from '@/lib/receiptFromBultos';
+import ExistingReceiptPicker from './ExistingReceiptPicker';
 
 // Precarga los datos de los bultos y pide solo lo que falta (N° de contenedor y/o CBM).
-export default function BultosReceiptDialog({ open, onOpenChange, bultos, saving, onConfirm }) {
+export default function BultosReceiptDialog({ open, onOpenChange, bultos, saving, onConfirm, onAssign, clientEmail }) {
   const [pre, setPre] = useState(null);
   const [code, setCode] = useState('');
   const [cbm, setCbm] = useState('');
+  const [mode, setMode] = useState('new');
+  const [receiptId, setReceiptId] = useState('');
 
   useEffect(() => {
     if (!open) return;
+    setMode('new');
+    setReceiptId('');
     const p = prefillFromBultos(bultos);
     setPre(p);
     setCode(p.invoice_number);
@@ -28,7 +33,19 @@ export default function BultosReceiptDialog({ open, onOpenChange, bultos, saving
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
-        <DialogHeader><DialogTitle>Crear recibo con {bultos.length} bulto(s)</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{mode === 'new' ? 'Crear recibo' : 'Asignar a recibo'} con {bultos.length} bulto(s)</DialogTitle></DialogHeader>
+        <div className="grid grid-cols-2 gap-1 rounded-xl bg-muted p-1 text-sm">
+          {[['new', 'Crear recibo nuevo'], ['existing', 'Asignar a recibo existente']].map(([k, l]) => (
+            <button key={k} type="button" onClick={() => setMode(k)}
+              className={`rounded-lg px-2 py-2 font-semibold transition-colors ${mode === k ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'}`}>{l}</button>
+          ))}
+        </div>
+        {mode === 'existing' ? (
+          <div className="space-y-2 text-sm">
+            <p className="text-xs text-muted-foreground">Elige el recibo / contenedor al que se agregan los bultos. Sus trackings se suman al recibo.</p>
+            <ExistingReceiptPicker email={clientEmail} value={receiptId} onChange={setReceiptId} />
+          </div>
+        ) : (
         <div className="space-y-3 text-sm">
           <div className="grid grid-cols-2 gap-2 rounded-xl bg-muted p-3">
             <span className="text-muted-foreground">Paquetes</span><span className="font-semibold">{pre.package_count}</span>
@@ -45,11 +62,18 @@ export default function BultosReceiptDialog({ open, onOpenChange, bultos, saving
             <div className="space-y-1"><Label>CBM</Label><Input type="number" step="0.0001" min="0" value={cbm} onChange={(e) => setCbm(e.target.value)} /></div>
           )}
         </div>
+        )}
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>Cancelar</Button>
+          {mode === 'existing' ? (
+            <Button disabled={!receiptId || saving} onClick={() => onAssign(receiptId)}>
+              {saving && <Loader2 className="h-4 w-4 animate-spin" />} Asignar al recibo
+            </Button>
+          ) : (
           <Button disabled={!ready || saving} onClick={() => onConfirm({ invoiceNumber: code, cbm: Number(cbm) })}>
             {saving && <Loader2 className="h-4 w-4 animate-spin" />} Crear recibo
           </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
