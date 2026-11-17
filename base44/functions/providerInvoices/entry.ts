@@ -283,10 +283,37 @@ Deno.serve(async (req) => {
       const list = Array.isArray(body.items) ? body.items : [];
       if (!list.length) return Response.json({ error: 'No hay facturas seleccionadas' }, { status: 400 });
       if (list.some((i: any) => !i.id || !i.payment_proof_url)) return Response.json({ error: 'Falta el comprobante de alguna factura' }, { status: 400 });
-      const date = /^\d{4}-\d{2}-\d{2}$/.test(String(body.paid_date || '')) ? `${body.paid_date}T12:00:00.000Z` : new Date().toISOString();
-      await sr.entities.ProviderInvoice.bulkUpdate(list.map((i: any) => ({
-        id: i.id, status: 'pagada', payment_proof_url: i.payment_proof_url, paid_date: date, paid_by: user.email,
-      })));
+      const ids = [...new Set(list.map((i: any) => String(i.id)))];
+      if (ids.length !== list.length) return Response.json({ error: 'Hay facturas repetidas en la selección' }, { status: 400 });
+      const day = /^\d{4}-\d{2}-\d{2}$/.test(String(body.paid_date || '')) ? String(body.paid_date) : new Date().toISOString().slice(0, 10);
+      const date = `${day}T12:00:00.000Z`;
+      // Se valida todo antes de escribir: o se pagan todas o ninguna.
+      const found = await sr.entities.ProviderInvoice.filter({ id: { $in: ids } }, '-created_date', ids.length);
+      const byId: any = {};
+      for (const f of found || []) byId[f.id] = f;
+      if (ids.some((id) => !byId[id])) return Response.json({ error: 'Alguna factura ya no existe' }, { status: 404 });
+      const already = ids.filter((id) => byId[id].status === 'pagada').map((id) => byId[id].invoice_code);
+      if (already.length) return Response.json({ error: `Ya están pagadas: ${already.join(', ')}` }, { status: 400 });
+      const rowsByInvoice: any = {};
+      for (const r of await installmentsFor(sr, ids)) (rowsByInvoice[r.invoice_id] ||= []).push(r);
+      // Saldo completo de cada factura (total menos abonos previos), con el mismo comprobante y fecha.
+      const installments = list
+        .map((i: any) => {
+          const inv = byId[i.id];
+          const balance = round((Number(inv.total) || 0) - sumOf(rowsByInvoice[i.id] || []));
+          return { invoice_id: i.id, amount: balance, payment_date: day, proof_url: String(i.payment_proof_url), registered_by: user.email, registered_by_name: user.full_name || '' };
+        })
+        .filter((r: any) => r.amount > EPS);
+      const created = installments.length ? await sr.entities.ProviderInvoiceInstallment.bulkCreate(installments) : [];
+      try {
+        await sr.entities.ProviderInvoice.bulkUpdate(list.map((i: any) => ({
+          id: i.id, status: 'pagada', payment_proof_url: i.payment_proof_url, paid_date: date, paid_by: user.email,
+        })));
+      } catch (err) {
+        const createdIds = (created || []).map((c: any) => c.id).filter(Boolean);
+        if (createdIds.length) await sr.entities.ProviderInvoiceInstallment.deleteMany({ id: { $in: createdIds } });
+        throw err;
+      }
       return Response.json({ ok: true, count: list.length });
     }
     return Response.json({ error: 'Acción inválida' }, { status: 400 });
