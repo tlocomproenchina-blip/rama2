@@ -16,7 +16,7 @@ export default function ShippingLabelContent({ shippingMark, form, logoUrl, comp
   const isMultiBox = boxTotal > 1;
 
   return (
-    <div style={{ width: 380, fontSize: 12, color: '#000', lineHeight: 1.4 }}>
+    <div style={{ width: 380, boxSizing: 'border-box', fontSize: 12, color: '#000', lineHeight: 1.4, overflowWrap: 'anywhere' }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', borderBottom: '3px solid #000', padding: '10px 12px' }}>
         <div style={{ width: 48, height: 48, border: '2px solid #000', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: 28, marginRight: 10, flexShrink: 0 }}>
@@ -50,7 +50,7 @@ export default function ShippingLabelContent({ shippingMark, form, logoUrl, comp
       {/* Fields */}
       <div style={{ padding: '6px 12px', borderBottom: '1px solid #999' }}>
         <div style={{ fontWeight: 700, marginBottom: 2 }}>包装盒内容</div>
-        <div style={{ minHeight: 22, borderBottom: '1px dotted #999', paddingBottom: 2 }}>{form.content || ''}</div>
+        <div style={{ minHeight: 22, borderBottom: '1px dotted #999', paddingBottom: 2, whiteSpace: 'pre-wrap' }}>{form.content || ''}</div>
       </div>
       <div style={{ padding: '6px 12px', borderBottom: '1px solid #999' }}>
         <div style={{ fontWeight: 700, marginBottom: 2 }}>包装盒尺寸</div>

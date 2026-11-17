@@ -26,6 +26,7 @@ export async function downloadShippingLabelFile(label, config) {
   const companyName = config?.app_name || 'IMPORTACIONES TLEC CARGO';
 
   const host = document.createElement('div');
+  host.setAttribute('data-label-host', '1');
   host.style.cssText = 'position:fixed;left:-9999px;top:0;width:380px;background:#fff;';
   document.body.appendChild(host);
   const root = createRoot(host);
@@ -64,7 +65,19 @@ export async function downloadShippingLabelFile(label, config) {
     const boxes = Array.from(host.querySelectorAll('[data-label-box]'));
     const canvases = [];
     for (const box of boxes) {
-      canvases.push(await html2canvas(box, { scale: 3, backgroundColor: '#ffffff', useCORS: true }));
+      canvases.push(await html2canvas(box, {
+        scale: 3,
+        backgroundColor: '#ffffff',
+        useCORS: true,
+        scrollX: 0,
+        scrollY: 0,
+        windowWidth: Math.max(window.innerWidth, 480),
+        // En la copia que se captura, la etiqueta se ubica en 0,0 para que no se recorte el borde izquierdo
+        onclone: (doc) => {
+          const h = doc.querySelector('[data-label-host]');
+          if (h) h.style.cssText = 'position:absolute;left:0;top:0;width:380px;background:#fff;';
+        },
+      }));
     }
 
     if (boxTotal === 1) {
