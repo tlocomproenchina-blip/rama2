@@ -231,6 +231,12 @@ Deno.serve(async (req) => {
       const invoice = await sr.entities.ProviderInvoice.update(body.id, patch);
       return Response.json({ invoice });
     }
+    if (action === 'updateProof') {
+      if (!isFullAdmin(user)) return Response.json({ error: 'Solo el administrador' }, { status: 403 });
+      if (!body.id || !body.payment_proof_url) return Response.json({ error: 'Falta el comprobante' }, { status: 400 });
+      const invoice = await sr.entities.ProviderInvoice.update(body.id, { payment_proof_url: String(body.payment_proof_url) });
+      return Response.json({ invoice });
+    }
     if (action === 'listInstallments') {
       if (!isFullAdmin(user)) return Response.json({ error: 'Solo el administrador' }, { status: 403 });
       const inv = await sr.entities.ProviderInvoice.get(body.id);

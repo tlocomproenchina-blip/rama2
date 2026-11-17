@@ -19,6 +19,7 @@ export default function ProviderInvoiceEditDialog({ inv, open, onOpenChange, onS
   });
   const [extra, setExtra] = useState([]);
   const [file, setFile] = useState(inv.invoice_file_url || '');
+  const [proof, setProof] = useState(inv.payment_proof_url || '');
   const [saving, setSaving] = useState(false);
   const total = lineTotal(main, inv.flat_rate) + extra.reduce((s, l) => s + lineTotal(l, inv.flat_rate), 0);
 
@@ -28,6 +29,7 @@ export default function ProviderInvoiceEditDialog({ inv, open, onOpenChange, onS
     setSaving(true);
     try {
       await piCall('update', { id: inv.id, data: linePayload(main, client, loadDate, file) });
+      if (proof && proof !== (inv.payment_proof_url || '')) await piCall('updateProof', { id: inv.id, payment_proof_url: proof });
       for (const l of extra) await piCall('create', { data: linePayload(l, client, loadDate, file) });
       toast.success(extra.length ? `Factura actualizada y ${extra.length} agregada(s)` : 'Factura actualizada');
       onOpenChange(false); onSaved?.();
@@ -50,6 +52,9 @@ export default function ProviderInvoiceEditDialog({ inv, open, onOpenChange, onS
           ))}
           <Button type="button" variant="outline" onClick={() => setExtra([...extra, emptyLine()])}><Plus /> Agregar factura y CBM</Button>
           <div className="space-y-2"><Label>Factura (foto o PDF) — una para todo el grupo</Label><FileUploadField value={file} onChange={setFile} /></div>
+          {(inv.status === 'pagada' || inv.payment_proof_url) && (
+            <div className="space-y-2"><Label>Comprobante de pago</Label><FileUploadField value={proof} onChange={setProof} label="Cambiar comprobante" /></div>
+          )}
           <div className="rounded-xl bg-accent/60 p-4 text-sm">
             <p>{1 + extra.length} factura(s) · Tarifa {money(inv.flat_rate)}</p>
             <p className="mt-1 font-display text-2xl font-bold text-primary">{money(total)}</p>
