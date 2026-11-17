@@ -1,8 +1,7 @@
-import React, { useEffect, useState } from 'react';
-import { base44 } from '@/api/base44Client';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
-import { toast } from 'sonner';
+import useSupportClientSearch from '@/hooks/useSupportClientSearch';
 import SupportClientSearchPanel from '@/components/support/client-file/SupportClientSearchPanel';
 import SupportClientProfileCard from '@/components/support/client-file/SupportClientProfileCard';
 import SupportClientCasesCard from '@/components/support/client-file/SupportClientCasesCard';
@@ -15,54 +14,8 @@ import SupportPackageEditCard from '@/components/support/package-edit/SupportPac
 // (por cédula, sin depender de un ticket) y reúne sus datos de contacto, sus
 // casos, sus notas internas y su historial operativo ya existente.
 export default function AdminSupportClients({ user }) {
-  const [query, setQuery] = useState('');
-  const [results, setResults] = useState([]);
-  const [total, setTotal] = useState(0);
-  const [searching, setSearching] = useState(false);
-  const [searched, setSearched] = useState(false);
   const [client, setClient] = useState(null);
-
-  const term = query.trim();
-
-  useEffect(() => {
-    if (client || term.length < 3) {
-      setResults([]);
-      setTotal(0);
-      setSearched(false);
-      setSearching(false);
-      return undefined;
-    }
-
-    let active = true;
-    setSearching(true);
-    const timer = setTimeout(async () => {
-      try {
-        const res = await base44.functions.invoke('listClientsForSupport', {
-          q: term,
-          limit: 30,
-          skip: 0,
-          includeCounts: false,
-        });
-        if (!active) return;
-        setResults(res?.data?.data || []);
-        setTotal(Number(res?.data?.total) || 0);
-        setSearched(true);
-      } catch {
-        if (!active) return;
-        setResults([]);
-        setTotal(0);
-        setSearched(true);
-        toast.error('No se pudo buscar clientes');
-      } finally {
-        if (active) setSearching(false);
-      }
-    }, 400);
-
-    return () => {
-      active = false;
-      clearTimeout(timer);
-    };
-  }, [term, client]);
+  const { query, setQuery, results, total, searching, searched } = useSupportClientSearch(client);
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">

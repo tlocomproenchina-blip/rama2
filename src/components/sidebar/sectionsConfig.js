@@ -43,7 +43,7 @@ export const ADMIN_SECTIONS = [
     p('AdminProviderCredits', 'Saldo proveedor'),
   ] },
   { id: 'clientes', label: 'Clientes', icon: Users, pages: [
-    p('AdminClients', 'Clientes'), p('AdminWholesalerClients', 'Mayoristas'), p('AdminSharedPortal', 'Portal compartido'),
+    p('AdminClients', 'Clientes'), p('AdminClientLabels', 'Etiquetas'), p('AdminWholesalerClients', 'Mayoristas'), p('AdminSharedPortal', 'Portal compartido'),
     p('AdminReferrals', 'Referidos'), p('ClientAnalytics', 'Análisis'), p('AdminSupportCollections', 'Cobranza'),
   ] },
   { id: 'marketing', label: 'Marketing', icon: Megaphone, pages: [
