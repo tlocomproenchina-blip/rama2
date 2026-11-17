@@ -8,6 +8,7 @@ import SupportClientProfileCard from '@/components/support/client-file/SupportCl
 import SupportClientCasesCard from '@/components/support/client-file/SupportClientCasesCard';
 import SupportNotesPanel from '@/components/support/client-file/SupportNotesPanel';
 import ClientSupport360 from '@/components/support/client360/ClientSupport360';
+import SupportClientLabelsPanel from '@/components/support/client-labels/SupportClientLabelsPanel';
 import SupportPackageEditCard from '@/components/support/package-edit/SupportPackageEditCard';
 
 // Ficha única de cliente del área de Soporte: se abre desde el buscador global
@@ -68,7 +69,7 @@ export default function AdminSupportClients({ user }) {
       <div>
         <h1 className="font-display text-2xl font-bold text-foreground">Ficha de cliente</h1>
         <p className="text-sm text-muted-foreground">
-          Busca al cliente por su cédula y reúne sus datos, sus casos y sus notas internas en un solo lugar.
+          Busca a cualquier cliente por cédula, nombre, correo o Shipping Mark y reúne sus datos, casos, notas y etiquetas en un solo lugar.
         </p>
       </div>
 
@@ -108,6 +109,7 @@ export default function AdminSupportClients({ user }) {
             </div>
             <div className="space-y-6 lg:col-span-2">
               <SupportClientCasesCard clientEmail={client.email} />
+              <SupportClientLabelsPanel client={client} />
               <SupportPackageEditCard
                 clientEmail={client.email}
                 clientName={client.full_name || [client.first_name, client.last_name].filter(Boolean).join(' ')}
