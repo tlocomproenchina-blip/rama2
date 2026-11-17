@@ -523,7 +523,12 @@ export default function AdminManualBilling({ user }) {
     }));
   };
 
-  const selectedRows = rows.filter((r) => r.selected);
+  // Solo se ofrecen recibos con al menos un bulto registrado en el almacén de Venezuela
+  // (no despachado), vinculado por N° de contenedor.
+  const veOrderCodes = new Set(((pending.clients.find((c) => c.client_email === client?.email)?.bultos) || [])
+    .flatMap((b) => (b.order_numbers || []).map((o) => String(o).trim().toUpperCase())));
+  const eligibleRows = rows.filter((r) => veOrderCodes.has(String(r.invoice_number || '').trim().toUpperCase()));
+  const selectedRows = eligibleRows.filter((r) => r.selected);
   const selectedOrphans = orphanPackages.filter((p) => p.selected);
   // Trackings de paquetes sin recibo ya asignados: se muestran dentro de su recibo
   const assignedOrphansByReceipt = {};
@@ -1115,7 +1120,7 @@ export default function AdminManualBilling({ user }) {
         active={mobileTab}
         onChange={(tab) => { setMobileTab(tab); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
         pendingCount={pendingQueue.length}
-        receiptsCount={rows.length}
+        receiptsCount={eligibleRows.length}
         total={total}
         hasClient={!!client}
       />
@@ -1175,7 +1180,7 @@ export default function AdminManualBilling({ user }) {
             />
 
             <Button className="w-full xl:hidden" onClick={() => { setMobileTab('recibos'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
-              Ver recibos por facturar ({rows.length})
+              Ver recibos por facturar ({eligibleRows.length})
             </Button>
           </div>
 
@@ -1200,7 +1205,7 @@ export default function AdminManualBilling({ user }) {
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
-            ) : rows.length === 0 ? (
+            ) : eligibleRows.length === 0 ? (
               <Card className="border-0 shadow-lg">
                 <CardContent className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                   Este cliente no tiene recibos pendientes por facturar.
@@ -1208,7 +1213,7 @@ export default function AdminManualBilling({ user }) {
               </Card>
             ) : (
               <div className="space-y-3">
-                {rows.map((row) => (
+                {eligibleRows.map((row) => (
                   <BillingInvoiceRow
                     key={row.id}
                     row={row}
@@ -1236,7 +1241,7 @@ export default function AdminManualBilling({ user }) {
                   await base44.entities.Package.bulkUpdate(ids.map((id) => ({ id, billing_marked: true, billing_marked_date: now, billing_marked_by: me?.email || '' })));
                   setOrphanPackages((prev) => prev.filter((p) => !ids.includes(p.id)));
                 }}
-                availableReceipts={rows}
+                availableReceipts={eligibleRows}
                 onAssignReceipt={(packageIds, receiptId) => {
                   setRows((prev) => prev.map((r) => (r.id === receiptId ? { ...r, selected: true } : r)));
                   persistReceiptAssignment(packageIds, receiptId);
