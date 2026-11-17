@@ -14,7 +14,8 @@ export default function ProviderPaidReportButton({ filters }) {
     setBusy(true);
     try {
       const data = await piCall('paidReport', { client: filters.client, from: filters.from, to: filters.to });
-      const items = withoutExcluded(data.items);
+      // La cuenta interna de pruebas solo se omite en el informe general; si se elige un cliente, se respeta.
+      const items = filters.client?.trim() ? (data.items || []) : withoutExcluded(data.items);
       if (!items.length) { toast.info('No hay facturas pagadas para exportar con esos filtros.'); return; }
       await generatePaidProviderReportPdf(items, filters);
       toast.success(`Informe generado con ${items.length} factura(s)`);

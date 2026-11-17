@@ -185,7 +185,7 @@ Deno.serve(async (req) => {
       }
       if (body.client) {
         const re = String(body.client).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        q.$or = [{ shipping_mark: { $regex: re, $options: 'i' } }, { client_name: { $regex: re, $options: 'i' } }, { invoice_code: { $regex: re, $options: 'i' } }];
+        q.$or = [{ shipping_mark: { $regex: re, $options: 'i' } }, { client_name: { $regex: re, $options: 'i' } }, { client_email: { $regex: re, $options: 'i' } }, { invoice_code: { $regex: re, $options: 'i' } }];
       }
       const items = await sr.entities.ProviderInvoice.filter(q, 'paid_date', 5000);
       // Si la factura no guardó comprobante propio, se usa el del último abono.
