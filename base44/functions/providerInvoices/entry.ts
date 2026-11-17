@@ -175,6 +175,31 @@ Deno.serve(async (req) => {
       totals.pending = round(totals.pending); totals.paid = round(totals.paid);
       return Response.json({ items, totals });
     }
+    if (action === 'paidReport') {
+      // Facturas marcadas como pagadas; el período se aplica sobre la fecha de pago.
+      const q: any = { status: 'pagada' };
+      if (body.from || body.to) {
+        q.paid_date = {};
+        if (body.from) q.paid_date.$gte = `${body.from}T00:00:00.000Z`;
+        if (body.to) q.paid_date.$lte = `${body.to}T23:59:59.999Z`;
+      }
+      if (body.client) {
+        const re = String(body.client).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        q.$or = [{ shipping_mark: { $regex: re, $options: 'i' } }, { client_name: { $regex: re, $options: 'i' } }, { invoice_code: { $regex: re, $options: 'i' } }];
+      }
+      const items = await sr.entities.ProviderInvoice.filter(q, 'paid_date', 5000);
+      // Si la factura no guardó comprobante propio, se usa el del último abono.
+      const noProof = items.filter((i: any) => !i.payment_proof_url).map((i: any) => i.id);
+      const proofByInvoice: any = {};
+      for (const r of await installmentsFor(sr, noProof)) if (r.proof_url) proofByInvoice[r.invoice_id] = r.proof_url;
+      return Response.json({
+        items: items.map((i: any) => ({
+          id: i.id, invoice_code: i.invoice_code, shipping_mark: i.shipping_mark || '', client_name: i.client_name || '',
+          client_email: i.client_email || '', cbm: Number(i.cbm) || 0, total: Number(i.total) || 0, paid_date: i.paid_date || null,
+          payment_proof_url: i.payment_proof_url || proofByInvoice[i.id] || '',
+        })),
+      });
+    }
     if (action === 'update') {
       const d = body.data || {};
       const cbm = Number(d.cbm);

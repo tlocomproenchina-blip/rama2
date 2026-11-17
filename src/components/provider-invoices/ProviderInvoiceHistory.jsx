@@ -7,6 +7,7 @@ import ProviderInvoiceRow from './ProviderInvoiceRow';
 import ProviderInvoiceTotals from './ProviderInvoiceTotals';
 import ProviderSelectionBar from './ProviderSelectionBar';
 import ProviderPayDialog from './ProviderPayDialog';
+import ProviderPaidReportButton from './ProviderPaidReportButton';
 import { piCall } from '@/lib/providerInvoicesApi';
 import { CANONICAL_STATE_NAMES } from '@/components/utils/states';
 
@@ -58,6 +59,7 @@ export default function ProviderInvoiceHistory({ isAdmin, refreshKey }) {
           </SelectContent>
         </Select>
       </div>
+      {isAdmin && <div className="flex justify-end"><ProviderPaidReportButton filters={filters} /></div>}
       <ProviderInvoiceTotals totals={totals} />
       <ProviderSelectionBar selected={selected} isAdmin={isAdmin} onClear={() => setSelectedIds([])} onPay={setPaying} />
       {loading ? <div className="flex justify-center py-10"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
