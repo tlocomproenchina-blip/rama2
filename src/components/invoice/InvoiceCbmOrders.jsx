@@ -4,6 +4,7 @@ import { Boxes } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import ContainerProviderCost from './provider-cross/ContainerProviderCost';
 import ProviderCrossDetail from './provider-cross/ProviderCrossDetail';
+import ProviderCostSplit from './ProviderCostSplit';
 
 // CBM de cada contenedor de la factura y el total de la factura.
 // Los recibos de la factura (manual_recibos) son la fuente: cada uno guarda su
@@ -81,6 +82,7 @@ export default function InvoiceCbmOrders({ invoice }) {
           <span>{formatCbm(total)} CBM</span>
         </span>
       </div>
+      <div className="mt-2"><ProviderCostSplit invoice={invoice} /></div>
     </div>
   );
 }
