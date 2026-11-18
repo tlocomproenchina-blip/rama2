@@ -1,6 +1,7 @@
 import React from 'react';
 import { Checkbox } from "@/components/ui/checkbox";
 import { invoiceProfit } from '@/lib/invoiceProfit';
+import ProviderCostSplit from './ProviderCostSplit';
 
 const fmt = (n) => `$${Number(n || 0).toFixed(2)}`;
 
@@ -21,6 +22,7 @@ export default function ProviderCostControl({ invoice, onTogglePaid, costMap }) 
           Marcar como pagado al proveedor
         </span>
       </label>
+      <ProviderCostSplit invoice={invoice} maritimeCost={p?.linked ? p.cost : undefined} />
       {p?.linked && (
         <div className="flex flex-wrap gap-x-5 gap-y-1 rounded-lg border border-border px-3 py-2 text-xs">
           <span>Ingreso: <b className="text-success">{invoice.status === 'pagada' ? fmt(p.revenue) : 'no pagada'}</b></span>

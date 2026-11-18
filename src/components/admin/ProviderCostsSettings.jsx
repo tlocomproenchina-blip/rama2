@@ -69,8 +69,8 @@ export default function ProviderCostsSettings({ config, setConfig, onSave, savin
               onChange={(e) => setField('provider_reception_fee', e.target.value)} />
           </div>
           <div className="space-y-2">
-            <Label>Costo puerta a puerta ($)</Label>
-            <Input type="number" step="0.01" value={config.provider_door_to_door_cost ?? 0}
+            <Label>Costo proveedor puerta a puerta ($/CBM)</Label>
+            <Input type="number" step="0.01" value={config.provider_door_to_door_cost || 122.5}
               onChange={(e) => setField('provider_door_to_door_cost', e.target.value)} />
           </div>
         </div>

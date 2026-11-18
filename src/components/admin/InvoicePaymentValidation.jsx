@@ -9,6 +9,7 @@ import { FileText, CheckCircle, XCircle, Eye, DollarSign, Calendar, User, Loader
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import useFileViewer from '@/hooks/useFileViewer';
+import ProviderCostSplit from '@/components/invoice/ProviderCostSplit';
 import { downloadPaymentReport } from '@/lib/paymentReportTxt';
 
 const METHOD_LABELS = {
@@ -145,6 +146,8 @@ export default function InvoicePaymentValidation({ invoices, clients, onRefresh,
                     </div>
                   </div>
                 </div>
+
+                <div className="mb-4"><ProviderCostSplit invoice={inv} /></div>
 
                 {inv.payment_method && (
                   <div className="flex items-center gap-2 mb-4">
