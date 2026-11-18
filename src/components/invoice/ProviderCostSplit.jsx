@@ -26,7 +26,9 @@ export default function ProviderCostSplit({ invoice, maritimeCost }) {
   const sea = maritimeCost ?? cbm * rates.sea;
   return (
     <div className="flex flex-wrap gap-x-5 gap-y-1 rounded-lg border border-border bg-muted/40 px-3 py-2 text-xs">
-      <span>Costo proveedor puerta a puerta: <b>{fmt(cbm * rates.door)}</b> <span className="text-muted-foreground">({cbm.toFixed(3)} CBM × {fmt(rates.door)})</span></span>
+      {invoice.delivery_option === 'puerta_a_puerta' && (
+        <span>Costo proveedor puerta a puerta: <b>{fmt(cbm * rates.door)}</b> <span className="text-muted-foreground">({cbm.toFixed(3)} CBM × {fmt(rates.door)})</span></span>
+      )}
       <span>Costo envío marítimo: <b>{fmt(sea)}</b></span>
     </div>
   );
